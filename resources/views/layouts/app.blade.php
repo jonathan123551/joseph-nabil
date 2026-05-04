@@ -110,22 +110,6 @@
                       {{ request()->routeIs('shows.index') ? 'bg-amber-400 text-black' : 'text-gray-300' }}">
                الرئيسية
             </a>
-
-            {{-- العروض السابقة --}}
-            <a href="{{ route('archive') }}"
-               class="px-2 py-1 rounded-full transition
-                      hover:bg-amber-400 hover:text-black
-                      {{ request()->routeIs('archive') ? 'bg-amber-400 text-black' : 'text-gray-300' }}">
-                العروض السابقة
-            </a>
-
-            {{-- About --}}
-            <a href="{{ route('about') }}"
-               class="px-2 py-1 rounded-full transition
-                      hover:bg-amber-400 hover:text-black
-                      {{ request()->routeIs('about') ? 'bg-amber-400 text-black' : 'text-gray-300' }}">
-                عن الفريق
-            </a>
         </nav>
 
     </div>
