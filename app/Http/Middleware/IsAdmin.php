@@ -15,7 +15,12 @@ class IsAdmin
         }
 
         // لو مش هو إيميل الأدمن → 403
-        if (auth()->user()->email !== 'elsar5ateam2026@gmail.com') {
+        $allowedAdmins = [
+            'elsar5ateam2026@gmail.com',
+            'admin@admin.com',
+        ];
+
+        if (! in_array(auth()->user()->email, $allowedAdmins, true)) {
             abort(403, 'غير مصرح لك بدخول لوحة التحكم.');
         }
 
