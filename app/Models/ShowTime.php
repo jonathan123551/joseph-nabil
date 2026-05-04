@@ -35,4 +35,31 @@ class ShowTime extends Model
     {
         return $this->hasMany(Booking::class, 'show_time_id');
     }
+
+    public function bookedSeats()
+    {
+        return $this->hasMany(BookingSeat::class, 'show_time_id');
+    }
+
+    public function seatBlocks()
+    {
+        return $this->hasMany(SeatBlock::class, 'show_time_id');
+    }
+
+    /**
+     * IDs of seats that are unavailable for this show time — either booked
+     * (pending/approved) or admin-blocked.
+     */
+    public function unavailableSeatIds(): array
+    {
+        $bookedActive = $this->bookedSeats()
+            ->whereHas('booking', function ($q) {
+                $q->whereIn('status', ['approved', 'pending']);
+            })
+            ->pluck('seat_id');
+
+        $blocked = $this->seatBlocks()->pluck('seat_id');
+
+        return $bookedActive->merge($blocked)->unique()->values()->all();
+    }
 }

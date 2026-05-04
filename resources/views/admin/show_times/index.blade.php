@@ -129,6 +129,13 @@
 
                 <td class="px-3 py-2 text-center align-middle">
                    <div class="flex justify-center items-center gap-2">
+                        @if($show->theater_type === \App\Models\Show::THEATER_ANBA_RUWEIS)
+                            <a href="{{ route('admin.show-times.seats.index', $time) }}"
+                               class="px-2 py-1 rounded-full bg-amber-400/20 text-amber-200">
+                                المقاعد
+                            </a>
+                        @endif
+
                         <a href="{{ route('admin.shows.times.edit', [$show, $time]) }}"
                            class="px-2 py-1 rounded-full bg-white/10">
                             تعديل
@@ -235,6 +242,13 @@
    
 
     <div class="flex gap-2">
+        @if($show->theater_type === \App\Models\Show::THEATER_ANBA_RUWEIS)
+            <a href="{{ route('admin.show-times.seats.index', $time) }}"
+               class="flex-1 text-center py-2 bg-amber-400/20 text-amber-200 rounded-lg text-xs">
+                المقاعد
+            </a>
+        @endif
+
         <a href="{{ route('admin.shows.times.edit', [$show, $time]) }}"
            class="flex-1 text-center py-2 bg-white/10 rounded-lg text-xs">
             تعديل

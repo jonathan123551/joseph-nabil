@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ScannerController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\SeatBlockController;
 use App\Http\Controllers\Admin\TeamApplicationController as AdminTeamApplicationController;
 
 /*
@@ -162,6 +163,12 @@ Route::middleware('admin')
 
     Route::delete('/admin/booking/{id}', [AdminBookingController::class, 'delete'])
     ->name('booking.delete');
+    // 🎭 Anba Ruweis seat management (per show time)
+    Route::get('/show-times/{showTime}/seats', [SeatBlockController::class, 'index'])
+        ->name('show-times.seats.index');
+    Route::post('/show-times/{showTime}/seats/{seat}/toggle', [SeatBlockController::class, 'toggle'])
+        ->name('show-times.seats.toggle');
+
     // Scanner
     Route::get('/scanner', [ScannerController::class, 'index'])->name('scanner');
     Route::post('/scanner/check', [ScannerController::class, 'check'])->name('scanner.check');

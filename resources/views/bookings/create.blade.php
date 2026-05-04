@@ -54,6 +54,7 @@
     </div>
 
 </div>
+        @if(!($isAnbaRuweis ?? false))
         {{-- ======================
         | 📝 FORM
         ======================= --}}
@@ -123,14 +124,24 @@
                 </button>
             </form>
         </div>
+        @else
+            @include('bookings._anba_seat_picker', [
+                'showTime'         => $showTime,
+                'seatsByRow'       => $seatsByRow ?? [],
+                'unavailableSeats' => $unavailableSeats ?? [],
+                'balconyPrice'     => $balconyPrice ?? 0,
+                'hallPrice'        => $hallPrice ?? 0,
+            ])
+        @endif
 
     </div>
 </section>
 
 
 {{-- ======================
-| SCRIPT
+| SCRIPT (manual flow only — Anba Ruweis ships its own script in the partial)
 ====================== --}}
+@if(!($isAnbaRuweis ?? false))
 <script>
 
 let count = 1;
@@ -221,5 +232,6 @@ bookingForm.addEventListener('submit', function (e) {
 });
 
 </script>
+@endif
 
 @endsection
