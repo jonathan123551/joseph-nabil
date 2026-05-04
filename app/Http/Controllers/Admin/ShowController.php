@@ -4,9 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Show;
-use Illuminate\Http\Request;
+use App\Support\ImageOptimizer;
 use Cloudinary\Api\Upload\UploadApi;
 use Cloudinary\Configuration\Configuration;
+use Illuminate\Http\Request;
 
 class ShowController extends Controller
 {
@@ -39,8 +40,8 @@ class ShowController extends Controller
         $data = $request->validate([
             'title'           => 'required|string|max:255',
             'description'     => 'nullable|string',
-            'poster'          => 'nullable|image|max:4096',
-            'ticket_template' => 'nullable|image|max:8192',
+            'poster'          => 'nullable|image|max:20480',
+            'ticket_template' => 'nullable|image|max:20480',
             'ticket_qr_x'     => 'nullable|integer|min:0',
             'ticket_qr_y'     => 'nullable|integer|min:0',
             'ticket_qr_size'  => 'nullable|integer|min:10',
@@ -52,18 +53,23 @@ class ShowController extends Controller
 
         $uploader = new UploadApi();
 
-        // 🎭 Poster
+        // 🎭 Poster — optimized before upload
         if ($request->hasFile('poster')) {
-            $poster = $uploader->upload(
-                $request->file('poster')->getRealPath(),
-                ['folder' => 'shows/posters']
-            );
+            $optimized = ImageOptimizer::optimize($request->file('poster'), 1600, 82);
+
+            $poster = $uploader->upload($optimized, ['folder' => 'shows/posters']);
+
+            if ($optimized !== $request->file('poster')->getRealPath()) {
+                @unlink($optimized);
+            }
 
             $data['poster_path'] = $poster['secure_url'];
             $data['poster_public_id'] = $poster['public_id'];
         }
 
-        // 🎟️ Ticket template
+        // 🎟️ Ticket template — NOT resized: admin places the QR using
+        // pixel-perfect coordinates (ticket_qr_x/y) against the original
+        // image. Resizing would invalidate those numbers.
         if ($request->hasFile('ticket_template')) {
             $ticket = $uploader->upload(
                 $request->file('ticket_template')->getRealPath(),
@@ -107,8 +113,8 @@ class ShowController extends Controller
         $data = $request->validate([
             'title'           => 'required|string|max:255',
             'description'     => 'nullable|string',
-            'poster'          => 'nullable|image|max:4096',
-            'ticket_template' => 'nullable|image|max:8192',
+            'poster'          => 'nullable|image|max:20480',
+            'ticket_template' => 'nullable|image|max:20480',
             'ticket_qr_x'     => 'nullable|integer|min:0',
             'ticket_qr_y'     => 'nullable|integer|min:0',
             'ticket_qr_size'  => 'nullable|integer|min:10',
@@ -120,16 +126,19 @@ class ShowController extends Controller
 
         $uploader = new UploadApi();
 
-        // 🖼️ Update poster
+        // 🖼️ Update poster — optimized before upload
         if ($request->hasFile('poster')) {
             if ($show->poster_public_id) {
                 $uploader->destroy($show->poster_public_id);
             }
 
-            $poster = $uploader->upload(
-                $request->file('poster')->getRealPath(),
-                ['folder' => 'shows/posters']
-            );
+            $optimized = ImageOptimizer::optimize($request->file('poster'), 1600, 82);
+
+            $poster = $uploader->upload($optimized, ['folder' => 'shows/posters']);
+
+            if ($optimized !== $request->file('poster')->getRealPath()) {
+                @unlink($optimized);
+            }
 
             $show->poster_path = $poster['secure_url'];
             $show->poster_public_id = $poster['public_id'];

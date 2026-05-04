@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ShowTime;
 use App\Models\Booking;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use App\Models\Setting;
-use Illuminate\Support\Facades\Cache;
-use Cloudinary\Configuration\Configuration;
+use App\Models\ShowTime;
+use App\Support\ImageOptimizer;
 use Cloudinary\Api\Upload\UploadApi;
+use Cloudinary\Configuration\Configuration;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
@@ -65,7 +66,7 @@ class BookingController extends Controller
                 'names.*' => ['required','string','max:255'],
                 'phones' => ['required','array'],
                 'phones.*' => ['required','string','min:8','max:20'],
-                'payment_screenshot' => 'required|image|max:16000',
+                'payment_screenshot' => 'required|image|max:20480',
             ]);
 
             // 🔥 حساب التذاكر المتاحة
@@ -94,16 +95,17 @@ class BookingController extends Controller
             // 📞 أول رقم
             $mainPhone = $this->normalizeEgyptPhone($request->phones[0]);
 
-            // ☁️ رفع الصورة
-            $file = $request->file('payment_screenshot');
-            $tempPath = sys_get_temp_dir() . '/' . uniqid();
-            file_put_contents($tempPath, file_get_contents($file->getRealPath()));
+            // ☁️ رفع الصورة (مع تصغير وضغط)
+            $file       = $request->file('payment_screenshot');
+            $optimized  = ImageOptimizer::optimize($file, 1600, 80);
 
-            $upload = (new UploadApi())->upload($tempPath, [
-                'folder' => 'payments/screenshots'
+            $upload = (new UploadApi())->upload($optimized, [
+                'folder' => 'payments/screenshots',
             ]);
 
-            @unlink($tempPath);
+            if ($optimized !== $file->getRealPath()) {
+                @unlink($optimized);
+            }
 
             // ✅ إنشاء الحجز
             $booking = Booking::create([

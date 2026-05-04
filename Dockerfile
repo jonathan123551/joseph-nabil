@@ -24,6 +24,18 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
 RUN pecl install redis && docker-php-ext-enable redis
 
 # =========================
+# PHP runtime limits — allow larger image uploads (posters, screenshots,
+# ticket templates) without 413 / PostTooLargeException.
+# =========================
+RUN { \
+        echo "upload_max_filesize=25M"; \
+        echo "post_max_size=30M"; \
+        echo "memory_limit=256M"; \
+        echo "max_execution_time=120"; \
+        echo "max_input_time=120"; \
+    } > /usr/local/etc/php/conf.d/zz-uploads.ini
+
+# =========================
 # Composer
 # =========================
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
