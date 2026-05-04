@@ -207,6 +207,7 @@
                         <th class="px-3 py-2 text-center text-emerald-300">Approved</th>
                         <th class="px-3 py-2 text-center text-amber-300">Pending</th>
                         <th class="px-3 py-2 text-center text-sky-300">المتبقي</th>
+                        <th class="px-3 py-2 text-center text-amber-300">Revenue</th>
                     </tr>
                     </thead>
 
@@ -248,6 +249,12 @@
                                         ? 'bg-sky-500/15 text-sky-300 border border-sky-500/30'
                                         : 'bg-red-500/15 text-red-300 border border-red-500/30' }}">
                                     {{ $time->remaining_tickets }}
+                                </span>
+                            </td>
+
+                            <td class="px-3 py-2 text-center">
+                                <span class="px-2 py-1 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/30">
+                                    {{ number_format($time->revenue, 0) }} EGP
                                 </span>
                             </td>
 
@@ -323,6 +330,13 @@
 
                         </div>
 
+                        <div class="flex justify-between bg-amber-400/10 rounded-lg px-2 py-1 col-span-2">
+                            <span class="text-amber-300">Revenue</span>
+                            <span class="text-amber-300 font-semibold">
+                                {{ number_format($time->revenue, 0) }} EGP
+                            </span>
+                        </div>
+
                     </div>
 
                 </div>
@@ -349,18 +363,6 @@
             تسجيل خروج
         </button>
     </form>
-
-    {{-- زر تعديل About --}}
-    <a href="{{ route('admin.about.edit') }}"
-       class="text-xs text-amber-400 hover:text-amber-300 transition">
-        تعديل About
-    </a>
-
-    {{-- زر تعديل العروض السابقة --}}
-    <a href="{{ route('admin.archive.index') }}"
-       class="text-xs text-emerald-400 hover:text-emerald-300 transition">
-        تعديل العروض السابقة
-    </a>
 
 </div>
 
