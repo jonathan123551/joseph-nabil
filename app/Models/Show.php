@@ -17,7 +17,18 @@ class Show extends Model
     'ticket_qr_size',
     'poster_public_id',
     'ticket_template_public_id',
+    'theater_type',
+    'balcony_price',
+    'hall_price',
 ];
+
+   public const THEATER_ANBA_RUWEIS = 'anba_ruweis';
+   public const THEATER_OTHER       = 'other';
+
+   public const THEATER_TYPES = [
+       self::THEATER_ANBA_RUWEIS => 'مسرح الأنبا رويس',
+       self::THEATER_OTHER       => 'Other',
+   ];
 
 
     public function showTimes()

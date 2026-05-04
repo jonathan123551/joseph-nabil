@@ -45,6 +45,9 @@ class ShowController extends Controller
             'ticket_qr_y'     => 'nullable|integer|min:0',
             'ticket_qr_size'  => 'nullable|integer|min:10',
             'is_active'       => 'nullable|boolean',
+            'theater_type'    => 'required|in:' . implode(',', array_keys(\App\Models\Show::THEATER_TYPES)),
+            'balcony_price'   => 'nullable|integer|min:0|required_if:theater_type,anba_ruweis',
+            'hall_price'      => 'nullable|integer|min:0|required_if:theater_type,anba_ruweis',
         ]);
 
         $uploader = new UploadApi();
@@ -71,6 +74,8 @@ class ShowController extends Controller
             $data['ticket_template_public_id'] = $ticket['public_id'];
         }
 
+        $isAnbaRuweis = ($data['theater_type'] ?? Show::THEATER_OTHER) === Show::THEATER_ANBA_RUWEIS;
+
         $show = Show::create([
             'title'                       => $data['title'],
             'description'                 => $data['description'] ?? null,
@@ -82,6 +87,9 @@ class ShowController extends Controller
             'ticket_qr_y'                 => $data['ticket_qr_y'] ?? 0,
             'ticket_qr_size'              => $data['ticket_qr_size'] ?? 220,
             'is_active'                   => $request->boolean('is_active'),
+            'theater_type'                => $data['theater_type'],
+            'balcony_price'               => $isAnbaRuweis ? ($data['balcony_price'] ?? null) : null,
+            'hall_price'                  => $isAnbaRuweis ? ($data['hall_price']    ?? null) : null,
         ]);
 
         return redirect()
@@ -105,6 +113,9 @@ class ShowController extends Controller
             'ticket_qr_y'     => 'nullable|integer|min:0',
             'ticket_qr_size'  => 'nullable|integer|min:10',
             'is_active'       => 'nullable|boolean',
+            'theater_type'    => 'required|in:' . implode(',', array_keys(\App\Models\Show::THEATER_TYPES)),
+            'balcony_price'   => 'nullable|integer|min:0|required_if:theater_type,anba_ruweis',
+            'hall_price'      => 'nullable|integer|min:0|required_if:theater_type,anba_ruweis',
         ]);
 
         $uploader = new UploadApi();
@@ -139,12 +150,17 @@ class ShowController extends Controller
             $show->ticket_template_public_id = $ticket['public_id'];
         }
 
+        $isAnbaRuweis = ($data['theater_type'] ?? Show::THEATER_OTHER) === Show::THEATER_ANBA_RUWEIS;
+
         $show->title          = $data['title'];
         $show->description    = $data['description'] ?? null;
         $show->ticket_qr_x    = $data['ticket_qr_x'] ?? 0;
         $show->ticket_qr_y    = $data['ticket_qr_y'] ?? 0;
         $show->ticket_qr_size = $data['ticket_qr_size'] ?? 220;
         $show->is_active      = $request->boolean('is_active');
+        $show->theater_type   = $data['theater_type'];
+        $show->balcony_price  = $isAnbaRuweis ? ($data['balcony_price'] ?? null) : null;
+        $show->hall_price     = $isAnbaRuweis ? ($data['hall_price']    ?? null) : null;
 
         $show->save();
 

@@ -24,8 +24,6 @@ use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ScannerController;
 use App\Http\Controllers\Admin\SettingsController;
-use App\Http\Controllers\Admin\AboutController;
-use App\Http\Controllers\Admin\ArchiveController;
 use App\Http\Controllers\Admin\TeamApplicationController as AdminTeamApplicationController;
 
 /*
@@ -47,14 +45,6 @@ Route::get('/', [SiteController::class, 'home'])->name('home');
 // Shows
 Route::get('/shows', [ShowController::class, 'index'])->name('shows.index');
 Route::get('/shows/{show}', [ShowController::class, 'show'])->name('shows.show');
-
-// About
-Route::get('/about', [SiteController::class, 'about'])->name('about');
-
-// Archive
-Route::get('/archive', [SiteController::class, 'archive'])->name('archive');
-Route::get('/archive/{archive}', [SiteController::class, 'archiveShow'])
-    ->name('archive.show');
 
 // Booking
 Route::get('/book/{showTime}', [BookingController::class, 'create'])
@@ -172,18 +162,6 @@ Route::middleware('admin')
 
     Route::delete('/admin/booking/{id}', [AdminBookingController::class, 'delete'])
     ->name('booking.delete');
-    // Archive
-    Route::get('/archive', [ArchiveController::class, 'index'])->name('archive.index');
-    Route::get('/archive/create', [ArchiveController::class, 'create'])->name('archive.create');
-    Route::post('/archive', [ArchiveController::class, 'store'])->name('archive.store');
-    Route::get('/archive/{archive}/edit', [ArchiveController::class, 'edit'])->name('archive.edit');
-    Route::put('/archive/{archive}', [ArchiveController::class, 'update'])->name('archive.update');
-    Route::delete('/archive/{archive}', [ArchiveController::class, 'destroy'])->name('archive.destroy');
-
-    // About
-    Route::get('/about', [AboutController::class, 'edit'])->name('about.edit');
-    Route::post('/about', [AboutController::class, 'update'])->name('about.update');
-
     // Scanner
     Route::get('/scanner', [ScannerController::class, 'index'])->name('scanner');
     Route::post('/scanner/check', [ScannerController::class, 'check'])->name('scanner.check');

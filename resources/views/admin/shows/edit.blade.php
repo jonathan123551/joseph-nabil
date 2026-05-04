@@ -47,6 +47,41 @@
                       class="w-full rounded-xl bg-black/60 border border-white/15 px-3 py-2 text-sm focus:border-amber-400">{{ old('description', $show->description) }}</textarea>
         </div>
 
+        {{-- نوع المسرح --}}
+        <div>
+            <label class="block text-xs mb-1">نوع المسرح</label>
+            <div class="flex flex-col sm:flex-row gap-2 text-xs">
+                @foreach(\App\Models\Show::THEATER_TYPES as $value => $label)
+                    <label class="flex items-center gap-2 px-3 py-2 rounded-xl bg-black/60 border border-white/15 cursor-pointer hover:border-amber-400 transition">
+                        <input type="radio"
+                               name="theater_type"
+                               value="{{ $value }}"
+                               data-theater-type
+                               class="scale-90"
+                               {{ old('theater_type', $show->theater_type ?? \App\Models\Show::THEATER_OTHER) === $value ? 'checked' : '' }}>
+                        <span>{{ $label }}</span>
+                    </label>
+                @endforeach
+            </div>
+        </div>
+
+        {{-- أسعار التذاكر (يظهر فقط لمسرح الأنبا رويس) --}}
+        <div data-anba-ruweis-fields
+             class="grid grid-cols-2 gap-3 {{ old('theater_type', $show->theater_type) === \App\Models\Show::THEATER_ANBA_RUWEIS ? '' : 'hidden' }}">
+            <div>
+                <label class="block text-xs mb-1">سعر تذكرة البلكون (EGP)</label>
+                <input type="number" min="0" name="balcony_price"
+                       value="{{ old('balcony_price', $show->balcony_price) }}"
+                       class="w-full rounded-xl bg-black/60 border border-white/15 px-3 py-2 text-sm focus:outline-none focus:border-amber-400">
+            </div>
+            <div>
+                <label class="block text-xs mb-1">سعر تذكرة الصالة (EGP)</label>
+                <input type="number" min="0" name="hall_price"
+                       value="{{ old('hall_price', $show->hall_price) }}"
+                       class="w-full rounded-xl bg-black/60 border border-white/15 px-3 py-2 text-sm focus:outline-none focus:border-amber-400">
+            </div>
+        </div>
+
         {{-- Poster --}}
         <div>
             <label class="text-xs mb-1">البوستر</label>
@@ -390,6 +425,24 @@ document.getElementById('ticketInput')?.addEventListener('change', function(e){
     }
 });
 
+    </script>
+
+    {{-- تبديل ظهور أسعار البلكون/الصالة بناءً على نوع المسرح --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const radios = document.querySelectorAll('[data-theater-type]');
+            const fields = document.querySelector('[data-anba-ruweis-fields]');
+            if (!fields || radios.length === 0) return;
+
+            function sync() {
+                const checked = document.querySelector('[data-theater-type]:checked');
+                const isAnba = checked && checked.value === '{{ \App\Models\Show::THEATER_ANBA_RUWEIS }}';
+                fields.classList.toggle('hidden', !isAnba);
+            }
+
+            radios.forEach(r => r.addEventListener('change', sync));
+            sync();
+        });
     </script>
 
 @endsection
