@@ -65,6 +65,10 @@ class DashboardController extends Controller
             $time->approved_tickets  = $approved;
             $time->pending_tickets   = $pending;
             $time->remaining_tickets = $remaining;
+
+            // إيرادات الميعاد ده = التذاكر المعتمدة × سعر التذكرة
+            $time->revenue = $time->approved_tickets
+                * ($time->ticket_price ?? $time->price ?? ($time->show->price ?? 0));
         }
 
         // 🔹 بيانات التحويل (محفوظة في جدول settings)
