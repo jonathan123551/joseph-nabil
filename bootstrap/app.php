@@ -23,6 +23,16 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Friendly Arabic message instead of the default 413 / debug page
+        // when a user uploads a file larger than PHP's post_max_size.
+        $exceptions->render(function (\Illuminate\Http\Exceptions\PostTooLargeException $e, $request) {
+            $message = '❌ الملف المرفوع كبير جدًا. الحد الأقصى المسموح هو 25 ميجابايت.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message], 413);
+            }
+
+            return back()->withErrors(['general' => $message])->withInput();
+        });
     })
     ->create();
