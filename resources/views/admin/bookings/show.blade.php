@@ -158,18 +158,20 @@
         </div>
     @endif
 
-    {{-- Action buttons --}}
+    {{-- Action buttons (inline, kept for desktop visibility) --}}
     <div class="flex gap-3 justify-center flex-wrap">
         @if($booking->status === 'pending')
 
-            <form action="{{ route('admin.bookings.approve', $booking) }}" method="POST">
+            <form action="{{ route('admin.bookings.approve', $booking) }}" method="POST"
+                  data-pt-confirm='{"tone":"warn","title":"اعتماد الحجز؟","body":"هتأكد الحجز ويتبعت QR للعميل على واتساب.","okLabel":"اعتماد","cancelLabel":"إلغاء","okVariant":"emerald"}'>
                 @csrf
                 <button class="prism-btn-emerald text-sm px-5 py-2">
                     ✔ اعتماد
                 </button>
             </form>
 
-            <form action="{{ route('admin.bookings.reject', $booking) }}" method="POST">
+            <form action="{{ route('admin.bookings.reject', $booking) }}" method="POST"
+                  data-pt-confirm='{"tone":"error","title":"رفض الحجز؟","body":"الحجز هيترفض، ومش هيوصل أي QR للعميل.","okLabel":"رفض","cancelLabel":"إلغاء","okVariant":"rose"}'>
                 @csrf
                 <button class="prism-btn-rose text-sm px-5 py-2">
                     ✖ رفض
@@ -184,7 +186,7 @@
         <div class="text-center mt-6">
 
             <form action="{{ route('admin.booking.delete', $booking->id) }}" method="POST"
-                  onsubmit="return confirm('متأكد عايز تمسح الحجز بكل التذاكر؟');">
+                  data-pt-confirm='{"tone":"error","title":"حذف الحجز بالكامل؟","body":"هيمسح الحجز وكل التذاكر اللي طلعت منه. الإجراء ده مش بيتراجع فيه.","okLabel":"حذف نهائي","cancelLabel":"إلغاء","okVariant":"rose"}'>
                 @csrf
                 @method('DELETE')
 
@@ -196,5 +198,34 @@
         </div>
     @endif
 
+    {{-- spacer so the floating action bar doesn't cover the last content --}}
+    @if($booking->status === 'pending')
+        <div style="height: 96px;" aria-hidden="true"></div>
+    @endif
+
 </section>
+
+{{-- Sticky floating action bar (admin pending review) --}}
+@if($booking->status === 'pending')
+    <div class="pt-action-bar is-on" id="ptAdminBar">
+        <div class="pt-action-bar-inner">
+            <div class="pt-bar-summary">
+                <span class="pt-bar-label">حجز قيد المراجعة</span>
+                <span class="pt-bar-meta">{{ $booking->name ?? '' }} · {{ $booking->phone ?? '' }}</span>
+            </div>
+            <div class="pt-bar-actions">
+                <form action="{{ route('admin.bookings.reject', $booking) }}" method="POST"
+                      data-pt-confirm='{"tone":"error","title":"رفض الحجز؟","body":"الحجز هيترفض، ومش هيوصل أي QR للعميل.","okLabel":"رفض","cancelLabel":"إلغاء","okVariant":"rose"}'>
+                    @csrf
+                    <button class="prism-btn-rose text-sm px-4 py-2">✖ رفض</button>
+                </form>
+                <form action="{{ route('admin.bookings.approve', $booking) }}" method="POST"
+                      data-pt-confirm='{"tone":"warn","title":"اعتماد الحجز؟","body":"هتأكد الحجز ويتبعت QR للعميل على واتساب.","okLabel":"اعتماد","cancelLabel":"إلغاء","okVariant":"emerald"}'>
+                    @csrf
+                    <button class="prism-btn-emerald text-sm px-4 py-2">✔ اعتماد</button>
+                </form>
+            </div>
+        </div>
+    </div>
+@endif
 @endsection

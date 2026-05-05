@@ -15,7 +15,7 @@
                         Admin Console
                     </span>
                     <span class="prism-pill">
-                        <span style="letter-spacing:.28em; font-size:10px;">PRISM · CONTROL</span>
+                        <span style="letter-spacing:.28em; font-size:10px;">PREMIUM · CONTROL</span>
                     </span>
                 </div>
                 <h1 class="prism-headline text-xl sm:text-2xl">
@@ -37,7 +37,7 @@
         </div>
 
         {{-- ============================ STATS — TOP ROW ============================ --}}
-        <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-3 prism-stagger">
+        <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-3 prism-stagger pt-reveal pt-reveal-stagger">
 
             {{-- إجمالي العروض --}}
             <div class="prism-glass p-4 flex flex-col gap-1 prism-fade-up">
@@ -74,7 +74,7 @@
         </div>
 
         {{-- ============================ STATS — REVENUE / SETTINGS ============================ --}}
-        <div class="grid md:grid-cols-3 gap-3 prism-stagger">
+        <div class="grid md:grid-cols-3 gap-3 prism-stagger pt-reveal pt-reveal-stagger">
 
             {{-- إجمالي الفلوس --}}
             <div class="prism-glass p-4 flex flex-col gap-1 prism-fade-up"
@@ -137,7 +137,7 @@
         </div>
 
         {{-- ============================ MAIN CONTROLS ============================ --}}
-        <div class="grid md:grid-cols-3 gap-4 prism-stagger">
+        <div class="grid md:grid-cols-3 gap-4 prism-stagger pt-reveal pt-reveal-stagger">
 
             <a href="{{ route('admin.shows.index') }}"
                class="prism-glass prism-glow-border p-5 transition group prism-fade-up"
@@ -186,7 +186,7 @@
         </div>
 
         {{-- ============================ SHOW TIMES TABLE ============================ --}}
-        <section class="space-y-3">
+        <section class="space-y-3 pt-reveal">
 
             <h2 class="text-sm font-semibold text-[color:var(--prism-text-2)] mb-2">
                 المواعيد والتذاكر لكل عرض

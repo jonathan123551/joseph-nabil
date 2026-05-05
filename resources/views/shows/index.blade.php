@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'العروض المتاحة · PRISM')
+@section('title', 'العروض المتاحة · Premium Tickets')
 
 @section('content')
 
@@ -95,7 +95,7 @@
                 </div>
             </div>
         @else
-            <div class="grid md:grid-cols-2 gap-5 prism-stagger">
+            <div class="grid md:grid-cols-2 gap-5 prism-stagger pt-reveal pt-reveal-stagger">
                 @foreach($shows as $show)
                     <article class="prism-glass prism-card-hover p-4 flex flex-col justify-between">
 

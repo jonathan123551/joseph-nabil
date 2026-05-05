@@ -1,7 +1,7 @@
 {{-- resources/views/shows/show.blade.php --}}
 @extends('layouts.app')
 
-@section('title', $show->title . ' · PRISM')
+@section('title', $show->title . ' · Premium Tickets')
 
 @section('content')
 
