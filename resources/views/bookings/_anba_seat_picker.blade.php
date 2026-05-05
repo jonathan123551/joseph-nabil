@@ -459,6 +459,13 @@
 
             const rows = seatData.hall || {};
 
+            // ===== FRONT CHAIN ROWS =====
+            // Front section A→H gets a progressive horizontal "chain" shift:
+            // each row starts half a seat (SEAT_W / 2) further than the
+            // previous one. Applied to every seat (center + both wings).
+            // Back section I→R is intentionally left untouched.
+            const FRONT_ROWS = ['A','B','C','D','E','F','G','H'];
+
             let visualRow = 0;
 
             ROWS_ORDER.forEach((letter, idx) => {
@@ -468,6 +475,13 @@
                 }
                 const data = rows[letter];
                 if (!data) return;
+
+                // Half-gap between Q and R (smaller than the full GAP marker
+                // between H and I). Bumps R's vertical position by 0.75 of a
+                // ROW_PITCH so it sits slightly further back than Q.
+                if (letter === 'R') {
+                    visualRow += 0.75;
+                }
 
                 const cL = (data.left   || []).length;
                 // Row Q's center seats are admin-only management block;
@@ -480,6 +494,11 @@
                 // interpolated linearly.
                 const step       = RIGHT_SHIFT_STEPS[letter] || 0;
                 const baseOffset = step * STEP;
+
+                // Progressive chain shift for front rows only (A=0, B=11,
+                // C=22, … H=77). Zero for everything else.
+                const frontIdx    = FRONT_ROWS.indexOf(letter);
+                const chainOffset = frontIdx >= 0 ? frontIdx * (SEAT_W / 2) : 0;
 
                 const rowY = ROW_AREA_TOP + visualRow * ROW_PITCH;
                 visualRow++;
@@ -527,7 +546,8 @@
                         const x = leftBaseX
                                 + i * SEAT_PITCH
                                 + SEAT_W / 2
-                                - baseOffset;
+                                - baseOffset
+                                + chainOffset;
                         pushSeat(data.left[i], letter, x, rowY, false);
                     }
                 }
@@ -535,7 +555,10 @@
                 // ===== CENTER =====   straight column, never offset.
                 // Row I center is the "خاص بالإدارة" block (admin-only with X).
                 for (let i = 0; i < cC; i++) {
-                    const x = centerStartX + i * SEAT_PITCH + SEAT_W / 2;
+                    const x = centerStartX
+                            + i * SEAT_PITCH
+                            + SEAT_W / 2
+                            + chainOffset;
                     pushSeat(data.center[i], letter, x, rowY, false);
                 }
 
@@ -548,7 +571,8 @@
                         const x = rightStartX
                                 + i * SEAT_PITCH
                                 + SEAT_W / 2
-                                + baseOffset;
+                                + baseOffset
+                                + chainOffset;
                         pushSeat(data.right[i], letter, x, rowY, false);
                     }
                 }
@@ -560,6 +584,7 @@
                     rightStartX,
                     cL, cC, cR,
                     baseOffset,
+                    chainOffset,
                 });
             });
         }
@@ -671,16 +696,18 @@
             const meta = ROW_META.get(letter);
             if (!meta) return;
 
-            // Outermost seat positions match the wing math:
-            //   left  outermost = leftBaseX + W/2 - baseOffset
-            //                   = (leftEndX - leftWingWidth) + W/2 - baseOffset
-            //   right outermost = rightStartX + (cR-1)*PITCH + W/2 + baseOffset
+            // Outermost seat positions match the wing math (incl. chainOffset
+            // for front rows A–H, which shifts every seat horizontally):
+            //   left  outermost = (leftEndX - leftWingWidth) + W/2 - baseOffset + chainOffset
+            //   right outermost = rightStartX + (cR-1)*PITCH + W/2 + baseOffset + chainOffset
             const leftWingWidth = meta.cL > 0 ? meta.cL * SEAT_PITCH - SEAT_GAP : 0;
-            const leftOuterX    = meta.leftEndX - leftWingWidth + SEAT_W / 2 - meta.baseOffset;
+            const chain         = meta.chainOffset || 0;
+            const leftOuterX    = meta.leftEndX - leftWingWidth + SEAT_W / 2 - meta.baseOffset + chain;
             const rightOuterX   = meta.rightStartX
                                 + (meta.cR > 0 ? (meta.cR - 1) * SEAT_PITCH : 0)
                                 + SEAT_W / 2
-                                + meta.baseOffset;
+                                + meta.baseOffset
+                                + chain;
 
             const isR = letter === 'R';
             ctx.fillStyle = isR ? 'rgba(251,191,36,0.95)' : 'rgba(253,224,71,0.7)';
