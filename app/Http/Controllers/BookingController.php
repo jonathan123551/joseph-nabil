@@ -329,7 +329,14 @@ class BookingController extends Controller
             @unlink($optimized);
         }
 
-        return $upload;
+        // Cloudinary returns ApiResponse (an ArrayObject subclass), not a
+        // plain array. Convert so callers using $upload['secure_url'] still
+        // work and the declared return type is satisfied at runtime.
+        if ($upload instanceof \ArrayObject) {
+            return $upload->getArrayCopy();
+        }
+
+        return is_array($upload) ? $upload : (array) $upload;
     }
 
     private function normalizeEgyptPhone(string $phone): string
