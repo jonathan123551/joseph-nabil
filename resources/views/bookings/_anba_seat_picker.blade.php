@@ -528,21 +528,9 @@ if (cL > 0) {
                 // Right wing — data.right is ordered INNER → OUTER (e.g. [12,14,…,24]).
                 if (cR > 0) {
     for (let i = 0; i < cR; i++) {
-
-    const progress = i / (cR - 1 || 1);
-    const curveOffset = Math.sin(progress * Math.PI) * 20;
-
-    const isShift = (idx % 2 === 0);
-
-    const x = rightStartX
-            + i * SEAT_PITCH
-            + SEAT_W / 2
-            - (isShift ? SEAT_PITCH / 2 : 0);
-
-    
-
-    pushSeat(data.right[i], letter, x, y, false);
-}
+        const x = rightStartX + i * SEAT_PITCH + SEAT_W / 2;
+        pushSeat(data.right[i], letter, x, rowY, false);
+    }
 }
 
                 ROW_META.set(letter, {
