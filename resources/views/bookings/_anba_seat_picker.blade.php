@@ -375,15 +375,18 @@
 
         // ===== Geometry constants =====
         //
-        // Real-theater linear layout. The center column is rendered as a
-        // straight vertical column, perfectly centered. Left and right
-        // wings receive a per-row PROGRESSIVE offset whose magnitude is
-        // set by the RIGHT_SHIFT_STEPS table below (in HALF-SEAT widths).
+        // Real-theater stepped layout. The center column is rendered as a
+        // straight vertical column, perfectly centered. Each row's left
+        // and right wings translate as a SOLID BLOCK by a per-row offset:
         //
-        // The progressive offset is anchored to 0 at each wing's INNER
-        // edge and ramps linearly up to its full value at the OUTER
-        // edge — so adjacent rows stay smoothly aligned near the
-        // center, while the back-of-hall corners fan outward.
+        //   LEFT  wing → x  -=  offset
+        //   RIGHT wing → x  +=  offset
+        //
+        // The offset comes from RIGHT_SHIFT_STEPS[row] (in half-seat widths,
+        // multiplied by STEP). Row Q is the anchor (offset = 0); front
+        // rows step further out. No interpolation, no stagger, no bias —
+        // every seat in a wing moves by exactly the same amount, so the
+        // wing keeps its natural SEAT_PITCH spacing.
         //
         // To find where the math runs, search the file for:
         //   ===== WING OFFSET (LEFT)  =====
@@ -400,11 +403,11 @@
         const ROW_R_GAP        = 140;    // big mid-gap for row R (split halves)
 
         // ===== HALF-SEAT STEP =====
-        // Base unit for RIGHT_SHIFT_STEPS — each entry below is multiplied
-        // by STEP to produce the wing's outermost offset in pixels.
-        // STEP intentionally includes SEAT_GAP so a value of "1" equals
-        // exactly half of one seat's pitch.
-        const STEP             = SEAT_PITCH / 2;
+        // Base unit for RIGHT_SHIFT_STEPS. "1 unit" = half a seat's WIDTH
+        // (the seat itself, not including the SEAT_GAP between seats).
+        // Multiplying a row's table entry by STEP gives that row's full
+        // wing-translation offset in pixels.
+        const STEP             = SEAT_W / 2;
 
         // ===== WING OFFSET STEPS =====
         // Per-row offset at the OUTERMOST seat of each wing (in HALF-SEAT
@@ -414,10 +417,16 @@
         //
         // Tweak any single row here without touching layout math:
         const RIGHT_SHIFT_STEPS = {
+            // Back section — Q is the anchor (0 offset).
             Q: 0,    P: 1,    O: 2,    N: 3,
-            M: 3.2,  L: 3.4,  K: 3.6,  J: 3.8,  I: 4,
-            H: 5,    G: 6,    F: 7,    E: 8,    D: 9,
-            C: 10,   B: 10.2, A: 11.2,
+            // Mid-back — micro 0.2-step progression so rows don't look
+            // perfectly stacked.
+            M: 3.0,  L: 3.2,  K: 3.4,  J: 3.6,  I: 4,
+            // Front section — full integer steps up to C.
+            H: 5,    G: 6,    F: 7,    E: 8,    D: 9, C: 10,
+            // Front-most rows — micro adjustment to keep B/A distinct.
+            B: 10.2, A: 11.2,
+            // Row R uses ROW_R_GAP for the split — no progressive offset.
             R: 0,
         };
 
