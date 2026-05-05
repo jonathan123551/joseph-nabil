@@ -387,20 +387,20 @@
         // Search the file for "===== CURVE CONTROL =====",
         // "===== INWARD OFFSET =====", and "===== STAGGER =====" to find
         // the exact spots in computeLayout() where each knob is applied.
-        const ROWS_ORDER       = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R'];
+        const ROWS_ORDER       = ['A','B','C','D','E','F','G','H','GAP','I','J','K','L','M','N','O','P','Q','R'];
         const SEAT_W           = 22;     // seat box width  (px)
         const SEAT_H           = 20;     // seat box height (px)
         const SEAT_GAP         = 5;      // horizontal gap between adjacent seats
         const ROW_GAP          = 10;     // vertical gap between rows
         const ROW_PITCH        = SEAT_H + ROW_GAP;  // distance between row centers
-        const AISLE_GAP        = 54;     // horizontal gap between center and each wing
+        const AISLE_GAP        = 32;     // horizontal gap between center and each wing
         const ROW_A_GAP        = 78;     // mid-gap when row has no center (e.g. row A)
         const ROW_R_GAP        = 140;    // big mid-gap for row R (split halves)
 
         // ===== CURVE CONTROL =====   (knob #1 — bottom rows fan out wider)
         // Increase  → more pronounced arc, wings sweep further out
         // Decrease  → flatter, more grid-like
-        const CURVE_FACTOR     = 18;     // px each wing shifts outward per row index
+        const CURVE_FACTOR     = 6;     // px each wing shifts outward per row index
 
         // ===== INWARD OFFSET =====   (knob #2 — pull outer wing seats toward center)
         // Increase  → outer seats lean further in (more pronounced "(" / ")" shape)
@@ -512,13 +512,20 @@
                     const leftBaseX     = leftEndX - leftWingWidth;
                     for (let i = 0; i < cL; i++) {
                         // ===== INWARD OFFSET (LEFT) =====
-                        const inward = INWARD_STRENGTH * (i / cL);
+                        // 🔥 mirrored alignment
+
+                        const shiftPattern = (idx % 2 === 0) ? 0 : (SEAT_PITCH / 2);
+
+                        const tightCurve = curve * 0.4;
+
+                        const inward = INWARD_STRENGTH * 0.4 * (i / cL);
+
                         const x = leftBaseX
                                 + i * SEAT_PITCH
                                 + SEAT_W / 2
-                                - curve
+                                - tightCurve
                                 + inward
-                                - st;
+                                - shiftPattern;
                         pushSeat(data.left[i], letter, x, rowY, false);
                     }
                 }
@@ -535,13 +542,22 @@
                     for (let i = 0; i < cR; i++) {
                         // ===== INWARD OFFSET (RIGHT) =====
                         // Outer (large i) → strongest negative shift toward center.
-                        const inward = -INWARD_STRENGTH * ((cR - i) / cR);
+                        // 🔥 ALIGNMENT SYSTEM (10 ↔ 12 pattern)
+
+                        const shiftPattern = (idx % 2 === 0) ? 0 : (SEAT_PITCH / 2);
+
+                        // تقليل الكيرف عشان يبقى قريب من السنتر
+                        const tightCurve = curve * 0.4;
+
+                        // تقليل الـ inward عشان ميبقاش مبالغ فيه
+                        const inward = -INWARD_STRENGTH * 0.4 * (i / cR);
+
                         const x = rightStartX
                                 + i * SEAT_PITCH
                                 + SEAT_W / 2
-                                + curve
+                                + tightCurve
                                 + inward
-                                + st;
+                                + shiftPattern;
                         pushSeat(data.right[i], letter, x, rowY, false);
                     }
                 }
