@@ -62,9 +62,16 @@ class BookingController extends Controller
 
             $unavailable = $showTime->unavailableSeatIds();
 
+            // Read-only split for the UI legend so the seat picker can render
+            // booked (red) vs admin-blocked (yellow) differently. The store
+            // path still uses the merged $unavailable list — nothing about
+            // booking logic, validation, or DB writes changes.
+            $blocked = $showTime->seatBlocks()->pluck('seat_id')->all();
+
             $payload['theater']           = $theater;
             $payload['seatsByRow']        = $this->groupSeatsByRow($seats);
             $payload['unavailableSeats']  = $unavailable;
+            $payload['blockedSeats']      = $blocked;
             $payload['balconyPrice']      = (int) ($showTime->show->balcony_price ?? 0);
             $payload['hallPrice']         = (int) ($showTime->show->hall_price ?? 0);
         }

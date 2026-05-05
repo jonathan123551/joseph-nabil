@@ -3,6 +3,20 @@
 @section('title', 'حجز تذاكر - ' . $showTime->show->title)
 
 @section('content')
+@if ($isAnbaRuweis ?? false)
+<section class="max-w-7xl mx-auto px-3 sm:px-5">
+    @include('bookings._anba_seat_picker', [
+        'showTime'         => $showTime,
+        'seatsByRow'       => $seatsByRow ?? [],
+        'unavailableSeats' => $unavailableSeats ?? [],
+        'blockedSeats'     => $blockedSeats ?? [],
+        'balconyPrice'     => $balconyPrice ?? 0,
+        'hallPrice'        => $hallPrice ?? 0,
+        'transferWallet'   => $transferWallet ?? '',
+        'transferInsta'    => $transferInsta ?? '',
+    ])
+</section>
+@else
 <section class="max-w-5xl mx-auto px-4">
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -54,7 +68,6 @@
     </div>
 
 </div>
-        @if(!($isAnbaRuweis ?? false))
         {{-- ======================
         | 📝 FORM
         ======================= --}}
@@ -124,18 +137,10 @@
                 </button>
             </form>
         </div>
-        @else
-            @include('bookings._anba_seat_picker', [
-                'showTime'         => $showTime,
-                'seatsByRow'       => $seatsByRow ?? [],
-                'unavailableSeats' => $unavailableSeats ?? [],
-                'balconyPrice'     => $balconyPrice ?? 0,
-                'hallPrice'        => $hallPrice ?? 0,
-            ])
-        @endif
 
     </div>
 </section>
+@endif
 
 
 {{-- ======================
