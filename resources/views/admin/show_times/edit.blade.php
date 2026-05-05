@@ -3,130 +3,118 @@
 @section('title', 'تعديل موعد - ' . $show->title)
 
 @section('content')
+<section class="max-w-2xl mx-auto px-2 space-y-6 prism-fade-up">
 
-<section class="max-w-2xl mx-auto px-4 space-y-6">
-
-{{-- Header --}}
-<div class="space-y-1">
-    <h1 class="text-xl md:text-2xl font-bold">تعديل موعد</h1>
-    <p class="text-xs text-gray-400">🎭 {{ $show->title }}</p>
-</div>
-
-{{-- Errors --}}
-@if ($errors->any())
-    <div class="bg-red-500/10 border border-red-500/40 text-red-200 text-xs rounded-xl p-3">
-        <ul class="space-y-1">
-            @foreach($errors->all() as $error)
-                <li>• {{ $error }}</li>
-            @endforeach
-        </ul>
-    </div>
-@endif
-
-<form action="{{ route('admin.shows.times.update', [$show, $showTime]) }}"
-      method="POST"
-      class="space-y-5">
-    @csrf
-    @method('PUT')
-
-   {{-- CARD --}}
-
-<div class="bg-black/40 border border-white/10 rounded-2xl p-4 space-y-5 shadow-xl shadow-black/40">
-
-
-{{-- DATE & TIME --}}
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
-    <div class="flex flex-col gap-1">
-        <label class="text-xs text-gray-400">📅 التاريخ</label>
-        <input type="date" name="date"
-               value="{{ old('date', $showTime->date->format('Y-m-d')) }}"
-               class="w-full h-11 rounded-xl bg-black/70 border border-white/10 px-3 text-sm text-center focus:border-amber-400 appearance-none">
+    {{-- Header --}}
+    <div class="prism-glass prism-glow-border p-5">
+        <span class="prism-pill prism-pill-neon">
+            <span class="prism-dot prism-dot-emerald"></span>
+            Edit Show Time
+        </span>
+        <h1 class="prism-headline text-xl md:text-2xl mt-2">
+            <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                تعديل موعد
+            </span>
+        </h1>
+        <p class="text-xs text-[color:var(--prism-text-3)] mt-1">🎭 {{ $show->title }}</p>
     </div>
 
-    <div class="flex flex-col gap-1">
-        <label class="text-xs text-gray-400">⏰ الساعة</label>
-        <input type="time" name="time"
-               value="{{ old('time', $showTime->time) }}"
-               class="w-full h-11 rounded-xl bg-black/70 border border-white/10 px-3 text-sm text-center focus:border-amber-400 appearance-none">
-    </div>
+    {{-- Errors --}}
+    @if ($errors->any())
+        <div class="rounded-xl px-4 py-3 text-xs prism-fade-up"
+             style="background: rgba(244,63,94,0.10); border: 1px solid rgba(251,113,133,0.45); color: #fda4af;">
+            <ul class="space-y-1">
+                @foreach($errors->all() as $error)
+                    <li>• {{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
-</div>
+    <form action="{{ route('admin.shows.times.update', [$show, $showTime]) }}" method="POST" class="space-y-5">
+        @csrf
+        @method('PUT')
 
-{{-- PRICE & TOTAL --}}
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="prism-glass p-5 space-y-5 prism-fade-up">
 
-   <div class="flex flex-col gap-1">
-    <label class="text-xs text-gray-400">💰 سعر التذكرة</label>
+            {{-- DATE & TIME --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs text-[color:var(--prism-text-3)]">📅 التاريخ</label>
+                    <input type="date" name="date"
+                           value="{{ old('date', $showTime->date->format('Y-m-d')) }}"
+                           class="prism-input text-sm text-center">
+                </div>
 
-    <input type="number" step="0.5" min="0" name="ticket_price"
-           value="{{ old('ticket_price', $showTime->ticket_price) }}"
-           class="w-full h-11 rounded-xl bg-black/70 border border-white/10 px-3 text-sm text-center text-amber-400 focus:border-amber-400">
-</div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs text-[color:var(--prism-text-3)]">⏰ الساعة</label>
+                    <input type="time" name="time"
+                           value="{{ old('time', $showTime->time) }}"
+                           class="prism-input text-sm text-center">
+                </div>
+            </div>
 
-    <div class="flex flex-col gap-1">
-        <label class="text-xs text-gray-400">🎟️ إجمالي التذاكر</label>
-        <input type="number" min="1" name="total_tickets"
-               value="{{ old('total_tickets', $showTime->total_tickets) }}"
-               class="w-full h-11 rounded-xl bg-black/70 border border-white/10 px-3 text-sm text-center focus:border-amber-400">
-    </div>
+            {{-- PRICE & TOTAL --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs text-[color:var(--prism-text-3)]">💰 سعر التذكرة</label>
+                    <input type="number" step="0.5" min="0" name="ticket_price"
+                           value="{{ old('ticket_price', $showTime->ticket_price) }}"
+                           class="prism-input text-sm text-center"
+                           style="color: var(--prism-gold); font-weight: 700;">
+                </div>
 
-</div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs text-[color:var(--prism-text-3)]">🎟️ إجمالي التذاكر</label>
+                    <input type="number" min="1" name="total_tickets"
+                           value="{{ old('total_tickets', $showTime->total_tickets) }}"
+                           class="prism-input text-sm text-center">
+                </div>
+            </div>
 
-{{-- 🔥 PREMIUM SWITCH (FIXED + ANIMATED) --}}
-<div class="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-3 py-3">
+            {{-- PRISM SWITCH --}}
+            <div class="flex items-center justify-between rounded-xl px-3 py-3"
+                 style="background: rgba(255,255,255,0.04); border: 1px solid var(--prism-border);">
 
-<span class="text-xs text-gray-300">الحالة</span>
+                <span class="text-xs text-[color:var(--prism-text-2)]">الحالة</span>
 
-<label class="relative inline-flex items-center cursor-pointer">
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="is_sold_out" value="1"
+                           class="sr-only peer"
+                           {{ $showTime->is_sold_out ? 'checked' : '' }}>
 
-    <input type="checkbox"
-           name="is_sold_out"
-           value="1"
-           class="sr-only peer"
-           {{ $showTime->is_sold_out ? 'checked' : '' }}>
+                    {{-- background --}}
+                    <div class="w-14 h-8 rounded-full transition-all duration-300"
+                         style="background: rgba(16,185,129,0.18); border: 1px solid rgba(52,211,153,0.45);"
+                         data-on-bg></div>
 
-    {{-- background --}}
-    <div class="w-14 h-8 rounded-full transition-all duration-300
-        bg-emerald-500/20 peer-checked:bg-red-500/30">
-    </div>
+                    {{-- circle --}}
+                    <div class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full transition-all duration-300 peer-checked:translate-x-6 shadow-md"></div>
 
-    {{-- circle --}}
-    <div class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full
-        transition-all duration-300
-        peer-checked:translate-x-6">
-    </div>
+                    <style>
+                        .peer:checked ~ [data-on-bg] {
+                            background: rgba(244,63,94,0.22) !important;
+                            border-color: rgba(251,113,133,0.45) !important;
+                        }
+                    </style>
+                </label>
+            </div>
 
-</label>
+        </div>
 
+        {{-- ACTIONS --}}
+        <div class="flex flex-col sm:flex-row gap-3">
+            <a href="{{ route('admin.shows.times.index', $show) }}"
+               class="flex-1 text-center prism-btn-ghost text-xs">
+                <span aria-hidden="true">→</span>
+                رجوع
+            </a>
 
-</div>
-
-
-</div>
-
-
-</div>
-
-
-    {{-- ACTIONS --}}
-    <div class="flex flex-col sm:flex-row gap-3">
-
-        <a href="{{ route('admin.shows.times.index', $show) }}"
-           class="flex-1 text-center text-xs px-3 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition">
-            رجوع
-        </a>
-
-        <button type="submit"
-                class="flex-1 px-4 py-2 rounded-full bg-amber-400 text-black text-sm font-medium hover:bg-amber-300 transition shadow-lg shadow-amber-400/30">
-            حفظ التعديلات
-        </button>
-
-    </div>
-
-</form>
-
-
+            <button type="submit" class="flex-1 prism-btn text-sm">
+                حفظ التعديلات
+                <span aria-hidden="true">←</span>
+            </button>
+        </div>
+    </form>
 </section>
-
 @endsection

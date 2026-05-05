@@ -3,61 +3,73 @@
 @section('title', 'تعديل العرض - ' . $show->title)
 
 @section('content')
-<form action="{{ route('admin.shows.update', $show) }}" method="POST" enctype="multipart/form-data">
+<form action="{{ route('admin.shows.update', $show) }}" method="POST" enctype="multipart/form-data" class="space-y-5 prism-fade-up">
     @csrf
     @method('PUT')
+
 {{-- Header --}}
+<div class="prism-glass prism-glow-border p-5 flex items-center justify-between gap-3">
+    <div class="space-y-1">
+        <span class="prism-pill prism-pill-neon">
+            <span class="prism-dot prism-dot-emerald"></span>
+            Edit Show
+        </span>
+        <h1 class="prism-headline text-xl">
+            <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                تعديل العرض
+            </span>
+        </h1>
+    </div>
 
-<div class="flex items-center justify-between gap-3">
-
-    <h1 class="text-2xl font-bold">تعديل العرض</h1>
-
-    <a href="{{ route('admin.shows.index') }}"
-       class="text-xs px-3 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition">
-        ← رجوع
+    <a href="{{ route('admin.shows.index') }}" class="prism-btn-ghost text-xs">
+        <span aria-hidden="true">→</span>
+        رجوع
     </a>
-
 </div>
+
 {{-- Errors --}}
 @if ($errors->any())
-
-
-@foreach($errors->all() as $error)
-{{ $error }}
-@endforeach
-
-
+    <div class="rounded-xl px-4 py-3 text-xs prism-fade-up"
+         style="background: rgba(244,63,94,0.10); border: 1px solid rgba(251,113,133,0.45); color: #fda4af;">
+        <ul class="list-disc pr-4 space-y-1">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
 @endif
 
-<div class="grid lg:grid-cols-2 gap-6">
+<div class="grid lg:grid-cols-2 gap-5">
 
     {{-- LEFT --}}
-    <div class="space-y-4">
+    <div class="prism-glass p-5 space-y-4">
 
         <div>
-            <label class="text-xs mb-1">اسم العرض</label>
+            <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">اسم العرض</label>
             <input type="text" name="title"
                    value="{{ old('title', $show->title) }}"
-                   class="w-full rounded-xl bg-black/60 border border-white/15 px-3 py-2 text-sm focus:border-amber-400">
+                   class="prism-input text-sm">
         </div>
 
         <div>
-            <label class="text-xs mb-1">الوصف</label>
-            <textarea name="description" rows="4"
-                      class="w-full rounded-xl bg-black/60 border border-white/15 px-3 py-2 text-sm focus:border-amber-400">{{ old('description', $show->description) }}</textarea>
+            <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">الوصف</label>
+            <textarea name="description" rows="4" class="prism-input text-sm">{{ old('description', $show->description) }}</textarea>
         </div>
 
         {{-- نوع المسرح --}}
         <div>
-            <label class="block text-xs mb-1">نوع المسرح</label>
+            <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">نوع المسرح</label>
             <div class="flex flex-col sm:flex-row gap-2 text-xs">
                 @foreach(\App\Models\Show::THEATER_TYPES as $value => $label)
-                    <label class="flex items-center gap-2 px-3 py-2 rounded-xl bg-black/60 border border-white/15 cursor-pointer hover:border-amber-400 transition">
+                    <label class="flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer transition"
+                           style="background: rgba(255,255,255,0.04); border: 1px solid var(--prism-border); color: var(--prism-text);"
+                           onmouseover="this.style.borderColor='var(--prism-border-strong)'; this.style.background='rgba(129,140,248,0.08)';"
+                           onmouseout="this.style.borderColor='var(--prism-border)'; this.style.background='rgba(255,255,255,0.04)';">
                         <input type="radio"
                                name="theater_type"
                                value="{{ $value }}"
                                data-theater-type
-                               class="scale-90"
+                               class="w-4 h-4"
                                {{ old('theater_type', $show->theater_type ?? \App\Models\Show::THEATER_OTHER) === $value ? 'checked' : '' }}>
                         <span>{{ $label }}</span>
                     </label>
@@ -65,26 +77,26 @@
             </div>
         </div>
 
-        {{-- أسعار التذاكر (يظهر فقط لمسرح الأنبا رويس) --}}
+        {{-- أسعار التذاكر --}}
         <div data-anba-ruweis-fields
              class="grid grid-cols-2 gap-3 {{ old('theater_type', $show->theater_type) === \App\Models\Show::THEATER_ANBA_RUWEIS ? '' : 'hidden' }}">
             <div>
-                <label class="block text-xs mb-1">سعر تذكرة البلكون (EGP)</label>
+                <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">سعر تذكرة البلكون (EGP)</label>
                 <input type="number" min="0" name="balcony_price"
                        value="{{ old('balcony_price', $show->balcony_price) }}"
-                       class="w-full rounded-xl bg-black/60 border border-white/15 px-3 py-2 text-sm focus:outline-none focus:border-amber-400">
+                       class="prism-input text-sm">
             </div>
             <div>
-                <label class="block text-xs mb-1">سعر تذكرة الصالة (EGP)</label>
+                <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">سعر تذكرة الصالة (EGP)</label>
                 <input type="number" min="0" name="hall_price"
                        value="{{ old('hall_price', $show->hall_price) }}"
-                       class="w-full rounded-xl bg-black/60 border border-white/15 px-3 py-2 text-sm focus:outline-none focus:border-amber-400">
+                       class="prism-input text-sm">
             </div>
         </div>
 
         {{-- Poster --}}
         <div>
-            <label class="text-xs mb-1">البوستر</label>
+            <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">البوستر</label>
 
             @if($show->poster_path)
                 @php
@@ -95,10 +107,11 @@
 
                 <img id="posterPreview"
                      src="{{ $posterUrl }}"
-                     class="w-full max-h-60 object-contain rounded-xl mb-2 border border-white/10 bg-black/40 p-2">
+                     class="w-full max-h-60 object-contain rounded-xl mb-2 p-2"
+                     style="background: rgba(8,10,20,0.5); border: 1px solid var(--prism-border);">
             @endif
 
-            <input type="file" name="poster" id="posterInput" class="text-xs">
+            <input type="file" name="poster" id="posterInput" class="text-xs text-[color:var(--prism-text-2)]">
         </div>
 
     </div>
@@ -106,11 +119,11 @@
     {{-- RIGHT --}}
     <div class="space-y-4">
 
-        <div class="bg-black/40 border border-white/10 rounded-2xl p-4 space-y-3 shadow-xl shadow-black/40">
+        <div class="prism-glass p-5 space-y-3">
 
-            <h3 class="text-sm font-semibold">🎟️ تصميم التذكرة + QR</h3>
+            <h3 class="text-sm font-semibold text-[color:var(--prism-text)]">🎟️ تصميم التذكرة + QR</h3>
 
-            <input type="file" name="ticket_template" id="ticketInput" class="text-xs">
+            <input type="file" name="ticket_template" id="ticketInput" class="text-xs text-[color:var(--prism-text-2)]">
 
             @if($show->ticket_template_path)
 
@@ -120,18 +133,23 @@
                         : asset('storage/'.$show->ticket_template_path);
                 @endphp
 
-                <div class="relative border border-white/10 rounded-xl overflow-hidden bg-black/40">
+                <div class="relative rounded-xl overflow-hidden"
+                     style="background: rgba(8,10,20,0.55); border: 1px solid var(--prism-border);">
 
                     <img id="ticketTemplatePreview"
                          src="{{ $ticketUrl }}"
                          class="w-full h-auto block select-none pointer-events-none">
 
                     <div id="qrBox"
-                         class="absolute border-2 border-emerald-400 bg-emerald-400/10 cursor-move shadow-lg shadow-emerald-500/20"
-                         style="width: 120px; height: 120px; left: 10px; top: 10px;">
+                         class="absolute cursor-move"
+                         style="width: 120px; height: 120px; left: 10px; top: 10px;
+                                background: rgba(52,211,153,0.18);
+                                border: 2px solid #34d399;
+                                box-shadow: 0 0 18px rgba(52,211,153,0.55), inset 0 0 12px rgba(52,211,153,0.3);">
 
                         <div id="qrResizeHandle"
-                             class="absolute w-3 h-3 bg-emerald-400 bottom-0 right-0 cursor-nwse-resize"></div>
+                             class="absolute w-3 h-3 bottom-0 right-0 cursor-nwse-resize"
+                             style="background: #34d399; box-shadow: 0 0 8px rgba(52,211,153,0.7);"></div>
 
                     </div>
 
@@ -140,15 +158,15 @@
                 <div class="grid grid-cols-3 gap-2 text-xs">
                     <input type="number" name="ticket_qr_x" id="ticket_qr_x_input"
                            value="{{ old('ticket_qr_x', $show->ticket_qr_x ?? 0) }}"
-                           class="rounded-lg bg-black/60 border border-white/15 px-2 py-1">
+                           class="prism-input text-xs px-2 py-1.5">
 
                     <input type="number" name="ticket_qr_y" id="ticket_qr_y_input"
                            value="{{ old('ticket_qr_y', $show->ticket_qr_y ?? 0) }}"
-                           class="rounded-lg bg-black/60 border border-white/15 px-2 py-1">
+                           class="prism-input text-xs px-2 py-1.5">
 
                     <input type="number" name="ticket_qr_size" id="ticket_qr_size_input"
                            value="{{ old('ticket_qr_size', $show->ticket_qr_size ?? 220) }}"
-                           class="rounded-lg bg-black/60 border border-white/15 px-2 py-1">
+                           class="prism-input text-xs px-2 py-1.5">
                 </div>
 
             @endif
@@ -159,9 +177,9 @@
 
 </div>
 
-<button type="submit"
-        class="w-full sm:w-auto px-6 py-2 rounded-full bg-amber-400 text-black text-sm hover:bg-amber-300 transition">
+<button type="submit" class="prism-btn text-sm w-full sm:w-auto">
     حفظ التعديلات
+    <span aria-hidden="true">←</span>
 </button>
 
 </form>

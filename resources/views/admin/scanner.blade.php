@@ -3,74 +3,78 @@
 @section('title', 'Scanner')
 
 @section('content')
-<section class="max-w-md mx-auto space-y-4 px-3 pb-10">
+<section class="max-w-md mx-auto space-y-4 px-3 pb-10 prism-fade-up">
 
     {{-- HEADER --}}
-    <div class="flex justify-between items-center">
-        <h1 class="text-white text-lg font-bold">🎫 Gate Scanner</h1>
+    <div class="prism-glass prism-glow-border p-4 flex justify-between items-center gap-3">
+        <div class="space-y-1">
+            <span class="prism-pill prism-pill-neon">
+                <span class="prism-dot prism-dot-emerald"></span>
+                Gate Scanner
+            </span>
+            <h1 class="prism-headline text-base">
+                <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                    🎫 Gate Scanner
+                </span>
+            </h1>
+        </div>
 
-        <a href="{{ route('admin.dashboard') }}"
-           class="text-xs px-3 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition">
-            ← رجوع
+        <a href="{{ route('admin.dashboard') }}" class="prism-btn-ghost text-xs">
+            <span aria-hidden="true">→</span>
+            رجوع
         </a>
     </div>
+
     {{-- RESULT --}}
     <div id="card"
-         class="hidden bg-gradient-to-br from-white/10 to-white/5 border border-white/10 rounded-xl p-3 text-sm space-y-2 backdrop-blur">
-    </div>
-  {{-- SCANNER --}}
-<div class="relative bg-black/70 border border-white/10 rounded-3xl p-3 overflow-hidden">
-
-    <div id="qr-reader"
-         class="rounded-2xl overflow-hidden border border-white/10"></div>
-
-    {{-- FRAME --}}
-    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div class="scan-frame"></div>
+         class="hidden prism-glass p-3 text-sm space-y-2">
     </div>
 
-    {{-- LINE --}}
-    <div class="scan-line"></div>
+    {{-- SCANNER --}}
+    <div class="relative prism-glass p-3 overflow-hidden"
+         style="border-radius: 24px;">
 
-    {{-- 🔥 STATUS OVERLAY TOP --}}
-    <div id="status"
-     class="absolute top-5 left-1/2 -translate-x-1/2 z-50 
-            px-4 py-2 rounded-full 
-            bg-black/80 backdrop-blur-md 
-            text-sm text-white 
-            shadow-lg border border-white/10
-            transition-all duration-300">
-    جاهز للفحص
-</div>
+        <div id="qr-reader"
+             class="rounded-2xl overflow-hidden"
+             style="border: 1px solid var(--prism-border);"></div>
 
-</div>
+        {{-- FRAME --}}
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div class="scan-frame"></div>
+        </div>
 
+        {{-- LINE --}}
+        <div class="scan-line"></div>
 
+        {{-- STATUS OVERLAY TOP --}}
+        <div id="status"
+             class="absolute top-5 left-1/2 -translate-x-1/2 z-50
+                    px-4 py-2 rounded-full
+                    text-sm
+                    transition-all duration-300"
+             style="background: rgba(8,10,20,0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); color: var(--prism-text); border: 1px solid var(--prism-border-strong); box-shadow: 0 8px 24px -8px rgba(129,140,248,0.4);">
+            جاهز للفحص
+        </div>
+    </div>
 
     {{-- CONTROLS --}}
     <div class="flex gap-2">
 
-        <button id="flashBtn"
-                class="flex-1 text-xs py-2 rounded-xl bg-white/5 border border-white/10">
+        <button id="flashBtn" class="flex-1 prism-btn-ghost text-xs py-3">
             🔦 Flash
         </button>
 
-        <button onclick="location.reload()"
-                class="flex-1 text-xs py-2 rounded-xl bg-white/5 border border-white/10">
+        <button onclick="location.reload()" class="flex-1 prism-btn-ghost text-xs py-3">
             🔄 Restart
         </button>
 
     </div>
 
- 
-   
-
-    
-
 </section>
 
 {{-- FLASH EFFECT --}}
-<div id="flash" class="fixed inset-0 flex items-center justify-center hidden z-50">
+<div id="flash" class="fixed inset-0 flex items-center justify-center hidden z-50"
+     style="background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
     <div id="flashIcon" class="text-8xl font-black"></div>
 </div>
 
@@ -80,9 +84,9 @@
 .scan-frame{
     width:230px;
     height:230px;
-    border:2px solid rgba(255,255,255,0.2);
-    border-radius:20px;
-    box-shadow:0 0 30px rgba(255,255,255,0.1);
+    border:2px solid rgba(34,211,238,0.55);
+    border-radius:24px;
+    box-shadow: 0 0 30px rgba(34,211,238,0.25), inset 0 0 20px rgba(129,140,248,0.18);
 }
 
 .scan-line{
@@ -90,22 +94,23 @@
     left:10%;
     right:10%;
     height:2px;
-    background:linear-gradient(90deg,transparent,#22c55e,transparent);
-    animation:scan 1.2s infinite;
+    background:linear-gradient(90deg, transparent, #22d3ee 30%, #818cf8 50%, #c084fc 70%, transparent);
+    box-shadow: 0 0 12px rgba(34,211,238,0.7);
+    animation:scan 1.4s cubic-bezier(.2,.7,.2,1) infinite;
 }
 @keyframes scan{
-    0%{top:10%}
-    50%{top:85%}
-    100%{top:10%}
+    0%   { top:10%; opacity: 0.6; }
+    50%  { top:85%; opacity: 1;   }
+    100% { top:10%; opacity: 0.6; }
 }
 
-.flash-ok{ color:#22c55e; text-shadow:0 0 50px #22c55e; }
-.flash-used{ color:#facc15; text-shadow:0 0 50px #facc15; }
-.flash-error{ color:#ef4444; text-shadow:0 0 50px #ef4444; }
+.flash-ok{    color:#34d399; text-shadow: 0 0 50px #34d399, 0 0 100px rgba(52,211,153,0.5); }
+.flash-used{ color:#fbbf24; text-shadow: 0 0 50px #fbbf24, 0 0 100px rgba(251,191,36,0.5); }
+.flash-error{ color:#fb7185; text-shadow: 0 0 50px #fb7185, 0 0 100px rgba(251,113,133,0.5); }
 
-.glow-green{ box-shadow:0 0 25px rgba(34,197,94,.6); }
-.glow-yellow{ box-shadow:0 0 25px rgba(250,204,21,.6); }
-.glow-red{ box-shadow:0 0 25px rgba(239,68,68,.6); }
+.glow-green{  box-shadow: 0 0 25px rgba(52,211,153,.6); }
+.glow-yellow{ box-shadow: 0 0 25px rgba(251,191,36,.6); }
+.glow-red{    box-shadow: 0 0 25px rgba(251,113,133,.6); }
 </style>
 
 <script>
@@ -164,7 +169,7 @@ function flash(type){
     setTimeout(()=>f.classList.add('hidden'),700);
 }
 
-// 🎯 UI
+// 🎯 UI — PRISM-themed status pill
 function setStatus(text,type){
     const s = document.getElementById('status');
 
@@ -173,51 +178,59 @@ function setStatus(text,type){
     s.className = "absolute top-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full text-sm border transition-all duration-300";
 
     if(type==='ok'){
-        s.classList.add('bg-green-500/90','text-white','border-green-300');
+        s.style.background = 'rgba(16,185,129,0.85)';
+        s.style.borderColor = 'rgba(110,231,183,0.7)';
+        s.style.color = '#022c22';
+        s.style.boxShadow = '0 0 24px rgba(52,211,153,0.55)';
     }
     else if(type==='used'){
-        s.classList.add('bg-yellow-400/90','text-black','border-yellow-200');
+        s.style.background = 'rgba(251,191,36,0.9)';
+        s.style.borderColor = 'rgba(254,240,138,0.7)';
+        s.style.color = '#1b1208';
+        s.style.boxShadow = '0 0 24px rgba(251,191,36,0.55)';
     }
     else{
-        s.classList.add('bg-red-500/90','text-white','border-red-300');
+        s.style.background = 'rgba(244,63,94,0.85)';
+        s.style.borderColor = 'rgba(253,164,175,0.7)';
+        s.style.color = '#fff1f2';
+        s.style.boxShadow = '0 0 24px rgba(251,113,133,0.55)';
     }
 
-    // 🔥 pop animation
+    // pop animation
     s.style.transform = "translate(-50%, -5px) scale(1.1)";
     setTimeout(()=>{
         s.style.transform = "translate(-50%, 0) scale(1)";
     },150);
 }
-// 📊 render
+
+// 📊 render — PRISM-themed result card
 function render(d){
     const c = document.getElementById('card');
     c.classList.remove('hidden');
 
     c.innerHTML = `
-        <div class="bg-black/60 backdrop-blur border border-white/10 rounded-xl p-3 space-y-2">
+        <div class="space-y-2">
 
             <!-- 👤 NAME -->
-            <div class="text-white font-semibold text-sm tracking-wide">
+            <div style="color: var(--prism-text);" class="font-semibold text-sm tracking-wide">
                 ${d.name}
             </div>
 
-        
-
-            <div class="border-t border-white/10 my-1"></div>
+            <div style="border-top: 1px solid var(--prism-border);" class="my-1"></div>
 
             <!-- 🎭 SHOW -->
-            <div class="text-gray-300 text-[12px]">
+            <div style="color: var(--prism-text-2);" class="text-[12px]">
                 🎭 ${d.show_title}
             </div>
 
             <!-- 🕒 DATE & TIME -->
-            <div class="text-[12px] font-medium text-indigo-400">
+            <div class="text-[12px] font-medium" style="color: var(--prism-cyan);">
                 🕒 ${d.date} • ${d.time}
             </div>
 
             ${
-                d.scanned_at 
-                ? `<div class="text-emerald-400 text-[12px] font-semibold">
+                d.scanned_at
+                ? `<div class="text-[12px] font-semibold" style="color: var(--prism-emerald);">
                         ✅ دخل: ${d.scanned_at}
                    </div>`
                 : ''
