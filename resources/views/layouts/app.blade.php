@@ -568,7 +568,13 @@
             min-height: 36px;
         }
 
-        /* ------------- Sticky action bar ------------- */
+        /* ------------- Sticky action bar -------------
+           Single canonical CTA pattern. Springy entrance (slight overshoot),
+           glass + neon language, min-height 48px tap targets, rich summary
+           block (eyebrow / name·phone / chips). Used by:
+             · admin booking detail (approve / reject)
+             · public booking step 2 (continue)
+             · future: anywhere we need a confirm-style sticky CTA. */
         .pt-action-bar {
             position: fixed;
             left: 0; right: 0;
@@ -578,7 +584,10 @@
             transform: translateY(140%);
             opacity: 0;
             pointer-events: none;
-            transition: transform .45s var(--prism-ease), opacity .35s var(--prism-ease);
+            transition:
+                transform .48s cubic-bezier(.2, 1.2, .2, 1),
+                opacity   .32s var(--prism-ease);
+            will-change: transform;
         }
         .pt-action-bar.is-on {
             transform: translateY(0);
@@ -586,39 +595,59 @@
             pointer-events: auto;
         }
         .pt-action-bar-inner {
+            position: relative;
             max-width: 920px;
             margin: 0 auto;
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px;
+            padding: 14px 14px;
             border-radius: 22px;
-            background: linear-gradient(180deg, rgba(20,24,38,0.78), rgba(8,10,20,0.88));
-            border: 1px solid rgba(129,140,248,0.35);
-            backdrop-filter: blur(22px) saturate(170%);
-            -webkit-backdrop-filter: blur(22px) saturate(170%);
+            background:
+                linear-gradient(180deg, rgba(20,24,38,0.92), rgba(8,10,20,0.96));
+            border: 1px solid rgba(129,140,248,0.38);
+            backdrop-filter: blur(22px) saturate(180%);
+            -webkit-backdrop-filter: blur(22px) saturate(180%);
             box-shadow:
-                inset 0 1px 0 rgba(255,255,255,0.06),
-                0 -16px 60px -20px rgba(0,0,0,0.75),
-                0 0 30px rgba(129,140,248,0.18);
+                inset 0 1px 0 rgba(255,255,255,0.07),
+                0 -16px 60px -20px rgba(0,0,0,0.85),
+                0 0 36px rgba(129,140,248,0.22);
+        }
+        /* Cyan→indigo→violet neon top edge so the bar reads cleanly even
+           over busy content (admin sees this over the transfer screenshot). */
+        .pt-action-bar-inner::before {
+            content: "";
+            position: absolute;
+            top: -1px; left: 14px; right: 14px;
+            height: 1px;
+            background: linear-gradient(90deg,
+                rgba(34,211,238,0)   0%,
+                rgba(34,211,238,0.7) 14%,
+                rgba(129,140,248,0.85) 50%,
+                rgba(192,132,252,0.7) 86%,
+                rgba(192,132,252,0)  100%);
+            border-radius: 1px;
+            pointer-events: none;
         }
         .pt-action-bar .pt-bar-summary {
             flex: 1 1 auto;
             min-width: 0;
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 4px;
         }
         .pt-action-bar .pt-bar-actions {
             flex: 0 0 auto;
             display: flex;
-            gap: 8px;
+            gap: 10px;
+            align-items: center;
         }
         .pt-action-bar .pt-bar-label {
             font-size: 10px;
-            letter-spacing: 0.28em;
+            letter-spacing: 0.24em;
             text-transform: uppercase;
-            color: var(--prism-text-4);
+            color: var(--prism-text-3);
+            font-weight: 700;
         }
         .pt-action-bar .pt-bar-total {
             font-family: "Space Grotesk", system-ui, sans-serif;
@@ -631,26 +660,128 @@
             -webkit-text-fill-color: transparent;
         }
         .pt-action-bar .pt-bar-meta {
-            font-size: 11px;
-            color: var(--prism-text-3);
+            font-size: 12px;
+            color: var(--prism-text-2);
             display: -webkit-box;
             -webkit-line-clamp: 1;
             -webkit-box-orient: vertical;
             overflow: hidden;
+            font-weight: 500;
         }
-        @media (max-width: 480px) {
+        .pt-action-bar .pt-bar-sep {
+            color: var(--prism-text-4);
+            margin: 0 4px;
+        }
+        .pt-action-bar .pt-bar-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+        .pt-action-bar .pt-bar-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(129,140,248,0.22);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--prism-text-2);
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            line-height: 1;
+        }
+        .pt-action-bar .pt-bar-chip-gold {
+            background: linear-gradient(135deg, rgba(251,191,36,0.18), rgba(251,191,36,0.06));
+            border-color: rgba(251,191,36,0.45);
+            color: #fde68a;
+        }
+        .pt-action-bar .pt-bar-chip-muted {
+            color: var(--prism-text-3);
+            border-color: rgba(255,255,255,0.10);
+        }
+        /* Bigger tap targets — handoff said 48 px. Buttons inside the bar
+           override the cramped sizing of small base buttons. */
+        .pt-action-bar .pt-bar-actions .pt-bar-btn,
+        .pt-action-bar .pt-bar-actions .prism-btn,
+        .pt-action-bar .pt-bar-actions .prism-btn-emerald,
+        .pt-action-bar .pt-bar-actions .prism-btn-rose {
+            min-height: 48px;
+            padding: 10px 18px;
+            font-size: 13px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition:
+                transform .15s var(--prism-ease),
+                box-shadow .25s var(--prism-ease),
+                filter    .15s var(--prism-ease);
+        }
+        .pt-action-bar .pt-bar-actions button:active { transform: scale(.97); }
+        .pt-action-bar .pt-bar-actions .prism-btn-emerald:hover {
+            filter: brightness(1.06);
+            box-shadow:
+                0 0 0 1px rgba(52,211,153,0.45) inset,
+                0 0 24px rgba(16,185,129,0.45);
+        }
+        .pt-action-bar .pt-bar-actions .prism-btn-rose:hover {
+            filter: brightness(1.06);
+            box-shadow:
+                0 0 0 1px rgba(251,113,133,0.5) inset,
+                0 0 24px rgba(244,63,94,0.45);
+        }
+
+        @media (max-width: 560px) {
             .pt-action-bar-inner {
                 gap: 8px;
-                padding: 10px;
+                padding: 12px 12px;
+                border-radius: 20px;
+                flex-wrap: wrap;
             }
-            .pt-action-bar .pt-bar-total { font-size: 16px; }
-            .pt-action-bar .pt-bar-actions .prism-btn,
+            .pt-action-bar .pt-bar-summary { flex: 1 1 100%; }
+            .pt-action-bar .pt-bar-actions { flex: 1 1 100%; }
+            .pt-action-bar .pt-bar-actions form { flex: 1; }
+            .pt-action-bar .pt-bar-actions .pt-bar-btn,
             .pt-action-bar .pt-bar-actions .prism-btn-emerald,
             .pt-action-bar .pt-bar-actions .prism-btn-rose {
-                padding: 8px 12px;
-                font-size: 12px;
+                width: 100%;
+                padding: 10px 12px;
+                font-size: 13px;
             }
+            .pt-action-bar .pt-bar-total { font-size: 16px; }
+            .pt-action-bar .pt-bar-meta-row { gap: 5px; }
+            .pt-action-bar .pt-bar-chip { font-size: 10.5px; padding: 3px 8px; }
         }
+        @media (prefers-reduced-motion: reduce) {
+            .pt-action-bar { transition: opacity .2s linear; transform: translateY(0); }
+            .pt-action-bar:not(.is-on) { transform: translateY(140%); }
+        }
+
+        /* ------------- Compact back chevron -------------
+           Replaces the heavy "back" + page-header card on detail pages. */
+        .pt-back-chevron {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px; height: 36px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--prism-border);
+            color: var(--prism-text-2);
+            font-size: 16px;
+            line-height: 1;
+            transition: all .15s var(--prism-ease);
+        }
+        .pt-back-chevron:hover {
+            background: rgba(129,140,248,0.12);
+            border-color: rgba(129,140,248,0.5);
+            color: var(--prism-text);
+            box-shadow: 0 0 18px rgba(129,140,248,0.22);
+        }
+        .pt-back-chevron:active { transform: scale(.94); }
 
         /* ------------- Premium modal ------------- */
         .pt-modal-root {

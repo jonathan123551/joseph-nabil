@@ -3,7 +3,7 @@
 @section('title', 'تفاصيل الحجز #' . $booking->id)
 
 @section('content')
-<section class="space-y-6 max-w-4xl mx-auto px-3 sm:px-0">
+<section class="space-y-5 max-w-4xl mx-auto px-3 sm:px-0">
 
     {{-- Status flash --}}
     @if(session('status'))
@@ -13,33 +13,28 @@
         </div>
     @endif
 
-    {{-- Header --}}
-    <div class="prism-glass prism-glow-border p-5 prism-fade-up flex justify-between items-center gap-3 flex-wrap">
-        <div class="space-y-1">
-            <span class="prism-pill prism-pill-neon">
-                <span class="prism-dot prism-dot-emerald"></span>
-                Booking #{{ $booking->id }}
-            </span>
-            <h1 class="prism-headline text-xl">
-                <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
-                    تفاصيل الحجز #{{ $booking->id }}
-                </span>
-            </h1>
-        </div>
-
-        <a href="{{ route('admin.bookings.index') }}" class="prism-btn-ghost text-xs">
-            <span aria-hidden="true">→</span>
-            رجوع
-        </a>
-    </div>
-
     {{-- GRID --}}
     <div class="grid sm:grid-cols-2 gap-4 prism-stagger">
 
         {{-- 🎟️ التذاكر --}}
         <div class="prism-glass p-5 space-y-3 flex flex-col prism-fade-up">
 
-            <h2 class="text-sm font-semibold flex items-center gap-2"
+            {{-- Compact back chevron + booking ref. Replaces the heavy
+                 page-header card; reclaims ~120 px of vertical space on
+                 mobile, leaves room for the floating action bar. --}}
+            <div class="flex items-center justify-between gap-3">
+                <a href="{{ route('admin.bookings.index') }}"
+                   class="pt-back-chevron"
+                   aria-label="رجوع">
+                    <span aria-hidden="true">→</span>
+                </a>
+                <span class="prism-pill prism-pill-neon">
+                    <span class="prism-dot prism-dot-emerald"></span>
+                    حجز #{{ $booking->id }}
+                </span>
+            </div>
+
+            <h2 class="text-sm font-semibold flex items-center gap-2 mt-1"
                 style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
                 🎟️ التذاكر
             </h2>
@@ -158,28 +153,10 @@
         </div>
     @endif
 
-    {{-- Action buttons (inline, kept for desktop visibility) --}}
-    <div class="flex gap-3 justify-center flex-wrap">
-        @if($booking->status === 'pending')
-
-            <form action="{{ route('admin.bookings.approve', $booking) }}" method="POST"
-                  data-pt-confirm='{"tone":"warn","title":"اعتماد الحجز؟","body":"هتأكد الحجز ويتبعت QR للعميل على واتساب.","okLabel":"اعتماد","cancelLabel":"إلغاء","okVariant":"emerald"}'>
-                @csrf
-                <button class="prism-btn-emerald text-sm px-5 py-2">
-                    ✔ اعتماد
-                </button>
-            </form>
-
-            <form action="{{ route('admin.bookings.reject', $booking) }}" method="POST"
-                  data-pt-confirm='{"tone":"error","title":"رفض الحجز؟","body":"الحجز هيترفض، ومش هيوصل أي QR للعميل.","okLabel":"رفض","cancelLabel":"إلغاء","okVariant":"rose"}'>
-                @csrf
-                <button class="prism-btn-rose text-sm px-5 py-2">
-                    ✖ رفض
-                </button>
-            </form>
-
-        @endif
-    </div>
+    {{-- Pending bookings: approve/reject lives ONLY in the floating
+         action bar at the bottom of the viewport (see below). The inline
+         buttons that used to render here have been removed to eliminate
+         the duplicate-CTA experience. --}}
 
     {{-- DELETE BUTTON (يظهر بس لو approved) --}}
     @if($booking->status === 'approved')
@@ -198,31 +175,71 @@
         </div>
     @endif
 
-    {{-- spacer so the floating action bar doesn't cover the last content --}}
+    {{-- spacer so the floating action bar doesn't cover the last content
+         (kept slightly taller now that the bar carries a richer summary). --}}
     @if($booking->status === 'pending')
-        <div style="height: 96px;" aria-hidden="true"></div>
+        <div style="height: 124px;" aria-hidden="true"></div>
     @endif
 
 </section>
 
-{{-- Sticky floating action bar (admin pending review) --}}
+{{-- Sticky floating action bar (admin pending review).
+     Single source of truth for approve/reject. Glass + neon styling,
+     min-height 48 px tap targets, springy entrance via .pt-action-bar
+     in layouts/app.blade.php. --}}
 @if($booking->status === 'pending')
-    <div class="pt-action-bar is-on" id="ptAdminBar">
+    @php
+        $bkName  = $booking->full_name ?? ($booking->name ?? '');
+        $bkRef   = $booking->reference_code ?? ('#' . $booking->id);
+        $bkPhone = $booking->phone ?? '';
+        $tCount  = $booking->tickets_count ?? ($booking->tickets->count() ?? 0);
+        $tTotal  = (int) ($booking->total_price ?? 0);
+
+        // human-readable "time to show" — falls back to the formatted
+        // showtime if the diff isn't sensible (e.g. show already past).
+        $whenLabel = '';
+        try {
+            if ($booking->showTime && $booking->showTime->date) {
+                $when = \Carbon\Carbon::parse(
+                    $booking->showTime->date . ' ' . ($booking->showTime->time ?? '00:00:00')
+                );
+                $whenLabel = $when->isFuture()
+                    ? $when->locale('ar')->diffForHumans(['parts' => 1])
+                    : $when->locale('ar')->isoFormat('D MMM');
+            }
+        } catch (\Throwable $e) { /* tolerate bad data */ }
+    @endphp
+
+    <div class="pt-action-bar is-on pt-bar-admin" id="ptAdminBar" role="region" aria-label="إجراءات الحجز">
         <div class="pt-action-bar-inner">
             <div class="pt-bar-summary">
-                <span class="pt-bar-label">حجز قيد المراجعة</span>
-                <span class="pt-bar-meta">{{ $booking->name ?? '' }} · {{ $booking->phone ?? '' }}</span>
+                <span class="pt-bar-label">حجز قيد المراجعة · {{ $bkRef }}</span>
+                <span class="pt-bar-meta">
+                    {{ $bkName }}
+                    @if($bkPhone)<span class="pt-bar-sep" aria-hidden="true">·</span> <span dir="ltr">{{ $bkPhone }}</span>@endif
+                </span>
+                <span class="pt-bar-meta-row">
+                    <span class="pt-bar-chip"><span aria-hidden="true">🎟</span> {{ $tCount }}</span>
+                    <span class="pt-bar-chip pt-bar-chip-gold">{{ $tTotal }} <span class="opacity-70">جنيه</span></span>
+                    @if($whenLabel)
+                        <span class="pt-bar-chip pt-bar-chip-muted"><span aria-hidden="true">⏰</span> {{ $whenLabel }}</span>
+                    @endif
+                </span>
             </div>
             <div class="pt-bar-actions">
                 <form action="{{ route('admin.bookings.reject', $booking) }}" method="POST"
                       data-pt-confirm='{"tone":"error","title":"رفض الحجز؟","body":"الحجز هيترفض، ومش هيوصل أي QR للعميل.","okLabel":"رفض","cancelLabel":"إلغاء","okVariant":"rose"}'>
                     @csrf
-                    <button class="prism-btn-rose text-sm px-4 py-2">✖ رفض</button>
+                    <button class="prism-btn-rose pt-bar-btn">
+                        <span aria-hidden="true">✖</span> رفض
+                    </button>
                 </form>
                 <form action="{{ route('admin.bookings.approve', $booking) }}" method="POST"
                       data-pt-confirm='{"tone":"warn","title":"اعتماد الحجز؟","body":"هتأكد الحجز ويتبعت QR للعميل على واتساب.","okLabel":"اعتماد","cancelLabel":"إلغاء","okVariant":"emerald"}'>
                     @csrf
-                    <button class="prism-btn-emerald text-sm px-4 py-2">✔ اعتماد</button>
+                    <button class="prism-btn-emerald pt-bar-btn">
+                        <span aria-hidden="true">✔</span> اعتماد
+                    </button>
                 </form>
             </div>
         </div>
