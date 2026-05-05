@@ -99,4 +99,10 @@
     </div>
 
 </section>
+
+{{-- Booking submitted successfully — wipe any leftover seat selection so
+     refreshing or starting a new booking doesn't carry over stale data. --}}
+<script>
+    try { localStorage.removeItem('booking_selection'); } catch (e) { /* ignore */ }
+</script>
 @endsection

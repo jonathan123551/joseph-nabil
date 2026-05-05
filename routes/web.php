@@ -47,9 +47,15 @@ Route::get('/', [SiteController::class, 'home'])->name('home');
 Route::get('/shows', [ShowController::class, 'index'])->name('shows.index');
 Route::get('/shows/{show}', [ShowController::class, 'show'])->name('shows.show');
 
-// Booking
+// Booking — 3-step UX for Anba Ruweis (section → seats → form), single-page
+// otherwise. The POST endpoint is unchanged; the new GET routes are display-
+// only sub-pages of the same booking flow.
 Route::get('/book/{showTime}', [BookingController::class, 'create'])
     ->name('bookings.create');
+Route::get('/book/{showTime}/seats', [BookingController::class, 'seats'])
+    ->name('bookings.seats');
+Route::get('/book/{showTime}/form', [BookingController::class, 'form'])
+    ->name('bookings.form');
 Route::post('/book/{showTime}', [BookingController::class, 'store'])
     ->name('bookings.store');
 
