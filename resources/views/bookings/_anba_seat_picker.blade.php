@@ -508,21 +508,21 @@
                 //   stagger shifts seat LEFT on odd rows (matches the user's design
                 //   where stagger expands the row symmetrically on both sides).
                 if (cL > 0) {
-                    const leftWingWidth = cL * SEAT_PITCH - SEAT_GAP;
-                    const leftBaseX     = leftEndX - leftWingWidth;
-                    for (let i = 0; i < cL; i++) {
-                         // ===== LEFT (FIXED ALIGNMENT) =====
+    const leftWingWidth = cL * SEAT_PITCH - SEAT_GAP;
+    const leftBaseX     = leftEndX - leftWingWidth;
 
-                        const isStart10 = (idx % 2 === 0); // A, C, E...
+    for (let i = 0; i < cL; i++) {
 
-                        const shift = isStart10 ? -(SEAT_PITCH / 2) : 0;
+        const isShift = (idx % 2 === 0); // صفوف تبدأ بـ 10
 
-                        const x = leftBaseX
-                                + i * SEAT_PITCH
-                                + SEAT_W / 2
-                                - shift;
-                    }
-                }
+        const x = leftBaseX
+                + i * SEAT_PITCH
+                + SEAT_W / 2
+                + (isShift ? SEAT_PITCH / 2 : 0);
+
+        pushSeat(data.left[i], letter, x, rowY, false);
+    }
+}
 
                 // Center column — straight, no curve / no inward / no stagger.
                 // Row I center is the "خاص بالإدارة" block (admin-only with X).
@@ -533,19 +533,18 @@
 
                 // Right wing — data.right is ordered INNER → OUTER (e.g. [12,14,…,24]).
                 if (cR > 0) {
-                    for (let i = 0; i < cR; i++) {
-                        // ===== RIGHT (FIXED ALIGNMENT) =====
+    for (let i = 0; i < cR; i++) {
 
-                        const isStart10 = (idx % 2 === 0); // A, C, E...
+        const isShift = (idx % 2 === 0);
 
-                        const shift = isStart10 ? -(SEAT_PITCH / 2) : 0;
+        const x = rightStartX
+                + i * SEAT_PITCH
+                + SEAT_W / 2
+                - (isShift ? SEAT_PITCH / 2 : 0);
 
-                        const x = rightStartX
-                                + i * SEAT_PITCH
-                                + SEAT_W / 2
-                                + shift;
-                     }
-                }
+        pushSeat(data.right[i], letter, x, rowY, false);
+    }
+}
 
                 ROW_META.set(letter, {
                     idx,
