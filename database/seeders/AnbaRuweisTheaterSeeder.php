@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Seat;
 use App\Models\Theater;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -57,6 +58,17 @@ class AnbaRuweisTheaterSeeder extends Seeder
             }
         }
 
+        // Defensive dedupe by the unique key used by the upsert. Postgres rejects
+        // an upsert batch where two rows collide on the conflict target with:
+        //   "ON CONFLICT DO UPDATE command cannot affect row a second time"
+        // The layout below is hand-transcribed, so a typo could reintroduce a
+        // collision. Keeping this guard means a typo manifests as a missing seat
+        // (recoverable) rather than a hard migration failure on Railway.
+        $rows_to_upsert = Collection::make($rows_to_upsert)
+            ->unique(fn ($r) => $r['theater_id'].'|'.$r['section'].'|'.$r['row_letter'].'|'.$r['seat_number'])
+            ->values()
+            ->all();
+
         // chunk to keep a single transactional upsert under typical PG limits
         foreach (array_chunk($rows_to_upsert, 200) as $chunk) {
             DB::table('seats')->upsert(
@@ -102,10 +114,13 @@ class AnbaRuweisTheaterSeeder extends Seeder
 
         return [
             // ===== BALCONY (rows A–H, near stage) =====
+            // For rows whose center block already includes seat 10 (the
+            // $center9to1Plus2to10 variant), the right wing must start at 12
+            // — starting at 10 would duplicate seat 10 in the same row.
             ['row' => 'A', 'section' => $balcony,
                 'left'   => $leftOdd(21),                 // 21,19,...,11
                 'center' => $center9to1Plus2to10,
-                'right'  => $rightEven(10, 20)],
+                'right'  => $rightEven(12, 20)],
 
             ['row' => 'B', 'section' => $balcony,
                 'left'   => $leftOdd(23),
@@ -120,7 +135,7 @@ class AnbaRuweisTheaterSeeder extends Seeder
             ['row' => 'D', 'section' => $balcony,
                 'left'   => $leftOdd(25),
                 'center' => $center9to1Plus2to10,
-                'right'  => $rightEven(10, 24)],
+                'right'  => $rightEven(12, 24)],
 
             ['row' => 'E', 'section' => $balcony,
                 'left'   => $leftOdd(25),
@@ -130,7 +145,7 @@ class AnbaRuweisTheaterSeeder extends Seeder
             ['row' => 'F', 'section' => $balcony,
                 'left'   => $leftOdd(27),
                 'center' => $center9to1Plus2to10,
-                'right'  => $rightEven(10, 26)],
+                'right'  => $rightEven(12, 26)],
 
             ['row' => 'G', 'section' => $balcony,
                 'left'   => $leftOdd(27),
@@ -146,7 +161,7 @@ class AnbaRuweisTheaterSeeder extends Seeder
             ['row' => 'I', 'section' => $hall,
                 'left'   => $leftOdd(27),
                 'center' => $center9to1Plus2to10,
-                'right'  => $rightEven(10, 28)],
+                'right'  => $rightEven(12, 28)],
 
             ['row' => 'J', 'section' => $hall,
                 'left'   => $leftOdd(29),
