@@ -514,7 +514,7 @@
                         // ===== INWARD OFFSET (LEFT) =====
                         // 🔥 mirrored alignment
 
-                        const shiftPattern = (idx % 2 === 0) ? 0 : (SEAT_PITCH / 2);
+                        const shiftPattern = (idx % 2 === 0) ? -(SEAT_PITCH / 2) : 0;
 
                         const tightCurve = curve * 0.4;
 
@@ -525,7 +525,7 @@
                                 + SEAT_W / 2
                                 - tightCurve
                                 + inward
-                                - shiftPattern;
+                                - shiftPattern - (SEAT_PITCH / 4);
                         pushSeat(data.left[i], letter, x, rowY, false);
                     }
                 }
@@ -544,7 +544,7 @@
                         // Outer (large i) → strongest negative shift toward center.
                         // 🔥 ALIGNMENT SYSTEM (10 ↔ 12 pattern)
 
-                        const shiftPattern = (idx % 2 === 0) ? 0 : (SEAT_PITCH / 2);
+                        const shiftPattern = (idx % 2 === 0) ? -(SEAT_PITCH / 2) : 0;
 
                         // تقليل الكيرف عشان يبقى قريب من السنتر
                         const tightCurve = curve * 0.4;
@@ -557,7 +557,7 @@
                                 + SEAT_W / 2
                                 + tightCurve
                                 + inward
-                                + shiftPattern;
+                                + shiftPattern - (SEAT_PITCH / 4);
                         pushSeat(data.right[i], letter, x, rowY, false);
                     }
                 }
