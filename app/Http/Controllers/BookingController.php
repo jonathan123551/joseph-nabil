@@ -33,50 +33,113 @@ class BookingController extends Controller
     }
 
     // ================= CREATE =================
+    //
+    // Anba Ruweis booking is a 3-step flow:
+    //
+    //   create()  → Step 1: section selection (Sala / Balcony)
+    //   seats()   → Step 2: canvas seat picker
+    //   form()    → Step 3: attendee names, phones, payment screenshot
+    //   store()   → POST   : final submit (unchanged contract)
+    //
+    // Non-Anba-Ruweis shows continue to use the original single-page form
+    // rendered straight from create().
     public function create(ShowTime $showTime)
+    {
+        $base = $this->baseBookingPayload($showTime);
+        if ($base === null) abort(404);
+
+        // Step 1 only needs prices + transfer info; seat data is loaded in
+        // step 2. For non-Anba-Ruweis the original create.blade.php still
+        // renders an inline form so we keep returning that view either way.
+        return view('bookings.create', $base);
+    }
+
+    public function seats(Request $request, ShowTime $showTime)
+    {
+        $base = $this->baseBookingPayload($showTime);
+        if ($base === null) abort(404);
+
+        // Seat picker only exists for Anba Ruweis. Anything else falls back
+        // to step 1 (section picker / single-page manual form).
+        if (!$base['isAnbaRuweis']) {
+            return redirect()->route('bookings.create', $showTime);
+        }
+
+        $section = $request->query('section', Theater::SECTION_HALL);
+        if (!in_array($section, [Theater::SECTION_HALL, Theater::SECTION_BALCONY], true)) {
+            $section = Theater::SECTION_HALL;
+        }
+
+        $payload = $base + $this->anbaSeatPayload($showTime) + ['section' => $section];
+
+        return view('bookings.seats', $payload);
+    }
+
+    public function form(Request $request, ShowTime $showTime)
+    {
+        $base = $this->baseBookingPayload($showTime);
+        if ($base === null) abort(404);
+
+        if (!$base['isAnbaRuweis']) {
+            return redirect()->route('bookings.create', $showTime);
+        }
+
+        $section = $request->query('section', Theater::SECTION_HALL);
+        if (!in_array($section, [Theater::SECTION_HALL, Theater::SECTION_BALCONY], true)) {
+            $section = Theater::SECTION_HALL;
+        }
+
+        // The form pre-fills selected seats from localStorage on the client.
+        // No seat grid is needed here, just price + transfer info.
+        return view('bookings.form', $base + ['section' => $section]);
+    }
+
+    /**
+     * Shared base payload (show details, prices, transfer info, ticket
+     * remaining). Returns null when the show time is sold out / disabled.
+     */
+    private function baseBookingPayload(ShowTime $showTime): ?array
     {
         $reserved = $showTime->bookings()
             ->whereIn('status', ['approved','pending'])
             ->sum('tickets_count');
 
         $remaining = max(0, $showTime->total_tickets - $reserved);
-
-        abort_if($remaining <= 0 || $showTime->is_sold_out, 404);
+        if ($remaining <= 0 || $showTime->is_sold_out) return null;
 
         $showTime->loadMissing('show');
         $isAnbaRuweis = $showTime->show && $showTime->show->theater_type === Show::THEATER_ANBA_RUWEIS;
 
-        $payload = [
+        return [
             'showTime'       => $showTime,
             'transferWallet' => Setting::get('transfer_wallet', ''),
             'transferInsta'  => Setting::get('transfer_insta', ''),
             'remaining'      => $remaining,
             'isAnbaRuweis'   => $isAnbaRuweis,
+            'balconyPrice'   => (int) ($showTime->show->balcony_price ?? 0),
+            'hallPrice'      => (int) ($showTime->show->hall_price ?? 0),
         ];
+    }
 
-        if ($isAnbaRuweis) {
-            $theater = Theater::anbaRuweis();
-            $seats   = $theater
-                ? $theater->seats()->orderBy('row_letter')->orderBy('group_side')->orderBy('display_order')->get()
-                : collect();
+    /**
+     * Heavy seat-grid payload — only loaded for the seat-picker page.
+     */
+    private function anbaSeatPayload(ShowTime $showTime): array
+    {
+        $theater = Theater::anbaRuweis();
+        $seats   = $theater
+            ? $theater->seats()->orderBy('row_letter')->orderBy('group_side')->orderBy('display_order')->get()
+            : collect();
 
-            $unavailable = $showTime->unavailableSeatIds();
+        $unavailable = $showTime->unavailableSeatIds();
+        $blocked     = $showTime->seatBlocks()->pluck('seat_id')->all();
 
-            // Read-only split for the UI legend so the seat picker can render
-            // booked (red) vs admin-blocked (yellow) differently. The store
-            // path still uses the merged $unavailable list — nothing about
-            // booking logic, validation, or DB writes changes.
-            $blocked = $showTime->seatBlocks()->pluck('seat_id')->all();
-
-            $payload['theater']           = $theater;
-            $payload['seatsByRow']        = $this->groupSeatsByRow($seats);
-            $payload['unavailableSeats']  = $unavailable;
-            $payload['blockedSeats']      = $blocked;
-            $payload['balconyPrice']      = (int) ($showTime->show->balcony_price ?? 0);
-            $payload['hallPrice']         = (int) ($showTime->show->hall_price ?? 0);
-        }
-
-        return view('bookings.create', $payload);
+        return [
+            'theater'          => $theater,
+            'seatsByRow'       => $this->groupSeatsByRow($seats),
+            'unavailableSeats' => $unavailable,
+            'blockedSeats'     => $blocked,
+        ];
     }
 
     /**

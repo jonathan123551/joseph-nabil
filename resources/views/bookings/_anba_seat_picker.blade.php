@@ -1,26 +1,30 @@
 {{--
-    Premium cinema-style seat picker for مسرح الأنبا رويس.
-    UI/UX redesign — backend contract is unchanged:
-        - posts seat_ids[], names[], phones[], section, payment_screenshot
-        - section is hardcoded to "hall" (the theater is now a single
-          unified section after the JSON reseed)
+    Premium cinema-style seat picker for مسرح الأنبا رويس — STEP 2 of the
+    3-step booking flow. This partial only handles seat selection; the
+    attendee form (names, phones, payment screenshot) lives on the next
+    page (bookings.form / form.blade.php).
 
-    v2 — pure HTML Canvas rendering. No flex/grid for the seat plan.
-    Each row is rendered as a true arc (row A small radius, row R large)
-    with seats absolutely positioned via polar geometry. Hit-testing,
-    hover, and selection are all handled in JS against a list of
-    rotated-rectangle seat hitboxes.
+    On "Continue" the partial saves the selection to localStorage under
+    `booking_selection` and redirects to the form page. The store contract
+    is unchanged — the form page hydrates seat_ids[] from localStorage
+    before posting to bookings.store.
 --}}
 
 @php
-    $hallPriceInt = (int) ($hallPrice ?? 0);
-    $hallSeats    = $seatsByRow['hall'] ?? [];
+    $hallPriceInt    = (int) ($hallPrice ?? 0);
+    $balconyPriceInt = (int) ($balconyPrice ?? 0);
+    $sectionParam    = $section ?? 'hall';
+    $unitPrice       = $sectionParam === 'balcony' ? $balconyPriceInt : $hallPriceInt;
+    $hallSeats       = $seatsByRow['hall'] ?? [];
     // Produce a stable A→R order so the script doesn't have to sort.
     ksort($hallSeats);
 @endphp
 
 <div data-anba-root
-     data-hall-price="{{ $hallPriceInt }}"
+     data-hall-price="{{ $unitPrice }}"
+     data-section="{{ $sectionParam }}"
+     data-show-time-id="{{ (int) $showTime->id }}"
+     data-form-url="{{ route('bookings.form', $showTime) }}?section={{ $sectionParam }}"
      data-unavailable='@json($unavailableSeats)'
      data-blocked='@json($blockedSeats ?? [])'>
 
@@ -257,25 +261,9 @@
                 <div class="flex items-center gap-2"><span class="w-3.5 h-3.5 rounded bg-gradient-to-b from-yellow-500 to-yellow-900 border border-yellow-300/60 inline-block"></span> محجوز إداري</div>
             </div>
 
-            @if ($errors->any())
-                <div class="bg-red-500/10 border border-red-500/40 text-red-200 text-xs rounded-xl p-3">
-                    <ul class="space-y-1">
-                        @foreach ($errors->all() as $error)
-                            <li>• {{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
-
-            <form action="{{ route('bookings.store', $showTime) }}"
-                  method="POST"
-                  enctype="multipart/form-data"
-                  id="anbaBookingForm"
-                  class="space-y-4">
-                @csrf
-                {{-- Section is now always 'hall' — single unified seating area --}}
-                <input type="hidden" name="section" value="hall">
-
+            {{-- selection summary (chips + total) — read-only here; the
+                 form on the next page is where attendees + payment go. --}}
+            <div class="space-y-3">
                 <div>
                     <div class="flex items-center justify-between text-[11px] text-gray-400 mb-1">
                         <span>المقاعد المختارة</span>
@@ -291,24 +279,19 @@
                     <span class="text-base font-bold"><span data-total-price>0</span> <span class="text-[10px]">EGP</span></span>
                 </div>
 
-                <div data-attendees class="space-y-2"></div>
-
-                <div class="space-y-2">
-                    <label class="text-xs font-semibold text-white">📸 إيصال التحويل</label>
-                    <input type="file"
-                           name="payment_screenshot"
-                           id="anbaScreenshot"
-                           accept="image/*"
-                           class="w-full text-[11px] text-gray-300 file:bg-amber-400/20 file:text-amber-100 file:border-0 file:rounded-md file:px-3 file:py-1.5 file:ml-3 file:cursor-pointer">
-                </div>
-
-                <button type="submit"
-                        id="anbaSubmitBtn"
+                <button type="button"
+                        id="anbaContinueBtn"
+                        data-continue
                         disabled
                         class="cta-primary w-full">
-                    تأكيد الحجز
+                    إكمال الحجز
                 </button>
-            </form>
+
+                <a href="{{ route('bookings.create', $showTime) }}"
+                   class="block text-center text-[11px] text-gray-400 hover:text-amber-300 transition">
+                    ← الرجوع لاختيار القسم
+                </a>
+            </div>
         </aside>
     </div>
 
@@ -321,7 +304,8 @@
                 <span data-mobile-total>0</span> EGP
             </div>
         </div>
-        <button type="button" data-jump-to-form
+        <button type="button" data-continue
+                disabled
                 class="cta-primary px-5 py-2 text-xs">إكمال الحجز</button>
     </div>
 
@@ -345,11 +329,18 @@
         const root = document.querySelector('[data-anba-root]');
         if (!root) return;
 
-        // ----- data wiring (unchanged contract with the form) -----
+        // ----- data wiring -----
+        // Seat picker is now step 2 of a 3-step flow. The selection is
+        // persisted to localStorage on "Continue" and consumed by the
+        // form page (step 3) which posts to bookings.store with the same
+        // contract (seat_ids[], names[], phones[], section, screenshot).
         const seatData     = JSON.parse(root.querySelector('[data-seat-data]').textContent);
         const unavailable  = new Set((JSON.parse(root.dataset.unavailable || '[]') || []).map(Number));
         const blocked      = new Set((JSON.parse(root.dataset.blocked     || '[]') || []).map(Number));
         const hallPrice    = parseInt(root.dataset.hallPrice || '0', 10);
+        const sectionParam = root.dataset.section || 'hall';
+        const showTimeId   = parseInt(root.dataset.showTimeId || '0', 10);
+        const formUrl      = root.dataset.formUrl || '';
 
         const canvas       = root.querySelector('[data-seat-canvas]');
         const scroller     = root.querySelector('[data-canvas-scroller]');
@@ -359,18 +350,13 @@
         const chipsBox     = root.querySelector('[data-selected-chips]');
         const countEl      = root.querySelector('[data-selected-count]');
         const totalEl      = root.querySelector('[data-total-price]');
-        const attendees    = root.querySelector('[data-attendees]');
-        const screenshot   = root.querySelector('#anbaScreenshot');
-        const submitBtn    = root.querySelector('#anbaSubmitBtn');
-        const form         = root.querySelector('#anbaBookingForm');
+        const continueBtns = root.querySelectorAll('[data-continue]');
         const mobileCount  = root.querySelector('[data-mobile-count]');
         const mobileTotal  = root.querySelector('[data-mobile-total]');
-        const jumpBtn      = root.querySelector('[data-jump-to-form]');
 
         // map seatId -> { row, n, isAdminOnly? }
         const seatMeta  = new Map();
         const selected  = new Map();
-        let isSubmitting = false;
         let zoomLevel    = 1;
 
         // ===== Geometry constants =====
@@ -915,49 +901,12 @@
                 });
             }
 
-            renderAttendees(ids);
-            updateSubmitButton();
+            updateContinueButton();
         }
 
-        function renderAttendees(ids) {
-            const cached = {};
-            attendees.querySelectorAll('.attendee-card').forEach(card => {
-                const sid = card.dataset.seatId;
-                cached[sid] = {
-                    name:  card.querySelector('input[name="names[]"]').value,
-                    phone: card.querySelector('input[name="phones[]"]').value,
-                };
-            });
-
-            attendees.innerHTML = '';
-            ids.forEach((id, i) => {
-                const meta = selected.get(id);
-                const wrap = document.createElement('div');
-                wrap.className = 'attendee-card';
-                wrap.dataset.seatId = id;
-                wrap.innerHTML = `
-                    <div class="seat-pill">${meta.row}${meta.n}</div>
-                    <div class="space-y-2">
-                        <input type="hidden" name="seat_ids[]" value="${id}">
-                        <input type="text" name="names[]" placeholder="اسم الشخص ${i + 1}"
-                               class="field-input" required value="${escapeAttr(cached[id]?.name || '')}">
-                        <input type="text" name="phones[]" placeholder="رقم واتساب ${i + 1}"
-                               class="field-input" required value="${escapeAttr(cached[id]?.phone || '')}">
-                    </div>
-                `;
-                attendees.appendChild(wrap);
-            });
-        }
-
-        function escapeAttr(v) {
-            return String(v).replace(/"/g, '&quot;').replace(/</g, '&lt;');
-        }
-
-        function updateSubmitButton() {
-            const ready = selected.size > 0
-                       && (screenshot.files?.length > 0)
-                       && !isSubmitting;
-            submitBtn.disabled = !ready;
+        function updateContinueButton() {
+            const ready = selected.size > 0;
+            continueBtns.forEach(btn => { btn.disabled = !ready; });
         }
 
         chipsBox.addEventListener('click', (e) => {
@@ -968,7 +917,52 @@
             if (meta) toggleSeat(meta);
         });
 
-        screenshot.addEventListener('change', updateSubmitButton);
+        // ===== Continue → save selection + redirect to form page =====
+        // Persist the selection (IDs + labels for chip rendering) to
+        // localStorage so the form page can hydrate without a server
+        // round-trip. Server still validates seat_ids[] on POST so a
+        // tampered localStorage can't bypass anything.
+        function saveAndContinue() {
+            if (selected.size === 0) return;
+            const ids = Array.from(selected.keys()).sort((a, b) => {
+                const ma = selected.get(a), mb = selected.get(b);
+                if (ma.row !== mb.row) return ma.row < mb.row ? -1 : 1;
+                return ma.n - mb.n;
+            });
+            const seats = ids.map(id => {
+                const meta = selected.get(id);
+                return { id, label: `${meta.row}${meta.n}`, row: meta.row, n: meta.n };
+            });
+            try {
+                localStorage.setItem('booking_selection', JSON.stringify({
+                    showTimeId,
+                    section: sectionParam,
+                    unitPrice: hallPrice,
+                    seats,
+                    savedAt: Date.now(),
+                }));
+            } catch (e) { /* localStorage may be disabled — fall through */ }
+            window.location.href = formUrl;
+        }
+
+        continueBtns.forEach(btn => btn.addEventListener('click', saveAndContinue));
+
+        // Restore prior selection (e.g. user came back from the form page).
+        try {
+            const stored = JSON.parse(localStorage.getItem('booking_selection') || 'null');
+            if (stored
+                && stored.showTimeId === showTimeId
+                && stored.section === sectionParam
+                && Array.isArray(stored.seats)) {
+                stored.seats.forEach(s => {
+                    if (typeof s.id === 'number'
+                        && !unavailable.has(s.id)
+                        && !blocked.has(s.id)) {
+                        selected.set(s.id, { row: s.row, n: s.n });
+                    }
+                });
+            }
+        } catch (e) { /* ignore */ }
 
         // ===== Zoom =====
         // Pure CSS scale — keeps the underlying canvas geometry unchanged.
@@ -984,24 +978,6 @@
                 else zoomLevel = Math.max(0.7, Math.min(1.8, zoomLevel + dir * 0.1));
                 applyZoomCss();
             });
-        });
-
-        if (jumpBtn) {
-            jumpBtn.addEventListener('click', () => {
-                form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            });
-        }
-
-        form.addEventListener('submit', (e) => {
-            if (isSubmitting) { e.preventDefault(); return false; }
-            if (selected.size === 0) {
-                e.preventDefault();
-                alert('❌ من فضلك اختر مقعد واحد على الأقل');
-                return false;
-            }
-            isSubmitting = true;
-            submitBtn.disabled = true;
-            submitBtn.innerText = 'جارِ الإرسال...';
         });
 
         // ===== Init =====
