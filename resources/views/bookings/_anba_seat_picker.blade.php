@@ -435,27 +435,25 @@
         const ROW_META = new Map();
         const HALF = (SEAT_W + SEAT_GAP) / 2;
 
-const RIGHT_OFFSETS = {
+const RIGHT_SHIFT_STEPS = {
     Q: 0,
+    P: 1,
+    O: 2,
+    N: 3,
+    M: 3.2,
+    L: 3.4,
+    K: 3.6,
+    J: 3.8,
+    I: 4,
 
-    P: HALF,
-    O: HALF * 2,
-    N: HALF * 3,
-
-    M: HALF * 3,
-    L: HALF * 3,
-    K: HALF * 3,
-    J: HALF * 3,
-    I: HALF * 3,
-
-    H: HALF,
-    G: HALF * 2,
-    F: HALF * 3,
-    E: HALF * 4,
-    D: HALF * 5,
-    C: HALF * 5,
-    B: HALF * 6,
-    A: HALF * 7,
+    H: 5,
+    G: 6,
+    F: 7,
+    E: 8,
+    D: 9,
+    C: 10,
+    B: 10.2,
+    A: 11.2,
 };
         // ===== Layout computation =====
         function computeLayout() {
@@ -551,12 +549,18 @@ if (cL > 0) {
                 // Right wing — data.right is ordered INNER → OUTER (e.g. [12,14,…,24]).
                 if (cR > 0) {
     for (let i = 0; i < cR; i++) {
-        const offset = RIGHT_OFFSETS[letter] || 0;
 
-const x = rightStartX
-        + i * SEAT_PITCH
-        + SEAT_W / 2
-        + offset;
+        const step = RIGHT_SHIFT_STEPS[letter] || 0;
+        const offset = step * STEP;
+
+        const centerBias = (i % 2 === 0) ? 0 : STEP / 2;
+
+        const x = rightStartX
+                + i * SEAT_PITCH
+                + SEAT_W / 2
+                + offset
+                + centerBias;
+
         pushSeat(data.right[i], letter, x, rowY, false);
     }
 }
