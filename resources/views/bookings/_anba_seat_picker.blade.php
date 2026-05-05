@@ -489,19 +489,20 @@
                 const centerStartX  = CX - centerWidth / 2;
 
                 // Pick the gap between the two wings:
-                //   - row A          → anchor to row B's center so the wings
-                //                     line up vertically with the next row down
-                //   - row Q (no ctr) → anchor to row P's center, same idea
-                //   - all other rows → 2 × AISLE_GAP around centerStartX
-                //                     (collapses to just 2 × AISLE_GAP for any
-                //                     row with no center column, e.g. row R)
+                //   - row A → anchor to row B (its toward-stage neighbor)
+                //   - row Q → anchor to row P (toward-stage neighbor)
+                //   - row R → anchor to row Q (toward-stage neighbor; Q's
+                //             raw data still has 9 center seats, so the
+                //             effective anchor matches P's wing position)
+                //   - rows w/ center → 2 × AISLE_GAP around centerStartX
+                const NO_CENTER_ANCHORS = { A: 'B', Q: 'P', R: 'Q' };
                 let leftEndX;
                 let rightStartX;
-                if (letter === 'A' || letter === 'Q') {
-                    // Both rows have no center column; anchor to a neighbor
-                    // (next-toward-stage) so the wings line up vertically.
-                    const neighborKey   = letter === 'A' ? 'B' : 'P';
-                    const neighbor      = rows[neighborKey];
+                if (NO_CENTER_ANCHORS[letter]) {
+                    // No center column on this row; anchor wings to the
+                    // toward-stage neighbor's center column so the inner
+                    // edges line up vertically.
+                    const neighbor      = rows[NO_CENTER_ANCHORS[letter]];
                     const nbrCount      = (neighbor?.center || []).length;
                     const nbrWidth      = nbrCount > 0
                         ? nbrCount * SEAT_PITCH - SEAT_GAP
