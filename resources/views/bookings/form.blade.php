@@ -327,7 +327,8 @@
                   method="POST"
                   enctype="multipart/form-data"
                   id="anbaFinalForm"
-                  class="space-y-4">
+                  class="space-y-4"
+                  data-pt-confirm='{"tone":"warn","title":"تأكيد الحجز","body":"هتقدم طلب الحجز للمراجعة. لما يتأكد، هتوصلك التذكرة على واتساب.","okLabel":"تأكيد","cancelLabel":"إلغاء","okVariant":"emerald"}'>
                 @csrf
                 <input type="hidden" name="section" value="{{ $sectionParam }}">
 

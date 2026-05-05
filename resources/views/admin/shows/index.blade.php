@@ -46,7 +46,7 @@
         </div>
     @else
 
-        <div class="grid gap-4 prism-stagger">
+        <div class="grid gap-4 prism-stagger pt-reveal pt-reveal-stagger">
 
             @foreach($shows as $show)
                 <div class="prism-glass p-4 sm:p-5 space-y-3 prism-fade-up">

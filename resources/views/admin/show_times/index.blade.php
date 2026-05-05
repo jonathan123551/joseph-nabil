@@ -165,7 +165,7 @@
         </div>
 
         {{-- MOBILE --}}
-        <div class="md:hidden space-y-3 prism-stagger">
+        <div class="md:hidden space-y-3 prism-stagger pt-reveal pt-reveal-stagger">
 
             @foreach($times as $time)
                 @php

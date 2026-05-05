@@ -1268,6 +1268,130 @@
             });
         });
 
+        // ===== Native pinch-to-zoom + drag-to-pan (canvas viewport only;
+        //       seat geometry / computeLayout / RIGHT_SHIFT_STEPS untouched) =====
+        (function () {
+            let pinchActive   = false;
+            let panActive     = false;
+            let startDist     = 0;
+            let startZoom     = 1;
+            let pinchCenter   = { x: 0, y: 0 };
+            let startScroll   = { left: 0, top: 0 };
+            let panLast       = { x: 0, y: 0 };
+            let panStartTs    = 0;
+            let suppressClick = false;
+
+            function dist(t1, t2) {
+                const dx = t1.clientX - t2.clientX;
+                const dy = t1.clientY - t2.clientY;
+                return Math.hypot(dx, dy);
+            }
+            function center(t1, t2) {
+                return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+            }
+
+            scroller.addEventListener('touchstart', function (e) {
+                if (e.touches.length === 2) {
+                    pinchActive = true;
+                    panActive   = false;
+                    startDist   = dist(e.touches[0], e.touches[1]);
+                    startZoom   = zoomLevel;
+                    const r     = scroller.getBoundingClientRect();
+                    const c     = center(e.touches[0], e.touches[1]);
+                    pinchCenter = { x: c.x - r.left + scroller.scrollLeft,
+                                    y: c.y - r.top  + scroller.scrollTop };
+                    e.preventDefault();
+                } else if (e.touches.length === 1) {
+                    panActive   = true;
+                    pinchActive = false;
+                    panLast     = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                    startScroll = { left: scroller.scrollLeft, top: scroller.scrollTop };
+                    panStartTs  = Date.now();
+                }
+            }, { passive: false });
+
+            scroller.addEventListener('touchmove', function (e) {
+                if (pinchActive && e.touches.length === 2) {
+                    const d = dist(e.touches[0], e.touches[1]);
+                    if (startDist > 0) {
+                        const factor = d / startDist;
+                        const newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, startZoom * factor));
+                        const ratio = newZoom / zoomLevel;
+                        zoomLevel = newZoom;
+                        applyZoomCss();
+                        // keep pinch center stationary
+                        scroller.scrollLeft = pinchCenter.x * ratio - (pinchCenter.x - scroller.scrollLeft);
+                        scroller.scrollTop  = pinchCenter.y * ratio - (pinchCenter.y - scroller.scrollTop);
+                        pinchCenter.x *= ratio;
+                        pinchCenter.y *= ratio;
+                    }
+                    e.preventDefault();
+                } else if (panActive && e.touches.length === 1) {
+                    const dx = e.touches[0].clientX - panLast.x;
+                    const dy = e.touches[0].clientY - panLast.y;
+                    if (Math.abs(dx) + Math.abs(dy) > 4) suppressClick = true;
+                    // native scroll handles this; we just update last for click suppression
+                    panLast = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            }, { passive: false });
+
+            function endPinch() {
+                pinchActive = false;
+                panActive   = false;
+                setTimeout(() => suppressClick = false, 80);
+            }
+            scroller.addEventListener('touchend',    endPinch);
+            scroller.addEventListener('touchcancel', endPinch);
+
+            // suppress synthetic click after a pan
+            canvas.addEventListener('click', function (e) {
+                if (suppressClick) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    suppressClick = false;
+                }
+            }, true);
+
+            // mouse wheel zoom (desktop convenience; ctrl/cmd + wheel)
+            scroller.addEventListener('wheel', function (e) {
+                if (!(e.ctrlKey || e.metaKey)) return;
+                e.preventDefault();
+                const r = scroller.getBoundingClientRect();
+                const cx = e.clientX - r.left + scroller.scrollLeft;
+                const cy = e.clientY - r.top  + scroller.scrollTop;
+                const oldZoom = zoomLevel;
+                const delta = -e.deltaY * 0.0015;
+                zoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomLevel * (1 + delta)));
+                if (zoomLevel === oldZoom) return;
+                applyZoomCss();
+                const ratio = zoomLevel / oldZoom;
+                scroller.scrollLeft = cx * ratio - (cx - scroller.scrollLeft);
+                scroller.scrollTop  = cy * ratio - (cy - scroller.scrollTop);
+            }, { passive: false });
+
+            // double-tap to zoom (mobile)
+            let lastTap = 0;
+            scroller.addEventListener('touchend', function (e) {
+                const now = Date.now();
+                if (now - lastTap < 280 && e.changedTouches.length === 1) {
+                    const r = scroller.getBoundingClientRect();
+                    const t = e.changedTouches[0];
+                    const cx = t.clientX - r.left + scroller.scrollLeft;
+                    const cy = t.clientY - r.top  + scroller.scrollTop;
+                    const targetZoom = (zoomLevel < (ZOOM_MIN + ZOOM_MAX) / 2)
+                        ? Math.min(ZOOM_MAX, zoomLevel * 1.6)
+                        : (isFullscreen ? Math.min(scroller.clientWidth / DISPLAY_W,
+                                                   scroller.clientHeight / DISPLAY_H) : 1);
+                    const ratio = targetZoom / zoomLevel;
+                    zoomLevel = targetZoom;
+                    applyZoomCss();
+                    scroller.scrollLeft = cx * ratio - (cx - scroller.scrollLeft);
+                    scroller.scrollTop  = cy * ratio - (cy - scroller.scrollTop);
+                }
+                lastTap = now;
+            });
+        })();
+
         // ===== Init =====
         function boot() {
             fitCanvas();

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'تم إرسال طلب الحجز · PRISM')
+@section('title', 'تم إرسال طلب الحجز · Premium Tickets')
 
 @section('content')
 <section class="max-w-lg mx-auto prism-fade-up">

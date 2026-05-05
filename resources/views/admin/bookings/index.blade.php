@@ -157,7 +157,7 @@
     </div>
 
     {{-- ========================== MOBILE CARDS ========================== --}}
-    <div class="md:hidden space-y-3 prism-stagger">
+    <div class="md:hidden space-y-3 prism-stagger pt-reveal pt-reveal-stagger">
         @foreach($bookings as $booking)
             @php
                 $dt = $booking->showTime
