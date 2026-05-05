@@ -16,15 +16,18 @@
     $sectionParam    = $section ?? 'hall';
     $unitPrice       = $sectionParam === 'balcony' ? $balconyPriceInt : $hallPriceInt;
     $hallSeats       = $seatsByRow['hall'] ?? [];
+    $isFullscreen    = (bool) ($fullscreen ?? false);
     // Produce a stable A→R order so the script doesn't have to sort.
     ksort($hallSeats);
 @endphp
 
 <div data-anba-root
+     @if ($isFullscreen) data-fullscreen="1" @endif
      data-hall-price="{{ $unitPrice }}"
      data-section="{{ $sectionParam }}"
      data-show-time-id="{{ (int) $showTime->id }}"
      data-form-url="{{ route('bookings.form', $showTime) }}?section={{ $sectionParam }}"
+     data-back-url="{{ route('bookings.create', $showTime) }}"
      data-unavailable='@json($unavailableSeats)'
      data-blocked='@json($blockedSeats ?? [])'>
 
@@ -182,22 +185,124 @@
         @media (max-width: 1023px) {
             [data-anba-root].has-selection .mobile-cta { display: flex; }
         }
+
+        /* =========================================================
+           Fullscreen mode (Step 2: dedicated seat-picker page).
+           Layout fills the viewport with no scrolling; the canvas
+           is auto-scaled by JS to fit. The side panel is hidden;
+           a sticky bottom bar carries the count + total + CTA.
+           ========================================================= */
+        [data-anba-root][data-fullscreen="1"] {
+            display: flex;
+            flex-direction: column;
+            height: 100dvh;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        [data-anba-root][data-fullscreen="1"] .fs-grid {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;        /* required so the canvas wrapper can shrink */
+            gap: 0;
+        }
+        [data-anba-root][data-fullscreen="1"] .fs-aside { display: none; }
+
+        [data-anba-root][data-fullscreen="1"] .fs-mapwrap {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;
+            padding: 8px 8px 0 8px;
+            border-radius: 0;
+            background: transparent;
+            border: 0;
+            box-shadow: none;
+        }
+        [data-anba-root][data-fullscreen="1"] .fs-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 8px 4px 8px;
+            font-size: 11px;
+            color: #fde68a;
+        }
+        [data-anba-root][data-fullscreen="1"] .fs-topbar .fs-back {
+            display: inline-flex; align-items: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(2,6,23,0.6);
+            border: 1px solid rgba(251,191,36,0.30);
+            color: #fde68a;
+            font-weight: 700;
+        }
+        [data-anba-root][data-fullscreen="1"] .canvas-scroller {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;          /* no scrollbars in fullscreen mode */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 18px;
+            border: 1px solid rgba(251,191,36,0.10);
+        }
+        [data-anba-root][data-fullscreen="1"] canvas.seat-canvas {
+            margin: auto;
+        }
+        /* hide the small "scroll hint" text + hover status under the map in
+           fullscreen — it's noise on a small screen. */
+        [data-anba-root][data-fullscreen="1"] .fs-mapwrap > p { display: none; }
+
+        /* sticky bottom bar (always visible in fullscreen, both desktop +
+           mobile, since the side panel is gone). */
+        [data-anba-root][data-fullscreen="1"] .mobile-cta {
+            position: relative;
+            display: flex;
+            inset: auto;
+            z-index: 1;
+            padding: 10px 12px;
+            margin: 0;
+            background: linear-gradient(180deg, rgba(2,6,23,0.85), rgba(2,6,23,0.95));
+            border-top: 1px solid rgba(251,191,36,0.30);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
+        }
     </style>
 
-    <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr),360px] gap-5">
+    <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr),360px] gap-5 fs-grid">
 
         {{-- ===================== SEAT MAP ===================== --}}
-        <section class="glass ambient p-4 sm:p-6">
-            <div class="flex items-center justify-between mb-3">
-                <h2 class="text-sm font-semibold text-amber-300">
-                    🎭 خريطة المقاعد · {{ $showTime->show->title ?? 'مسرح الأنبا رويس' }}
-                </h2>
-                <div class="zoom-bar">
-                    <button type="button" class="zoom-btn" data-zoom="-1" aria-label="تصغير">−</button>
-                    <button type="button" class="zoom-btn" data-zoom="0"  aria-label="إعادة">⟳</button>
-                    <button type="button" class="zoom-btn" data-zoom="1"  aria-label="تكبير">+</button>
+        <section class="glass ambient p-4 sm:p-6 fs-mapwrap">
+            @if ($isFullscreen)
+                {{-- compact top bar shown only in fullscreen mode --}}
+                <div class="fs-topbar">
+                    <a href="{{ route('bookings.create', $showTime) }}" class="fs-back">
+                        ← رجوع
+                    </a>
+                    <span class="text-amber-300 font-semibold">
+                        🎭 اختار مقاعدك
+                    </span>
+                    <div class="zoom-bar">
+                        <button type="button" class="zoom-btn" data-zoom="-1" aria-label="تصغير">−</button>
+                        <button type="button" class="zoom-btn" data-zoom="0"  aria-label="إعادة">⟳</button>
+                        <button type="button" class="zoom-btn" data-zoom="1"  aria-label="تكبير">+</button>
+                    </div>
                 </div>
-            </div>
+            @else
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-semibold text-amber-300">
+                        🎭 خريطة المقاعد · {{ $showTime->show->title ?? 'مسرح الأنبا رويس' }}
+                    </h2>
+                    <div class="zoom-bar">
+                        <button type="button" class="zoom-btn" data-zoom="-1" aria-label="تصغير">−</button>
+                        <button type="button" class="zoom-btn" data-zoom="0"  aria-label="إعادة">⟳</button>
+                        <button type="button" class="zoom-btn" data-zoom="1"  aria-label="تكبير">+</button>
+                    </div>
+                </div>
+            @endif
 
             <div class="canvas-scroller" data-canvas-scroller>
                 <canvas class="seat-canvas" data-seat-canvas
@@ -215,7 +320,7 @@
         </section>
 
         {{-- ===================== SIDE PANEL ===================== --}}
-        <aside class="glass p-5 lg:sticky lg:top-4 self-start space-y-5">
+        <aside class="glass p-5 lg:sticky lg:top-4 self-start space-y-5 fs-aside">
 
             {{-- show details --}}
             <div class="space-y-1.5">
@@ -341,6 +446,7 @@
         const sectionParam = root.dataset.section || 'hall';
         const showTimeId   = parseInt(root.dataset.showTimeId || '0', 10);
         const formUrl      = root.dataset.formUrl || '';
+        const isFullscreen = root.dataset.fullscreen === '1';
 
         const canvas       = root.querySelector('[data-seat-canvas]');
         const scroller     = root.querySelector('[data-canvas-scroller]');
@@ -966,17 +1072,35 @@
 
         // ===== Zoom =====
         // Pure CSS scale — keeps the underlying canvas geometry unchanged.
+        // In fullscreen mode the canvas is auto-fit to the available space
+        // so that mobile users never need to scroll the seat map.
+        const ZOOM_MIN = isFullscreen ? 0.18 : 0.7;
+        const ZOOM_MAX = isFullscreen ? 2.5  : 1.8;
+
         function applyZoomCss() {
             canvas.style.width  = (DISPLAY_W * zoomLevel) + 'px';
             canvas.style.height = (DISPLAY_H * zoomLevel) + 'px';
         }
 
+        function fitToViewport() {
+            const w = scroller.clientWidth;
+            const h = scroller.clientHeight;
+            if (w <= 0 || h <= 0) return;
+            const z = Math.min(w / DISPLAY_W, h / DISPLAY_H);
+            zoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
+            applyZoomCss();
+        }
+
         root.querySelectorAll('[data-zoom]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const dir = parseInt(btn.dataset.zoom, 10);
-                if (dir === 0) zoomLevel = 1;
-                else zoomLevel = Math.max(0.7, Math.min(1.8, zoomLevel + dir * 0.1));
-                applyZoomCss();
+                if (dir === 0) {
+                    if (isFullscreen) fitToViewport();
+                    else { zoomLevel = 1; applyZoomCss(); }
+                } else {
+                    zoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomLevel + dir * 0.1));
+                    applyZoomCss();
+                }
             });
         });
 
@@ -985,14 +1109,22 @@
             fitCanvas();
             computeLayout();
             renderSidePanel();
-            draw();
-            // After load, scroll to center the seat plan horizontally on
-            // mobile (the canvas is wider than the viewport).
-            requestAnimationFrame(() => {
-                if (scroller.scrollWidth > scroller.clientWidth) {
-                    scroller.scrollLeft = (scroller.scrollWidth - scroller.clientWidth) / 2;
-                }
-            });
+            if (isFullscreen) {
+                // wait one frame so the scroller has a measurable size
+                requestAnimationFrame(() => {
+                    fitToViewport();
+                    draw();
+                });
+            } else {
+                draw();
+                // After load, scroll to center the seat plan horizontally on
+                // mobile (the canvas is wider than the viewport).
+                requestAnimationFrame(() => {
+                    if (scroller.scrollWidth > scroller.clientWidth) {
+                        scroller.scrollLeft = (scroller.scrollWidth - scroller.clientWidth) / 2;
+                    }
+                });
+            }
         }
 
         boot();
@@ -1006,6 +1138,14 @@
                 fitCanvas();
                 draw();
             }
+            // In fullscreen mode also re-fit the canvas to the new viewport.
+            if (isFullscreen) fitToViewport();
         });
+
+        // Re-fit when the visual viewport changes on iOS Safari (URL bar
+        // collapse) so the canvas always uses the maximum available space.
+        if (isFullscreen && window.visualViewport) {
+            window.visualViewport.addEventListener('resize', fitToViewport);
+        }
     })();
 </script>

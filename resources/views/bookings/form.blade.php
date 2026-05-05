@@ -44,14 +44,70 @@
                 0 20px 60px -20px rgba(0,0,0,0.7);
         }
         [data-anba-form] .seat-chip {
-            display: inline-flex; align-items: center;
-            padding: 4px 10px;
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 3px 6px 3px 10px;
             border-radius: 999px;
             background: linear-gradient(180deg, rgba(16,185,129,0.22), rgba(16,185,129,0.10));
             border: 1px solid rgba(52,211,153,0.55);
             color: #d1fae5;
-            font-size: 11px; font-weight: 700;
+            font-size: 12px; font-weight: 700;
             box-shadow: 0 0 10px rgba(16,185,129,0.25), inset 0 1px 0 rgba(255,255,255,0.06);
+        }
+        [data-anba-form] .seat-chip [data-remove] {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 18px; height: 18px;
+            border-radius: 999px;
+            background: rgba(2,6,23,0.5);
+            color: #fee2e2;
+            font-size: 11px; font-weight: 800;
+            line-height: 1;
+            transition: background .15s ease, transform .15s ease;
+            cursor: pointer;
+        }
+        [data-anba-form] .seat-chip [data-remove]:hover {
+            background: rgba(220,38,38,0.6);
+            transform: scale(1.06);
+        }
+        [data-anba-form] .add-seats-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: linear-gradient(180deg, rgba(251,191,36,0.22), rgba(180,83,9,0.10));
+            border: 1px solid rgba(251,191,36,0.45);
+            color: #fde68a;
+            font-size: 12px; font-weight: 700;
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+        [data-anba-form] .add-seats-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(251,191,36,0.20);
+        }
+        [data-anba-form] .step-list {
+            counter-reset: step;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        [data-anba-form] .step-list li {
+            counter-increment: step;
+            position: relative;
+            padding-right: 30px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #e5e7eb;
+            margin-bottom: 6px;
+        }
+        [data-anba-form] .step-list li::before {
+            content: counter(step);
+            position: absolute;
+            right: 0; top: 0;
+            width: 22px; height: 22px;
+            border-radius: 999px;
+            background: rgba(251,191,36,0.18);
+            border: 1px solid rgba(251,191,36,0.45);
+            color: #fde68a;
+            font-size: 11px; font-weight: 800;
+            display: inline-flex; align-items: center; justify-content: center;
         }
         [data-anba-form] .attendee-card {
             display: grid;
@@ -139,17 +195,22 @@
             </div>
         </div>
 
-        {{-- selected seats summary (read-only) --}}
+        {{-- selected seats summary --}}
         <div class="glass p-4 sm:p-5 space-y-3">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between gap-2">
                 <h2 class="text-amber-300 text-sm font-semibold">المقاعد المختارة</h2>
                 <a href="{{ route('bookings.seats', $showTime) }}?section={{ $sectionParam }}"
-                   class="text-[11px] text-gray-400 hover:text-amber-300 transition">
-                    تعديل المقاعد
+                   class="add-seats-btn">
+                    <span>＋</span>
+                    <span>إضافة / تعديل المقاعد</span>
                 </a>
             </div>
 
-            <div data-form-chips class="flex flex-wrap gap-1.5 min-h-[36px] p-2 rounded-xl bg-black/40 border border-white/5">
+            <p class="text-[11px] text-gray-400 leading-relaxed">
+                اضغط × على أي مقعد لإلغاء اختياره، أو اضغط "إضافة / تعديل المقاعد" للرجوع لخريطة المقاعد.
+            </p>
+
+            <div data-form-chips class="flex flex-wrap gap-1.5 min-h-[40px] p-2 rounded-xl bg-black/40 border border-white/5">
                 <span class="text-[11px] text-gray-500" data-empty-msg>جارٍ تحميل المقاعد المختارة...</span>
             </div>
 
@@ -159,6 +220,29 @@
                     <span data-form-total>0</span> <span class="text-[10px]">EGP</span>
                 </span>
             </div>
+        </div>
+
+        {{-- booking instructions --}}
+        <div class="glass p-4 sm:p-5 space-y-3">
+            <h3 class="text-amber-300 text-sm font-semibold">📌 خطوات إكمال الحجز</h3>
+            <ol class="step-list">
+                <li>
+                    حوّل قيمة الحجز
+                    (<span class="text-amber-300 font-bold"><span data-form-total-inline>0</span> جنيه</span>)
+                    على المحفظة أو InstaPay الموضحة بالأسفل.
+                </li>
+                <li>
+                    التقط صورة (Screenshot) لإيصال التحويل وارفعها في الخانة المخصصة.
+                </li>
+                <li>
+                    اكتب اسم ورقم واتساب لكل شخص بترتيب المقاعد المحجوزة.
+                </li>
+                <li>
+                    اضغط <span class="text-amber-300 font-bold">"تأكيد الحجز"</span> —
+                    هنراجع الطلب ونرسل التذاكر على رقم الواتساب خلال
+                    <span class="text-white font-semibold">24 ساعة</span> كحد أقصى.
+                </li>
+            </ol>
         </div>
 
         {{-- transfer info --}}
@@ -281,58 +365,95 @@
         return;
     }
 
-    const seats = stored.seats.filter(s => typeof s.id === 'number' && s.label);
+    let seats = stored.seats.filter(s => typeof s.id === 'number' && s.label);
 
-    // ----- render chips -----
+    const totalInlineEl = root.querySelector('[data-form-total-inline]');
+    const emptyMsg      = root.querySelector('[data-empty-msg]');
+
+    // ----- render chips (with × delete) -----
     function renderChips() {
         chipsBox.innerHTML = '';
+        if (seats.length === 0) {
+            const span = document.createElement('span');
+            span.className = 'text-[11px] text-gray-500';
+            span.textContent = 'لم يعد هناك مقاعد مختارة';
+            chipsBox.appendChild(span);
+            return;
+        }
         seats.forEach(s => {
             const chip = document.createElement('span');
             chip.className = 'seat-chip';
-            chip.textContent = s.label;
+            chip.innerHTML = `
+                <span>${escapeHtml(s.label)}</span>
+                <button type="button" data-remove="${s.id}" aria-label="إلغاء ${escapeHtml(s.label)}">✕</button>
+            `;
             chipsBox.appendChild(chip);
         });
     }
 
     // ----- render attendee cards (one per seat, with hidden seat_ids[]) -----
+    // Cached values are preserved across re-renders so removing a chip
+    // does not wipe what the user already typed for the remaining seats.
     function renderAttendees() {
+        const cached = {};
+        attendees.querySelectorAll('.attendee-card').forEach(card => {
+            const sid = card.dataset.seatId;
+            const nameInput  = card.querySelector('input[name="names[]"]');
+            const phoneInput = card.querySelector('input[name="phones[]"]');
+            cached[sid] = {
+                name:  nameInput  ? nameInput.value  : '',
+                phone: phoneInput ? phoneInput.value : '',
+            };
+        });
+
         attendees.innerHTML = '';
         seats.forEach((s, i) => {
             const wrap = document.createElement('div');
             wrap.className = 'attendee-card';
+            wrap.dataset.seatId = s.id;
             wrap.innerHTML = `
                 <div class="seat-pill">${escapeHtml(s.label)}</div>
                 <div class="space-y-2">
                     <input type="hidden" name="seat_ids[]" value="${s.id}">
                     <input type="text" name="names[]"
                            placeholder="اسم الشخص ${i + 1}"
-                           class="field-input" required>
+                           class="field-input" required
+                           value="${escapeAttr(cached[s.id]?.name || '')}">
                     <input type="text" name="phones[]"
                            placeholder="رقم واتساب ${i + 1}"
-                           class="field-input" required>
+                           class="field-input" required
+                           value="${escapeAttr(cached[s.id]?.phone || '')}">
                 </div>
             `;
             attendees.appendChild(wrap);
         });
-        attendees.addEventListener('input', updateSubmit);
     }
+
+    // Single delegated input listener — survives re-renders since it's
+    // attached once to the parent.
+    attendees.addEventListener('input', updateSubmit);
 
     function escapeHtml(v) {
         return String(v).replace(/[&<>"']/g, c => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
         }[c]));
     }
+    function escapeAttr(v) {
+        return String(v).replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    }
 
     function totals() {
         const n = seats.length;
-        return { count: n, total: (n * unitPrice).toLocaleString('en-US') };
+        return { count: n, total: n * unitPrice };
     }
 
     function paintTotals() {
         const t = totals();
-        totalEl.textContent       = t.total;
+        const totalStr = t.total.toLocaleString('en-US');
+        totalEl.textContent       = totalStr;
         mobileCount.textContent   = t.count;
-        mobileTotal.textContent   = t.total;
+        mobileTotal.textContent   = totalStr;
+        if (totalInlineEl) totalInlineEl.textContent = totalStr;
     }
 
     function allFilled() {
@@ -353,6 +474,39 @@
     }
 
     screenshot.addEventListener('change', updateSubmit);
+
+    // ----- chip × delete handler -----
+    function persistSeats() {
+        try {
+            localStorage.setItem('booking_selection', JSON.stringify({
+                showTimeId,
+                section: sectionParam,
+                unitPrice,
+                seats,
+                savedAt: Date.now(),
+            }));
+        } catch (e) { /* ignore */ }
+    }
+
+    chipsBox.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-remove]');
+        if (!btn) return;
+        const id = parseInt(btn.dataset.remove, 10);
+        seats = seats.filter(s => s.id !== id);
+
+        if (seats.length === 0) {
+            // No seats left — clear and bounce back to the picker.
+            try { localStorage.removeItem('booking_selection'); } catch (e) {}
+            window.location.replace(seatsUrl);
+            return;
+        }
+
+        persistSeats();
+        renderChips();
+        renderAttendees();
+        paintTotals();
+        updateSubmit();
+    });
 
     if (mobileSubmit) {
         mobileSubmit.addEventListener('click', () => {
