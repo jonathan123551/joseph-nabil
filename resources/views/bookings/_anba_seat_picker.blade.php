@@ -91,22 +91,28 @@
         [data-anba-root] .zoom-btn:active { transform: scale(0.95); }
         [data-anba-root] .zoom-btn + .zoom-btn { border-right: 1px solid rgba(129,140,248,0.18); }
 
-        /* ===== Canvas wrapper ===== */
+        /* ===== Canvas wrapper =====
+           Single GPU-composited transform layer. JS owns all gestures via
+           Pointer Events (touch-action: none). The canvas is absolutely
+           positioned inside the scroller and panned/zoomed via
+           `transform: translate3d() scale()` only — no width/height mutation,
+           no per-frame reflow. */
         [data-anba-root] .canvas-scroller {
-            overflow-x: auto;
-            overflow-y: hidden;
-            -webkit-overflow-scrolling: touch;
-            touch-action: pan-x pan-y;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(129,140,248,0.55) transparent;
+            position: relative;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
             border-radius: 18px;
             background:
                 radial-gradient(ellipse 90% 60% at 50% 0%, rgba(34,211,238,0.10), transparent 60%),
                 radial-gradient(ellipse 60% 40% at 50% 110%, rgba(192,132,252,0.06), transparent 60%),
                 linear-gradient(180deg, #06081a, #03050d);
             border: 1px solid var(--p-border);
-            position: relative;
+            cursor: grab;
         }
+        [data-anba-root] .canvas-scroller.is-gesturing { cursor: grabbing; }
         [data-anba-root] .canvas-scroller::before {
             /* very subtle starfield dots */
             content: "";
@@ -118,20 +124,72 @@
             -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 0%, transparent 80%);
             pointer-events: none;
             opacity: 0.55;
-        }
-        [data-anba-root] .canvas-scroller::-webkit-scrollbar { height: 6px; }
-        [data-anba-root] .canvas-scroller::-webkit-scrollbar-thumb {
-            background: linear-gradient(90deg, rgba(34,211,238,0.6), rgba(192,132,252,0.6));
-            border-radius: 999px;
+            z-index: 0;
         }
 
         [data-anba-root] canvas.seat-canvas {
             display: block;
             cursor: pointer;
-            margin: 0 auto;
+            margin: 0;
             user-select: none;
-            position: relative;
+            position: absolute;
+            left: 0; top: 0;
+            transform-origin: 0 0;
+            will-change: transform;
             z-index: 1;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+
+        /* ===== Floating zoom FAB (fullscreen mode) ===== */
+        [data-anba-root] .canvas-fab {
+            position: absolute;
+            bottom: 14px;
+            inset-inline-end: 14px;
+            display: inline-flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 4;
+            pointer-events: auto;
+            opacity: 0;
+            transform: translateY(8px) scale(.96);
+            transition: opacity .25s var(--p-ease), transform .25s var(--p-ease);
+        }
+        [data-anba-root] .canvas-scroller .canvas-fab {
+            /* fade in once the canvas is visible */
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        [data-anba-root] .canvas-fab .fab-btn {
+            width: 44px; height: 44px;
+            display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 14px;
+            background: linear-gradient(180deg, rgba(20,24,38,0.78), rgba(8,10,20,0.88));
+            border: 1px solid var(--p-border-strong);
+            color: #e0e7ff;
+            font-weight: 700; font-size: 18px;
+            backdrop-filter: blur(14px) saturate(160%);
+            -webkit-backdrop-filter: blur(14px) saturate(160%);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.06),
+                0 8px 22px -10px rgba(0,0,0,0.7),
+                0 0 18px rgba(129,140,248,0.16);
+            transition: transform .15s var(--p-ease), background .15s var(--p-ease), box-shadow .2s var(--p-ease);
+        }
+        [data-anba-root] .canvas-fab .fab-btn:hover {
+            background: linear-gradient(180deg, rgba(34,211,238,0.18), rgba(129,140,248,0.18));
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.08),
+                0 10px 26px -10px rgba(0,0,0,0.7),
+                0 0 26px rgba(129,140,248,0.32);
+        }
+        [data-anba-root] .canvas-fab .fab-btn:active { transform: scale(0.92); }
+        [data-anba-root] .canvas-fab .fab-btn[data-zoom="0"] {
+            font-size: 16px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            [data-anba-root] .canvas-fab,
+            [data-anba-root] .canvas-fab .fab-btn { transition: none; }
         }
 
         /* ===== Side panel ===== */
@@ -248,24 +306,56 @@
         }
         [data-anba-root] .cta-primary:active:not(:disabled) { transform: translateY(0); }
 
-        /* ===== Sticky mobile CTA ===== */
+        /* ===== Sticky mobile CTA =====
+           Same visual language as the global .pt-action-bar — glass + neon
+           top edge, springy entrance. Renders on mobile when the user has
+           at least one seat selected (and always in fullscreen mode). */
         [data-anba-root] .mobile-cta {
             position: fixed;
             bottom: 0; left: 0; right: 0;
             z-index: 60;
-            display: none;
-            padding: 10px 14px;
-            backdrop-filter: blur(20px) saturate(160%);
-            -webkit-backdrop-filter: blur(20px) saturate(160%);
-            background: linear-gradient(180deg, rgba(5,6,13,0.78), rgba(5,6,13,0.95));
-            border-top: 1px solid rgba(129,140,248,0.32);
+            display: flex;
+            padding: 12px 14px calc(12px + env(safe-area-inset-bottom)) 14px;
+            backdrop-filter: blur(22px) saturate(180%);
+            -webkit-backdrop-filter: blur(22px) saturate(180%);
+            background: linear-gradient(180deg, rgba(8,10,20,0.86), rgba(5,6,13,0.96));
+            border-top: 1px solid rgba(129,140,248,0.38);
             align-items: center;
-            gap: 10px;
-            transform: translateY(0);
-            transition: transform .25s var(--p-ease);
+            gap: 12px;
+            transform: translateY(140%);
+            opacity: 0;
+            pointer-events: none;
+            transition:
+                transform .48s cubic-bezier(.2, 1.2, .2, 1),
+                opacity   .32s var(--p-ease);
+            will-change: transform;
         }
-        @media (max-width: 1023px) {
-            [data-anba-root].has-selection .mobile-cta { display: flex; }
+        [data-anba-root] .mobile-cta::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 14px; right: 14px;
+            height: 1px;
+            background: linear-gradient(90deg,
+                rgba(34,211,238,0)   0%,
+                rgba(34,211,238,0.7) 14%,
+                rgba(129,140,248,0.85) 50%,
+                rgba(192,132,252,0.7) 86%,
+                rgba(192,132,252,0)  100%);
+            pointer-events: none;
+        }
+        @media (min-width: 1024px) {
+            /* desktop side-panel mode: don't render the floating bar at
+               all — the side aside carries the CTA */
+            [data-anba-root]:not([data-fullscreen="1"]) .mobile-cta { display: none; }
+        }
+        [data-anba-root].has-selection .mobile-cta,
+        [data-anba-root][data-fullscreen="1"] .mobile-cta {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            [data-anba-root] .mobile-cta { transition: opacity .2s linear; }
         }
 
         /* =========================================================
@@ -341,34 +431,28 @@
         [data-anba-root][data-fullscreen="1"] .canvas-scroller {
             flex: 1 1 auto;
             min-height: 0;
-            overflow: hidden;          /* no scrollbars in fullscreen mode */
-            display: flex;
-            align-items: center;
-            justify-content: center;
             border-radius: 18px;
             border: 1px solid var(--p-border);
         }
         [data-anba-root][data-fullscreen="1"] canvas.seat-canvas {
-            margin: auto;
+            margin: 0;
         }
         /* hide the small "scroll hint" text + hover status under the map in
            fullscreen — it's noise on a small screen. */
         [data-anba-root][data-fullscreen="1"] .fs-mapwrap > p { display: none; }
 
-        /* sticky bottom bar (always visible in fullscreen, both desktop +
-           mobile, since the side panel is gone). */
+        /* In fullscreen the bar is part of the flex stack (not floating
+           above scrollable content), so override fixed-positioning. The
+           neon top edge + glass bg from the base rule still apply. */
         [data-anba-root][data-fullscreen="1"] .mobile-cta {
             position: relative;
-            display: flex;
             inset: auto;
             z-index: 1;
-            padding: 10px 12px;
             margin: 0;
-            background: linear-gradient(180deg, rgba(5,6,13,0.78), rgba(5,6,13,0.95));
-            border-top: 1px solid rgba(129,140,248,0.32);
-            backdrop-filter: blur(20px) saturate(160%);
-            -webkit-backdrop-filter: blur(20px) saturate(160%);
-            padding-bottom: max(10px, env(safe-area-inset-bottom));
+            transform: none;
+            opacity: 1;
+            pointer-events: auto;
+            padding: 12px 12px max(12px, env(safe-area-inset-bottom)) 12px;
         }
 
         /* legend swatches */
@@ -434,10 +518,20 @@
                         width="1400" height="700"
                         role="img"
                         aria-label="خريطة مقاعد الصالة"></canvas>
+
+                @if ($isFullscreen)
+                    {{-- Floating zoom controls (fullscreen mobile primary path).
+                         Glass + neon, sits above the sticky CTA. --}}
+                    <div class="canvas-fab" aria-hidden="false">
+                        <button type="button" class="fab-btn" data-zoom="1"  aria-label="تكبير">+</button>
+                        <button type="button" class="fab-btn" data-zoom="0"  aria-label="احتواء">⤢</button>
+                        <button type="button" class="fab-btn" data-zoom="-1" aria-label="تصغير">−</button>
+                    </div>
+                @endif
             </div>
 
             <p class="mt-3 text-center text-[11px] text-[color:var(--p-text-3)]">
-                مرّر أفقياً أو استعمل أزرار التكبير على الموبايل · المقاعد ذات الـ✕ مخصصة للإدارة
+                اسحب للتنقل · قرّب بإصبعين أو بضغطة مزدوجة · المقاعد ذات الـ✕ مخصصة للإدارة
             </p>
 
             {{-- live status (used by canvas tooltip on hover) --}}
@@ -608,7 +702,24 @@
         // map seatId -> { row, n, isAdminOnly? }
         const seatMeta  = new Map();
         const selected  = new Map();
+
+        // ----- transform-based pan/zoom state -----
+        // The canvas geometry (DISPLAY_W × DISPLAY_H) and pixel buffer are
+        // fixed. We pan/zoom by mutating `canvas.style.transform` only —
+        // single GPU compositor layer, zero per-frame reflow.
         let zoomLevel    = 1;
+        let panX         = 0;
+        let panY         = 0;
+
+        // Selection pop animation: seatId → { startT } during the 220 ms
+        // pop. Drained by an rAF loop that triggers requestRedraw() until
+        // the map empties. Honours prefers-reduced-motion.
+        const selectionAnim = new Map();
+        const POP_DURATION  = 220;
+        let popRAF          = 0;
+
+        const reducedMotion =
+            window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         // ===== Geometry constants =====
         //
@@ -847,10 +958,12 @@
                 shadow: null
             },
             selected: {
-                fill: ['#34d399', '#047857'],
-                stroke: 'rgba(167,243,208,0.95)',
+                // Stronger emerald gradient — brighter top so the seat reads
+                // as glowing rather than flat-painted.
+                fill: ['#6ee7b7', '#047857'],
+                stroke: 'rgba(209,250,229,1)',
                 text: '#ecfdf5',
-                shadow: { color: 'rgba(16,185,129,0.95)', blur: 18 }
+                shadow: { color: 'rgba(16,185,129,0.98)', blur: 22 }
             },
             booked: {
                 fill: ['#fb7185', '#7f1d1d'],
@@ -954,9 +1067,19 @@
             ctx.translate(seat.x, seat.y);
             ctx.rotate(seat.angle); // rotate to align with the arc's radial direction
 
-            // hover lift
+            // hover lift (radial — outwards from stage)
             if (isHovered && state === 'available') {
-                ctx.translate(0, -2);
+                ctx.translate(0, -3);
+            }
+
+            // selection pop animation: 1 → 1.18 → 1 over POP_DURATION ms.
+            // Driven by selectionAnim Map; falls through unchanged when not
+            // animating or when the user prefers reduced motion.
+            const popInfo = selectionAnim.get(seat.id);
+            if (popInfo) {
+                const t = Math.min(1, (performance.now() - popInfo.startT) / POP_DURATION);
+                const popScale = 1 + 0.18 * Math.sin(t * Math.PI);
+                ctx.scale(popScale, popScale);
             }
 
             // glow shadow for selected (or hovered available)
@@ -965,8 +1088,8 @@
                 ctx.shadowBlur  = styles.shadow.blur;
             } else if (isHovered && state === 'available') {
                 // PRISM hover glow — indigo / cyan.
-                ctx.shadowColor = 'rgba(129,140,248,0.65)';
-                ctx.shadowBlur  = 12;
+                ctx.shadowColor = 'rgba(129,140,248,0.85)';
+                ctx.shadowBlur  = 16;
             }
 
             // body — rounded rect with vertical gradient
@@ -979,13 +1102,49 @@
             roundedRect(ctx, -w/2, -h/2, w, h, rx, ry);
             ctx.fill();
 
-            // border
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur  = 0;
+
+            // Top-edge specular highlight — gives the seat 3D button depth.
+            // Skipped on admin (X overlay) and booked (already saturated).
+            if (state === 'available' || state === 'selected') {
+                ctx.save();
+                const specGrad = ctx.createLinearGradient(0, -h/2, 0, -h/2 + h * 0.55);
+                specGrad.addColorStop(0,
+                    state === 'selected' ? 'rgba(255,255,255,0.42)'
+                                         : 'rgba(255,255,255,0.16)');
+                specGrad.addColorStop(1, 'rgba(255,255,255,0)');
+                ctx.fillStyle = specGrad;
+                roundedRect(ctx, -w/2 + 1, -h/2 + 1, w - 2, h * 0.55 - 1, rx - 1, ry - 1);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // Bottom shadow band — adds depth on every state.
+            ctx.save();
+            const bottomGrad = ctx.createLinearGradient(0, h/2 - h * 0.35, 0, h/2);
+            bottomGrad.addColorStop(0, 'rgba(0,0,0,0)');
+            bottomGrad.addColorStop(1, 'rgba(0,0,0,0.22)');
+            ctx.fillStyle = bottomGrad;
+            roundedRect(ctx, -w/2 + 1, h/2 - h * 0.35, w - 2, h * 0.35 - 1, rx - 1, ry - 1);
+            ctx.fill();
+            ctx.restore();
+
+            // border
             ctx.lineWidth   = 1;
             ctx.strokeStyle = styles.stroke;
             roundedRect(ctx, -w/2, -h/2, w, h, rx, ry);
             ctx.stroke();
+
+            // Inner ring on selected — gives the glow a crisp neon edge.
+            if (state === 'selected') {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+                ctx.lineWidth = 0.7;
+                roundedRect(ctx, -w/2 + 1.6, -h/2 + 1.6, w - 3.2, h - 3.2, rx - 1, ry - 1);
+                ctx.stroke();
+                ctx.restore();
+            }
 
             // label
             ctx.fillStyle = styles.text;
@@ -1135,8 +1294,31 @@
             } else {
                 selected.set(s.id, { row: s.row, n: s.n });
             }
+            triggerPop(s.id);
             renderSidePanel();
             requestRedraw();
+        }
+
+        // Selection pop driver — schedules a single rAF loop that redraws
+        // the canvas until the animation map is empty. No-op under
+        // prefers-reduced-motion.
+        function triggerPop(seatId) {
+            if (reducedMotion) return;
+            selectionAnim.set(seatId, { startT: performance.now() });
+            if (popRAF) return;
+            const step = (now) => {
+                let active = false;
+                selectionAnim.forEach((info, id) => {
+                    if (now - info.startT >= POP_DURATION) {
+                        selectionAnim.delete(id);
+                    } else {
+                        active = true;
+                    }
+                });
+                requestRedraw();
+                popRAF = active ? requestAnimationFrame(step) : 0;
+            };
+            popRAF = requestAnimationFrame(step);
         }
 
         // ===== Side panel rendering (chips, attendees, total, mobile bar) =====
@@ -1241,154 +1423,334 @@
         const ZOOM_MIN = isFullscreen ? 0.18 : 0.7;
         const ZOOM_MAX = isFullscreen ? 2.5  : 1.8;
 
-        function applyZoomCss() {
-            canvas.style.width  = (DISPLAY_W * zoomLevel) + 'px';
-            canvas.style.height = (DISPLAY_H * zoomLevel) + 'px';
+        // applyTransform — write the current pan/zoom to the canvas as a
+        // single GPU-composited transform. Called from every gesture step
+        // and every zoom action. Cheap enough to call at 60fps without
+        // touching layout.
+        function applyTransform() {
+            canvas.style.transform =
+                'translate3d(' + panX.toFixed(2) + 'px,' + panY.toFixed(2) + 'px,0) ' +
+                'scale(' + zoomLevel.toFixed(4) + ')';
         }
 
+        // Clamp pan so the canvas can't be flung entirely off-screen. We
+        // allow a small over-pan margin so the user can scroll the very
+        // edge into view comfortably; the canvas is always at least 60%
+        // visible along each axis.
+        function clampPan() {
+            const sw = scroller.clientWidth;
+            const sh = scroller.clientHeight;
+            const cw = DISPLAY_W * zoomLevel;
+            const ch = DISPLAY_H * zoomLevel;
+
+            if (cw <= sw) {
+                panX = (sw - cw) / 2; // center when narrower than viewport
+            } else {
+                const margin = sw * 0.08;
+                const minX = sw - cw - margin;
+                const maxX = margin;
+                if (panX < minX) panX = minX;
+                if (panX > maxX) panX = maxX;
+            }
+            if (ch <= sh) {
+                panY = (sh - ch) / 2;
+            } else {
+                const margin = sh * 0.08;
+                const minY = sh - ch - margin;
+                const maxY = margin;
+                if (panY < minY) panY = minY;
+                if (panY > maxY) panY = maxY;
+            }
+        }
+
+        // Apply a new zoom anchored at a specific screen point (so the
+        // pixel under the user's finger / cursor stays under it).
+        function setZoomAt(newZoom, screenX, screenY) {
+            newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, newZoom));
+            if (Math.abs(newZoom - zoomLevel) < 0.0005) return;
+            const r = scroller.getBoundingClientRect();
+            const px = screenX - r.left;
+            const py = screenY - r.top;
+            // canvas-local coords of the anchor before the zoom change
+            const cx = (px - panX) / zoomLevel;
+            const cy = (py - panY) / zoomLevel;
+            zoomLevel = newZoom;
+            // re-translate so anchor stays under the same screen point
+            panX = px - cx * zoomLevel;
+            panY = py - cy * zoomLevel;
+            clampPan();
+            applyTransform();
+        }
+
+        // Compute the zoom that would fit the full canvas in the scroller.
+        // If that zoom would render seats below MIN_TAP_PX, fall back to
+        // 1.0× and rely on user panning instead — never produce an
+        // un-tappable map. Default-centers the canvas in both axes.
+        const MIN_TAP_PX = 28;
         function fitToViewport() {
             const w = scroller.clientWidth;
             const h = scroller.clientHeight;
             if (w <= 0 || h <= 0) return;
-            const z = Math.min(w / DISPLAY_W, h / DISPLAY_H);
-            zoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
-            applyZoomCss();
+            let z = Math.min(w / DISPLAY_W, h / DISPLAY_H);
+            z = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
+            // Min tappable size floor — 6 px seats are not interactable.
+            // If fit would shrink seats below MIN_TAP_PX, prefer 1.0× and
+            // let the user pan. The original 'auto-fit' bug shipped a
+            // ~6 px rendered seat on iPhone 12 Pro.
+            if (SEAT_W * z < MIN_TAP_PX && z < 1) {
+                z = Math.min(1, ZOOM_MAX);
+            }
+            zoomLevel = z;
+            panX = (w - DISPLAY_W * zoomLevel) / 2;
+            panY = (h - DISPLAY_H * zoomLevel) / 2;
+            applyTransform();
         }
 
+        // Zoom-bar buttons (top-right + floating FAB). Anchor at scroller
+        // center for keyboard / button-driven zoom; this matches user
+        // expectation that "+ / −" zooms toward what's currently centered.
         root.querySelectorAll('[data-zoom]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const dir = parseInt(btn.dataset.zoom, 10);
                 if (dir === 0) {
-                    if (isFullscreen) fitToViewport();
-                    else { zoomLevel = 1; applyZoomCss(); }
+                    fitToViewport();
                 } else {
-                    zoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomLevel + dir * 0.1));
-                    applyZoomCss();
+                    const r = scroller.getBoundingClientRect();
+                    setZoomAt(zoomLevel * (dir > 0 ? 1.22 : 1 / 1.22),
+                              r.left + r.width / 2,
+                              r.top  + r.height / 2);
                 }
             });
         });
 
-        // ===== Native pinch-to-zoom + drag-to-pan (canvas viewport only;
-        //       seat geometry / computeLayout / RIGHT_SHIFT_STEPS untouched) =====
+        // ===== Pointer Events gesture pipeline =====
+        // Single source of truth for pan + pinch — Pointer Events unify
+        // mouse, touch, and stylus. `touch-action: none` on the scroller
+        // (set in CSS) means the browser never tries to scroll, zoom, or
+        // long-press while we're handling these.
+        //
+        //  · 1-finger pan      — translate panX / panY directly.
+        //  · 2-finger pinch    — anchored at the live midpoint in canvas
+        //                        coords so the pixel between the fingers
+        //                        stays put as they spread / squeeze.
+        //  · momentum on lift  — preserved velocity decays via rAF until
+        //                        below threshold (skipped under
+        //                        prefers-reduced-motion).
+        //  · click suppression — 10 px movement budget before a tap is
+        //                        treated as a drag.
         (function () {
-            let pinchActive   = false;
-            let panActive     = false;
-            let startDist     = 0;
-            let startZoom     = 1;
-            let pinchCenter   = { x: 0, y: 0 };
-            let startScroll   = { left: 0, top: 0 };
-            let panLast       = { x: 0, y: 0 };
-            let panStartTs    = 0;
-            let suppressClick = false;
+            const pointers       = new Map();   // pointerId → {x,y, prevX,prevY, startX,startY}
+            const CLICK_THRESHOLD = 10;
+            const VEL_SAMPLES     = 6;
+            const MOMENTUM_DECAY  = 0.94;       // per ~16ms frame
+            const MOMENTUM_MIN    = 0.02;       // px/ms cutoff
 
-            function dist(t1, t2) {
-                const dx = t1.clientX - t2.clientX;
-                const dy = t1.clientY - t2.clientY;
-                return Math.hypot(dx, dy);
-            }
-            function center(t1, t2) {
-                return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+            let pinchStartDist  = 0;
+            let pinchStartZoom  = 1;
+            let pinchAnchor     = null;         // { canvasX, canvasY }
+            let movedDist       = 0;
+            let suppressClick   = false;
+            let velSamples      = [];
+            let momentumRAF     = 0;
+
+            function stopMomentum() {
+                if (momentumRAF) cancelAnimationFrame(momentumRAF);
+                momentumRAF = 0;
             }
 
-            scroller.addEventListener('touchstart', function (e) {
-                if (e.touches.length === 2) {
-                    pinchActive = true;
-                    panActive   = false;
-                    startDist   = dist(e.touches[0], e.touches[1]);
-                    startZoom   = zoomLevel;
-                    const r     = scroller.getBoundingClientRect();
-                    const c     = center(e.touches[0], e.touches[1]);
-                    pinchCenter = { x: c.x - r.left + scroller.scrollLeft,
-                                    y: c.y - r.top  + scroller.scrollTop };
-                    e.preventDefault();
-                } else if (e.touches.length === 1) {
-                    panActive   = true;
-                    pinchActive = false;
-                    panLast     = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-                    startScroll = { left: scroller.scrollLeft, top: scroller.scrollTop };
-                    panStartTs  = Date.now();
+            function startMomentum() {
+                if (reducedMotion) return;
+                if (velSamples.length < 2) return;
+                const last  = velSamples[velSamples.length - 1];
+                const first = velSamples[0];
+                const dt = Math.max(1, last.t - first.t);
+                let vx = (last.x - first.x) / dt;   // px / ms
+                let vy = (last.y - first.y) / dt;
+                if (Math.hypot(vx, vy) < 0.05) return;
+
+                stopMomentum();
+                let lastT = performance.now();
+                const step = (now) => {
+                    const dt = Math.min(32, now - lastT);
+                    lastT = now;
+                    panX += vx * dt;
+                    panY += vy * dt;
+                    const decay = Math.pow(MOMENTUM_DECAY, dt / 16);
+                    vx *= decay;
+                    vy *= decay;
+                    clampPan();
+                    applyTransform();
+                    if (Math.hypot(vx, vy) > MOMENTUM_MIN) {
+                        momentumRAF = requestAnimationFrame(step);
+                    } else {
+                        momentumRAF = 0;
+                    }
+                };
+                momentumRAF = requestAnimationFrame(step);
+            }
+
+            function pushVelSample() {
+                velSamples.push({ x: panX, y: panY, t: performance.now() });
+                if (velSamples.length > VEL_SAMPLES) velSamples.shift();
+            }
+
+            function startPinch() {
+                const arr = Array.from(pointers.values());
+                const p1 = arr[0], p2 = arr[1];
+                pinchStartDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                pinchStartZoom = zoomLevel;
+                const r = scroller.getBoundingClientRect();
+                const cx = (p1.x + p2.x) / 2 - r.left;
+                const cy = (p1.y + p2.y) / 2 - r.top;
+                pinchAnchor = {
+                    canvasX: (cx - panX) / zoomLevel,
+                    canvasY: (cy - panY) / zoomLevel,
+                };
+            }
+
+            scroller.addEventListener('pointerdown', (e) => {
+                // Don't capture from the floating FAB or zoom-bar buttons.
+                if (e.target.closest('.canvas-fab, .zoom-bar')) return;
+                try { scroller.setPointerCapture(e.pointerId); } catch (_) {}
+                pointers.set(e.pointerId, {
+                    x: e.clientX, y: e.clientY,
+                    prevX: e.clientX, prevY: e.clientY,
+                    startX: e.clientX, startY: e.clientY,
+                });
+                stopMomentum();
+                if (pointers.size === 2) {
+                    startPinch();
+                    suppressClick = true;
+                    scroller.classList.add('is-gesturing');
+                } else if (pointers.size === 1) {
+                    movedDist = 0;
+                    suppressClick = false;
+                    velSamples = [];
+                    pushVelSample();
                 }
-            }, { passive: false });
+                e.preventDefault();
+            });
 
-            scroller.addEventListener('touchmove', function (e) {
-                if (pinchActive && e.touches.length === 2) {
-                    const d = dist(e.touches[0], e.touches[1]);
-                    if (startDist > 0) {
-                        const factor = d / startDist;
-                        const newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, startZoom * factor));
-                        const ratio = newZoom / zoomLevel;
-                        zoomLevel = newZoom;
-                        applyZoomCss();
-                        // keep pinch center stationary
-                        scroller.scrollLeft = pinchCenter.x * ratio - (pinchCenter.x - scroller.scrollLeft);
-                        scroller.scrollTop  = pinchCenter.y * ratio - (pinchCenter.y - scroller.scrollTop);
-                        pinchCenter.x *= ratio;
-                        pinchCenter.y *= ratio;
+            scroller.addEventListener('pointermove', (e) => {
+                const p = pointers.get(e.pointerId);
+                if (!p) return;
+                p.prevX = p.x; p.prevY = p.y;
+                p.x = e.clientX; p.y = e.clientY;
+
+                if (pointers.size === 2 && pinchAnchor) {
+                    // ----- pinch zoom centered on live midpoint -----
+                    const arr = Array.from(pointers.values());
+                    const a = arr[0], b = arr[1];
+                    const d = Math.hypot(b.x - a.x, b.y - a.y);
+                    if (pinchStartDist > 0) {
+                        const targetZoom = Math.max(
+                            ZOOM_MIN,
+                            Math.min(ZOOM_MAX, pinchStartZoom * (d / pinchStartDist))
+                        );
+                        zoomLevel = targetZoom;
+                        const r = scroller.getBoundingClientRect();
+                        const cx = (a.x + b.x) / 2 - r.left;
+                        const cy = (a.y + b.y) / 2 - r.top;
+                        // anchor canvas-coord stays under the new midpoint
+                        panX = cx - pinchAnchor.canvasX * zoomLevel;
+                        panY = cy - pinchAnchor.canvasY * zoomLevel;
+                        clampPan();
+                        applyTransform();
                     }
                     e.preventDefault();
-                } else if (panActive && e.touches.length === 1) {
-                    const dx = e.touches[0].clientX - panLast.x;
-                    const dy = e.touches[0].clientY - panLast.y;
-                    if (Math.abs(dx) + Math.abs(dy) > 4) suppressClick = true;
-                    // native scroll handles this; we just update last for click suppression
-                    panLast = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                } else if (pointers.size === 1) {
+                    // ----- single-finger pan -----
+                    const dx = p.x - p.prevX;
+                    const dy = p.y - p.prevY;
+                    movedDist += Math.hypot(dx, dy);
+                    if (movedDist > CLICK_THRESHOLD) {
+                        suppressClick = true;
+                        scroller.classList.add('is-gesturing');
+                    }
+                    panX += dx;
+                    panY += dy;
+                    clampPan();
+                    applyTransform();
+                    pushVelSample();
+                    e.preventDefault();
                 }
-            }, { passive: false });
+            });
 
-            function endPinch() {
-                pinchActive = false;
-                panActive   = false;
-                setTimeout(() => suppressClick = false, 80);
+            function endPointer(e) {
+                if (!pointers.has(e.pointerId)) return;
+                pointers.delete(e.pointerId);
+                try { scroller.releasePointerCapture(e.pointerId); } catch (_) {}
+
+                if (pointers.size === 0) {
+                    // last finger lifted — fling momentum if appropriate
+                    if (suppressClick) startMomentum();
+                    pinchAnchor = null;
+                    setTimeout(() => { suppressClick = false; }, 80);
+                    scroller.classList.remove('is-gesturing');
+                } else if (pointers.size === 1) {
+                    // dropped from pinch back to single-finger pan;
+                    // reset pan velocity tracking from the remaining finger
+                    velSamples = [];
+                    pushVelSample();
+                    pinchAnchor = null;
+                }
             }
-            scroller.addEventListener('touchend',    endPinch);
-            scroller.addEventListener('touchcancel', endPinch);
 
-            // suppress synthetic click after a pan
-            canvas.addEventListener('click', function (e) {
+            scroller.addEventListener('pointerup',     endPointer);
+            scroller.addEventListener('pointercancel', endPointer);
+            scroller.addEventListener('pointerleave', (e) => {
+                // pointerleave also fires on capture loss — only end if we
+                // weren't capturing, otherwise we'd lose ongoing gestures.
+                if (!scroller.hasPointerCapture(e.pointerId)) endPointer(e);
+            });
+
+            // Suppress the synthetic click that follows a drag/pinch.
+            canvas.addEventListener('click', (e) => {
                 if (suppressClick) {
                     e.stopPropagation();
                     e.preventDefault();
-                    suppressClick = false;
                 }
             }, true);
 
-            // mouse wheel zoom (desktop convenience; ctrl/cmd + wheel)
-            scroller.addEventListener('wheel', function (e) {
-                if (!(e.ctrlKey || e.metaKey)) return;
-                e.preventDefault();
-                const r = scroller.getBoundingClientRect();
-                const cx = e.clientX - r.left + scroller.scrollLeft;
-                const cy = e.clientY - r.top  + scroller.scrollTop;
-                const oldZoom = zoomLevel;
-                const delta = -e.deltaY * 0.0015;
-                zoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomLevel * (1 + delta)));
-                if (zoomLevel === oldZoom) return;
-                applyZoomCss();
-                const ratio = zoomLevel / oldZoom;
-                scroller.scrollLeft = cx * ratio - (cx - scroller.scrollLeft);
-                scroller.scrollTop  = cy * ratio - (cy - scroller.scrollTop);
+            // ----- mouse wheel: ctrl/⌘ + wheel = zoom; plain wheel = pan -----
+            scroller.addEventListener('wheel', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    setZoomAt(zoomLevel * (1 + (-e.deltaY * 0.0015)),
+                              e.clientX, e.clientY);
+                } else {
+                    e.preventDefault();
+                    panX -= e.deltaX;
+                    panY -= e.deltaY;
+                    clampPan();
+                    applyTransform();
+                }
             }, { passive: false });
 
-            // double-tap to zoom (mobile)
+            // ----- double-tap to zoom in / fit -----
             let lastTap = 0;
-            scroller.addEventListener('touchend', function (e) {
+            let lastTapPos = { x: 0, y: 0 };
+            scroller.addEventListener('pointerup', (e) => {
+                if (e.pointerType !== 'touch') return;
+                if (suppressClick) { lastTap = 0; return; }
                 const now = Date.now();
-                if (now - lastTap < 280 && e.changedTouches.length === 1) {
-                    const r = scroller.getBoundingClientRect();
-                    const t = e.changedTouches[0];
-                    const cx = t.clientX - r.left + scroller.scrollLeft;
-                    const cy = t.clientY - r.top  + scroller.scrollTop;
-                    const targetZoom = (zoomLevel < (ZOOM_MIN + ZOOM_MAX) / 2)
-                        ? Math.min(ZOOM_MAX, zoomLevel * 1.6)
-                        : (isFullscreen ? Math.min(scroller.clientWidth / DISPLAY_W,
-                                                   scroller.clientHeight / DISPLAY_H) : 1);
-                    const ratio = targetZoom / zoomLevel;
-                    zoomLevel = targetZoom;
-                    applyZoomCss();
-                    scroller.scrollLeft = cx * ratio - (cx - scroller.scrollLeft);
-                    scroller.scrollTop  = cy * ratio - (cy - scroller.scrollTop);
+                const dx = e.clientX - lastTapPos.x;
+                const dy = e.clientY - lastTapPos.y;
+                if (now - lastTap < 280 && Math.hypot(dx, dy) < 30) {
+                    const fitZoom = Math.min(scroller.clientWidth / DISPLAY_W,
+                                             scroller.clientHeight / DISPLAY_H);
+                    const halfway = (fitZoom + ZOOM_MAX) / 2;
+                    if (zoomLevel < halfway) {
+                        setZoomAt(Math.min(ZOOM_MAX, zoomLevel * 1.8),
+                                  e.clientX, e.clientY);
+                    } else {
+                        fitToViewport();
+                    }
+                    lastTap = 0;
+                } else {
+                    lastTap = now;
+                    lastTapPos = { x: e.clientX, y: e.clientY };
                 }
-                lastTap = now;
             });
         })();
 
@@ -1397,27 +1759,19 @@
             fitCanvas();
             computeLayout();
             renderSidePanel();
-            if (isFullscreen) {
-                // wait one frame so the scroller has a measurable size
-                requestAnimationFrame(() => {
-                    fitToViewport();
-                    draw();
-                });
-            } else {
+            // initial transform — JS owns positioning even at rest
+            applyTransform();
+            requestAnimationFrame(() => {
+                fitToViewport();
                 draw();
-                // After load, scroll to center the seat plan horizontally on
-                // mobile (the canvas is wider than the viewport).
-                requestAnimationFrame(() => {
-                    if (scroller.scrollWidth > scroller.clientWidth) {
-                        scroller.scrollLeft = (scroller.scrollWidth - scroller.clientWidth) / 2;
-                    }
-                });
-            }
+            });
         }
 
         boot();
 
-        // Redraw on devicePixelRatio change (rare) — also handles a zoom change.
+        // Redraw on devicePixelRatio change (rare) and re-fit on resize
+        // so rotating the device or collapsing the URL bar doesn't leave
+        // the canvas off-screen.
         let lastDpr = window.devicePixelRatio || 1;
         window.addEventListener('resize', () => {
             const dpr = window.devicePixelRatio || 1;
@@ -1426,13 +1780,12 @@
                 fitCanvas();
                 draw();
             }
-            // In fullscreen mode also re-fit the canvas to the new viewport.
-            if (isFullscreen) fitToViewport();
+            fitToViewport();
         });
 
-        // Re-fit when the visual viewport changes on iOS Safari (URL bar
-        // collapse) so the canvas always uses the maximum available space.
-        if (isFullscreen && window.visualViewport) {
+        // iOS Safari: visualViewport fires when the URL bar collapses.
+        // Re-fit so the canvas reclaims the freed pixels.
+        if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', fitToViewport);
         }
     })();
