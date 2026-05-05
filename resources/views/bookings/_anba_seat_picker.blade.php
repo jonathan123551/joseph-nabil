@@ -513,14 +513,19 @@
 
     for (let i = 0; i < cL; i++) {
 
-        const isShift = (idx % 2 === 0); // صفوف تبدأ بـ 10
+        const progress = i / (cL - 1 || 1); // من 0 لـ 1
+        const curveOffset = Math.sin(progress * Math.PI) * 20; // قوة القوس
 
         const x = leftBaseX
                 + i * SEAT_PITCH
                 + SEAT_W / 2
-                + (isShift ? SEAT_PITCH / 2 : 0);
+                + shift
+                - curve
+                + inward;
 
-        pushSeat(data.left[i], letter, x, rowY, false);
+        const yCurved = rowY - curveOffset;
+
+        pushSeat(data.left[i], letter, x, yCurved, false);
     }
 }
 
@@ -535,14 +540,19 @@
                 if (cR > 0) {
     for (let i = 0; i < cR; i++) {
 
-        const isShift = (idx % 2 === 0);
+        const progress = i / (cR - 1 || 1);
+        const curveOffset = Math.sin(progress * Math.PI) * 20;
 
         const x = rightStartX
                 + i * SEAT_PITCH
                 + SEAT_W / 2
-                - (isShift ? SEAT_PITCH / 2 : 0);
+                - shift
+                + curve
+                - inward;
 
-        pushSeat(data.right[i], letter, x, rowY, false);
+        const yCurved = rowY - curveOffset;
+
+        pushSeat(data.right[i], letter, x, yCurved, false);
     }
 }
 
