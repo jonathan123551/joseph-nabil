@@ -4,6 +4,12 @@
         - posts seat_ids[], names[], phones[], section, payment_screenshot
         - section is hardcoded to "hall" (the theater is now a single
           unified section after the JSON reseed)
+
+    v2 — pure HTML Canvas rendering. No flex/grid for the seat plan.
+    Each row is rendered as a true arc (row A small radius, row R large)
+    with seats absolutely positioned via polar geometry. Hit-testing,
+    hover, and selection are all handled in JS against a list of
+    rotated-rectangle seat hitboxes.
 --}}
 
 @php
@@ -20,302 +26,157 @@
 
     <style>
         /* ===== premium cinema theme — scoped to [data-anba-root] ===== */
-        [data-anba-root] .stage-wrap {
-            position: relative;
-            display: flex;
-            justify-content: center;
-            margin-bottom: 2rem;
-        }
-        [data-anba-root] .stage-arc {
-            position: relative;
-            width: min(70%, 480px);
-            min-height: 64px;
-            padding: 14px 24px 10px;
-            text-align: center;
-            color: #fde68a;
-            border: 1px solid rgba(251,191,36,0.55);
-            border-bottom: none;
-            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-            background:
-                radial-gradient(ellipse at top, rgba(251,191,36,0.35), rgba(251,191,36,0.05) 70%, transparent 100%),
-                linear-gradient(180deg, rgba(251,191,36,0.18), rgba(2,6,23,0));
-            box-shadow:
-                0 0 60px rgba(251,191,36,0.35),
-                inset 0 -10px 20px rgba(2,6,23,0.6);
-            letter-spacing: 0.2em;
-        }
-        [data-anba-root] .stage-arc::after {
-            content: "";
-            position: absolute;
-            left: 8%;
-            right: 8%;
-            top: 100%;
-            height: 80px;
-            background: radial-gradient(ellipse at top, rgba(251,191,36,0.30), transparent 70%);
-            filter: blur(18px);
-            pointer-events: none;
-        }
-        [data-anba-root] .stage-arc .stage-ar { font-weight: 700; font-size: 13px; }
-        [data-anba-root] .stage-arc .stage-en { font-size: 10px; opacity: 0.8; margin-top: 2px; }
 
-        /* the seat plan as a slightly tilted plane */
-        [data-anba-root] .seats-plane {
-            perspective: 1800px;
-            padding: 12px 4px 8px;
-            direction: ltr; /* numeric seat layout is LTR even on Arabic page */
-            width: max-content;
-            margin: 0 auto;
-        }
-        [data-anba-root] .seats-rows {
-            transform: rotateX(10deg);
-            transform-origin: top center;
-            transform-style: preserve-3d;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            padding-bottom: 18px;
-        }
-
-        [data-anba-root] .seat-row {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 14px; /* aisle gap between left/center/right */
-        }
-        [data-anba-root] .seat-row .row-label {
-            width: 22px;
-            text-align: center;
-            font-size: 10px;
-            font-weight: 700;
-            color: rgba(253, 224, 71, 0.75);
-            letter-spacing: 0.05em;
-        }
-        [data-anba-root] .seat-group {
-            display: flex;
-            gap: 4px;
-            align-items: center;
-        }
-        /* angle the wings outward to give a fan-shape feel */
-        [data-anba-root] .seat-group.left  { transform: rotate(-2.4deg); transform-origin: right center; }
-        [data-anba-root] .seat-group.right { transform: rotate(2.4deg);  transform-origin: left  center; }
-
-        /* Row R (curved last row) — wider arc + special amber tint */
-        [data-anba-root] .seat-row.row-r .seat-group.left  { transform: rotate(-5deg); }
-        [data-anba-root] .seat-row.row-r .seat-group.right { transform: rotate(5deg); }
-        [data-anba-root] .seat-row.row-r { gap: 30px; padding-top: 10px; margin-top: 4px; border-top: 1px dashed rgba(251,191,36,0.20); }
-        [data-anba-root] .seat-row.row-r .row-label { color: rgba(251,191,36,0.95); }
-
-        /* the seat itself */
-        [data-anba-root] .seat-btn {
-            width: 24px;
-            height: 24px;
-            font-size: 8.5px;
-            line-height: 1;
-            border-radius: 7px 7px 3px 3px;
-            border: 1px solid rgba(255,255,255,0.10);
-            background: linear-gradient(180deg, #4b5563, #1f2937);
-            color: rgba(255,255,255,0.85);
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
-            cursor: pointer;
-            user-select: none;
-            box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 2px 4px rgba(0,0,0,0.4);
-            padding: 0 2px;
-        }
-        @media (min-width: 1024px) {
-            [data-anba-root] .seat-btn {
-                width: 26px;
-                height: 26px;
-                font-size: 9px;
-            }
-        }
-        [data-anba-root] .seat-btn:hover:not(:disabled) {
-            transform: translateY(-1px) scale(1.06);
-            border-color: rgba(251,191,36,0.7);
-            box-shadow: 0 4px 10px rgba(251,191,36,0.25);
-        }
-
-        [data-anba-root] .seat-btn.is-selected {
-            background: linear-gradient(180deg, #34d399, #059669);
-            border-color: rgba(110,231,183,0.95);
-            color: #022c22;
-            box-shadow:
-                0 0 14px rgba(16,185,129,0.7),
-                0 0 4px rgba(110,231,183,0.9) inset;
-            transform: scale(1.06);
-        }
-        [data-anba-root] .seat-btn.is-booked {
-            background: linear-gradient(180deg, #b91c1c, #7f1d1d);
-            border-color: rgba(239,68,68,0.6);
-            color: rgba(254,226,226,0.85);
-            cursor: not-allowed;
-            opacity: 0.95;
-            box-shadow: 0 0 0 1px rgba(239,68,68,0.3) inset;
-        }
-        [data-anba-root] .seat-btn.is-blocked {
-            background: linear-gradient(180deg, #ca8a04, #713f12);
-            border-color: rgba(250,204,21,0.55);
-            color: #1c1917;
-            cursor: not-allowed;
-            opacity: 0.92;
-        }
-
-        /* zoom controls */
-        [data-anba-root] .zoom-bar { display: flex; align-items: center; gap: 6px; }
-        [data-anba-root] .zoom-btn {
-            width: 28px; height: 28px;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.18);
-            background: rgba(255,255,255,0.04);
-            color: #e5e7eb;
-            font-weight: 600;
-            display: inline-flex; align-items: center; justify-content: center;
-            cursor: pointer;
-            transition: background .15s ease, border-color .15s ease;
-        }
-        [data-anba-root] .zoom-btn:hover { background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.5); }
-
-        /* glassmorphism panel */
         [data-anba-root] .glass {
-            background: linear-gradient(180deg, rgba(15,23,42,0.65), rgba(2,6,23,0.85));
-            border: 1px solid rgba(255,255,255,0.10);
+            background: linear-gradient(180deg, rgba(15,23,42,0.6), rgba(2,6,23,0.7));
+            border: 1px solid rgba(251,191,36,0.22);
             border-radius: 24px;
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            box-shadow: 0 30px 80px -30px rgba(0,0,0,0.6);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.04),
+                0 20px 60px -20px rgba(0,0,0,0.7);
         }
-
-        /* selected seat chip */
-        [data-anba-root] .seat-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            border-radius: 999px;
-            background: rgba(16,185,129,0.18);
-            border: 1px solid rgba(110,231,183,0.55);
-            color: #d1fae5;
-            font-size: 11px;
-            font-weight: 700;
-            line-height: 1;
-        }
-        [data-anba-root] .seat-chip button {
-            background: transparent; border: none; color: #fecaca;
-            cursor: pointer; font-size: 12px; line-height: 1; padding: 0;
-        }
-
-        /* sticky mobile bottom bar */
-        [data-anba-root] .mobile-cta {
-            position: fixed;
-            left: 0; right: 0; bottom: 0;
-            padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
-            background: linear-gradient(180deg, rgba(2,6,23,0.55), rgba(2,6,23,0.95));
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border-top: 1px solid rgba(251,191,36,0.25);
-            z-index: 50;
-            display: none;
-        }
-        @media (max-width: 1023px) {
-            [data-anba-root].has-selection .mobile-cta { display: flex; align-items: center; gap: 10px; }
-            [data-anba-root].has-selection { padding-bottom: 90px; }
-        }
-
-        /* faint ambient glow behind everything */
         [data-anba-root] .ambient {
-            position: relative;
-        }
-        [data-anba-root] .ambient::before {
-            content: "";
-            position: absolute;
-            inset: -10% -5% -10% -5%;
             background:
-                radial-gradient(ellipse at 50% 0%, rgba(251,191,36,0.18), transparent 55%),
-                radial-gradient(ellipse at 50% 90%, rgba(2,6,23,0.4), transparent 65%);
-            pointer-events: none;
-            z-index: 0;
-        }
-        [data-anba-root] .ambient > * { position: relative; z-index: 1; }
-
-        /* attendant fields card */
-        [data-anba-root] .attendee-card {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.10);
-            border-radius: 16px;
-            padding: 12px;
-            display: grid;
-            grid-template-columns: 80px 1fr;
-            gap: 8px;
-            align-items: center;
-        }
-        [data-anba-root] .attendee-card .seat-pill {
-            font-size: 10px;
-            font-weight: 700;
-            text-align: center;
-            padding: 8px 0;
-            border-radius: 12px;
-            background: rgba(16,185,129,0.18);
-            color: #d1fae5;
-            border: 1px solid rgba(110,231,183,0.45);
-        }
-        [data-anba-root] .field-input {
-            width: 100%;
-            background: rgba(2,6,23,0.55);
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 10px;
-            padding: 9px 12px;
-            font-size: 12px;
-            color: #f8fafc;
-        }
-        [data-anba-root] .field-input::placeholder { color: rgba(148,163,184,0.65); }
-        [data-anba-root] .field-input:focus {
-            outline: none;
-            border-color: rgba(251,191,36,0.55);
-            box-shadow: 0 0 0 3px rgba(251,191,36,0.15);
+                radial-gradient(ellipse 120% 60% at 50% -10%, rgba(251,191,36,0.10), transparent 60%),
+                radial-gradient(ellipse 80% 50% at 50% 110%, rgba(99,102,241,0.06), transparent 60%),
+                linear-gradient(180deg, rgba(15,23,42,0.6), rgba(2,6,23,0.85));
         }
 
-        /* primary CTA */
-        [data-anba-root] .cta-primary {
-            position: relative;
-            padding: 12px 22px;
+        [data-anba-root] .zoom-bar {
+            display: inline-flex;
+            border: 1px solid rgba(251,191,36,0.30);
             border-radius: 999px;
-            font-weight: 700;
-            font-size: 13px;
-            background: linear-gradient(180deg, #fbbf24, #b45309);
-            color: #1c1917;
-            border: 1px solid rgba(255,255,255,0.18);
-            box-shadow: 0 10px 30px -10px rgba(251,191,36,0.55);
-            transition: transform .15s ease, opacity .15s ease;
-            cursor: pointer;
+            overflow: hidden;
+            background: rgba(2,6,23,0.55);
+            backdrop-filter: blur(8px);
         }
-        [data-anba-root] .cta-primary:disabled {
-            opacity: 0.45;
-            cursor: not-allowed;
-            background: linear-gradient(180deg, #475569, #1e293b);
-            color: #cbd5e1;
-            box-shadow: none;
+        [data-anba-root] .zoom-btn {
+            width: 32px; height: 32px;
+            display: inline-flex; align-items: center; justify-content: center;
+            color: #fde68a; font-weight: 700; font-size: 14px;
+            transition: background 0.15s ease;
         }
-        [data-anba-root] .cta-primary:hover:not(:disabled) { transform: translateY(-1px); }
+        [data-anba-root] .zoom-btn:hover { background: rgba(251,191,36,0.15); }
+        [data-anba-root] .zoom-btn + .zoom-btn { border-right: 1px solid rgba(251,191,36,0.18); }
 
-        /* horizontal seat scroller */
-        [data-anba-root] .seats-scroller {
+        /* ===== Canvas wrapper ===== */
+        [data-anba-root] .canvas-scroller {
             overflow-x: auto;
+            overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
             touch-action: pan-x pan-y;
             scrollbar-width: thin;
             scrollbar-color: rgba(251,191,36,0.5) transparent;
-            display: flex;
-            justify-content: center;
+            border-radius: 20px;
+            background:
+                radial-gradient(ellipse 90% 50% at 50% 0%, rgba(251,191,36,0.08), transparent 60%),
+                linear-gradient(180deg, #020617, #0b1224);
+            border: 1px solid rgba(251,191,36,0.10);
+            position: relative;
         }
-        [data-anba-root] .seats-scroller::-webkit-scrollbar { height: 6px; }
-        [data-anba-root] .seats-scroller::-webkit-scrollbar-thumb { background: rgba(251,191,36,0.5); border-radius: 999px; }
-        /* the inner zoom target needs an intrinsic width so flex centering works */
-        [data-anba-root] [data-zoom-target] {
-            flex: 0 0 auto;
+        [data-anba-root] .canvas-scroller::-webkit-scrollbar { height: 6px; }
+        [data-anba-root] .canvas-scroller::-webkit-scrollbar-thumb { background: rgba(251,191,36,0.45); border-radius: 999px; }
+
+        [data-anba-root] canvas.seat-canvas {
+            display: block;
+            cursor: pointer;
+            margin: 0 auto;
+            user-select: none;
+        }
+
+        /* ===== Side panel ===== */
+        [data-anba-root] .seat-chip {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 6px 3px 10px;
+            border-radius: 999px;
+            background: linear-gradient(180deg, rgba(16,185,129,0.22), rgba(16,185,129,0.10));
+            border: 1px solid rgba(52,211,153,0.55);
+            color: #d1fae5;
+            font-size: 11px; font-weight: 700;
+            box-shadow: 0 0 10px rgba(16,185,129,0.25), inset 0 1px 0 rgba(255,255,255,0.06);
+        }
+        [data-anba-root] .seat-chip [data-remove] {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 16px; height: 16px;
+            border-radius: 999px;
+            background: rgba(2,6,23,0.5);
+            color: #fee2e2;
+            font-size: 10px; font-weight: 700;
+            transition: background .15s ease;
+        }
+        [data-anba-root] .seat-chip [data-remove]:hover { background: rgba(220,38,38,0.6); }
+
+        [data-anba-root] .attendee-card {
+            display: grid;
+            grid-template-columns: 56px 1fr;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        [data-anba-root] .attendee-card .seat-pill {
+            display: inline-flex; align-items: center; justify-content: center;
+            background: linear-gradient(180deg, rgba(16,185,129,0.30), rgba(16,185,129,0.15));
+            border: 1px solid rgba(52,211,153,0.6);
+            color: #ecfdf5;
+            font-weight: 800; font-size: 12px;
+            border-radius: 12px;
+            box-shadow: 0 0 8px rgba(16,185,129,0.30), inset 0 1px 0 rgba(255,255,255,0.06);
+        }
+        [data-anba-root] .field-input {
+            width: 100%;
+            background: rgba(2,6,23,0.6);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #e5e7eb;
+            border-radius: 10px;
+            padding: 6px 10px;
+            font-size: 12px;
+            transition: border-color .15s ease, background .15s ease;
+        }
+        [data-anba-root] .field-input:focus {
+            border-color: rgba(251,191,36,0.55);
+            outline: none;
+            background: rgba(2,6,23,0.8);
+        }
+
+        [data-anba-root] .cta-primary {
+            background: linear-gradient(180deg, #fbbf24, #b45309);
+            color: #1a0f00;
+            font-weight: 800;
+            border-radius: 14px;
+            padding: 10px 16px;
+            transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+            box-shadow: 0 6px 20px rgba(251,191,36,0.30), inset 0 1px 0 rgba(255,255,255,0.4);
+        }
+        [data-anba-root] .cta-primary:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+            background: linear-gradient(180deg, rgba(251,191,36,0.30), rgba(180,83,9,0.30));
+            box-shadow: none;
+        }
+        [data-anba-root] .cta-primary:hover:not(:disabled) { transform: translateY(-1px); }
+
+        /* ===== Sticky mobile CTA ===== */
+        [data-anba-root] .mobile-cta {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 60;
+            display: none;
+            padding: 10px 14px;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            background: linear-gradient(180deg, rgba(2,6,23,0.85), rgba(2,6,23,0.95));
+            border-top: 1px solid rgba(251,191,36,0.30);
+            align-items: center;
+            gap: 10px;
+            transform: translateY(0);
+            transition: transform .25s ease;
+        }
+        @media (max-width: 1023px) {
+            [data-anba-root].has-selection .mobile-cta { display: flex; }
         }
     </style>
 
@@ -334,24 +195,19 @@
                 </div>
             </div>
 
-            <div class="stage-wrap">
-                <div class="stage-arc">
-                    <div class="stage-ar">المسرح</div>
-                    <div class="stage-en">STAGE</div>
-                </div>
-            </div>
-
-            <div class="seats-scroller">
-                <div data-zoom-target style="transform-origin: top center; transition: transform .25s ease;">
-                    <div class="seats-plane">
-                        <div class="seats-rows" data-seats-rows></div>
-                    </div>
-                </div>
+            <div class="canvas-scroller" data-canvas-scroller>
+                <canvas class="seat-canvas" data-seat-canvas
+                        width="1400" height="700"
+                        role="img"
+                        aria-label="خريطة مقاعد الصالة"></canvas>
             </div>
 
             <p class="mt-3 text-center text-[11px] text-gray-400">
-                مرّر أفقياً أو استعمل أزرار التكبير على الموبايل
+                مرّر أفقياً أو استعمل أزرار التكبير على الموبايل · المقاعد ذات الـ✕ مخصصة للإدارة
             </p>
+
+            {{-- live status (used by canvas tooltip on hover) --}}
+            <p class="text-center mt-1 text-[12px] text-amber-200 min-h-[18px]" data-hover-status></p>
         </section>
 
         {{-- ===================== SIDE PANEL ===================== --}}
@@ -389,7 +245,7 @@
             <div>
                 <h3 class="text-amber-300 text-sm font-bold mb-2">اختار مقاعدك</h3>
                 <p class="text-[11px] text-gray-400 leading-relaxed">
-                    اضغط على أي مقعد رمادي لاختياره. تقدر تختار أكتر من مقعد، وتلغيهم بالضغط مرة تانية.
+                    اضغط على أي مقعد رمادي لاختياره. المقاعد ذات العلامة ✕ مخصصة للإدارة ولا يمكن حجزها.
                 </p>
             </div>
 
@@ -489,14 +345,18 @@
         const root = document.querySelector('[data-anba-root]');
         if (!root) return;
 
+        // ----- data wiring (unchanged contract with the form) -----
         const seatData     = JSON.parse(root.querySelector('[data-seat-data]').textContent);
         const unavailable  = new Set((JSON.parse(root.dataset.unavailable || '[]') || []).map(Number));
         const blocked      = new Set((JSON.parse(root.dataset.blocked     || '[]') || []).map(Number));
         const hallPrice    = parseInt(root.dataset.hallPrice || '0', 10);
 
-        const rowsBox      = root.querySelector('[data-seats-rows]');
+        const canvas       = root.querySelector('[data-seat-canvas]');
+        const scroller     = root.querySelector('[data-canvas-scroller]');
+        const ctx          = canvas.getContext('2d');
+        const hoverStatus  = root.querySelector('[data-hover-status]');
+
         const chipsBox     = root.querySelector('[data-selected-chips]');
-        const emptyMsg     = root.querySelector('[data-empty-msg]');
         const countEl      = root.querySelector('[data-selected-count]');
         const totalEl      = root.querySelector('[data-total-price]');
         const attendees    = root.querySelector('[data-attendees]');
@@ -506,91 +366,503 @@
         const mobileCount  = root.querySelector('[data-mobile-count]');
         const mobileTotal  = root.querySelector('[data-mobile-total]');
         const jumpBtn      = root.querySelector('[data-jump-to-form]');
-        const zoomTarget   = root.querySelector('[data-zoom-target]');
 
-        // map seatId -> { row, n }
-        const seatIndex = new Map();
-        const selected  = new Map(); // seatId -> { row, n }
+        // map seatId -> { row, n, isAdminOnly? }
+        const seatMeta  = new Map();
+        const selected  = new Map();
         let isSubmitting = false;
         let zoomLevel    = 1;
 
-        function buildLayout() {
+        // ===== Geometry constants =====
+        //
+        // Real-theater linear layout. The center column is rendered as a
+        // straight vertical column, perfectly centered. Left and right
+        // wings get three independent transforms, exposed below as the
+        // three knobs you can edit:
+        //
+        //   1. CURVE_FACTOR   → fans wings outward as you move toward the back
+        //   2. INWARD_STRENGTH → pulls outer wing seats back toward the center
+        //   3. STAGGER         → half-seat horizontal shift on alternate rows
+        //
+        // Search the file for "===== CURVE CONTROL =====",
+        // "===== INWARD OFFSET =====", and "===== STAGGER =====" to find
+        // the exact spots in computeLayout() where each knob is applied.
+        const ROWS_ORDER       = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R'];
+        const SEAT_W           = 22;     // seat box width  (px)
+        const SEAT_H           = 20;     // seat box height (px)
+        const SEAT_GAP         = 5;      // horizontal gap between adjacent seats
+        const ROW_GAP          = 10;     // vertical gap between rows
+        const ROW_PITCH        = SEAT_H + ROW_GAP;  // distance between row centers
+        const AISLE_GAP        = 54;     // horizontal gap between center and each wing
+        const ROW_A_GAP        = 78;     // mid-gap when row has no center (e.g. row A)
+        const ROW_R_GAP        = 140;    // big mid-gap for row R (split halves)
+
+        // ===== CURVE CONTROL =====   (knob #1 — bottom rows fan out wider)
+        // Increase  → more pronounced arc, wings sweep further out
+        // Decrease  → flatter, more grid-like
+        const CURVE_FACTOR     = 12;     // px each wing shifts outward per row index
+
+        // ===== INWARD OFFSET =====   (knob #2 — pull outer wing seats toward center)
+        // Increase  → outer seats lean further in (more pronounced "(" / ")" shape)
+        // Decrease  → wings stay rectangular
+        const INWARD_STRENGTH  = (SEAT_W + SEAT_GAP) * 0.6;
+
+        // ===== STAGGER =====         (knob #3 — half-seat shift on odd rows)
+        // Set to 0 to disable the alternating-row offset entirely.
+        const STAGGER          = (SEAT_W + SEAT_GAP) / 2;
+
+        const STAGE_H          = 70;
+        const TOP_PAD          = 28;
+        const ROW_AREA_TOP     = TOP_PAD + STAGE_H + 28;  // first row baseline (y of row A center)
+        const SIDE_PAD         = 36;
+
+        // Display size (CSS pixels). Will be scaled by devicePixelRatio internally.
+        // Width is wide enough to fit row Q's left wing + full curve outward.
+        let DISPLAY_W = 1400;
+        let DISPLAY_H = 700;
+        let CX        = DISPLAY_W / 2;
+
+        // ===== State =====
+        // Each seat: { id, label, row, n, x, y, angle, w, h, state, isAdminOnly }
+        const SEATS = [];
+        let hoverIdx = -1;
+
+        // ===== Row metadata cache =====
+        // Per-row geometry: where the center column starts/ends, where each
+        // wing's "anchor" column sits before curve/inward/stagger are applied.
+        // We keep these so drawRowLabel() can place labels next to the
+        // outermost seat without recomputing the layout.
+        const ROW_META = new Map();
+
+        // ===== Layout computation =====
+        function computeLayout() {
+            SEATS.length = 0;
+            seatMeta.clear();
+            ROW_META.clear();
+
             const rows = seatData.hall || {};
-            const letters = Object.keys(rows).sort();
-            letters.forEach(letter => {
-                const rowEl = document.createElement('div');
-                rowEl.className = 'seat-row' + (letter === 'R' ? ' row-r' : '');
+            const SEAT_PITCH = SEAT_W + SEAT_GAP;
 
-                rowEl.appendChild(makeRowLabel(letter));
-                rowEl.appendChild(makeGroup(rows[letter].left,   letter, 'left'));
-                rowEl.appendChild(makeGroup(rows[letter].center, letter, 'center'));
-                rowEl.appendChild(makeGroup(rows[letter].right,  letter, 'right'));
-                rowEl.appendChild(makeRowLabel(letter));
+            ROWS_ORDER.forEach((letter, idx) => {
+                const data = rows[letter];
+                if (!data) return;
 
-                rowsBox.appendChild(rowEl);
+                const cL = (data.left   || []).length;
+                const cC = (data.center || []).length;
+                const cR = (data.right  || []).length;
+
+                // ===== CURVE CONTROL =====
+                // Wings shift outward as we move toward the back of the
+                // hall. Top rows tighter, bottom rows wider.
+                const curve = idx * CURVE_FACTOR;
+
+                // ===== STAGGER =====
+                // Odd-indexed rows expand by half a seat on each wing,
+                // creating the alternating cinema-row look.
+                const st = (idx % 2 === 0) ? 0 : STAGGER;
+
+                const rowY = ROW_AREA_TOP + idx * ROW_PITCH;
+
+                // Center anchor: perfectly centered on CX.
+                const centerWidth   = cC > 0 ? cC * SEAT_PITCH - SEAT_GAP : 0;
+                const centerStartX  = CX - centerWidth / 2;
+
+                // Pick the gap between the two wings:
+                //   - row R   → ROW_R_GAP (split halves with a big aisle)
+                //   - row A   → ROW_A_GAP (no center column at all)
+                //   - rows w/ center → 2 × AISLE_GAP (center + 2 aisles)
+                let leftEndX;
+                let rightStartX;
+                if (cC === 0 && letter === 'R') {
+                    leftEndX    = CX - ROW_R_GAP / 2;
+                    rightStartX = CX + ROW_R_GAP / 2;
+                } else if (cC === 0) {
+                    leftEndX    = CX - ROW_A_GAP / 2;
+                    rightStartX = CX + ROW_A_GAP / 2;
+                } else {
+                    leftEndX    = centerStartX - AISLE_GAP;
+                    rightStartX = centerStartX + centerWidth + AISLE_GAP;
+                }
+
+                // Left wing — data.left is ordered OUTER → INNER (e.g. [23,21,…,11]).
+                // Inner anchor sits flush to leftEndX, outer extends leftward.
+                // For each seat at index i (0 = outermost):
+                //   inward shifts seat RIGHT (toward center) — outer most, inner least.
+                //   curve   shifts seat LEFT (away from center).
+                //   stagger shifts seat LEFT on odd rows (matches the user's design
+                //   where stagger expands the row symmetrically on both sides).
+                if (cL > 0) {
+                    const leftWingWidth = cL * SEAT_PITCH - SEAT_GAP;
+                    const leftBaseX     = leftEndX - leftWingWidth;
+                    for (let i = 0; i < cL; i++) {
+                        // ===== INWARD OFFSET (LEFT) =====
+                        const inward = INWARD_STRENGTH * ((cL - i) / cL);
+                        const x = leftBaseX
+                                + i * SEAT_PITCH
+                                + SEAT_W / 2
+                                - curve
+                                + inward
+                                - st;
+                        pushSeat(data.left[i], letter, x, rowY, false);
+                    }
+                }
+
+                // Center column — straight, no curve / no inward / no stagger.
+                // Row I center is the "خاص بالإدارة" block (admin-only with X).
+                for (let i = 0; i < cC; i++) {
+                    const x = centerStartX + i * SEAT_PITCH + SEAT_W / 2;
+                    pushSeat(data.center[i], letter, x, rowY, letter === 'I');
+                }
+
+                // Right wing — data.right is ordered INNER → OUTER (e.g. [12,14,…,24]).
+                if (cR > 0) {
+                    for (let i = 0; i < cR; i++) {
+                        // ===== INWARD OFFSET (RIGHT) =====
+                        // Outer (large i) → strongest negative shift toward center.
+                        const inward = -INWARD_STRENGTH * (i / cR);
+                        const x = rightStartX
+                                + i * SEAT_PITCH
+                                + SEAT_W / 2
+                                + curve
+                                + inward
+                                + st;
+                        pushSeat(data.right[i], letter, x, rowY, false);
+                    }
+                }
+
+                ROW_META.set(letter, {
+                    idx,
+                    rowY,
+                    leftEndX,
+                    rightStartX,
+                    cL, cC, cR,
+                    curve, st
+                });
             });
         }
 
-        function makeRowLabel(letter) {
-            const el = document.createElement('div');
-            el.className = 'row-label';
-            el.textContent = letter;
-            return el;
+        function pushSeat(seatRef, letter, x, y, isAdminOnly) {
+            const meta = {
+                id: seatRef.id,
+                n: seatRef.n,
+                row: letter,
+                label: letter + seatRef.n,
+                x, y,
+                angle: 0,            // axis-aligned — no rotation in linear layout
+                w: SEAT_W,
+                h: SEAT_H,
+                isAdminOnly: !!isAdminOnly
+            };
+            SEATS.push(meta);
+            seatMeta.set(seatRef.id, meta);
         }
 
-        function makeGroup(seats, rowLetter, side) {
-            const el = document.createElement('div');
-            el.className = 'seat-group ' + side;
-            (seats || []).forEach(s => el.appendChild(makeSeat(s, rowLetter)));
-            return el;
+        // ===== Canvas sizing =====
+        function fitCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            canvas.style.width  = DISPLAY_W + 'px';
+            canvas.style.height = DISPLAY_H + 'px';
+            canvas.width  = Math.floor(DISPLAY_W * dpr);
+            canvas.height = Math.floor(DISPLAY_H * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // resets and applies scale
         }
 
-        function makeSeat(seat, rowLetter) {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.dataset.seatId = seat.id;
-            btn.dataset.row = rowLetter;
-            btn.dataset.n   = seat.n;
-            btn.className   = 'seat-btn';
-            btn.textContent = rowLetter + seat.n;
-            btn.title = 'مقعد ' + rowLetter + seat.n;
-            btn.setAttribute('aria-label', 'مقعد ' + rowLetter + seat.n);
+        // ===== Drawing =====
+        function getState(seat) {
+            if (selected.has(seat.id))               return 'selected';
+            if (seat.isAdminOnly)                    return 'admin';
+            if (unavailable.has(seat.id) && blocked.has(seat.id)) return 'admin';
+            if (unavailable.has(seat.id))            return 'booked';
+            return 'available';
+        }
 
-            seatIndex.set(seat.id, { row: rowLetter, n: seat.n });
+        const STATE_STYLES = {
+            available: {
+                fill: ['#4b5563', '#1f2937'],
+                stroke: 'rgba(255,255,255,0.10)',
+                text: 'rgba(255,255,255,0.85)',
+                shadow: null
+            },
+            selected: {
+                fill: ['#34d399', '#047857'],
+                stroke: 'rgba(167,243,208,0.85)',
+                text: '#ecfdf5',
+                shadow: { color: 'rgba(16,185,129,0.85)', blur: 14 }
+            },
+            booked: {
+                fill: ['#dc2626', '#7f1d1d'],
+                stroke: 'rgba(248,113,113,0.65)',
+                text: '#fee2e2',
+                shadow: null
+            },
+            admin: {
+                fill: ['#eab308', '#713f12'],
+                stroke: 'rgba(253,224,71,0.65)',
+                text: '#fef3c7',
+                shadow: null
+            }
+        };
 
-            if (unavailable.has(seat.id)) {
-                if (blocked.has(seat.id)) {
-                    btn.classList.add('is-blocked');
-                    btn.title = 'محجوز إداري · ' + rowLetter + seat.n;
-                } else {
-                    btn.classList.add('is-booked');
-                    btn.title = 'محجوز · ' + rowLetter + seat.n;
+        function drawStage() {
+            const w = Math.min(DISPLAY_W * 0.55, 460);
+            const x = (DISPLAY_W - w) / 2;
+            const y = TOP_PAD;
+            const h = STAGE_H - 8;
+
+            // glow halo below the arc
+            const halo = ctx.createRadialGradient(DISPLAY_W/2, y + h, 10, DISPLAY_W/2, y + h, w * 0.7);
+            halo.addColorStop(0, 'rgba(251,191,36,0.35)');
+            halo.addColorStop(1, 'rgba(251,191,36,0)');
+            ctx.fillStyle = halo;
+            ctx.fillRect(0, y + h - 10, DISPLAY_W, 80);
+
+            // arc
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(x, y + h);
+            ctx.bezierCurveTo(x + w * 0.10, y - 6, x + w * 0.90, y - 6, x + w, y + h);
+            ctx.closePath();
+            const grad = ctx.createLinearGradient(0, y, 0, y + h);
+            grad.addColorStop(0,   'rgba(251,191,36,0.25)');
+            grad.addColorStop(0.6, 'rgba(251,191,36,0.10)');
+            grad.addColorStop(1,   'rgba(2,6,23,0.5)');
+            ctx.fillStyle = grad;
+            ctx.fill();
+            ctx.lineWidth = 1.2;
+            ctx.strokeStyle = 'rgba(251,191,36,0.65)';
+            ctx.stroke();
+            ctx.restore();
+
+            // text
+            ctx.fillStyle = '#fde68a';
+            ctx.font = '700 14px system-ui, -apple-system, "Segoe UI", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('المسرح', DISPLAY_W / 2, y + h / 2 - 4);
+            ctx.font = '600 9px system-ui, -apple-system, sans-serif';
+            ctx.fillStyle = 'rgba(253,224,71,0.7)';
+            ctx.fillText('S T A G E', DISPLAY_W / 2, y + h / 2 + 12);
+        }
+
+        function drawRowLabel(letter) {
+            const meta = ROW_META.get(letter);
+            if (!meta) return;
+
+            const SEAT_PITCH = SEAT_W + SEAT_GAP;
+            // Leftmost seat x — leftEndX shifted by full wing width + curve + stagger.
+            const leftWingWidth = meta.cL > 0 ? meta.cL * SEAT_PITCH - SEAT_GAP : 0;
+            const leftMostX  = meta.leftEndX  - leftWingWidth - meta.curve - meta.st - 18;
+            const rightMostX = meta.rightStartX + (meta.cR > 0 ? meta.cR * SEAT_PITCH - SEAT_GAP : 0)
+                               + meta.curve + meta.st + 18;
+
+            const isR = letter === 'R';
+            ctx.fillStyle = isR ? 'rgba(251,191,36,0.95)' : 'rgba(253,224,71,0.7)';
+            ctx.font = '700 11px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(letter, leftMostX,  meta.rowY);
+            ctx.fillText(letter, rightMostX, meta.rowY);
+        }
+
+        function drawSeat(seat, isHovered) {
+            const state = getState(seat);
+            const styles = STATE_STYLES[state];
+
+            ctx.save();
+            ctx.translate(seat.x, seat.y);
+            ctx.rotate(seat.angle); // rotate to align with the arc's radial direction
+
+            // hover lift
+            if (isHovered && state === 'available') {
+                ctx.translate(0, -2);
+            }
+
+            // glow shadow for selected (or hovered available)
+            if (styles.shadow) {
+                ctx.shadowColor = styles.shadow.color;
+                ctx.shadowBlur  = styles.shadow.blur;
+            } else if (isHovered && state === 'available') {
+                ctx.shadowColor = 'rgba(251,191,36,0.55)';
+                ctx.shadowBlur  = 10;
+            }
+
+            // body — rounded rect with vertical gradient
+            const w = seat.w, h = seat.h;
+            const rx = 5, ry = 5;
+            const grad = ctx.createLinearGradient(0, -h/2, 0, h/2);
+            grad.addColorStop(0, styles.fill[0]);
+            grad.addColorStop(1, styles.fill[1]);
+            ctx.fillStyle = grad;
+            roundedRect(ctx, -w/2, -h/2, w, h, rx, ry);
+            ctx.fill();
+
+            // border
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur  = 0;
+            ctx.lineWidth   = 1;
+            ctx.strokeStyle = styles.stroke;
+            roundedRect(ctx, -w/2, -h/2, w, h, rx, ry);
+            ctx.stroke();
+
+            // label
+            ctx.fillStyle = styles.text;
+            ctx.font = '700 8.5px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(seat.label, 0, 0.5);
+
+            // admin "X" overlay
+            if (state === 'admin') {
+                ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(-w/2 + 4, -h/2 + 4);
+                ctx.lineTo( w/2 - 4,  h/2 - 4);
+                ctx.moveTo( w/2 - 4, -h/2 + 4);
+                ctx.lineTo(-w/2 + 4,  h/2 - 4);
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        function roundedRect(ctx, x, y, w, h, rx, ry) {
+            ctx.beginPath();
+            ctx.moveTo(x + rx, y);
+            ctx.lineTo(x + w - rx, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + ry);
+            ctx.lineTo(x + w, y + h - ry);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - rx, y + h);
+            ctx.lineTo(x + rx, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - ry);
+            ctx.lineTo(x, y + ry);
+            ctx.quadraticCurveTo(x, y, x + rx, y);
+            ctx.closePath();
+        }
+
+        function draw() {
+            // background
+            ctx.clearRect(0, 0, DISPLAY_W, DISPLAY_H);
+
+            drawStage();
+
+            // row labels
+            ROWS_ORDER.forEach((letter, idx) => drawRowLabel(letter, idx));
+
+            // seats — draw selected last so glow lands on top
+            for (let i = 0; i < SEATS.length; i++) {
+                if (i === hoverIdx) continue;
+                if (getState(SEATS[i]) === 'selected') continue;
+                drawSeat(SEATS[i], false);
+            }
+            for (let i = 0; i < SEATS.length; i++) {
+                if (getState(SEATS[i]) === 'selected' && i !== hoverIdx) {
+                    drawSeat(SEATS[i], false);
                 }
-                btn.disabled = true;
-            } else {
-                btn.addEventListener('click', () => toggleSeat(btn, seat.id));
             }
-            return btn;
+            if (hoverIdx >= 0) drawSeat(SEATS[hoverIdx], true);
         }
 
-        function toggleSeat(btn, seatId) {
-            if (selected.has(seatId)) {
-                selected.delete(seatId);
-                btn.classList.remove('is-selected');
-            } else {
-                const meta = seatIndex.get(seatId);
-                selected.set(seatId, meta);
-                btn.classList.add('is-selected');
-            }
-            renderState();
+        // ===== Hit testing =====
+        function pointToCanvas(evt) {
+            const rect = canvas.getBoundingClientRect();
+            const x = (evt.clientX - rect.left) * (DISPLAY_W / rect.width);
+            const y = (evt.clientY - rect.top)  * (DISPLAY_H / rect.height);
+            return { x, y };
         }
 
-        function renderState() {
+        function findSeatAt(x, y) {
+            // iterate in reverse so the visually topmost (last drawn) wins
+            for (let i = SEATS.length - 1; i >= 0; i--) {
+                const s = SEATS[i];
+                const dx = x - s.x;
+                const dy = y - s.y;
+                // inverse rotation
+                const c = Math.cos(-s.angle), si = Math.sin(-s.angle);
+                const lx = dx * c - dy * si;
+                const ly = dx * si + dy * c;
+                const pad = 1; // small click tolerance
+                if (Math.abs(lx) <= s.w / 2 + pad && Math.abs(ly) <= s.h / 2 + pad) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        // ===== Interaction =====
+        let rafQueued = false;
+        function requestRedraw() {
+            if (rafQueued) return;
+            rafQueued = true;
+            requestAnimationFrame(() => {
+                rafQueued = false;
+                draw();
+            });
+        }
+
+        canvas.addEventListener('mousemove', (e) => {
+            const { x, y } = pointToCanvas(e);
+            const idx = findSeatAt(x, y);
+            if (idx !== hoverIdx) {
+                hoverIdx = idx;
+                if (idx >= 0) {
+                    const s = SEATS[idx];
+                    const st = getState(s);
+                    canvas.style.cursor = (st === 'available') ? 'pointer' : 'not-allowed';
+                    hoverStatus.textContent = describeSeat(s, st);
+                } else {
+                    canvas.style.cursor = 'default';
+                    hoverStatus.textContent = '';
+                }
+                requestRedraw();
+            }
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            if (hoverIdx !== -1) {
+                hoverIdx = -1;
+                hoverStatus.textContent = '';
+                requestRedraw();
+            }
+        });
+
+        canvas.addEventListener('click', (e) => {
+            const { x, y } = pointToCanvas(e);
+            const idx = findSeatAt(x, y);
+            if (idx < 0) return;
+            const s = SEATS[idx];
+            const st = getState(s);
+            if (st !== 'available' && st !== 'selected') return;
+            toggleSeat(s);
+        });
+
+        function describeSeat(s, st) {
+            switch (st) {
+                case 'selected':  return s.label + ' · مختار';
+                case 'booked':    return s.label + ' · محجوز';
+                case 'admin':     return s.label + ' · مخصص للإدارة';
+                case 'available':
+                default:          return s.label + ' · متاح للحجز';
+            }
+        }
+
+        function toggleSeat(s) {
+            if (selected.has(s.id)) {
+                selected.delete(s.id);
+            } else {
+                selected.set(s.id, { row: s.row, n: s.n });
+            }
+            renderSidePanel();
+            requestRedraw();
+        }
+
+        // ===== Side panel rendering (chips, attendees, total, mobile bar) =====
+        function renderSidePanel() {
             const ids = Array.from(selected.keys());
-            const n   = ids.length;
+            const n = ids.length;
 
-            countEl.textContent  = n;
-            totalEl.textContent  = (n * hallPrice).toLocaleString('en-US');
+            countEl.textContent     = n;
+            totalEl.textContent     = (n * hallPrice).toLocaleString('en-US');
             mobileCount.textContent = n;
             mobileTotal.textContent = (n * hallPrice).toLocaleString('en-US');
             root.classList.toggle('has-selection', n > 0);
@@ -603,7 +875,6 @@
                 m.textContent = 'لم تختر أي مقعد بعد';
                 chipsBox.appendChild(m);
             } else {
-                // sort by row letter then seat_number for a tidy display
                 ids.sort((a, b) => {
                     const ma = selected.get(a), mb = selected.get(b);
                     if (ma.row !== mb.row) return ma.row < mb.row ? -1 : 1;
@@ -622,7 +893,6 @@
         }
 
         function renderAttendees(ids) {
-            // Preserve currently typed values across re-renders
             const cached = {};
             attendees.querySelectorAll('.attendee-card').forEach(card => {
                 const sid = card.dataset.seatId;
@@ -663,31 +933,32 @@
             submitBtn.disabled = !ready;
         }
 
-        // chip remove handler (event delegation)
         chipsBox.addEventListener('click', (e) => {
             const btn = e.target.closest('[data-remove]');
             if (!btn) return;
-            const id  = parseInt(btn.dataset.remove, 10);
-            const seatBtn = root.querySelector('.seat-btn[data-seat-id="' + id + '"]');
-            if (seatBtn) toggleSeat(seatBtn, id);
+            const id = parseInt(btn.dataset.remove, 10);
+            const meta = seatMeta.get(id);
+            if (meta) toggleSeat(meta);
         });
 
         screenshot.addEventListener('change', updateSubmitButton);
 
-        // zoom controls (mobile + desktop)
-        function applyZoom() {
-            zoomTarget.style.transform = 'scale(' + zoomLevel + ')';
+        // ===== Zoom =====
+        // Pure CSS scale — keeps the underlying canvas geometry unchanged.
+        function applyZoomCss() {
+            canvas.style.width  = (DISPLAY_W * zoomLevel) + 'px';
+            canvas.style.height = (DISPLAY_H * zoomLevel) + 'px';
         }
+
         root.querySelectorAll('[data-zoom]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const dir = parseInt(btn.dataset.zoom, 10);
-                if (dir === 0) { zoomLevel = 1; }
-                else { zoomLevel = Math.max(0.6, Math.min(1.6, zoomLevel + (dir * 0.1))); }
-                applyZoom();
+                if (dir === 0) zoomLevel = 1;
+                else zoomLevel = Math.max(0.7, Math.min(1.8, zoomLevel + dir * 0.1));
+                applyZoomCss();
             });
         });
 
-        // jump-to-form on mobile sticky CTA
         if (jumpBtn) {
             jumpBtn.addEventListener('click', () => {
                 form.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -706,7 +977,32 @@
             submitBtn.innerText = 'جارِ الإرسال...';
         });
 
-        buildLayout();
-        renderState();
+        // ===== Init =====
+        function boot() {
+            fitCanvas();
+            computeLayout();
+            renderSidePanel();
+            draw();
+            // After load, scroll to center the seat plan horizontally on
+            // mobile (the canvas is wider than the viewport).
+            requestAnimationFrame(() => {
+                if (scroller.scrollWidth > scroller.clientWidth) {
+                    scroller.scrollLeft = (scroller.scrollWidth - scroller.clientWidth) / 2;
+                }
+            });
+        }
+
+        boot();
+
+        // Redraw on devicePixelRatio change (rare) — also handles a zoom change.
+        let lastDpr = window.devicePixelRatio || 1;
+        window.addEventListener('resize', () => {
+            const dpr = window.devicePixelRatio || 1;
+            if (dpr !== lastDpr) {
+                lastDpr = dpr;
+                fitCanvas();
+                draw();
+            }
+        });
     })();
 </script>
