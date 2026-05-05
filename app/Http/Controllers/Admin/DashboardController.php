@@ -71,6 +71,22 @@ class DashboardController extends Controller
                 * ($time->ticket_price ?? $time->price ?? ($time->show->price ?? 0));
         }
 
+        // 📊 إجمالي المبلغ لكل عرض = مجموع إيرادات كل مواعيده
+        $showRevenueSummary = $showTimesStats
+            ->groupBy('show_id')
+            ->map(function ($times) {
+                $first = $times->first();
+                return (object) [
+                    'show_id'          => $first->show_id,
+                    'title'            => $first->show?->title,
+                    'show_times_count' => $times->count(),
+                    'approved_tickets' => $times->sum('approved_tickets'),
+                    'total_revenue'    => $times->sum('revenue'),
+                ];
+            })
+            ->sortByDesc('total_revenue')
+            ->values();
+
         // 🔹 بيانات التحويل (محفوظة في جدول settings)
         $transferWallet = Setting::get('transfer_wallet', '');
         $transferInsta  = Setting::get('transfer_insta', '');
@@ -84,6 +100,7 @@ class DashboardController extends Controller
             'pendingBookings',
             'rejectedBookings',
             'showTimesStats',
+            'showRevenueSummary',
             'transferWallet',
             'transferInsta'
         ));

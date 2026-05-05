@@ -186,6 +186,108 @@
 
         </div>
 
+        {{-- 💰 إجمالي المبلغ لكل عرض (مجموع إيرادات كل مواعيده) --}}
+        <section class="mt-4 space-y-3">
+
+            <h2 class="text-sm font-semibold text-gray-200 mb-2">
+                إجمالي المبلغ لكل عرض
+            </h2>
+
+            {{-- 💻 DESKTOP TABLE --}}
+            <div class="hidden md:block overflow-x-auto border border-amber-400/20 rounded-2xl bg-black/40">
+                <table class="min-w-full text-xs text-gray-200">
+
+                    <thead class="bg-amber-400/10 text-[11px] uppercase tracking-wide">
+                    <tr>
+                        <th class="px-3 py-2 text-right">العرض</th>
+                        <th class="px-3 py-2 text-center text-gray-300">عدد المواعيد</th>
+                        <th class="px-3 py-2 text-center text-emerald-300">Approved</th>
+                        <th class="px-3 py-2 text-center text-amber-300">إجمالي المبلغ</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+                    @forelse($showRevenueSummary as $summary)
+                        <tr class="border-t border-white/5 hover:bg-white/5">
+
+                            <td class="px-3 py-2">{{ $summary->title }}</td>
+
+                            <td class="px-3 py-2 text-center">
+                                <span class="px-2 py-1 rounded-full bg-white/5 border border-white/10">
+                                    {{ $summary->show_times_count }}
+                                </span>
+                            </td>
+
+                            <td class="px-3 py-2 text-center">
+                                <span class="px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                    {{ $summary->approved_tickets }}
+                                </span>
+                            </td>
+
+                            <td class="px-3 py-2 text-center">
+                                <span class="px-2 py-1 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/40 font-semibold">
+                                    {{ number_format($summary->total_revenue, 0) }} EGP
+                                </span>
+                            </td>
+
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="px-3 py-4 text-center text-gray-400">لا توجد بيانات</td>
+                        </tr>
+                    @endforelse
+                    </tbody>
+
+                </table>
+            </div>
+
+            {{-- 📱 MOBILE CARDS --}}
+            <div class="md:hidden space-y-3">
+
+                @forelse($showRevenueSummary as $summary)
+
+                    <div class="bg-black/40 border border-amber-400/20 rounded-xl p-3 space-y-2 shadow-md">
+
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-gray-300 text-xs flex items-center gap-1">
+                                <span>🎭</span>
+                                <span>{{ $summary->title }}</span>
+                            </span>
+                            <span class="text-[10px] px-2 py-1 rounded-full bg-white/5 border border-white/10 text-gray-300">
+                                {{ $summary->show_times_count }} ميعاد
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+
+                            <div class="flex justify-between bg-emerald-500/10 rounded-lg px-2 py-1">
+                                <span class="text-emerald-300">Approved</span>
+                                <span class="text-emerald-300 font-semibold">
+                                    {{ $summary->approved_tickets }}
+                                </span>
+                            </div>
+
+                            <div class="flex justify-between bg-amber-400/15 rounded-lg px-2 py-1 border border-amber-400/40">
+                                <span class="text-amber-300">إجمالي المبلغ</span>
+                                <span class="text-amber-300 font-bold">
+                                    {{ number_format($summary->total_revenue, 0) }} EGP
+                                </span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                @empty
+                    <div class="text-center text-gray-400 text-sm">
+                        لا توجد بيانات
+                    </div>
+                @endforelse
+
+            </div>
+
+        </section>
+
         {{-- جدول المواعيد والتذاكر لكل ميعاد --}}
         <section class="mt-4 space-y-3">
 
