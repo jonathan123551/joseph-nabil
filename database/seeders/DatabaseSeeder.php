@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
     $this->call([
         ShowSeeder::class,
         AdminSeeder::class, // 👈 ضفنا دي
+        AnbaRuweisTheaterSeeder::class,
     ]);
 }
 
