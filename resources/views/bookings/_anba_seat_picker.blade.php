@@ -513,20 +513,20 @@
 
     for (let i = 0; i < cL; i++) {
 
-        const progress = i / (cL - 1 || 1); // من 0 لـ 1
-        const curveOffset = Math.sin(progress * Math.PI) * 20; // قوة القوس
+    const progress = i / (cL - 1 || 1);
+    const curveOffset = Math.sin(progress * Math.PI) * 20;
 
-        const x = leftBaseX
-                + i * SEAT_PITCH
-                + SEAT_W / 2
-                + shift
-                - curve
-                + inward;
+    const isShift = (idx % 2 === 0);
 
-        const yCurved = rowY - curveOffset;
+    const x = leftBaseX
+            + i * SEAT_PITCH
+            + SEAT_W / 2
+            + (isShift ? SEAT_PITCH / 2 : 0);
 
-        pushSeat(data.left[i], letter, x, yCurved, false);
-    }
+    const y = rowY - curveOffset;
+
+    pushSeat(data.left[i], letter, x, y, false);
+}
 }
 
                 // Center column — straight, no curve / no inward / no stagger.
@@ -540,20 +540,20 @@
                 if (cR > 0) {
     for (let i = 0; i < cR; i++) {
 
-        const progress = i / (cR - 1 || 1);
-        const curveOffset = Math.sin(progress * Math.PI) * 20;
+    const progress = i / (cR - 1 || 1);
+    const curveOffset = Math.sin(progress * Math.PI) * 20;
 
-        const x = rightStartX
-                + i * SEAT_PITCH
-                + SEAT_W / 2
-                - shift
-                + curve
-                - inward;
+    const isShift = (idx % 2 === 0);
 
-        const yCurved = rowY - curveOffset;
+    const x = rightStartX
+            + i * SEAT_PITCH
+            + SEAT_W / 2
+            - (isShift ? SEAT_PITCH / 2 : 0);
 
-        pushSeat(data.right[i], letter, x, yCurved, false);
-    }
+    const y = rowY - curveOffset;
+
+    pushSeat(data.right[i], letter, x, y, false);
+}
 }
 
                 ROW_META.set(letter, {
