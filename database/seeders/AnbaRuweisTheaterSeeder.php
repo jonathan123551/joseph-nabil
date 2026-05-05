@@ -9,22 +9,26 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Seeds the مسرح الأنبا رويس theater + its seat layout.
+ * Seeds the مسرح الأنبا رويس theater + its full seat layout.
  *
- * Layout transcription comes from the printed seat map provided by the user
- * (rows A–R, fan-shaped). For each row we record three groups separated by
- * the two aisles, drawn left-to-right as printed:
+ * Layout matches the unified "hall" JSON the user supplied — rows A–R, all
+ * tagged as `section = hall`. Balcony was deprecated in this iteration (the
+ * physical hall is one continuous seating area). The previous balcony/hall
+ * split has been removed and the migration that calls this seeder wipes
+ * the old layout before re-seeding.
+ *
+ * For each row we record three groups separated by the two aisles, drawn
+ * left-to-right as printed:
  *
  *   - 'left'   : odd numbers, descending toward the center aisle
- *   - 'center' : odd 9..1 then even 2..10 (~10 seats wide)
+ *   - 'center' : odd 9..1 then even 2..(8 or 10) — narrower middle block
  *   - 'right'  : even numbers, ascending away from the center aisle
  *
- * Rows A–H are بلكون (balcony, near the stage).
- * Rows I–R are صالة (hall, main floor). Row R is the last curved row and has
- * no center block — only the two outer wings.
+ * Rows A and R have no center block (just two outer wings) — they are the
+ * curved edge rows.
  *
- * Idempotent: safe to re-run; existing seats are upserted by
- * (theater_id, section, row_letter, seat_number).
+ * Idempotent: existing seats are upserted on (theater_id, section,
+ * row_letter, seat_number).
  */
 class AnbaRuweisTheaterSeeder extends Seeder
 {
@@ -46,7 +50,7 @@ class AnbaRuweisTheaterSeeder extends Seeder
                 foreach ($numbers as $i => $seatNumber) {
                     $rows_to_upsert[] = [
                         'theater_id'    => $theater->id,
-                        'section'       => $row['section'],
+                        'section'       => Theater::SECTION_HALL,
                         'row_letter'    => $row['row'],
                         'seat_number'   => $seatNumber,
                         'group_side'    => $side,
@@ -69,7 +73,6 @@ class AnbaRuweisTheaterSeeder extends Seeder
             ->values()
             ->all();
 
-        // chunk to keep a single transactional upsert under typical PG limits
         foreach (array_chunk($rows_to_upsert, 200) as $chunk) {
             DB::table('seats')->upsert(
                 $chunk,
@@ -80,134 +83,100 @@ class AnbaRuweisTheaterSeeder extends Seeder
     }
 
     /**
-     * Defining the layout in code — easy to tweak if the printed map changes.
-     * Each row is { row, section, left[], center[], right[] }.
-     *
-     * Numbering convention copied off the printed map: odd left, even right,
-     * with the center block holding the lowest numbers (closest to the aisle).
+     * Layout = exact transcription of the user-supplied JSON
+     * (theater = anba_ruweis_hall, rows A–R).
      */
     private function layout(): array
     {
-        $balcony = Theater::SECTION_BALCONY;
-        $hall    = Theater::SECTION_HALL;
-
-        // Helper builders for the descending-odd left wing and ascending-even
-        // right wing. They yield the visual left→right order.
-        $leftOdd = function (int $highestOdd, int $lowestOdd = 11): array {
-            $out = [];
-            for ($n = $highestOdd; $n >= $lowestOdd; $n -= 2) {
-                $out[] = $n;
-            }
-            return $out;
-        };
-
-        $rightEven = function (int $lowestEven, int $highestEven): array {
-            $out = [];
-            for ($n = $lowestEven; $n <= $highestEven; $n += 2) {
-                $out[] = $n;
-            }
-            return $out;
-        };
-
-        $center9to1Plus2to10 = [9, 7, 5, 3, 1, 2, 4, 6, 8, 10];
-        $center9to1Plus2to8  = [9, 7, 5, 3, 1, 2, 4, 6, 8];
-
         return [
-            // ===== BALCONY (rows A–H, near stage) =====
-            // For rows whose center block already includes seat 10 (the
-            // $center9to1Plus2to10 variant), the right wing must start at 12
-            // — starting at 10 would duplicate seat 10 in the same row.
-            ['row' => 'A', 'section' => $balcony,
-                'left'   => $leftOdd(21),                 // 21,19,...,11
-                'center' => $center9to1Plus2to10,
-                'right'  => $rightEven(12, 20)],
+            // Row A — curved edge, no center block
+            ['row' => 'A',
+                'left'   => [21, 19, 17, 15, 13, 11],
+                'right'  => [10, 12, 14, 16, 18, 20]],
 
-            ['row' => 'B', 'section' => $balcony,
-                'left'   => $leftOdd(23),
-                'center' => $center9to1Plus2to8,
-                'right'  => $rightEven(10, 22)],
+            ['row' => 'B',
+                'left'   => [23, 21, 19, 17, 15, 13, 11],
+                'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8, 10],
+                'right'  => [12, 14, 16, 18, 20, 22, 24]],
 
-            ['row' => 'C', 'section' => $balcony,
-                'left'   => $leftOdd(23),
-                'center' => $center9to1Plus2to8,
-                'right'  => $rightEven(10, 22)],
+            ['row' => 'C',
+                'left'   => [23, 21, 19, 17, 15, 13, 11],
+                'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8],
+                'right'  => [10, 12, 14, 16, 18, 20, 22]],
 
-            ['row' => 'D', 'section' => $balcony,
-                'left'   => $leftOdd(25),
-                'center' => $center9to1Plus2to10,
-                'right'  => $rightEven(12, 24)],
+            ['row' => 'D',
+                'left'   => [25, 23, 21, 19, 17, 15, 13, 11],
+                'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8, 10],
+                'right'  => [12, 14, 16, 18, 20, 22, 24, 26]],
 
-            ['row' => 'E', 'section' => $balcony,
-                'left'   => $leftOdd(25),
-                'center' => $center9to1Plus2to8,
-                'right'  => $rightEven(10, 24)],
+            ['row' => 'E',
+                'left'   => [25, 23, 21, 19, 17, 15, 13, 11],
+                'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8],
+                'right'  => [10, 12, 14, 16, 18, 20, 22, 24]],
 
-            ['row' => 'F', 'section' => $balcony,
-                'left'   => $leftOdd(27),
-                'center' => $center9to1Plus2to10,
-                'right'  => $rightEven(12, 26)],
+            ['row' => 'F',
+                'left'   => [27, 25, 23, 21, 19, 17, 15, 13, 11],
+                'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8, 10],
+                'right'  => [12, 14, 16, 18, 20, 22, 24, 26, 28]],
 
-            ['row' => 'G', 'section' => $balcony,
-                'left'   => $leftOdd(27),
-                'center' => $center9to1Plus2to8,
-                'right'  => $rightEven(10, 26)],
+            ['row' => 'G',
+                'left'   => [27, 25, 23, 21, 19, 17, 15, 13, 11],
+                'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8],
+                'right'  => [10, 12, 14, 16, 18, 20, 22, 24, 26]],
 
-            ['row' => 'H', 'section' => $balcony,
-                'left'   => $leftOdd(27),
-                'center' => $center9to1Plus2to10,
-                'right'  => $rightEven(12, 28)],
+            ['row' => 'H',
+                'left'   => [27, 25, 23, 21, 19, 17, 15, 13, 11],
+                'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8, 10],
+                'right'  => [12, 14, 16, 18, 20, 22, 24, 26, 28]],
 
-            // ===== HALL (rows I–R, main floor) =====
-            ['row' => 'I', 'section' => $hall,
-                'left'   => $leftOdd(27),
-                'center' => $center9to1Plus2to10,
-                'right'  => $rightEven(12, 28)],
+            ['row' => 'I',
+                'left'   => [27, 25, 23, 21, 19, 17, 15, 13, 11],
+                'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8],
+                'right'  => [10, 12, 14, 16, 18, 20, 22, 24, 26]],
 
-            ['row' => 'J', 'section' => $hall,
-                'left'   => $leftOdd(29),
-                'center' => $center9to1Plus2to8,
-                'right'  => $rightEven(10, 28)],
+            ['row' => 'J',
+                'left'   => [29, 27, 25, 23, 21, 19, 17, 15, 13, 11],
+                'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8],
+                'right'  => [10, 12, 14, 16, 18, 20, 22, 24, 26, 28]],
 
-            ['row' => 'K', 'section' => $hall,
-                'left'   => $leftOdd(29),
-                'center' => $center9to1Plus2to8,
-                'right'  => $rightEven(10, 28)],
+            ['row' => 'K',
+                'left'   => [29, 27, 25, 23, 21, 19, 17, 15, 13, 11],
+                'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8],
+                'right'  => [10, 12, 14, 16, 18, 20, 22, 24, 26, 28]],
 
-            ['row' => 'L', 'section' => $hall,
-                'left'   => $leftOdd(29),
-                'center' => $center9to1Plus2to8,
-                'right'  => $rightEven(10, 28)],
+            ['row' => 'L',
+                'left'   => [29, 27, 25, 23, 21, 19, 17, 15, 13, 11],
+                'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8],
+                'right'  => [10, 12, 14, 16, 18, 20, 22, 24, 26, 28]],
 
-            ['row' => 'M', 'section' => $hall,
-                'left'   => $leftOdd(29),
-                'center' => $center9to1Plus2to8,
-                'right'  => $rightEven(10, 28)],
+            ['row' => 'M',
+                'left'   => [29, 27, 25, 23, 21, 19, 17, 15, 13, 11],
+                'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8],
+                'right'  => [10, 12, 14, 16, 18, 20, 22, 24, 26, 28]],
 
-            ['row' => 'N', 'section' => $hall,
-                'left'   => $leftOdd(31),
-                'center' => $center9to1Plus2to8,
-                'right'  => $rightEven(10, 30)],
+            ['row' => 'N',
+                'left'   => [31, 29, 27, 25, 23, 21, 19, 17, 15, 13, 11],
+                'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8],
+                'right'  => [10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]],
 
-            ['row' => 'O', 'section' => $hall,
-                'left'   => $leftOdd(31),
-                'center' => $center9to1Plus2to8,
-                'right'  => $rightEven(10, 30)],
+            ['row' => 'O',
+                'left'   => [31, 29, 27, 25, 23, 21, 19, 17, 15, 13, 11],
+                'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8],
+                'right'  => [10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]],
 
-            ['row' => 'P', 'section' => $hall,
-                'left'   => $leftOdd(31),
-                'center' => $center9to1Plus2to8,
-                'right'  => $rightEven(10, 30)],
+            ['row' => 'P',
+                'left'   => [31, 29, 27, 25, 23, 21, 19, 17, 15, 13, 11],
+                'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8],
+                'right'  => [10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]],
 
-            ['row' => 'Q', 'section' => $hall,
-                'left'   => $leftOdd(31),
-                'center' => $center9to1Plus2to8,
-                'right'  => $rightEven(10, 30)],
+            ['row' => 'Q',
+                'left'   => [31, 29, 27, 25, 23, 21, 19, 17, 15, 13, 11],
+                'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8],
+                'right'  => [10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]],
 
-            // Last row R is curved with NO center block — odd 1..23 on the
-            // left half, even 2..24 on the right half.
-            ['row' => 'R', 'section' => $hall,
+            // Row R — curved last row, no center block
+            ['row' => 'R',
                 'left'   => [23, 21, 19, 17, 15, 13, 11, 9, 7, 5, 3, 1],
-                'center' => [],
                 'right'  => [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]],
         ];
     }
