@@ -785,7 +785,7 @@
             if (hoverIdx >= 0) drawSeat(SEATS[hoverIdx], true);
         }
 
-        // ===== Hit testing =====
+        // ===== Hit testing ====
         function pointToCanvas(evt) {
             const rect = canvas.getBoundingClientRect();
             const x = (evt.clientX - rect.left) * (DISPLAY_W / rect.width);
