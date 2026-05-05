@@ -433,8 +433,7 @@
         // We keep these so drawRowLabel() can place labels next to the
         // outermost seat without recomputing the layout.
         const ROW_META = new Map();
-        const HALF = (SEAT_W + SEAT_GAP) / 2;
-
+        const STEP = SEAT_W / 2;
 const RIGHT_SHIFT_STEPS = {
     Q: 0,
     P: 1,
