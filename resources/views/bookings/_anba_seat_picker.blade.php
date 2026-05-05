@@ -400,7 +400,7 @@
         // ===== CURVE CONTROL =====   (knob #1 — bottom rows fan out wider)
         // Increase  → more pronounced arc, wings sweep further out
         // Decrease  → flatter, more grid-like
-        const CURVE_FACTOR     = 12;     // px each wing shifts outward per row index
+        const CURVE_FACTOR     = 18;     // px each wing shifts outward per row index
 
         // ===== INWARD OFFSET =====   (knob #2 — pull outer wing seats toward center)
         // Increase  → outer seats lean further in (more pronounced "(" / ")" shape)
@@ -443,7 +443,13 @@
             const rows = seatData.hall || {};
             const SEAT_PITCH = SEAT_W + SEAT_GAP;
 
+            let visualRow = 0;
+
             ROWS_ORDER.forEach((letter, idx) => {
+                if (letter === 'GAP') {
+                    visualRow += 1.5; // مسافة زيادة
+                    return;
+                }   
                 const data = rows[letter];
                 if (!data) return;
 
@@ -461,7 +467,8 @@
                 // creating the alternating cinema-row look.
                 const st = (idx % 2 === 0) ? 0 : STAGGER;
 
-                const rowY = ROW_AREA_TOP + idx * ROW_PITCH;
+                const rowY = ROW_AREA_TOP + visualRow * ROW_PITCH;
+                visualRow++;
 
                 // Center anchor: perfectly centered on CX.
                 const centerWidth   = cC > 0 ? cC * SEAT_PITCH - SEAT_GAP : 0;
@@ -476,10 +483,19 @@
                 if (cC === 0 && letter === 'R') {
                     leftEndX    = CX - ROW_R_GAP / 2;
                     rightStartX = CX + ROW_R_GAP / 2;
-                } else if (cC === 0) {
-                    leftEndX    = CX - ROW_A_GAP / 2;
-                    rightStartX = CX + ROW_A_GAP / 2;
-                } else {
+                } else if (letter === 'A') {
+    const next = rows['B'];
+    const nextCenterCount = (next?.center || []).length;
+
+    const nextCenterWidth = nextCenterCount > 0
+        ? nextCenterCount * SEAT_PITCH - SEAT_GAP
+        : 0;
+
+    const nextCenterStartX = CX - nextCenterWidth / 2;
+
+    leftEndX    = nextCenterStartX - AISLE_GAP;
+    rightStartX = nextCenterStartX + nextCenterWidth + AISLE_GAP;
+} else {
                     leftEndX    = centerStartX - AISLE_GAP;
                     rightStartX = centerStartX + centerWidth + AISLE_GAP;
                 }
@@ -496,7 +512,7 @@
                     const leftBaseX     = leftEndX - leftWingWidth;
                     for (let i = 0; i < cL; i++) {
                         // ===== INWARD OFFSET (LEFT) =====
-                        const inward = INWARD_STRENGTH * ((cL - i) / cL);
+                        const inward = INWARD_STRENGTH * (i / cL);
                         const x = leftBaseX
                                 + i * SEAT_PITCH
                                 + SEAT_W / 2
@@ -511,7 +527,7 @@
                 // Row I center is the "خاص بالإدارة" block (admin-only with X).
                 for (let i = 0; i < cC; i++) {
                     const x = centerStartX + i * SEAT_PITCH + SEAT_W / 2;
-                    pushSeat(data.center[i], letter, x, rowY, letter === 'I');
+                    pushSeat(data.center[i], letter, x, rowY, false);
                 }
 
                 // Right wing — data.right is ordered INNER → OUTER (e.g. [12,14,…,24]).
@@ -519,7 +535,7 @@
                     for (let i = 0; i < cR; i++) {
                         // ===== INWARD OFFSET (RIGHT) =====
                         // Outer (large i) → strongest negative shift toward center.
-                        const inward = -INWARD_STRENGTH * (i / cR);
+                        const inward = -INWARD_STRENGTH * ((cR - i) / cR);
                         const x = rightStartX
                                 + i * SEAT_PITCH
                                 + SEAT_W / 2
