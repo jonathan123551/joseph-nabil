@@ -400,7 +400,6 @@
         const SEAT_PITCH       = SEAT_W + SEAT_GAP; // distance between seat centers
         const AISLE_GAP        = 32;     // horizontal gap between center and each wing
         const ROW_A_GAP        = 78;     // mid-gap when row has no center (e.g. row A)
-        const ROW_R_GAP        = 140;    // big mid-gap for row R (split halves)
 
         // ===== HALF-SEAT STEP =====
         // Base unit for RIGHT_SHIFT_STEPS. "1 unit" = half a seat's WIDTH
@@ -426,8 +425,9 @@
             H: 5,    G: 6,    F: 7,    E: 8,    D: 9, C: 10,
             // Front-most rows — micro adjustment to keep B/A distinct.
             B: 10.2, A: 11.2,
-            // Row R — split halves with ROW_R_GAP; small +1 step gives
-            // it a touch more outward spread, matching P's offset.
+            // Row R — no center column; falls through to the default
+            // anchoring (centerStartX = CX, centerWidth = 0). +1 step
+            // matches P's outward offset.
             R: 1,
         };
 
@@ -489,17 +489,15 @@
                 const centerStartX  = CX - centerWidth / 2;
 
                 // Pick the gap between the two wings:
-                //   - row R          → ROW_R_GAP (split halves with a big aisle)
                 //   - row A          → anchor to row B's center so the wings
                 //                     line up vertically with the next row down
                 //   - row Q (no ctr) → anchor to row P's center, same idea
-                //   - rows w/ center → 2 × AISLE_GAP (center + 2 aisles)
+                //   - all other rows → 2 × AISLE_GAP around centerStartX
+                //                     (collapses to just 2 × AISLE_GAP for any
+                //                     row with no center column, e.g. row R)
                 let leftEndX;
                 let rightStartX;
-                if (cC === 0 && letter === 'R') {
-                    leftEndX    = CX - ROW_R_GAP / 2;
-                    rightStartX = CX + ROW_R_GAP / 2;
-                } else if (letter === 'A' || letter === 'Q') {
+                if (letter === 'A' || letter === 'Q') {
                     // Both rows have no center column; anchor to a neighbor
                     // (next-toward-stage) so the wings line up vertically.
                     const neighborKey   = letter === 'A' ? 'B' : 'P';
