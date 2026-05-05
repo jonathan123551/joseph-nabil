@@ -501,22 +501,18 @@
                 }
 
                 // ===== WING OFFSET (LEFT) =====
-                // data.left is ordered OUTER → INNER (e.g. [23,21,…,11]).
-                // Inner edge (i = cL-1) is anchored at leftEndX with no
-                // offset. Outer edge (i = 0) gets the full -baseOffset.
-                // We use t = 1 - i/(cL-1) so t mirrors the right wing:
-                //   t = 1 → outermost  (full shift away from center)
-                //   t = 0 → innermost  (no shift)
+                // Uniform per-row shift. The whole left wing translates
+                // LEFT by exactly `baseOffset` pixels — every seat moves
+                // by the same amount, so SEAT_PITCH spacing inside the
+                // wing is preserved. data.left is OUTER → INNER.
                 if (cL > 0) {
                     const leftWingWidth = cL * SEAT_PITCH - SEAT_GAP;
                     const leftBaseX     = leftEndX - leftWingWidth;
                     for (let i = 0; i < cL; i++) {
-                        const t                 = (cL > 1) ? (1 - i / (cL - 1)) : 0;
-                        const progressiveOffset = baseOffset * t;
                         const x = leftBaseX
                                 + i * SEAT_PITCH
                                 + SEAT_W / 2
-                                - progressiveOffset;
+                                - baseOffset;
                         pushSeat(data.left[i], letter, x, rowY, false);
                     }
                 }
@@ -529,19 +525,15 @@
                 }
 
                 // ===== WING OFFSET (RIGHT) =====
-                // data.right is ordered INNER → OUTER (e.g. [12,14,…,24]).
-                // Inner edge (i = 0) is anchored at rightStartX with no
-                // offset. Outer edge (i = cR-1) gets the full +baseOffset.
-                //   t = 0 → innermost  (no shift)
-                //   t = 1 → outermost  (full shift away from center)
+                // Uniform per-row shift. The whole right wing translates
+                // RIGHT by exactly `baseOffset` pixels — mirror of LEFT.
+                // data.right is INNER → OUTER.
                 if (cR > 0) {
                     for (let i = 0; i < cR; i++) {
-                        const t                 = (cR > 1) ? (i / (cR - 1)) : 0;
-                        const progressiveOffset = baseOffset * t;
                         const x = rightStartX
                                 + i * SEAT_PITCH
                                 + SEAT_W / 2
-                                + progressiveOffset;
+                                + baseOffset;
                         pushSeat(data.right[i], letter, x, rowY, false);
                     }
                 }
