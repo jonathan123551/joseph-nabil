@@ -400,12 +400,12 @@
         // ===== CURVE CONTROL =====   (knob #1 — bottom rows fan out wider)
         // Increase  → more pronounced arc, wings sweep further out
         // Decrease  → flatter, more grid-like
-        const CURVE_FACTOR     = 6;     // px each wing shifts outward per row index
+        const CURVE_FACTOR     = 0;     // px each wing shifts outward per row index
 
         // ===== INWARD OFFSET =====   (knob #2 — pull outer wing seats toward center)
         // Increase  → outer seats lean further in (more pronounced "(" / ")" shape)
         // Decrease  → wings stay rectangular
-        const INWARD_STRENGTH  = (SEAT_W + SEAT_GAP) * 0.6;
+        const INWARD_STRENGTH  = 0;
 
         // ===== STAGGER =====         (knob #3 — half-seat shift on odd rows)
         // Set to 0 to disable the alternating-row offset entirely.
@@ -511,22 +511,16 @@
                     const leftWingWidth = cL * SEAT_PITCH - SEAT_GAP;
                     const leftBaseX     = leftEndX - leftWingWidth;
                     for (let i = 0; i < cL; i++) {
-                        // ===== INWARD OFFSET (LEFT) =====
-                        // 🔥 mirrored alignment
+                         // ===== LEFT (FIXED ALIGNMENT) =====
 
-                        const shiftPattern = (idx % 2 === 0) ? -(SEAT_PITCH / 2) : 0;
+                        const isStart10 = (idx % 2 === 0); // A, C, E...
 
-                        const tightCurve = curve * 0.4;
-
-                        const inward = INWARD_STRENGTH * 0.4 * (i / cL);
+                        const shift = isStart10 ? -(SEAT_PITCH / 2) : 0;
 
                         const x = leftBaseX
                                 + i * SEAT_PITCH
                                 + SEAT_W / 2
-                                - tightCurve
-                                + inward
-                                - shiftPattern - (SEAT_PITCH / 4);
-                        pushSeat(data.left[i], letter, x, rowY, false);
+                                - shift;
                     }
                 }
 
@@ -540,26 +534,17 @@
                 // Right wing — data.right is ordered INNER → OUTER (e.g. [12,14,…,24]).
                 if (cR > 0) {
                     for (let i = 0; i < cR; i++) {
-                        // ===== INWARD OFFSET (RIGHT) =====
-                        // Outer (large i) → strongest negative shift toward center.
-                        // 🔥 ALIGNMENT SYSTEM (10 ↔ 12 pattern)
+                        // ===== RIGHT (FIXED ALIGNMENT) =====
 
-                        const shiftPattern = (idx % 2 === 0) ? -(SEAT_PITCH / 2) : 0;
+                        const isStart10 = (idx % 2 === 0); // A, C, E...
 
-                        // تقليل الكيرف عشان يبقى قريب من السنتر
-                        const tightCurve = curve * 0.4;
-
-                        // تقليل الـ inward عشان ميبقاش مبالغ فيه
-                        const inward = -INWARD_STRENGTH * 0.4 * (i / cR);
+                        const shift = isStart10 ? -(SEAT_PITCH / 2) : 0;
 
                         const x = rightStartX
                                 + i * SEAT_PITCH
                                 + SEAT_W / 2
-                                + tightCurve
-                                + inward
-                                + shiftPattern - (SEAT_PITCH / 4);
-                        pushSeat(data.right[i], letter, x, rowY, false);
-                    }
+                                + shift;
+                     }
                 }
 
                 ROW_META.set(letter, {
