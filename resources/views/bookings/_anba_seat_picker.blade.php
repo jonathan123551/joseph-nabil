@@ -433,7 +433,30 @@
         // We keep these so drawRowLabel() can place labels next to the
         // outermost seat without recomputing the layout.
         const ROW_META = new Map();
+        const HALF = (SEAT_W + SEAT_GAP) / 2;
 
+const RIGHT_OFFSETS = {
+    Q: 0,
+
+    P: HALF,
+    O: HALF * 2,
+    N: HALF * 3,
+
+    M: HALF * 3,
+    L: HALF * 3,
+    K: HALF * 3,
+    J: HALF * 3,
+    I: HALF * 3,
+
+    H: HALF,
+    G: HALF * 2,
+    F: HALF * 3,
+    E: HALF * 4,
+    D: HALF * 5,
+    C: HALF * 5,
+    B: HALF * 6,
+    A: HALF * 7,
+};
         // ===== Layout computation =====
         function computeLayout() {
             SEATS.length = 0;
@@ -528,7 +551,12 @@ if (cL > 0) {
                 // Right wing — data.right is ordered INNER → OUTER (e.g. [12,14,…,24]).
                 if (cR > 0) {
     for (let i = 0; i < cR; i++) {
-        const x = rightStartX + i * SEAT_PITCH + SEAT_W / 2;
+        const offset = RIGHT_OFFSETS[letter] || 0;
+
+const x = rightStartX
+        + i * SEAT_PITCH
+        + SEAT_W / 2
+        + offset;
         pushSeat(data.right[i], letter, x, rowY, false);
     }
 }
