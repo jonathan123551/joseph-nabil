@@ -507,26 +507,15 @@
                 //   curve   shifts seat LEFT (away from center).
                 //   stagger shifts seat LEFT on odd rows (matches the user's design
                 //   where stagger expands the row symmetrically on both sides).
-                if (cL > 0) {
+                // LEFT WING
+if (cL > 0) {
     const leftWingWidth = cL * SEAT_PITCH - SEAT_GAP;
     const leftBaseX     = leftEndX - leftWingWidth;
 
     for (let i = 0; i < cL; i++) {
-
-    const progress = i / (cL - 1 || 1);
-    const curveOffset = Math.sin(progress * Math.PI) * 20;
-
-    const isShift = (idx % 2 === 0);
-
-    const x = leftBaseX
-            + i * SEAT_PITCH
-            + SEAT_W / 2
-            + (isShift ? SEAT_PITCH / 2 : 0);
-
-    const y = rowY - curveOffset;
-
-    pushSeat(data.left[i], letter, x, y, false);
-}
+        const x = leftBaseX + i * SEAT_PITCH + SEAT_W / 2;
+        pushSeat(data.left[i], letter, x, rowY, false);
+    }
 }
 
                 // Center column — straight, no curve / no inward / no stagger.
@@ -550,7 +539,7 @@
             + SEAT_W / 2
             - (isShift ? SEAT_PITCH / 2 : 0);
 
-    const y = rowY - curveOffset;
+    
 
     pushSeat(data.right[i], letter, x, y, false);
 }
