@@ -1,47 +1,47 @@
 @extends('layouts.app')
 
+@section('title', __('Reset Password'))
+
 @section('content')
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">{{ __('Reset Password') }}</div>
+    <section class="max-w-sm mx-auto mt-12 prism-fade-up">
+        <div class="prism-glass prism-glow-border p-6 sm:p-7 space-y-5">
 
-                <div class="card-body">
-                    @if (session('status'))
-                        <div class="alert alert-success" role="alert">
-                            {{ session('status') }}
-                        </div>
-                    @endif
-
-                    <form method="POST" action="{{ route('password.email') }}">
-                        @csrf
-
-                        <div class="row mb-3">
-                            <label for="email" class="col-md-4 col-form-label text-md-end">{{ __('Email Address') }}</label>
-
-                            <div class="col-md-6">
-                                <input id="email" type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}" required autocomplete="email" autofocus>
-
-                                @error('email')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <div class="row mb-0">
-                            <div class="col-md-6 offset-md-4">
-                                <button type="submit" class="btn btn-primary">
-                                    {{ __('Send Password Reset Link') }}
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+            <div class="text-center space-y-2">
+                <span class="prism-pill prism-pill-neon mx-auto">
+                    <span class="prism-dot prism-dot-sky"></span>
+                    {{ __('Reset Password') }}
+                </span>
+                <h2 class="prism-headline text-xl">
+                    <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                        {{ __('Reset Password') }}
+                    </span>
+                </h2>
             </div>
+
+            @if (session('status'))
+                <div class="rounded-xl px-3 py-2 text-xs"
+                     style="background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.45); color: #6ee7b7;">
+                    {{ session('status') }}
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('password.email') }}" class="space-y-3">
+                @csrf
+
+                <div>
+                    <label for="email" class="text-xs mb-1 block text-[color:var(--prism-text-2)]">{{ __('Email Address') }}</label>
+                    <input id="email" type="email" name="email" value="{{ old('email') }}"
+                           class="prism-input text-sm @error('email') ring-1 ring-rose-400 @enderror"
+                           required autocomplete="email" autofocus>
+                    @error('email')
+                        <span class="text-[11px] mt-1 block" style="color: #fda4af;">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <button type="submit" class="prism-btn w-full mt-2">
+                    {{ __('Send Password Reset Link') }}
+                </button>
+            </form>
         </div>
-    </div>
-</div>
+    </section>
 @endsection

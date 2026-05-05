@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'إكمال الحجز - ' . $showTime->show->title)
+@section('title', 'إكمال الحجز · ' . $showTime->show->title)
 
 @section('content')
 
@@ -25,7 +25,7 @@
     $unitPrice       = $sectionParam === 'balcony' ? $balconyPriceInt : $hallPriceInt;
 @endphp
 
-<section class="max-w-3xl mx-auto px-4 py-6 sm:py-8"
+<section class="max-w-3xl mx-auto prism-fade-up"
          data-anba-form
          data-section="{{ $sectionParam }}"
          data-show-time-id="{{ (int) $showTime->id }}"
@@ -33,25 +33,16 @@
          data-seats-url="{{ route('bookings.seats', $showTime) }}?section={{ $sectionParam }}">
 
     <style>
-        [data-anba-form] .glass {
-            background: linear-gradient(180deg, rgba(15,23,42,0.6), rgba(2,6,23,0.7));
-            border: 1px solid rgba(251,191,36,0.22);
-            border-radius: 24px;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            box-shadow:
-                inset 0 1px 0 rgba(255,255,255,0.04),
-                0 20px 60px -20px rgba(0,0,0,0.7);
-        }
         [data-anba-form] .seat-chip {
             display: inline-flex; align-items: center; gap: 6px;
-            padding: 3px 6px 3px 10px;
+            padding: 4px 8px 4px 12px;
             border-radius: 999px;
-            background: linear-gradient(180deg, rgba(16,185,129,0.22), rgba(16,185,129,0.10));
+            background: linear-gradient(135deg, rgba(16,185,129,0.22), rgba(34,211,238,0.16));
             border: 1px solid rgba(52,211,153,0.55);
             color: #d1fae5;
             font-size: 12px; font-weight: 700;
-            box-shadow: 0 0 10px rgba(16,185,129,0.25), inset 0 1px 0 rgba(255,255,255,0.06);
+            box-shadow: 0 0 14px rgba(16,185,129,0.25), inset 0 1px 0 rgba(255,255,255,0.06);
+            animation: prismFadeUp .3s var(--prism-ease) both;
         }
         [data-anba-form] .seat-chip [data-remove] {
             display: inline-flex; align-items: center; justify-content: center;
@@ -61,26 +52,27 @@
             color: #fee2e2;
             font-size: 11px; font-weight: 800;
             line-height: 1;
-            transition: background .15s ease, transform .15s ease;
+            transition: background .15s var(--prism-ease), transform .15s var(--prism-ease);
             cursor: pointer;
         }
         [data-anba-form] .seat-chip [data-remove]:hover {
-            background: rgba(220,38,38,0.6);
-            transform: scale(1.06);
+            background: rgba(244,63,94,0.6);
+            transform: scale(1.08);
         }
         [data-anba-form] .add-seats-btn {
             display: inline-flex; align-items: center; justify-content: center; gap: 6px;
             padding: 10px 14px;
-            border-radius: 12px;
-            background: linear-gradient(180deg, rgba(251,191,36,0.22), rgba(180,83,9,0.10));
-            border: 1px solid rgba(251,191,36,0.45);
-            color: #fde68a;
-            font-size: 12px; font-weight: 700;
-            transition: transform .15s ease, box-shadow .15s ease;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(34,211,238,0.16), rgba(192,132,252,0.16));
+            border: 1px solid rgba(129,140,248,0.45);
+            color: #e0e7ff;
+            font-size: 12px; font-weight: 600;
+            transition: transform .15s var(--prism-ease), box-shadow .15s var(--prism-ease);
+            min-height: 40px;
         }
         [data-anba-form] .add-seats-btn:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 14px rgba(251,191,36,0.20);
+            box-shadow: 0 6px 18px -4px rgba(129,140,248,0.5);
         }
         [data-anba-form] .step-list {
             counter-reset: step;
@@ -91,73 +83,83 @@
         [data-anba-form] .step-list li {
             counter-increment: step;
             position: relative;
-            padding-right: 30px;
-            font-size: 12px;
-            line-height: 1.6;
-            color: #e5e7eb;
-            margin-bottom: 6px;
+            padding-right: 32px;
+            font-size: 12.5px;
+            line-height: 1.7;
+            color: var(--prism-text-2);
+            margin-bottom: 8px;
         }
         [data-anba-form] .step-list li::before {
             content: counter(step);
             position: absolute;
-            right: 0; top: 0;
-            width: 22px; height: 22px;
+            right: 0; top: 1px;
+            width: 24px; height: 24px;
             border-radius: 999px;
-            background: rgba(251,191,36,0.18);
-            border: 1px solid rgba(251,191,36,0.45);
-            color: #fde68a;
+            background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(192,132,252,0.18));
+            border: 1px solid rgba(129,140,248,0.55);
+            color: #e0e7ff;
             font-size: 11px; font-weight: 800;
             display: inline-flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 10px rgba(129,140,248,0.18);
         }
         [data-anba-form] .attendee-card {
             display: grid;
-            grid-template-columns: 56px 1fr;
-            gap: 8px;
-            padding: 10px;
+            grid-template-columns: 60px 1fr;
+            gap: 10px;
+            padding: 12px;
             border-radius: 14px;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.035);
+            border: 1px solid var(--prism-border);
+            transition: border-color .2s var(--prism-ease), background .2s var(--prism-ease);
+        }
+        [data-anba-form] .attendee-card:focus-within {
+            border-color: rgba(129,140,248,0.45);
+            background: rgba(255,255,255,0.05);
         }
         [data-anba-form] .attendee-card .seat-pill {
             display: inline-flex; align-items: center; justify-content: center;
             background: linear-gradient(180deg, rgba(16,185,129,0.30), rgba(16,185,129,0.15));
             border: 1px solid rgba(52,211,153,0.6);
             color: #ecfdf5;
-            font-weight: 800; font-size: 12px;
+            font-weight: 800; font-size: 13px;
             border-radius: 12px;
-            box-shadow: 0 0 8px rgba(16,185,129,0.30), inset 0 1px 0 rgba(255,255,255,0.06);
+            box-shadow: 0 0 10px rgba(16,185,129,0.30), inset 0 1px 0 rgba(255,255,255,0.06);
         }
         [data-anba-form] .field-input {
             width: 100%;
-            background: rgba(2,6,23,0.6);
-            border: 1px solid rgba(255,255,255,0.08);
-            color: #e5e7eb;
+            background: rgba(8, 10, 20, 0.7);
+            border: 1px solid var(--prism-border);
+            color: var(--prism-text);
             border-radius: 10px;
-            padding: 8px 10px;
+            padding: 10px 12px;
             font-size: 13px;
-            transition: border-color .15s ease, background .15s ease;
+            transition: border-color .2s var(--prism-ease), background .2s var(--prism-ease), box-shadow .2s var(--prism-ease);
+            min-height: 44px;
         }
         [data-anba-form] .field-input:focus {
-            border-color: rgba(251,191,36,0.55);
+            border-color: rgba(129,140,248,0.6);
             outline: none;
-            background: rgba(2,6,23,0.8);
+            background: rgba(8,10,20,0.9);
+            box-shadow: 0 0 0 3px rgba(129,140,248,0.12);
         }
-        [data-anba-form] .cta-primary {
-            background: linear-gradient(180deg, #fbbf24, #b45309);
-            color: #1a0f00;
-            font-weight: 800;
+        [data-anba-form] .total-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 14px;
             border-radius: 14px;
-            padding: 12px 16px;
-            transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
-            box-shadow: 0 6px 20px rgba(251,191,36,0.30), inset 0 1px 0 rgba(255,255,255,0.4);
+            background: linear-gradient(135deg, rgba(251,191,36,0.10), rgba(251,191,36,0.04));
+            border: 1px solid rgba(251,191,36,0.32);
+            color: #fef3c7;
         }
-        [data-anba-form] .cta-primary:disabled {
-            opacity: .5;
-            cursor: not-allowed;
-            background: linear-gradient(180deg, rgba(251,191,36,0.30), rgba(180,83,9,0.30));
-            box-shadow: none;
+        [data-anba-form] .total-bar .label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .18em;
+            color: rgba(254,243,199,0.75);
         }
-        [data-anba-form] .cta-primary:hover:not(:disabled) { transform: translateY(-1px); }
+        [data-anba-form] .total-bar .amount {
+            font-size: 18px; font-weight: 800;
+            color: var(--prism-gold);
+        }
 
         [data-anba-form] .mobile-cta {
             position: fixed;
@@ -165,70 +167,111 @@
             z-index: 60;
             display: none;
             padding: 10px 14px;
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            background: linear-gradient(180deg, rgba(2,6,23,0.85), rgba(2,6,23,0.95));
-            border-top: 1px solid rgba(251,191,36,0.30);
+            backdrop-filter: blur(20px) saturate(160%);
+            -webkit-backdrop-filter: blur(20px) saturate(160%);
+            background: linear-gradient(180deg, rgba(5,6,13,0.78), rgba(5,6,13,0.95));
+            border-top: 1px solid rgba(129,140,248,0.32);
             align-items: center;
             gap: 10px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
         }
         @media (max-width: 1023px) {
             [data-anba-form] .mobile-cta { display: flex; }
-            [data-anba-form] .form-spacer-mobile { height: 76px; }
+            [data-anba-form] .form-spacer-mobile { height: 84px; }
         }
+
+        /* Step indicator (re-used) */
+        [data-anba-form] .step-indicator {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 11px; color: var(--prism-text-3);
+            letter-spacing: .14em;
+            text-transform: uppercase;
+        }
+        [data-anba-form] .step-indicator .dot {
+            width: 22px; height: 22px;
+            border-radius: 999px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 700;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--prism-border);
+            color: var(--prism-text-4);
+        }
+        [data-anba-form] .step-indicator .dot.done,
+        [data-anba-form] .step-indicator .dot.cur {
+            background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(192,132,252,0.18));
+            border-color: rgba(129,140,248,0.6);
+            color: #e0e7ff;
+        }
+        [data-anba-form] .step-indicator .line { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(129,140,248,0.35), rgba(255,255,255,0.04)); }
     </style>
 
     <div class="space-y-5">
 
+        {{-- step indicator --}}
+        <div class="step-indicator">
+            <span class="dot done">✓</span>
+            <span>القسم</span>
+            <span class="line"></span>
+            <span class="dot done">✓</span>
+            <span>المقعد</span>
+            <span class="line"></span>
+            <span class="dot cur">3</span>
+            <span>التأكيد</span>
+        </div>
+
         {{-- show details --}}
-        <div class="glass p-4 sm:p-5 space-y-2">
-            <h1 class="text-amber-300 text-base font-bold">
+        <div class="prism-glass p-5 sm:p-6 space-y-2">
+            <h1 class="prism-headline text-base sm:text-lg flex items-center gap-2"
+                style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
                 🎭 {{ $showTime->show->title }}
             </h1>
-            <div class="text-[12px] text-gray-300 space-y-0.5">
-                <p>📅 {{ \Carbon\Carbon::parse($showTime->date)->format('d-m-Y') }}</p>
-                <p>⏰ {{ \Carbon\Carbon::parse($showTime->time)->format('g:i A') }}</p>
-                <p class="text-amber-300 font-semibold">
-                    🎟️ {{ $unitPrice }} جنيه / مقعد ·
-                    {{ $sectionParam === 'balcony' ? 'البلكون' : 'الصالة' }}
-                </p>
+            <div class="text-[12px] text-[color:var(--prism-text-2)] flex items-center gap-2 flex-wrap">
+                <span class="prism-pill">📅 {{ \Carbon\Carbon::parse($showTime->date)->format('d-m-Y') }}</span>
+                <span class="prism-pill">⏰ {{ \Carbon\Carbon::parse($showTime->time)->format('g:i A') }}</span>
+                <span class="prism-pill prism-pill-neon">
+                    🎟️ {{ $unitPrice }} جنيه / مقعد · {{ $sectionParam === 'balcony' ? 'البلكون' : 'الصالة' }}
+                </span>
             </div>
         </div>
 
         {{-- selected seats summary --}}
-        <div class="glass p-4 sm:p-5 space-y-3">
-            <div class="flex items-center justify-between gap-2">
-                <h2 class="text-amber-300 text-sm font-semibold">المقاعد المختارة</h2>
+        <div class="prism-glass p-5 sm:p-6 space-y-3">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+                <h2 class="prism-headline text-sm sm:text-base"
+                    style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                    المقاعد المختارة
+                </h2>
                 <a href="{{ route('bookings.seats', $showTime) }}?section={{ $sectionParam }}"
-                   class="add-seats-btn">
+                   class="add-seats-btn prism-ripple">
                     <span>＋</span>
                     <span>إضافة / تعديل المقاعد</span>
                 </a>
             </div>
 
-            <p class="text-[11px] text-gray-400 leading-relaxed">
+            <p class="text-[11px] text-[color:var(--prism-text-3)] leading-relaxed">
                 اضغط × على أي مقعد لإلغاء اختياره، أو اضغط "إضافة / تعديل المقاعد" للرجوع لخريطة المقاعد.
             </p>
 
-            <div data-form-chips class="flex flex-wrap gap-1.5 min-h-[40px] p-2 rounded-xl bg-black/40 border border-white/5">
-                <span class="text-[11px] text-gray-500" data-empty-msg>جارٍ تحميل المقاعد المختارة...</span>
+            <div data-form-chips class="flex flex-wrap gap-1.5 min-h-[44px] p-2 rounded-xl bg-black/40 border border-[color:var(--prism-border)]">
+                <span class="text-[11px] text-[color:var(--prism-text-4)]" data-empty-msg>جارٍ تحميل المقاعد المختارة...</span>
             </div>
 
-            <div class="flex items-center justify-between rounded-xl bg-amber-400/10 border border-amber-400/30 px-3 py-2 text-amber-100">
-                <span class="text-[11px] uppercase tracking-widest">الإجمالي</span>
-                <span class="text-base font-bold">
-                    <span data-form-total>0</span> <span class="text-[10px]">EGP</span>
-                </span>
+            <div class="total-bar">
+                <span class="label">الإجمالي</span>
+                <span><span class="amount" data-form-total>0</span> <span class="text-[10px] text-[color:var(--prism-text-3)]">EGP</span></span>
             </div>
         </div>
 
         {{-- booking instructions --}}
-        <div class="glass p-4 sm:p-5 space-y-3">
-            <h3 class="text-amber-300 text-sm font-semibold">📌 خطوات إكمال الحجز</h3>
+        <div class="prism-glass p-5 sm:p-6 space-y-3">
+            <h3 class="prism-headline text-sm flex items-center gap-2"
+                style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                📌 خطوات إكمال الحجز
+            </h3>
             <ol class="step-list">
                 <li>
                     حوّل قيمة الحجز
-                    (<span class="text-amber-300 font-bold"><span data-form-total-inline>0</span> جنيه</span>)
+                    (<span class="text-[color:var(--prism-gold)] font-bold"><span data-form-total-inline>0</span> جنيه</span>)
                     على المحفظة أو InstaPay الموضحة بالأسفل.
                 </li>
                 <li>
@@ -238,37 +281,40 @@
                     اكتب اسم ورقم واتساب لكل شخص بترتيب المقاعد المحجوزة.
                 </li>
                 <li>
-                    اضغط <span class="text-amber-300 font-bold">"تأكيد الحجز"</span> —
+                    اضغط <span class="text-[color:var(--prism-text)] font-bold">"تأكيد الحجز"</span> —
                     هنراجع الطلب ونرسل التذاكر على رقم الواتساب خلال
-                    <span class="text-white font-semibold">24 ساعة</span> كحد أقصى.
+                    <span class="text-[color:var(--prism-text)] font-semibold">24 ساعة</span> كحد أقصى.
                 </li>
             </ol>
         </div>
 
         {{-- transfer info --}}
         @if (!empty($transferWallet) || !empty($transferInsta))
-            <div class="glass p-4 sm:p-5 space-y-2">
-                <h3 class="text-[12px] text-amber-300 font-semibold">💸 ادفع قيمة الحجز على</h3>
+            <div class="prism-glass p-5 sm:p-6 space-y-2">
+                <h3 class="text-[12px] font-semibold flex items-center gap-2"
+                    style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                    💸 ادفع قيمة الحجز على
+                </h3>
                 @if (!empty($transferWallet))
-                    <div class="bg-white/5 rounded-xl px-3 py-2">
-                        <p class="text-[10px] text-gray-400 mb-0.5">📱 محفظة</p>
-                        <p class="text-sm font-bold text-white" dir="ltr">{{ $transferWallet }}</p>
+                    <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
+                        <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5">📱 محفظة</p>
+                        <p class="text-sm font-bold text-[color:var(--prism-text)] tracking-wide" dir="ltr">{{ $transferWallet }}</p>
                     </div>
                 @endif
                 @if (!empty($transferInsta))
-                    <div class="bg-white/5 rounded-xl px-3 py-2">
-                        <p class="text-[10px] text-gray-400 mb-0.5">⚡ InstaPay</p>
-                        <p class="text-sm font-bold text-white" dir="ltr">{{ $transferInsta }}</p>
+                    <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
+                        <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5">⚡ InstaPay</p>
+                        <p class="text-sm font-bold text-[color:var(--prism-text)] tracking-wide" dir="ltr">{{ $transferInsta }}</p>
                     </div>
                 @endif
             </div>
         @endif
 
         {{-- the actual form --}}
-        <div class="glass p-4 sm:p-5 space-y-4">
+        <div class="prism-glass p-5 sm:p-6 space-y-4">
 
             @if ($errors->any())
-                <div class="bg-red-500/10 border border-red-500/40 text-red-200 text-xs rounded-xl p-3">
+                <div class="bg-rose-500/10 border border-rose-500/40 text-rose-200 text-xs rounded-xl p-3">
                     <ul class="space-y-1">
                         @foreach ($errors->all() as $error)
                             <li>• {{ $error }}</li>
@@ -289,20 +335,27 @@
                 <div data-form-attendees class="space-y-2"></div>
 
                 <div class="space-y-2">
-                    <label class="text-xs font-semibold text-white">📸 إيصال التحويل</label>
+                    <label class="text-xs font-semibold text-[color:var(--prism-text)] flex items-center gap-2">
+                        📸 إيصال التحويل
+                    </label>
                     <input type="file"
                            name="payment_screenshot"
                            id="anbaScreenshotFinal"
                            accept="image/*"
                            required
-                           class="w-full text-[11px] text-gray-300 file:bg-amber-400/20 file:text-amber-100 file:border-0 file:rounded-md file:px-3 file:py-1.5 file:ml-3 file:cursor-pointer">
+                           class="w-full text-[11px] text-[color:var(--prism-text-2)]
+                                  file:bg-white/[0.06] file:text-[color:var(--prism-text)]
+                                  file:border file:border-[color:var(--prism-border)]
+                                  file:rounded-full file:px-4 file:py-2 file:ml-3 file:cursor-pointer
+                                  file:hover:bg-white/[0.10] file:transition">
                 </div>
 
                 <button type="submit"
                         id="anbaFinalSubmit"
                         disabled
-                        class="cta-primary w-full">
+                        class="prism-btn prism-ripple w-full">
                     تأكيد الحجز
+                    <span aria-hidden="true">✓</span>
                 </button>
             </form>
         </div>
@@ -312,16 +365,16 @@
 
     {{-- mobile sticky submit so the user always sees the CTA --}}
     <div class="mobile-cta">
-        <div class="flex-1 text-amber-100">
-            <div class="text-[10px] text-gray-400">الإجمالي</div>
-            <div class="text-sm font-bold">
+        <div class="flex-1">
+            <div class="text-[10px] text-[color:var(--prism-text-3)]">الإجمالي</div>
+            <div class="text-sm font-bold text-[color:var(--prism-text)]">
                 <span data-form-mobile-count>0</span> مقعد ·
-                <span data-form-mobile-total>0</span> EGP
+                <span class="text-[color:var(--prism-gold)]"><span data-form-mobile-total>0</span> EGP</span>
             </div>
         </div>
         <button type="button"
                 data-form-mobile-submit
-                class="cta-primary px-5 py-2 text-xs">
+                class="prism-btn prism-ripple px-5 py-2 text-xs">
             تأكيد
         </button>
     </div>
@@ -375,7 +428,7 @@
         chipsBox.innerHTML = '';
         if (seats.length === 0) {
             const span = document.createElement('span');
-            span.className = 'text-[11px] text-gray-500';
+            span.className = 'text-[11px] text-[color:var(--prism-text-4)]';
             span.textContent = 'لم يعد هناك مقاعد مختارة';
             chipsBox.appendChild(span);
             return;

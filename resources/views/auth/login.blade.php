@@ -3,34 +3,49 @@
 @section('title', 'تسجيل دخول الأدمن')
 
 @section('content')
-    <section class="max-w-sm mx-auto space-y-4 bg-black/40 border border-white/10 rounded-xl p-6 mt-10">
-        <h2 class="font-bold text-xl mb-2 text-center">دخول الأدمن</h2>
+    <section class="max-w-sm mx-auto mt-12 prism-fade-up">
+        <div class="prism-glass prism-glow-border p-6 sm:p-7 space-y-5">
 
-        @if ($errors->any())
-            <div class="text-red-400 text-xs mb-2">
-                {{ $errors->first() }}
-            </div>
-        @endif
-
-        <form action="{{ route('login.submit') }}" method="POST" class="space-y-3">
-            @csrf
-
-            <div>
-                <label class="text-xs mb-1 block">البريد الإلكتروني</label>
-                <input type="email" name="email" value="{{ old('email') }}"
-                       class="w-full bg-black/60 border border-white/15 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-amber-400">
+            <div class="text-center space-y-2">
+                <span class="prism-pill prism-pill-neon mx-auto">
+                    <span class="prism-dot prism-dot-emerald"></span>
+                    Admin Access
+                </span>
+                <h2 class="prism-headline text-xl">
+                    <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                        دخول الأدمن
+                    </span>
+                </h2>
+                <p class="text-xs text-[color:var(--prism-text-3)]">سجّل دخولك للوحة التحكم</p>
             </div>
 
-            <div>
-                <label class="text-xs mb-1 block">كلمة المرور</label>
-                <input type="password" name="password"
-                       class="w-full bg-black/60 border border-white/15 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-amber-400">
-            </div>
+            @if ($errors->any())
+                <div class="rounded-xl px-3 py-2 text-xs text-center"
+                     style="background: rgba(244,63,94,0.10); border: 1px solid rgba(251,113,133,0.45); color: #fda4af;">
+                    {{ $errors->first() }}
+                </div>
+            @endif
 
-            <button
-                class="w-full bg-amber-400 text-black rounded-full py-2 text-sm font-medium hover:bg-amber-300 transition mt-2">
-                دخول
-            </button>
-        </form>
+            <form action="{{ route('login.submit') }}" method="POST" class="space-y-3">
+                @csrf
+
+                <div>
+                    <label class="text-xs mb-1 block text-[color:var(--prism-text-2)]">البريد الإلكتروني</label>
+                    <input type="email" name="email" value="{{ old('email') }}"
+                           class="prism-input text-sm" autocomplete="email">
+                </div>
+
+                <div>
+                    <label class="text-xs mb-1 block text-[color:var(--prism-text-2)]">كلمة المرور</label>
+                    <input type="password" name="password"
+                           class="prism-input text-sm" autocomplete="current-password">
+                </div>
+
+                <button class="prism-btn w-full mt-2">
+                    دخول
+                    <span aria-hidden="true">←</span>
+                </button>
+            </form>
+        </div>
     </section>
 @endsection
