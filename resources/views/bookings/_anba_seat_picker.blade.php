@@ -470,7 +470,9 @@
                 if (!data) return;
 
                 const cL = (data.left   || []).length;
-                const cC = (data.center || []).length;
+                // Row Q's center seats are admin-only management block;
+                // skip rendering them so Q is two wings only (similar to A).
+                const cC = (letter === 'Q') ? 0 : (data.center || []).length;
                 const cR = (data.right  || []).length;
 
                 // Per-row outermost offset (px). Inner edge gets 0,
@@ -487,24 +489,28 @@
                 const centerStartX  = CX - centerWidth / 2;
 
                 // Pick the gap between the two wings:
-                //   - row R   → ROW_R_GAP (split halves with a big aisle)
-                //   - row A   → anchor to row B's center so the wings line
-                //               up vertically with the next row down
+                //   - row R          → ROW_R_GAP (split halves with a big aisle)
+                //   - row A          → anchor to row B's center so the wings
+                //                     line up vertically with the next row down
+                //   - row Q (no ctr) → anchor to row P's center, same idea
                 //   - rows w/ center → 2 × AISLE_GAP (center + 2 aisles)
                 let leftEndX;
                 let rightStartX;
                 if (cC === 0 && letter === 'R') {
                     leftEndX    = CX - ROW_R_GAP / 2;
                     rightStartX = CX + ROW_R_GAP / 2;
-                } else if (letter === 'A') {
-                    const next = rows['B'];
-                    const nextCenterCount = (next?.center || []).length;
-                    const nextCenterWidth = nextCenterCount > 0
-                        ? nextCenterCount * SEAT_PITCH - SEAT_GAP
+                } else if (letter === 'A' || letter === 'Q') {
+                    // Both rows have no center column; anchor to a neighbor
+                    // (next-toward-stage) so the wings line up vertically.
+                    const neighborKey   = letter === 'A' ? 'B' : 'P';
+                    const neighbor      = rows[neighborKey];
+                    const nbrCount      = (neighbor?.center || []).length;
+                    const nbrWidth      = nbrCount > 0
+                        ? nbrCount * SEAT_PITCH - SEAT_GAP
                         : 0;
-                    const nextCenterStartX = CX - nextCenterWidth / 2;
-                    leftEndX    = nextCenterStartX - AISLE_GAP;
-                    rightStartX = nextCenterStartX + nextCenterWidth + AISLE_GAP;
+                    const nbrStartX     = CX - nbrWidth / 2;
+                    leftEndX    = nbrStartX - AISLE_GAP;
+                    rightStartX = nbrStartX + nbrWidth + AISLE_GAP;
                 } else {
                     leftEndX    = centerStartX - AISLE_GAP;
                     rightStartX = centerStartX + centerWidth + AISLE_GAP;
