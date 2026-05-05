@@ -377,39 +377,49 @@
         //
         // Real-theater linear layout. The center column is rendered as a
         // straight vertical column, perfectly centered. Left and right
-        // wings get three independent transforms, exposed below as the
-        // three knobs you can edit:
+        // wings receive a per-row PROGRESSIVE offset whose magnitude is
+        // set by the RIGHT_SHIFT_STEPS table below (in HALF-SEAT widths).
         //
-        //   1. CURVE_FACTOR   → fans wings outward as you move toward the back
-        //   2. INWARD_STRENGTH → pulls outer wing seats back toward the center
-        //   3. STAGGER         → half-seat horizontal shift on alternate rows
+        // The progressive offset is anchored to 0 at each wing's INNER
+        // edge and ramps linearly up to its full value at the OUTER
+        // edge — so adjacent rows stay smoothly aligned near the
+        // center, while the back-of-hall corners fan outward.
         //
-        // Search the file for "===== CURVE CONTROL =====",
-        // "===== INWARD OFFSET =====", and "===== STAGGER =====" to find
-        // the exact spots in computeLayout() where each knob is applied.
+        // To find where the math runs, search the file for:
+        //   ===== WING OFFSET (LEFT)  =====
+        //   ===== WING OFFSET (RIGHT) =====
         const ROWS_ORDER       = ['A','B','C','D','E','F','G','H','GAP','I','J','K','L','M','N','O','P','Q','R'];
         const SEAT_W           = 22;     // seat box width  (px)
         const SEAT_H           = 20;     // seat box height (px)
         const SEAT_GAP         = 5;      // horizontal gap between adjacent seats
         const ROW_GAP          = 10;     // vertical gap between rows
         const ROW_PITCH        = SEAT_H + ROW_GAP;  // distance between row centers
+        const SEAT_PITCH       = SEAT_W + SEAT_GAP; // distance between seat centers
         const AISLE_GAP        = 32;     // horizontal gap between center and each wing
         const ROW_A_GAP        = 78;     // mid-gap when row has no center (e.g. row A)
         const ROW_R_GAP        = 140;    // big mid-gap for row R (split halves)
 
-        // ===== CURVE CONTROL =====   (knob #1 — bottom rows fan out wider)
-        // Increase  → more pronounced arc, wings sweep further out
-        // Decrease  → flatter, more grid-like
-        const CURVE_FACTOR     = 0;     // px each wing shifts outward per row index
+        // ===== HALF-SEAT STEP =====
+        // Base unit for RIGHT_SHIFT_STEPS — each entry below is multiplied
+        // by STEP to produce the wing's outermost offset in pixels.
+        // STEP intentionally includes SEAT_GAP so a value of "1" equals
+        // exactly half of one seat's pitch.
+        const STEP             = SEAT_PITCH / 2;
 
-        // ===== INWARD OFFSET =====   (knob #2 — pull outer wing seats toward center)
-        // Increase  → outer seats lean further in (more pronounced "(" / ")" shape)
-        // Decrease  → wings stay rectangular
-        const INWARD_STRENGTH  = 0;
-
-        // ===== STAGGER =====         (knob #3 — half-seat shift on odd rows)
-        // Set to 0 to disable the alternating-row offset entirely.
-        const STAGGER          = (SEAT_W + SEAT_GAP) / 2;
+        // ===== WING OFFSET STEPS =====
+        // Per-row offset at the OUTERMOST seat of each wing (in HALF-SEAT
+        // widths). The same value is used for both left and right wings
+        // so the layout is symmetric. Inner-edge seats keep their natural
+        // SEAT_PITCH spacing; only the spread of the wing grows.
+        //
+        // Tweak any single row here without touching layout math:
+        const RIGHT_SHIFT_STEPS = {
+            Q: 0,    P: 1,    O: 2,    N: 3,
+            M: 3.2,  L: 3.4,  K: 3.6,  J: 3.8,  I: 4,
+            H: 5,    G: 6,    F: 7,    E: 8,    D: 9,
+            C: 10,   B: 10.2, A: 11.2,
+            R: 0,
+        };
 
         const STAGE_H          = 70;
         const TOP_PAD          = 28;
@@ -417,7 +427,7 @@
         const SIDE_PAD         = 36;
 
         // Display size (CSS pixels). Will be scaled by devicePixelRatio internally.
-        // Width is wide enough to fit row Q's left wing + full curve outward.
+        // Width is wide enough to fit the front rows' full progressive offset.
         let DISPLAY_W = 1400;
         let DISPLAY_H = 700;
         let CX        = DISPLAY_W / 2;
@@ -428,32 +438,9 @@
         let hoverIdx = -1;
 
         // ===== Row metadata cache =====
-        // Per-row geometry: where the center column starts/ends, where each
-        // wing's "anchor" column sits before curve/inward/stagger are applied.
-        // We keep these so drawRowLabel() can place labels next to the
-        // outermost seat without recomputing the layout.
+        // Per-row geometry used by drawRowLabel() so it can place labels
+        // next to the outermost seat without recomputing the layout.
         const ROW_META = new Map();
-        const STEP = SEAT_W / 2;
-const RIGHT_SHIFT_STEPS = {
-    Q: 0,
-    P: 1,
-    O: 2,
-    N: 3,
-    M: 3.2,
-    L: 3.4,
-    K: 3.6,
-    J: 3.8,
-    I: 4,
-
-    H: 5,
-    G: 6,
-    F: 7,
-    E: 8,
-    D: 9,
-    C: 10,
-    B: 10.2,
-    A: 11.2,
-};
         // ===== Layout computation =====
         function computeLayout() {
             SEATS.length = 0;
@@ -461,7 +448,6 @@ const RIGHT_SHIFT_STEPS = {
             ROW_META.clear();
 
             const rows = seatData.hall || {};
-            const SEAT_PITCH = SEAT_W + SEAT_GAP;
 
             let visualRow = 0;
 
@@ -469,7 +455,7 @@ const RIGHT_SHIFT_STEPS = {
                 if (letter === 'GAP') {
                     visualRow += 1.5; // مسافة زيادة
                     return;
-                }   
+                }
                 const data = rows[letter];
                 if (!data) return;
 
@@ -477,15 +463,11 @@ const RIGHT_SHIFT_STEPS = {
                 const cC = (data.center || []).length;
                 const cR = (data.right  || []).length;
 
-                // ===== CURVE CONTROL =====
-                // Wings shift outward as we move toward the back of the
-                // hall. Top rows tighter, bottom rows wider.
-                const curve = idx * CURVE_FACTOR;
-
-                // ===== STAGGER =====
-                // Odd-indexed rows expand by half a seat on each wing,
-                // creating the alternating cinema-row look.
-                const st = (idx % 2 === 0) ? 0 : STAGGER;
+                // Per-row outermost offset (px). Inner edge gets 0,
+                // outer edge gets baseOffset; everything in between is
+                // interpolated linearly.
+                const step       = RIGHT_SHIFT_STEPS[letter] || 0;
+                const baseOffset = step * STEP;
 
                 const rowY = ROW_AREA_TOP + visualRow * ROW_PITCH;
                 visualRow++;
@@ -496,7 +478,8 @@ const RIGHT_SHIFT_STEPS = {
 
                 // Pick the gap between the two wings:
                 //   - row R   → ROW_R_GAP (split halves with a big aisle)
-                //   - row A   → ROW_A_GAP (no center column at all)
+                //   - row A   → anchor to row B's center so the wings line
+                //               up vertically with the next row down
                 //   - rows w/ center → 2 × AISLE_GAP (center + 2 aisles)
                 let leftEndX;
                 let rightStartX;
@@ -504,65 +487,64 @@ const RIGHT_SHIFT_STEPS = {
                     leftEndX    = CX - ROW_R_GAP / 2;
                     rightStartX = CX + ROW_R_GAP / 2;
                 } else if (letter === 'A') {
-    const next = rows['B'];
-    const nextCenterCount = (next?.center || []).length;
-
-    const nextCenterWidth = nextCenterCount > 0
-        ? nextCenterCount * SEAT_PITCH - SEAT_GAP
-        : 0;
-
-    const nextCenterStartX = CX - nextCenterWidth / 2;
-
-    leftEndX    = nextCenterStartX - AISLE_GAP;
-    rightStartX = nextCenterStartX + nextCenterWidth + AISLE_GAP;
-} else {
+                    const next = rows['B'];
+                    const nextCenterCount = (next?.center || []).length;
+                    const nextCenterWidth = nextCenterCount > 0
+                        ? nextCenterCount * SEAT_PITCH - SEAT_GAP
+                        : 0;
+                    const nextCenterStartX = CX - nextCenterWidth / 2;
+                    leftEndX    = nextCenterStartX - AISLE_GAP;
+                    rightStartX = nextCenterStartX + nextCenterWidth + AISLE_GAP;
+                } else {
                     leftEndX    = centerStartX - AISLE_GAP;
                     rightStartX = centerStartX + centerWidth + AISLE_GAP;
                 }
 
-                // Left wing — data.left is ordered OUTER → INNER (e.g. [23,21,…,11]).
-                // Inner anchor sits flush to leftEndX, outer extends leftward.
-                // For each seat at index i (0 = outermost):
-                //   inward shifts seat RIGHT (toward center) — outer most, inner least.
-                //   curve   shifts seat LEFT (away from center).
-                //   stagger shifts seat LEFT on odd rows (matches the user's design
-                //   where stagger expands the row symmetrically on both sides).
-                // LEFT WING
-if (cL > 0) {
-    const leftWingWidth = cL * SEAT_PITCH - SEAT_GAP;
-    const leftBaseX     = leftEndX - leftWingWidth;
+                // ===== WING OFFSET (LEFT) =====
+                // data.left is ordered OUTER → INNER (e.g. [23,21,…,11]).
+                // Inner edge (i = cL-1) is anchored at leftEndX with no
+                // offset. Outer edge (i = 0) gets the full -baseOffset.
+                // We use t = 1 - i/(cL-1) so t mirrors the right wing:
+                //   t = 1 → outermost  (full shift away from center)
+                //   t = 0 → innermost  (no shift)
+                if (cL > 0) {
+                    const leftWingWidth = cL * SEAT_PITCH - SEAT_GAP;
+                    const leftBaseX     = leftEndX - leftWingWidth;
+                    for (let i = 0; i < cL; i++) {
+                        const t                 = (cL > 1) ? (1 - i / (cL - 1)) : 0;
+                        const progressiveOffset = baseOffset * t;
+                        const x = leftBaseX
+                                + i * SEAT_PITCH
+                                + SEAT_W / 2
+                                - progressiveOffset;
+                        pushSeat(data.left[i], letter, x, rowY, false);
+                    }
+                }
 
-    for (let i = 0; i < cL; i++) {
-        const x = leftBaseX + i * SEAT_PITCH + SEAT_W / 2;
-        pushSeat(data.left[i], letter, x, rowY, false);
-    }
-}
-
-                // Center column — straight, no curve / no inward / no stagger.
+                // ===== CENTER =====   straight column, never offset.
                 // Row I center is the "خاص بالإدارة" block (admin-only with X).
                 for (let i = 0; i < cC; i++) {
                     const x = centerStartX + i * SEAT_PITCH + SEAT_W / 2;
                     pushSeat(data.center[i], letter, x, rowY, false);
                 }
 
-                // Right wing — data.right is ordered INNER → OUTER (e.g. [12,14,…,24]).
+                // ===== WING OFFSET (RIGHT) =====
+                // data.right is ordered INNER → OUTER (e.g. [12,14,…,24]).
+                // Inner edge (i = 0) is anchored at rightStartX with no
+                // offset. Outer edge (i = cR-1) gets the full +baseOffset.
+                //   t = 0 → innermost  (no shift)
+                //   t = 1 → outermost  (full shift away from center)
                 if (cR > 0) {
-    for (let i = 0; i < cR; i++) {
-
-        const step = RIGHT_SHIFT_STEPS[letter] || 0;
-        const offset = step * STEP;
-
-        const centerBias = (i % 2 === 0) ? 0 : STEP / 2;
-
-        const x = rightStartX
-                + i * SEAT_PITCH
-                + SEAT_W / 2
-                + offset
-                + centerBias;
-
-        pushSeat(data.right[i], letter, x, rowY, false);
-    }
-}
+                    for (let i = 0; i < cR; i++) {
+                        const t                 = (cR > 1) ? (i / (cR - 1)) : 0;
+                        const progressiveOffset = baseOffset * t;
+                        const x = rightStartX
+                                + i * SEAT_PITCH
+                                + SEAT_W / 2
+                                + progressiveOffset;
+                        pushSeat(data.right[i], letter, x, rowY, false);
+                    }
+                }
 
                 ROW_META.set(letter, {
                     idx,
@@ -570,7 +552,7 @@ if (cL > 0) {
                     leftEndX,
                     rightStartX,
                     cL, cC, cR,
-                    curve, st
+                    baseOffset,
                 });
             });
         }
@@ -682,20 +664,24 @@ if (cL > 0) {
             const meta = ROW_META.get(letter);
             if (!meta) return;
 
-            const SEAT_PITCH = SEAT_W + SEAT_GAP;
-            // Leftmost seat x — leftEndX shifted by full wing width + curve + stagger.
+            // Outermost seat positions match the wing math:
+            //   left  outermost = leftBaseX + W/2 - baseOffset
+            //                   = (leftEndX - leftWingWidth) + W/2 - baseOffset
+            //   right outermost = rightStartX + (cR-1)*PITCH + W/2 + baseOffset
             const leftWingWidth = meta.cL > 0 ? meta.cL * SEAT_PITCH - SEAT_GAP : 0;
-            const leftMostX  = meta.leftEndX  - leftWingWidth - meta.curve - meta.st - 18;
-            const rightMostX = meta.rightStartX + (meta.cR > 0 ? meta.cR * SEAT_PITCH - SEAT_GAP : 0)
-                               + meta.curve + meta.st + 18;
+            const leftOuterX    = meta.leftEndX - leftWingWidth + SEAT_W / 2 - meta.baseOffset;
+            const rightOuterX   = meta.rightStartX
+                                + (meta.cR > 0 ? (meta.cR - 1) * SEAT_PITCH : 0)
+                                + SEAT_W / 2
+                                + meta.baseOffset;
 
             const isR = letter === 'R';
             ctx.fillStyle = isR ? 'rgba(251,191,36,0.95)' : 'rgba(253,224,71,0.7)';
             ctx.font = '700 11px system-ui, sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(letter, leftMostX,  meta.rowY);
-            ctx.fillText(letter, rightMostX, meta.rowY);
+            ctx.fillText(letter, leftOuterX  - 18, meta.rowY);
+            ctx.fillText(letter, rightOuterX + 18, meta.rowY);
         }
 
         function drawSeat(seat, isHovered) {
