@@ -1187,6 +1187,36 @@
                 z-index: 30;
             }
         }
+        /* Mobile (< 768px): stack toolbar children vertically so the
+           search input, segmented control, and date filter never
+           collide on a single row. Without this, .prism-toolbar's
+           default row layout squeezes the search and the prism-
+           toolbar-end onto the same line and they visibly overlap. */
+        @media (max-width: 767px) {
+            .prism-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .prism-toolbar > * {
+                width: 100%;
+                min-width: 0;
+            }
+            .prism-toolbar-end {
+                justify-content: flex-start;
+            }
+            .prism-toolbar .prism-input {
+                max-width: none !important;
+                width: 100%;
+            }
+            .prism-toolbar .prism-segment {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .prism-toolbar .prism-segment > label {
+                flex: 1;
+                min-width: 0;
+            }
+        }
 
         /* Segmented control — pill of mutually-exclusive options
            with a sliding fill. Use for status filters and any
