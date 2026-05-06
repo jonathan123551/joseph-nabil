@@ -3,25 +3,32 @@
 @section('title', 'إدارة الحجوزات')
 
 @section('content')
-<section class="space-y-6">
+@php
+    /** Quick-stats strip (computed from the same collection the page already
+     *  loaded — no extra queries, no controller change). Gives the admin an
+     *  at-a-glance summary above the table. */
+    $bkPending  = $bookings->where('status', 'pending')->count();
+    $bkApproved = $bookings->where('status', 'approved')->count();
+    $bkRejected = $bookings->where('status', 'rejected')->count();
+    $bkTickets  = $bookings->where('status', 'approved')->sum('tickets_count');
+    $bkRevenue  = (int) $bookings->where('status', 'approved')->sum('total_price');
+@endphp
+
+<section class="space-y-5">
 
     {{-- ========================== HEADER ========================== --}}
-    <div class="prism-glass prism-glow-border p-5 prism-fade-up flex items-center justify-between gap-3 flex-wrap">
+    <div class="flex items-end justify-between gap-3 flex-wrap prism-fade-up">
         <div class="space-y-1">
-            <span class="prism-pill prism-pill-neon">
-                <span class="prism-dot prism-dot-emerald"></span>
-                Bookings
-            </span>
-            <h1 class="prism-headline text-xl sm:text-2xl">
-                <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
-                    إدارة الحجوزات
-                </span>
+            <span class="prism-eyebrow">BOOKINGS · MANAGEMENT</span>
+            <h1 class="prism-headline text-xl sm:text-2xl"
+                style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                إدارة الحجوزات
             </h1>
         </div>
 
         <a href="{{ route('admin.dashboard') }}" class="prism-btn-ghost text-xs">
             <span aria-hidden="true">→</span>
-            رجوع
+            رجوع للوحة التحكم
         </a>
     </div>
 
@@ -33,21 +40,57 @@
         </div>
     @endif
 
-    {{-- ========================== FILTERS ========================== --}}
-    <div class="prism-glass p-4 prism-fade-up">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+    {{-- ========================== QUICK STATS STRIP ========================== --}}
+    <div class="prism-stat-strip prism-fade-up">
+        <div class="prism-stat-strip-item">
+            <span class="prism-stat-strip-label">قيد المراجعة</span>
+            <span class="prism-stat-strip-val prism-stat-strip-val-cyan">{{ $bkPending }}</span>
+        </div>
+        <div class="prism-stat-strip-item">
+            <span class="prism-stat-strip-label">معتمد</span>
+            <span class="prism-stat-strip-val prism-stat-strip-val-emerald">{{ $bkApproved }}</span>
+        </div>
+        <div class="prism-stat-strip-item">
+            <span class="prism-stat-strip-label">مرفوض</span>
+            <span class="prism-stat-strip-val prism-stat-strip-val-rose">{{ $bkRejected }}</span>
+        </div>
+        <div class="prism-stat-strip-item">
+            <span class="prism-stat-strip-label">تذاكر معتمدة</span>
+            <span class="prism-stat-strip-val">{{ $bkTickets }}</span>
+        </div>
+        <div class="prism-stat-strip-item">
+            <span class="prism-stat-strip-label">Revenue</span>
+            <span class="prism-stat-strip-val prism-stat-strip-val-gold">{{ number_format($bkRevenue, 0) }}<span class="opacity-60 ms-1 text-[11px] font-semibold">EGP</span></span>
+        </div>
+    </div>
+
+    {{-- ========================== FILTERS / TOOLBAR ========================== --}}
+    <div class="prism-toolbar prism-toolbar-sticky prism-fade-up">
+        <div class="flex items-center gap-2 flex-1 min-w-0">
             <input id="searchInput" type="text"
                    placeholder="بحث بالاسم / الموبايل / كود الحجز"
-                   class="prism-input text-xs">
+                   class="prism-input text-xs"
+                   style="max-width: 320px; min-height: 38px; padding: 8px 12px;">
+        </div>
 
-            <select id="statusFilter" class="prism-input text-xs">
-                <option value="">كل الحالات</option>
-                <option value="pending">pending</option>
-                <option value="approved">approved</option>
-                <option value="rejected">rejected</option>
-            </select>
+        <div class="prism-toolbar-end">
+            {{-- Segmented status control: hidden radios drive .prism-segment label state. --}}
+            <div class="prism-segment" role="radiogroup" aria-label="Status filter">
+                <input type="radio" name="statusSegment" id="seg-all" value="" checked>
+                <label for="seg-all">كل الحالات</label>
 
-            <select id="dateTimeFilter" class="prism-input text-xs">
+                <input type="radio" name="statusSegment" id="seg-pending" value="pending">
+                <label for="seg-pending"><span style="color: var(--prism-cyan);">●</span> Pending</label>
+
+                <input type="radio" name="statusSegment" id="seg-approved" value="approved">
+                <label for="seg-approved"><span style="color: var(--prism-emerald);">●</span> Approved</label>
+
+                <input type="radio" name="statusSegment" id="seg-rejected" value="rejected">
+                <label for="seg-rejected"><span style="color: var(--prism-rose);">●</span> Rejected</label>
+            </div>
+
+            <select id="dateTimeFilter" class="prism-input text-xs"
+                    style="max-width: 220px; min-height: 38px; padding: 6px 10px;">
                 <option value="">كل المواعيد</option>
                 @foreach(
                     $bookings->map(fn($b) => $b->showTime
@@ -66,15 +109,15 @@
     {{-- ========================== DESKTOP TABLE ========================== --}}
     <div class="hidden md:block prism-fade-up">
         <div class="prism-glass overflow-x-auto">
-            <table class="w-full text-sm text-[color:var(--prism-text-2)]">
-                <thead style="background: rgba(255,255,255,0.04);">
-                    <tr class="text-xs uppercase" style="letter-spacing:.14em; color: var(--prism-text-3);">
-                        <th class="px-3 py-3 text-right">الضيف</th>
-                        <th class="px-3 py-3 text-right">العرض / الموعد</th>
-                        <th class="px-3 py-3 text-right">الحالة</th>
-                        <th class="px-3 py-3 text-center">التذكرة</th>
-                        <th class="px-3 py-3 text-right">إجراءات</th>
-                        <th class="px-3 py-3 text-right">الكود</th>
+            <table class="prism-table-clean w-full">
+                <thead>
+                    <tr>
+                        <th class="text-right">الضيف</th>
+                        <th class="text-right">العرض / الموعد</th>
+                        <th class="text-right">الحالة</th>
+                        <th class="text-center">التذكرة</th>
+                        <th class="text-right">إجراءات</th>
+                        <th class="text-right">الكود</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -85,14 +128,11 @@
                             : '';
                     @endphp
                     <tr class="booking-row"
-                        style="border-top: 1px solid rgba(255,255,255,0.06); transition: background .15s ease;"
-                        onmouseover="this.style.background='rgba(129,140,248,0.06)'"
-                        onmouseout="this.style.background=''"
                         data-search="{{ strtolower($booking->full_name.' '.$booking->phone.' '.$booking->reference_code) }}"
                         data-status="{{ $booking->status }}"
                         data-datetime="{{ $dt }}">
 
-                        <td class="px-3 py-3 align-top">
+                        <td class="align-top">
                             <div>
                                 <p class="font-bold text-[color:var(--prism-text)]">{{ $booking->full_name }}</p>
                                 <p class="text-xs" style="color: var(--prism-gold);">
@@ -108,7 +148,7 @@
                             @endforeach
                         </td>
 
-                        <td class="px-3 py-3 align-top">
+                        <td class="align-top">
                             <span class="text-[color:var(--prism-text)]">{{ $booking->showTime->show->title ?? '-' }}</span><br>
                             <span class="text-[color:var(--prism-text-3)] text-xs">
                                 {{ $booking->showTime?->date->format('d/m/Y') }}
@@ -116,14 +156,14 @@
                             </span>
                         </td>
 
-                        <td class="px-3 py-3 align-top">
+                        <td class="align-top">
                             <span class="prism-pill {{ $booking->status==='approved' ? 'prism-pill-emerald'
                                                        : ($booking->status==='rejected' ? 'prism-pill-rose' : 'prism-pill-sky') }}">
                                 {{ $booking->status }}
                             </span>
                         </td>
 
-                        <td class="px-3 py-3 align-top text-center">
+                        <td class="align-top text-center">
                             @php
                                 $allSent = $booking->tickets->every(fn($t) => $t->whatsapp_sent);
                                 $total   = $booking->tickets->count();
@@ -139,13 +179,13 @@
                             </div>
                         </td>
 
-                        <td class="px-3 py-3 align-top">
+                        <td class="align-top">
                             <a href="{{ route('admin.bookings.show',$booking) }}" class="prism-btn-ghost text-xs px-3 py-1.5">
                                 تفاصيل
                             </a>
                         </td>
 
-                        <td class="px-3 py-3 align-top font-mono text-xs"
+                        <td class="align-top font-mono text-xs"
                             style="color: var(--prism-text-2);">
                             {{ $booking->reference_code }}
                         </td>
@@ -165,7 +205,7 @@
                     : '';
             @endphp
 
-            <div class="prism-glass p-4 text-xs booking-card prism-fade-up"
+            <div class="prism-glass prism-card-hover p-4 text-xs booking-card prism-fade-up"
                  data-search="{{ strtolower($booking->full_name.' '.$booking->phone.' '.$booking->reference_code) }}"
                  data-status="{{ $booking->status }}"
                  data-datetime="{{ $dt }}">
@@ -229,30 +269,57 @@
         @endforeach
     </div>
 
+    {{-- Empty state for filters that match nothing --}}
+    <div id="emptyFilterState" class="prism-glass p-6 text-center prism-fade-up" style="display:none;">
+        <div class="text-sm text-[color:var(--prism-text-2)] mb-1">لا توجد حجوزات تطابق هذا الفلتر.</div>
+        <button type="button" id="resetFilters" class="prism-btn-ghost text-xs mt-2 inline-flex">
+            تصفير الفلاتر
+        </button>
+    </div>
+
 </section>
 
-{{-- =============== JS FILTER (logic preserved) =============== --}}
+{{-- =============== JS FILTER (logic preserved, status now driven by segmented control) =============== --}}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const search = document.getElementById('searchInput');
-    const status = document.getElementById('statusFilter');
     const dt     = document.getElementById('dateTimeFilter');
+    const statusRadios = document.querySelectorAll('input[name="statusSegment"]');
     const items  = document.querySelectorAll('.booking-row, .booking-card');
+    const empty  = document.getElementById('emptyFilterState');
+    const reset  = document.getElementById('resetFilters');
+
+    function getStatus() {
+        const checked = document.querySelector('input[name="statusSegment"]:checked');
+        return checked ? checked.value : '';
+    }
 
     function filter(){
         const s = search.value.toLowerCase();
+        const status = getStatus();
+        let visible = 0;
         items.forEach(el=>{
             const ok =
                 el.dataset.search.includes(s) &&
-                (!status.value || el.dataset.status===status.value) &&
+                (!status || el.dataset.status===status) &&
                 (!dt.value || el.dataset.datetime===dt.value);
             el.style.display = ok ? '' : 'none';
+            if (ok) visible++;
         });
+        if (empty) empty.style.display = (visible === 0 && items.length > 0) ? '' : 'none';
     }
 
-    [search,status,dt].forEach(i=>{
+    [search, dt].forEach(i=>{
         i.addEventListener('input',filter);
         i.addEventListener('change',filter);
+    });
+    statusRadios.forEach(r => r.addEventListener('change', filter));
+
+    if (reset) reset.addEventListener('click', () => {
+        search.value = '';
+        dt.value = '';
+        document.getElementById('seg-all').checked = true;
+        filter();
     });
 });
 </script>
