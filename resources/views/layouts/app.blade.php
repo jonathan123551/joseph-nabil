@@ -956,6 +956,470 @@
             pointer-events: none;
         }
         .prism-ripple:active::after { opacity: 1; transition-duration: .05s; }
+
+        /* =========================================================
+           PR 2 — Hierarchy primitives (Stripe / Apple-feel).
+           Small, composable building blocks that views use to
+           establish strong visual hierarchy without one-off styles.
+           ========================================================= */
+
+        /* Eyebrow — small, all-caps, wide-tracked label that sits
+           above any data point. Replaces the inline
+           `text-[11px] uppercase letter-spacing:.18em` patterns. */
+        .prism-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10.5px;
+            font-weight: 600;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--prism-text-3);
+        }
+        .prism-eyebrow-strong {
+            color: var(--prism-text-2);
+        }
+
+        /* Section title — display-style heading with a subtle neon
+           underline accent. Use once per section; keeps the eye
+           anchored while the content below stays calm. */
+        .prism-section-title {
+            font-family: "Space Grotesk", "IBM Plex Sans Arabic", system-ui, sans-serif;
+            font-weight: 700;
+            font-size: clamp(15px, 1.6vw, 18px);
+            letter-spacing: -0.005em;
+            color: var(--prism-text);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            padding-bottom: 2px;
+        }
+        .prism-section-title::after {
+            content: "";
+            position: absolute;
+            inset-inline-start: 0;
+            bottom: -6px;
+            width: 28px;
+            height: 2px;
+            border-radius: 2px;
+            background: var(--prism-neon);
+            opacity: .85;
+        }
+        .prism-section-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        /* Stat tile — disciplined, single-purpose KPI card.
+           Variants: .is-primary (gold/hero), .is-positive
+           (emerald), .is-attention (cyan, for actionable items),
+           .is-muted (subdued). */
+        .prism-stat {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 16px 18px 18px 18px;
+            border-radius: var(--prism-radius);
+            background: linear-gradient(180deg, rgba(20,24,38,0.62), rgba(8,10,20,0.72));
+            border: 1px solid var(--prism-border);
+            backdrop-filter: blur(18px) saturate(140%);
+            -webkit-backdrop-filter: blur(18px) saturate(140%);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.05),
+                0 24px 48px -22px rgba(0,0,0,0.65);
+            transition: border-color .25s var(--prism-ease), transform .25s var(--prism-ease);
+        }
+        .prism-stat:hover {
+            border-color: rgba(129,140,248,0.32);
+            transform: translateY(-2px);
+        }
+        .prism-stat-label {
+            font-size: 10.5px;
+            font-weight: 600;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--prism-text-3);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .prism-stat-value {
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-weight: 700;
+            font-size: clamp(22px, 2.4vw, 30px);
+            line-height: 1.05;
+            letter-spacing: -0.02em;
+            color: var(--prism-text);
+        }
+        .prism-stat-caption {
+            font-size: 11px;
+            line-height: 1.5;
+            color: var(--prism-text-3);
+        }
+
+        .prism-stat.is-primary {
+            border-color: rgba(251,191,36,0.40);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.06),
+                0 28px 56px -22px rgba(251,191,36,0.30),
+                0 0 28px rgba(251,191,36,0.14);
+        }
+        .prism-stat.is-primary .prism-stat-value {
+            font-size: clamp(28px, 3.2vw, 40px);
+            color: var(--prism-gold);
+        }
+        .prism-stat.is-primary .prism-stat-label {
+            color: #fde68a;
+        }
+
+        .prism-stat.is-positive { border-color: rgba(52,211,153,0.32); }
+        .prism-stat.is-positive .prism-stat-value { color: var(--prism-emerald); }
+
+        .prism-stat.is-attention { border-color: rgba(34,211,238,0.30); }
+        .prism-stat.is-attention .prism-stat-value { color: var(--prism-cyan); }
+
+        /* Decorative spark — subtle gradient accent in stat top-edge */
+        .prism-stat::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 14px; right: 14px;
+            height: 1px;
+            border-radius: 1px;
+            background: linear-gradient(90deg,
+                rgba(34,211,238,0)  0%,
+                rgba(34,211,238,0.4) 30%,
+                rgba(192,132,252,0.4) 70%,
+                rgba(192,132,252,0)  100%);
+            opacity: 0;
+            transition: opacity .3s var(--prism-ease);
+        }
+        .prism-stat:hover::before { opacity: 1; }
+
+        /* Data row — clean key/value row used inside cards.
+           Replaces ad-hoc `flex justify-between py-2 border-b`
+           patterns. */
+        .prism-data-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--prism-border);
+            font-size: 13px;
+        }
+        .prism-data-row:last-child { border-bottom: none; }
+        .prism-data-key {
+            font-size: 11.5px;
+            color: var(--prism-text-3);
+            letter-spacing: 0.04em;
+        }
+        .prism-data-val {
+            font-weight: 600;
+            color: var(--prism-text);
+            text-align: end;
+        }
+        .prism-data-val-gold  { color: var(--prism-gold); }
+        .prism-data-val-emerald { color: var(--prism-emerald); }
+        .prism-data-val-rose  { color: var(--prism-rose); }
+        .prism-data-val-cyan  { color: var(--prism-cyan); }
+
+        /* Section divider — thin neon line with a centered dot.
+           Use sparingly to break a long page into logical chunks. */
+        .prism-section-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 2px 12px 2px;
+        }
+        .prism-section-divider::before,
+        .prism-section-divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(129,140,248,0.28), transparent);
+        }
+        .prism-section-divider-dot {
+            width: 6px; height: 6px; border-radius: 999px;
+            background: var(--prism-neon);
+            box-shadow: 0 0 10px rgba(129,140,248,0.6);
+        }
+
+        /* Toolbar — header strip above tables / lists. Holds an
+           eyebrow + title on the start, search + filters on the
+           end. Sticks to the top of the page on scroll on
+           ≥ md viewports for fast scanning of long lists. */
+        .prism-toolbar {
+            display: flex;
+            align-items: stretch;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 10px 12px;
+            border-radius: var(--prism-radius);
+            background:
+                linear-gradient(180deg, rgba(20,24,38,0.78), rgba(8,10,20,0.86));
+            border: 1px solid var(--prism-border);
+            backdrop-filter: blur(20px) saturate(150%);
+            -webkit-backdrop-filter: blur(20px) saturate(150%);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.05),
+                0 18px 40px -22px rgba(0,0,0,0.65);
+        }
+        .prism-toolbar-end {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        @media (min-width: 768px) {
+            .prism-toolbar-sticky {
+                position: sticky;
+                top: 78px;
+                z-index: 30;
+            }
+        }
+
+        /* Segmented control — pill of mutually-exclusive options
+           with a sliding fill. Use for status filters and any
+           low-cardinality enum. Drives state via a hidden input;
+           radios keep keyboard / a11y semantics. */
+        .prism-segment {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            background: rgba(8,10,20,0.6);
+            border: 1px solid var(--prism-border);
+            border-radius: 999px;
+            padding: 3px;
+            gap: 0;
+            font-size: 11.5px;
+            min-height: 36px;
+        }
+        .prism-segment > input[type="radio"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .prism-segment > label {
+            position: relative;
+            z-index: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            color: var(--prism-text-3);
+            cursor: pointer;
+            transition: color .25s var(--prism-ease);
+            min-width: 64px;
+            text-align: center;
+            line-height: 1;
+            white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .prism-segment > label:hover { color: var(--prism-text-2); }
+        .prism-segment > input[type="radio"]:checked + label {
+            color: var(--prism-text);
+            background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(192,132,252,0.18));
+            border: 1px solid rgba(129,140,248,0.45);
+            box-shadow: 0 0 18px rgba(129,140,248,0.22);
+        }
+
+        /* Quick-action card — large, generous, used for the
+           dashboard's "go here next" choices. Pure CSS hover
+           replaces inline onmouseover scripts. */
+        .prism-quick-action {
+            position: relative;
+            display: block;
+            padding: 22px 22px 20px 22px;
+            border-radius: var(--prism-radius);
+            background: linear-gradient(180deg, rgba(20,24,38,0.62), rgba(8,10,20,0.72));
+            border: 1px solid var(--prism-border);
+            backdrop-filter: blur(18px) saturate(140%);
+            -webkit-backdrop-filter: blur(18px) saturate(140%);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.05),
+                0 22px 44px -22px rgba(0,0,0,0.65);
+            transition:
+                transform .25s var(--prism-ease),
+                border-color .25s var(--prism-ease),
+                box-shadow .25s var(--prism-ease);
+            text-decoration: none;
+            overflow: hidden;
+            isolation: isolate;
+        }
+        .prism-quick-action::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(120% 80% at 100% 0%, rgba(129,140,248,0.16), transparent 60%);
+            opacity: 0;
+            transition: opacity .3s var(--prism-ease);
+            pointer-events: none;
+            z-index: -1;
+        }
+        .prism-quick-action:hover {
+            transform: translateY(-4px);
+            border-color: rgba(129,140,248,0.55);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.06),
+                0 30px 60px -22px rgba(129,140,248,0.45),
+                0 0 28px rgba(34,211,238,0.18);
+        }
+        .prism-quick-action:hover::before { opacity: 1; }
+        .prism-quick-action-arrow {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--prism-border);
+            color: var(--prism-text-2);
+            transition: transform .25s var(--prism-ease), background .25s var(--prism-ease), color .25s var(--prism-ease);
+        }
+        .prism-quick-action:hover .prism-quick-action-arrow {
+            transform: translateX(-4px);
+            background: rgba(129,140,248,0.18);
+            border-color: rgba(129,140,248,0.45);
+            color: var(--prism-text);
+        }
+        [dir="rtl"] .prism-quick-action:hover .prism-quick-action-arrow {
+            transform: translateX(4px);
+        }
+
+        /* Refined data table — calmer than the previous one.
+           Drops zebra-stripes for a single border between rows;
+           uses CSS hover instead of inline JS; sticky thead. */
+        .prism-table-clean {
+            width: 100%;
+            font-size: 12.5px;
+            color: var(--prism-text-2);
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .prism-table-clean thead {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: rgba(13,16,28,0.92);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .prism-table-clean thead th {
+            font-size: 10.5px;
+            font-weight: 600;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--prism-text-3);
+            padding: 12px 14px;
+            text-align: start;
+            border-bottom: 1px solid var(--prism-border-strong);
+        }
+        .prism-table-clean tbody td {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--prism-border);
+            transition: background .15s ease;
+            vertical-align: middle;
+        }
+        .prism-table-clean tbody tr:last-child td { border-bottom: none; }
+        .prism-table-clean tbody tr:hover td {
+            background: rgba(129,140,248,0.06);
+        }
+
+        /* Quick-stats strip — minimal stat ribbon, used above
+           lists / above tables. Each item is just an eyebrow + a
+           value; no card chrome, just a thin divider between
+           items. Zero visual weight, maximum information density. */
+        .prism-stat-strip {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            padding: 14px 18px;
+            border-radius: var(--prism-radius);
+            background: linear-gradient(180deg, rgba(20,24,38,0.45), rgba(8,10,20,0.55));
+            border: 1px solid var(--prism-border);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .prism-stat-strip::-webkit-scrollbar { display: none; }
+        .prism-stat-strip > .prism-stat-strip-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 0 22px;
+            border-inline-end: 1px solid var(--prism-border);
+            min-width: max-content;
+            white-space: nowrap;
+        }
+        .prism-stat-strip > .prism-stat-strip-item:first-child { padding-inline-start: 0; }
+        .prism-stat-strip > .prism-stat-strip-item:last-child {
+            padding-inline-end: 0;
+            border-inline-end: none;
+        }
+        .prism-stat-strip-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--prism-text-3);
+        }
+        .prism-stat-strip-val {
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--prism-text);
+            letter-spacing: -0.005em;
+        }
+        .prism-stat-strip-val-gold    { color: var(--prism-gold); }
+        .prism-stat-strip-val-emerald { color: var(--prism-emerald); }
+        .prism-stat-strip-val-cyan    { color: var(--prism-cyan); }
+        .prism-stat-strip-val-rose    { color: var(--prism-rose); }
+
+        /* List-item inside a card — used for tickets in admin booking
+           detail, payments, etc. CSS-only hover (replaces the inline
+           onmouseover / onmouseout that used to live in show.blade.php). */
+        .pt-ticket-row {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--prism-border);
+            transition: background .2s var(--prism-ease), border-color .2s var(--prism-ease), transform .2s var(--prism-ease);
+        }
+        .pt-ticket-row:hover {
+            background: rgba(129,140,248,0.06);
+            border-color: rgba(129,140,248,0.3);
+            transform: translateX(2px);
+        }
+        [dir="rtl"] .pt-ticket-row:hover {
+            transform: translateX(-2px);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .prism-stat,
+            .prism-quick-action,
+            .prism-quick-action-arrow,
+            .prism-card-hover,
+            .pt-ticket-row {
+                transition: none !important;
+            }
+            .prism-stat:hover,
+            .prism-quick-action:hover,
+            .pt-ticket-row:hover {
+                transform: none !important;
+            }
+        }
     </style>
 </head>
 <body class="prism-stage min-h-screen">

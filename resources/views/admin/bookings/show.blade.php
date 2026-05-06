@@ -34,18 +34,15 @@
                 </span>
             </div>
 
-            <h2 class="text-sm font-semibold flex items-center gap-2 mt-1"
-                style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
-                🎟️ التذاكر
-            </h2>
+            <div class="flex items-center justify-between gap-2 mt-1">
+                <span class="prism-section-title">🎟️ التذاكر</span>
+                <span class="prism-eyebrow">{{ $booking->tickets->count() }} TICKETS</span>
+            </div>
 
-            <div class="space-y-3 max-h-[500px] overflow-auto pr-1">
+            <div class="space-y-3 max-h-[500px] overflow-auto pr-1 mt-2">
 
                 @foreach($booking->tickets as $ticket)
-                    <div class="rounded-xl p-3 transition"
-                         style="background: rgba(255,255,255,0.04); border: 1px solid var(--prism-border);"
-                         onmouseover="this.style.background='rgba(129,140,248,0.06)'; this.style.borderColor='rgba(129,140,248,0.3)';"
-                         onmouseout="this.style.background='rgba(255,255,255,0.04)'; this.style.borderColor='';">
+                    <div class="pt-ticket-row rounded-xl p-3">
 
                         <div class="flex justify-between items-center gap-2">
                             <div>
@@ -94,29 +91,27 @@
         {{-- 📊 الحجز --}}
         <div class="prism-glass p-5 prism-fade-up">
 
-            <h2 class="text-sm font-semibold flex items-center gap-2 mb-3"
-                style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
-                📊 الحجز
-            </h2>
+            <div class="flex items-center justify-between gap-2 mb-4">
+                <span class="prism-section-title">📊 الحجز</span>
+                <span class="prism-eyebrow">SUMMARY</span>
+            </div>
 
-            <div class="space-y-3 text-sm">
+            <div class="text-sm">
 
-                <div class="flex justify-between items-center py-2"
-                     style="border-bottom: 1px solid var(--prism-border);">
-                    <span class="text-[color:var(--prism-text-3)] text-xs">عدد التذاكر</span>
-                    <span class="text-[color:var(--prism-text)] font-bold">{{ $booking->tickets_count }}</span>
+                <div class="prism-data-row">
+                    <span class="prism-data-key">عدد التذاكر</span>
+                    <span class="prism-data-val">{{ $booking->tickets_count }}</span>
                 </div>
 
-                <div class="flex justify-between items-center py-2"
-                     style="border-bottom: 1px solid var(--prism-border);">
-                    <span class="text-[color:var(--prism-text-3)] text-xs">السعر</span>
-                    <span class="font-bold text-base" style="color: var(--prism-gold);">
+                <div class="prism-data-row">
+                    <span class="prism-data-key">السعر</span>
+                    <span class="prism-data-val prism-data-val-gold text-base">
                         {{ $booking->total_price }} <span class="text-xs opacity-80">جنيه</span>
                     </span>
                 </div>
 
-                <div class="flex justify-between items-center py-2">
-                    <span class="text-[color:var(--prism-text-3)] text-xs">الحالة</span>
+                <div class="prism-data-row">
+                    <span class="prism-data-key">الحالة</span>
 
                     @if($booking->status === 'approved')
                         <span class="prism-pill prism-pill-emerald">
@@ -136,6 +131,25 @@
                     @endif
                 </div>
 
+                @if($booking->reference_code)
+                    <div class="prism-data-row">
+                        <span class="prism-data-key">كود الحجز</span>
+                        <span class="prism-data-val font-mono text-xs" style="color: var(--prism-text-2);">{{ $booking->reference_code }}</span>
+                    </div>
+                @endif
+
+                <div class="prism-data-row">
+                    <span class="prism-data-key">الاسم</span>
+                    <span class="prism-data-val">{{ $booking->full_name }}</span>
+                </div>
+
+                @if($booking->phone)
+                    <div class="prism-data-row">
+                        <span class="prism-data-key">الموبايل</span>
+                        <span class="prism-data-val font-mono text-xs" dir="ltr">{{ $booking->phone }}</span>
+                    </div>
+                @endif
+
             </div>
 
         </div>
@@ -145,8 +159,10 @@
     {{-- Screenshot --}}
     @if($booking->transfer_screenshot_path)
         <div class="prism-glass p-3 prism-fade-up">
-            <h3 class="text-xs uppercase mb-2 px-2 pt-1"
-                style="color: var(--prism-text-3); letter-spacing:.18em;">إيصال التحويل</h3>
+            <div class="flex items-center justify-between gap-2 mb-3 px-2 pt-1">
+                <span class="prism-section-title">إيصال التحويل</span>
+                <span class="prism-eyebrow">TRANSFER · PROOF</span>
+            </div>
             <img src="{{ $booking->transfer_screenshot_path }}"
                  class="w-full rounded-xl"
                  style="border: 1px solid var(--prism-border);">
