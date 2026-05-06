@@ -3,17 +3,17 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Show;
-use App\Models\ShowTime;
 use App\Models\Booking;
 use App\Models\Setting;
+use App\Models\Show;
+use App\Models\ShowTime;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $totalShows     = Show::count();
+        $totalShows = Show::count();
         $totalShowTimes = ShowTime::count();
 
         // إجمالي التذاكر الأساسية لكل المواعيد
@@ -35,7 +35,7 @@ class DashboardController extends Controller
             ->sum('total_price');
 
         // حالات الحجوزات
-        $pendingBookings  = Booking::where('status', 'pending')->count();
+        $pendingBookings = Booking::where('status', 'pending')->count();
         $rejectedBookings = Booking::where('status', 'rejected')->count();
 
         // إحصائيات لكل ميعاد عرض لوحده
@@ -62,18 +62,21 @@ class DashboardController extends Controller
             }
 
             // نضيف القيم دي كخصائص على الموديل عشان نستخدمها في الـ Blade
-            $time->approved_tickets  = $approved;
-            $time->pending_tickets   = $pending;
+            $time->approved_tickets = $approved;
+            $time->pending_tickets = $pending;
             $time->remaining_tickets = $remaining;
 
-            // إيرادات الميعاد ده = التذاكر المعتمدة × سعر التذكرة
-            $time->revenue = $time->approved_tickets
-                * ($time->ticket_price ?? $time->price ?? ($time->show->price ?? 0));
+            // إيرادات الميعاد ده = sum(total_price) للحجوزات المعتمدة المرتبطة
+            // بالميعاد ده فقط. نفس الـ partition بتاع $totalRevenue، فمضمون
+            // إن مجموع الإيرادات لكل المواعيد يساوي $totalRevenue بالظبط.
+            $time->revenue = (int) Booking::where('show_time_id', $time->id)
+                ->where('status', 'approved')
+                ->sum('total_price');
         }
 
         // 🔹 بيانات التحويل (محفوظة في جدول settings)
         $transferWallet = Setting::get('transfer_wallet', '');
-        $transferInsta  = Setting::get('transfer_insta', '');
+        $transferInsta = Setting::get('transfer_insta', '');
 
         return view('admin.dashboard', compact(
             'totalShows',
@@ -96,12 +99,12 @@ class DashboardController extends Controller
     {
         $data = $request->validate([
             'transfer_wallet' => ['nullable', 'string', 'max:100'],
-            'transfer_insta'  => ['nullable', 'string', 'max:100'],
+            'transfer_insta' => ['nullable', 'string', 'max:100'],
         ]);
 
         // خزن في جدول settings بواسطة موديل Setting (شكل Setting.set متوقع)
         Setting::set('transfer_wallet', $data['transfer_wallet'] ?? '');
-        Setting::set('transfer_insta',  $data['transfer_insta']  ?? '');
+        Setting::set('transfer_insta', $data['transfer_insta'] ?? '');
 
         return back()->with('status', 'تم تحديث بيانات التحويل بنجاح ✅');
     }
