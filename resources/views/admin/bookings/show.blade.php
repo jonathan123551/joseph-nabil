@@ -197,12 +197,18 @@
 
         // human-readable "time to show" — falls back to the formatted
         // showtime if the diff isn't sensible (e.g. show already past).
+        // ShowTime->date is cast as Carbon `date`, so stringifying it yields
+        // "Y-m-d 00:00:00"; we extract the date portion explicitly before
+        // concatenating the time so Carbon::parse doesn't choke on duplicated
+        // hh:mm:ss segments.
         $whenLabel = '';
         try {
             if ($booking->showTime && $booking->showTime->date) {
-                $when = \Carbon\Carbon::parse(
-                    $booking->showTime->date . ' ' . ($booking->showTime->time ?? '00:00:00')
-                );
+                $rawDate = $booking->showTime->date instanceof \Carbon\CarbonInterface
+                    ? $booking->showTime->date->toDateString()
+                    : (string) $booking->showTime->date;
+                $rawTime = (string) ($booking->showTime->time ?? '00:00:00');
+                $when = \Carbon\Carbon::parse($rawDate . ' ' . $rawTime);
                 $whenLabel = $when->isFuture()
                     ? $when->locale('ar')->diffForHumans(['parts' => 1])
                     : $when->locale('ar')->isoFormat('D MMM');
