@@ -439,6 +439,79 @@
                 inset 0 1px 0 rgba(255,255,255,0.06);
         }
 
+        /* ------------- Universal button press feedback -------------
+           Every primary surface gets the same tactile micro-scale on
+           tap that the floating action-bar buttons already use, plus a
+           short transition so the press feels snappy. Hover transitions
+           on each variant remain untouched. */
+        .prism-btn:active,
+        .prism-btn-emerald:active,
+        .prism-btn-rose:active,
+        .prism-btn-cyan:active,
+        .prism-btn-gold:active,
+        .prism-quick-action:active {
+            transform: scale(0.97);
+            transition-duration: 90ms;
+        }
+
+        /* ------------- Hover shimmer on premium CTAs -------------
+           Single-pass diagonal shimmer that runs across .prism-btn-gold
+           and .prism-btn-emerald on hover. Uses the existing prismShimmer
+           keyframe + a ::after pseudo so we don't disturb existing
+           background gradients on the buttons themselves. */
+        .prism-btn-gold,
+        .prism-btn-emerald {
+            position: relative;
+            overflow: hidden;
+        }
+        .prism-btn-gold::after,
+        .prism-btn-emerald::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                100deg,
+                transparent 30%,
+                rgba(255,255,255,0.22) 50%,
+                transparent 70%
+            );
+            background-size: 200% 100%;
+            background-position: 200% 0;
+            pointer-events: none;
+            opacity: 0;
+            border-radius: inherit;
+        }
+        .prism-btn-gold:hover::after,
+        .prism-btn-emerald:hover::after {
+            opacity: 1;
+            animation: prismShimmer 1.4s ease-in-out 1;
+        }
+
+        /* ------------- Floating action-bar — gold chip breathing -------------
+           Subtle 4.2 s opacity / shadow loop on the gold total chip so the
+           floating action bar reads as 'alive' while the user is deciding.
+           Only runs while the bar is on-screen (.is-on). */
+        @keyframes prismChipBreath {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(251,191,36,0.0),
+                            inset 0 0 0 0 rgba(251,191,36,0.0);
+            }
+            50% {
+                box-shadow: 0 0 14px 0 rgba(251,191,36,0.28),
+                            inset 0 0 8px 0 rgba(251,191,36,0.14);
+            }
+        }
+        .pt-action-bar.is-on .pt-bar-chip-gold {
+            animation: prismChipBreath 4.2s ease-in-out infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .pt-action-bar.is-on .pt-bar-chip-gold,
+            .prism-btn-gold:hover::after,
+            .prism-btn-emerald:hover::after {
+                animation: none;
+            }
+        }
+
         /* ------------- Floating top bar ------------- */
         .pt-topbar-wrap {
             position: fixed;
@@ -818,7 +891,7 @@
                 0 36px 70px -20px rgba(0,0,0,0.85),
                 0 0 40px rgba(129,140,248,0.22);
             transform: translateY(16px) scale(.96);
-            transition: transform .35s var(--prism-ease);
+            transition: transform .42s cubic-bezier(.2, 1.2, .2, 1);
         }
         .pt-modal-root.is-open .pt-modal-card { transform: translateY(0) scale(1); }
         .pt-modal-icon {
@@ -899,12 +972,16 @@
             transform: translate(-50%, 0);
         }
 
-        /* ------------- Page transition ------------- */
+        /* ------------- Page transition -------------
+           Springy entrance on every route change so admin / booking
+           flows feel like one cohesive product. The cubic-bezier
+           overshoots slightly (1.2 on Y) so the page snaps in instead
+           of just easing in. */
         @keyframes ptPageIn {
-            from { opacity: 0; transform: translateY(8px); }
+            from { opacity: 0; transform: translateY(10px); }
             to   { opacity: 1; transform: translateY(0); }
         }
-        main.pt-page { animation: ptPageIn .55s var(--prism-ease) both; }
+        main.pt-page { animation: ptPageIn .48s cubic-bezier(.2, 1.2, .2, 1) both; }
 
         /* ------------- Footer ------------- */
         .prism-footer {
