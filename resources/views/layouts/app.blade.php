@@ -880,6 +880,10 @@
                 rgba(2,6,23,0.36) 0%,
                 rgba(2,6,23,0.0) 65%);
         }
+        /* Class-selector specificity matches `[hidden]` (both 0,1,0), so the
+           user-agent rule for [hidden] would otherwise tie. Explicit rule
+           guarantees the toast stays hidden until JS opens it. */
+        .pt-toast-overlay[hidden] { display: none !important; }
         .pt-toast-overlay.is-on {
             opacity: 1;
             pointer-events: auto;

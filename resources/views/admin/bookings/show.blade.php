@@ -3,24 +3,15 @@
 @section('title', 'تفاصيل الحجز #' . $booking->id)
 
 @section('content')
-@php
-    // Resend-ticket flash messages get a premium center-screen toast
-    // instead of the static inline banner. The controller emits these
-    // exact strings (see Admin\BookingController::resendTicket); we
-    // sniff them client-side so backend logic stays untouched.
-    $statusMsg     = session('status');
-    $isResendOk    = $statusMsg && str_contains($statusMsg, 'إعادة إرسال');
-    $isResendFail  = $statusMsg && str_contains($statusMsg, 'لم يتم إنشاؤها');
-    $isResendToast = $isResendOk || $isResendFail;
-    $cleanMsg      = $statusMsg ? trim(str_replace(['✅', '❌'], '', $statusMsg)) : '';
-@endphp
 <section class="space-y-5 max-w-4xl mx-auto px-3 sm:px-0">
 
-    {{-- Status flash (non-resend statuses keep the inline banner) --}}
-    @if($statusMsg && ! $isResendToast)
+    {{-- Status flash (kept as a non-JS fallback; on JS-enabled clients the
+         resend action is intercepted below and shows the premium toast
+         instead of going through a redirect/flash). --}}
+    @if(session('status'))
         <div class="rounded-2xl px-4 py-3 text-sm text-center prism-fade-up"
              style="background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.45); color: #6ee7b7;">
-            {{ $statusMsg }}
+            {{ session('status') }}
         </div>
     @endif
 
@@ -278,61 +269,122 @@
         </div>
     </div>
 @endif
-{{-- Premium center-screen toast for resend-ticket feedback. Lives outside
-     the section + pending-review @if so it renders on approved bookings
-     (which is where the resend button lives). --}}
-@if($isResendToast)
-    <div class="pt-toast-overlay" data-pt-toast role="status" aria-live="polite">
-        <div class="pt-toast-card {{ $isResendFail ? 'is-error' : '' }}">
-            <div class="pt-toast-icon" aria-hidden="true">
-                @if($isResendFail)
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M6 6 L18 18 M18 6 L6 18"/>
-                    </svg>
-                @else
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M5 12.5 L10 17.5 L19 7"/>
-                    </svg>
-                @endif
-            </div>
-            <div class="pt-toast-title">
-                {{ $isResendFail ? 'تعذّر إعادة الإرسال' : 'تمت إعادة إرسال التذكرة بنجاح' }}
-            </div>
-            @if($cleanMsg)
-                <div class="pt-toast-msg">{{ $cleanMsg }}</div>
-            @endif
+{{-- Premium center-screen toast for resend-ticket feedback.
+
+     Rendered once per page, hidden by default. The script below intercepts
+     the resend-ticket form submission, posts via fetch (no page reload),
+     and shows this toast on response — success or failure.
+
+     This avoids depending on session-flash string matching (which proved
+     brittle in production) and gives the user immediate, reliable visual
+     feedback. The form's normal submit still works as a non-JS fallback. --}}
+<div class="pt-toast-overlay" data-pt-toast role="status" aria-live="polite" hidden>
+    <div class="pt-toast-card" data-pt-toast-card>
+        <div class="pt-toast-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path data-pt-toast-path d="M5 12.5 L10 17.5 L19 7"/>
+            </svg>
         </div>
+        <div class="pt-toast-title" data-pt-toast-title>
+            تمت إعادة إرسال التذكرة بنجاح
+        </div>
+        <div class="pt-toast-msg" data-pt-toast-msg></div>
     </div>
+</div>
 
-    <script>
-        (function () {
-            const toast = document.querySelector('[data-pt-toast]');
-            if (!toast) return;
+<script>
+    (function () {
+        const toast = document.querySelector('[data-pt-toast]');
+        if (!toast) return;
+        const card  = toast.querySelector('[data-pt-toast-card]');
+        const path  = toast.querySelector('[data-pt-toast-path]');
+        const title = toast.querySelector('[data-pt-toast-title]');
+        const msg   = toast.querySelector('[data-pt-toast-msg]');
 
-            // Double-rAF so the entrance transition animates from its
+        const PATH_OK   = 'M5 12.5 L10 17.5 L19 7';
+        const PATH_FAIL = 'M6 6 L18 18 M18 6 L6 18';
+        const TITLE_OK   = 'تمت إعادة إرسال التذكرة بنجاح';
+        const TITLE_FAIL = 'تعذّر إعادة الإرسال';
+
+        let timer    = null;
+        let removeT  = null;
+
+        function show(opts) {
+            const isError = !!(opts && opts.error);
+            card.classList.toggle('is-error', isError);
+            path.setAttribute('d', isError ? PATH_FAIL : PATH_OK);
+            title.textContent = (opts && opts.title) || (isError ? TITLE_FAIL : TITLE_OK);
+            msg.textContent = (opts && opts.body) || '';
+            msg.style.display = msg.textContent ? '' : 'none';
+
+            if (removeT) { clearTimeout(removeT); removeT = null; }
+            toast.hidden = false;
+            // Restart the icon stroke-draw animation each time.
+            const svgPath = card.querySelector('svg path');
+            if (svgPath) {
+                svgPath.style.animation = 'none';
+                // force reflow then re-trigger
+                void svgPath.offsetWidth;
+                svgPath.style.animation = '';
+            }
+            // Double-rAF so the entrance transition animates from the
             // initial state instead of jumping to the open state.
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => toast.classList.add('is-on'));
             });
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(hide, 2800);
+        }
 
-            let dismissed = false;
-            function dismiss() {
-                if (dismissed) return;
-                dismissed = true;
-                toast.classList.remove('is-on');
-                setTimeout(() => {
-                    toast.parentNode && toast.parentNode.removeChild(toast);
-                }, 320);
-            }
+        function hide() {
+            if (timer) { clearTimeout(timer); timer = null; }
+            toast.classList.remove('is-on');
+            removeT = setTimeout(() => {
+                toast.hidden = true;
+                removeT = null;
+            }, 350);
+        }
 
-            // Auto-dismiss after a short read window.
-            setTimeout(dismiss, 2800);
+        toast.addEventListener('click', hide);
+        toast.addEventListener('touchend', hide, { passive: true });
 
-            // Tap anywhere on the overlay (including the card) to dismiss
-            // instantly.
-            toast.addEventListener('click', dismiss);
-            toast.addEventListener('touchend', dismiss, { passive: true });
-        })();
-    </script>
-@endif
+        // Intercept any resend-ticket form on this page.
+        const forms = document.querySelectorAll('form[action*="/admin/resend-ticket/"]');
+        forms.forEach((form) => {
+            form.addEventListener('submit', async (ev) => {
+                ev.preventDefault();
+                const btn = form.querySelector('button');
+                if (btn) btn.disabled = true;
+                try {
+                    const fd = new FormData(form);
+                    const res = await fetch(form.action, {
+                        method: 'POST',
+                        body: fd,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
+                        redirect: 'follow',
+                        credentials: 'same-origin',
+                    });
+                    if (!res.ok) {
+                        show({ error: true });
+                        return;
+                    }
+                    // Detect the "QR not generated yet" failure by sniffing
+                    // the redirected page's HTML for the controller's flash
+                    // string. If present, show the error variant.
+                    let html = '';
+                    try { html = await res.text(); } catch (_) { /* tolerate */ }
+                    if (html && html.indexOf('لم يتم إنشاؤها') !== -1) {
+                        show({ error: true });
+                    } else {
+                        show({});
+                    }
+                } catch (err) {
+                    show({ error: true });
+                } finally {
+                    if (btn) setTimeout(() => { btn.disabled = false; }, 600);
+                }
+            });
+        });
+    })();
+</script>
 @endsection
