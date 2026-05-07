@@ -192,16 +192,22 @@
             [data-anba-root] .canvas-fab .fab-btn { transition: none; }
         }
 
-        /* ===== Pinch & pan onboarding hint (mobile only, once per device) =====
-           Lightweight glass card centered over the seat map. Auto-dismisses
-           after ~3 s, on first canvas touch, or on tap. Hidden on desktop
-           via media query. Animated icon respects prefers-reduced-motion. */
+        /* ===== Pinch & pan onboarding hint (mobile only) =====
+           Lightweight glass card centered over the seat map. Stays visible
+           until the user actually interacts with the seat map (tap, pan,
+           or pinch on the canvas), then fades out smoothly. Hidden on
+           desktop via media query. Always `pointer-events: none` so the
+           underlying gesture passes straight through. Animated icon
+           respects prefers-reduced-motion. */
         [data-anba-root] .gesture-hint {
             position: absolute;
             inset: 0;
             display: flex;
             align-items: center;
             justify-content: center;
+            /* Always passthrough — the hint must never block the underlying
+               canvas gestures. Touches on the seat map go straight to the
+               canvas, and the hint dismisses itself based on those touches. */
             pointer-events: none;
             opacity: 0;
             transition: opacity .35s var(--p-ease);
@@ -209,11 +215,9 @@
         }
         [data-anba-root] .gesture-hint.is-visible {
             opacity: 1;
-            pointer-events: auto;
         }
         [data-anba-root] .gesture-hint.is-leaving {
             opacity: 0;
-            pointer-events: none;
         }
         [data-anba-root] .gesture-hint .hint-card {
             background: rgba(8,10,20,0.78);
@@ -1899,8 +1903,10 @@
         boot();
 
         // ===== Pinch & pan onboarding hint =====
-        // Mobile-only, once per device. Auto-dismisses after ~3 s, on any
-        // canvas touch, or on tap. Uses localStorage so it never repeats.
+        // Mobile-only. Stays visible until the user actually interacts with
+        // the seat map (any touch on the scroller — tap, pan, or pinch).
+        // The hint itself is `pointer-events: none`, so the underlying
+        // gesture passes through to the canvas unaffected.
         (function showGestureHint() {
             const hint = root.querySelector('[data-anba-gesture-hint]');
             if (!hint) return;
@@ -1912,20 +1918,12 @@
                 return;
             }
 
-            let seen = false;
-            try { seen = localStorage.getItem('anba_pinchpan_hint_seen') === '1'; } catch (e) {}
-            if (seen) {
-                hint.parentNode && hint.parentNode.removeChild(hint);
-                return;
-            }
-
             let dismissed = false;
             function dismiss() {
                 if (dismissed) return;
                 dismissed = true;
                 hint.classList.remove('is-visible');
                 hint.classList.add('is-leaving');
-                try { localStorage.setItem('anba_pinchpan_hint_seen', '1'); } catch (e) {}
                 setTimeout(() => {
                     hint.parentNode && hint.parentNode.removeChild(hint);
                 }, 450);
@@ -1936,21 +1934,11 @@
                 if (!dismissed) hint.classList.add('is-visible');
             }, 320);
 
-            // Auto-dismiss after the visible window has elapsed.
-            setTimeout(dismiss, 3300);
-
-            // Tap anywhere on the hint card to dismiss instantly.
-            hint.addEventListener('click', dismiss);
-            hint.addEventListener('touchend', dismiss, { passive: true });
-
-            // First canvas touch dismisses the hint so it never gets in the
-            // way once the user starts interacting.
-            if (canvas) {
-                const onCanvasTouch = () => {
-                    dismiss();
-                    canvas.removeEventListener('touchstart', onCanvasTouch);
-                };
-                canvas.addEventListener('touchstart', onCanvasTouch, { passive: true });
+            // Any real touch on the seat-map area (canvas, FAB, scroller)
+            // dismisses the hint. `once: true` auto-removes the listener
+            // after the first fire so there's zero ongoing overhead.
+            if (scroller) {
+                scroller.addEventListener('touchstart', dismiss, { passive: true, once: true });
             }
         })();
 
