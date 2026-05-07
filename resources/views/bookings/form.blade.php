@@ -104,17 +104,18 @@
         }
         [data-anba-form] .attendee-card {
             display: grid;
-            grid-template-columns: 60px 1fr;
-            gap: 10px;
-            padding: 12px;
-            border-radius: 14px;
+            grid-template-columns: 56px 1fr;
+            gap: 12px;
+            padding: 14px;
+            border-radius: 16px;
             background: rgba(255,255,255,0.035);
             border: 1px solid var(--prism-border);
-            transition: border-color .2s var(--prism-ease), background .2s var(--prism-ease);
+            transition: border-color .2s var(--prism-ease), background .2s var(--prism-ease), box-shadow .2s var(--prism-ease);
         }
         [data-anba-form] .attendee-card:focus-within {
-            border-color: rgba(129,140,248,0.45);
+            border-color: rgba(129,140,248,0.55);
             background: rgba(255,255,255,0.05);
+            box-shadow: 0 0 0 3px rgba(129,140,248,0.10);
         }
         [data-anba-form] .attendee-card .seat-pill {
             display: inline-flex; align-items: center; justify-content: center;
@@ -124,23 +125,65 @@
             font-weight: 800; font-size: 13px;
             border-radius: 12px;
             box-shadow: 0 0 10px rgba(16,185,129,0.30), inset 0 1px 0 rgba(255,255,255,0.06);
+            min-height: 56px;
+        }
+        [data-anba-form] .field-stack { display: flex; flex-direction: column; gap: 10px; }
+        [data-anba-form] .field-label {
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 11px; font-weight: 600;
+            color: var(--prism-text-3);
+            letter-spacing: .04em;
+            margin-bottom: 4px;
+        }
+        [data-anba-form] .field-label .req {
+            color: rgba(251,113,133,0.85);
+            font-size: 10px;
+            font-weight: 700;
         }
         [data-anba-form] .field-input {
             width: 100%;
             background: rgba(8, 10, 20, 0.7);
             border: 1px solid var(--prism-border);
             color: var(--prism-text);
-            border-radius: 10px;
-            padding: 10px 12px;
-            font-size: 13px;
+            border-radius: 12px;
+            padding: 12px 14px;
+            /* 16px+ keeps iOS Safari from auto-zooming on focus */
+            font-size: 16px;
+            line-height: 1.3;
             transition: border-color .2s var(--prism-ease), background .2s var(--prism-ease), box-shadow .2s var(--prism-ease);
-            min-height: 44px;
+            min-height: 48px;
         }
+        [data-anba-form] .field-input::placeholder { color: var(--prism-text-4); }
         [data-anba-form] .field-input:focus {
             border-color: rgba(129,140,248,0.6);
             outline: none;
             background: rgba(8,10,20,0.9);
-            box-shadow: 0 0 0 3px rgba(129,140,248,0.12);
+            box-shadow: 0 0 0 3px rgba(129,140,248,0.14);
+        }
+        [data-anba-form] .field-input.is-invalid {
+            border-color: rgba(251,113,133,0.85) !important;
+            background: rgba(251,113,133,0.06);
+            box-shadow: 0 0 0 3px rgba(251,113,133,0.18);
+            animation: anbaShake .35s var(--prism-ease) both;
+        }
+        [data-anba-form] .file-zone.is-invalid {
+            border-color: rgba(251,113,133,0.85) !important;
+            background: rgba(251,113,133,0.06);
+            box-shadow: 0 0 0 3px rgba(251,113,133,0.18);
+            animation: anbaShake .35s var(--prism-ease) both;
+            border-radius: 12px;
+            padding: 6px;
+        }
+        @keyframes anbaShake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-6px); }
+            40% { transform: translateX(6px); }
+            60% { transform: translateX(-4px); }
+            80% { transform: translateX(4px); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            [data-anba-form] .field-input.is-invalid,
+            [data-anba-form] .file-zone.is-invalid { animation: none; }
         }
         [data-anba-form] .total-bar {
             display: flex; align-items: center; justify-content: space-between;
@@ -161,23 +204,80 @@
             color: var(--prism-gold);
         }
 
-        [data-anba-form] .mobile-cta {
+        /* ===== Floating checkout dock (mobile + desktop) ===== */
+        .anba-dock {
             position: fixed;
-            bottom: 0; left: 0; right: 0;
+            left: 0; right: 0;
+            bottom: 0;
             z-index: 60;
-            display: none;
-            padding: 10px 14px;
+            padding: 10px 12px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
+            pointer-events: none;
+        }
+        .anba-dock-inner {
+            pointer-events: auto;
+            display: flex; align-items: center; gap: 12px;
+            margin: 0 auto;
+            max-width: 760px;
+            padding: 12px 14px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(8,10,20,0.78), rgba(5,6,13,0.94));
             backdrop-filter: blur(20px) saturate(160%);
             -webkit-backdrop-filter: blur(20px) saturate(160%);
-            background: linear-gradient(180deg, rgba(5,6,13,0.78), rgba(5,6,13,0.95));
-            border-top: 1px solid rgba(129,140,248,0.32);
-            align-items: center;
-            gap: 10px;
-            padding-bottom: max(10px, env(safe-area-inset-bottom));
+            border: 1px solid rgba(129,140,248,0.30);
+            box-shadow:
+                0 18px 50px -18px rgba(2,6,23,0.85),
+                0 0 0 1px rgba(255,255,255,0.04) inset,
+                0 0 32px -8px rgba(129,140,248,0.20);
         }
-        @media (max-width: 1023px) {
-            [data-anba-form] .mobile-cta { display: flex; }
-            [data-anba-form] .form-spacer-mobile { height: 84px; }
+        :root[data-pt-theme="light"] .anba-dock-inner {
+            background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(247,245,238,0.96));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                0 18px 50px -18px rgba(15,23,42,0.30),
+                0 0 0 1px rgba(15,23,42,0.04) inset;
+        }
+        .anba-dock-summary { flex: 1 1 auto; min-width: 0; line-height: 1.25; }
+        .anba-dock-eyebrow {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .18em;
+            color: var(--prism-text-3);
+        }
+        .anba-dock-amount {
+            font-size: 16px; font-weight: 800;
+            color: var(--prism-text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .anba-dock-amount .gold { color: var(--prism-gold); }
+        .anba-dock-cta {
+            flex-shrink: 0;
+            min-height: 48px;
+            padding: 12px 22px;
+            font-size: 14px;
+            font-weight: 800;
+            border-radius: 14px;
+        }
+        .anba-dock-hint {
+            display: none;
+            margin-top: 6px;
+            font-size: 11px;
+            color: rgba(251,113,133,0.95);
+            font-weight: 600;
+        }
+        .anba-dock.has-error .anba-dock-hint { display: block; }
+        @media (min-width: 640px) {
+            .anba-dock { padding: 14px 16px; padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+            .anba-dock-inner { padding: 14px 18px; }
+            .anba-dock-amount { font-size: 18px; }
+            .anba-dock-cta { padding: 14px 28px; font-size: 15px; }
+        }
+        /* spacer keeps the last form row above the dock at all viewports */
+        [data-anba-form] .form-spacer-dock { height: 96px; }
+        @media (min-width: 640px) {
+            [data-anba-form] .form-spacer-dock { height: 104px; }
         }
 
         /* Step indicator (re-used) */
@@ -311,7 +411,7 @@
         @endif
 
         {{-- the actual form --}}
-        <div class="prism-glass p-5 sm:p-6 space-y-4">
+        <div class="prism-glass p-5 sm:p-6 space-y-5">
 
             @if ($errors->any())
                 <div class="bg-rose-500/10 border border-rose-500/40 text-rose-200 text-xs rounded-xl p-3">
@@ -327,57 +427,70 @@
                   method="POST"
                   enctype="multipart/form-data"
                   id="anbaFinalForm"
-                  class="space-y-4"
+                  class="space-y-5"
+                  novalidate
                   data-pt-confirm='{"tone":"warn","title":"تأكيد الحجز","body":"هتقدم طلب الحجز للمراجعة. لما يتأكد، هتوصلك التذكرة على واتساب.","okLabel":"تأكيد","cancelLabel":"إلغاء","okVariant":"emerald"}'>
                 @csrf
                 <input type="hidden" name="section" value="{{ $sectionParam }}">
 
-                {{-- attendee cards rendered into here from localStorage --}}
-                <div data-form-attendees class="space-y-2"></div>
-
                 <div class="space-y-2">
-                    <label class="text-xs font-semibold text-[color:var(--prism-text)] flex items-center gap-2">
-                        📸 إيصال التحويل
-                    </label>
-                    <input type="file"
-                           name="payment_screenshot"
-                           id="anbaScreenshotFinal"
-                           accept="image/*"
-                           required
-                           class="w-full text-[11px] text-[color:var(--prism-text-2)]
-                                  file:bg-white/[0.06] file:text-[color:var(--prism-text)]
-                                  file:border file:border-[color:var(--prism-border)]
-                                  file:rounded-full file:px-4 file:py-2 file:ml-3 file:cursor-pointer
-                                  file:hover:bg-white/[0.10] file:transition">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <h3 class="text-[13px] font-bold text-[color:var(--prism-text)] flex items-center gap-2">
+                            <span aria-hidden="true">👥</span>
+                            بيانات الحضور
+                        </h3>
+                        <span class="text-[10px] text-[color:var(--prism-text-3)]">اكتب اسم ورقم واتساب لكل مقعد</span>
+                    </div>
+
+                    {{-- attendee cards rendered into here from localStorage --}}
+                    <div data-form-attendees class="space-y-3"></div>
                 </div>
 
-                <button type="submit"
-                        id="anbaFinalSubmit"
-                        disabled
-                        class="prism-btn prism-ripple w-full">
-                    تأكيد الحجز
-                    <span aria-hidden="true">✓</span>
-                </button>
+                <div class="space-y-2">
+                    <label for="anbaScreenshotFinal" class="field-label" style="margin-bottom:0;">
+                        <span class="flex items-center gap-2 text-[12px] font-semibold text-[color:var(--prism-text)]">
+                            <span aria-hidden="true">📸</span>
+                            إيصال التحويل
+                        </span>
+                        <span class="req">مطلوب</span>
+                    </label>
+                    <div data-screenshot-zone>
+                        <input type="file"
+                               name="payment_screenshot"
+                               id="anbaScreenshotFinal"
+                               accept="image/*"
+                               class="w-full text-[12px] text-[color:var(--prism-text-2)]
+                                      file:bg-white/[0.06] file:text-[color:var(--prism-text)]
+                                      file:border file:border-[color:var(--prism-border)]
+                                      file:rounded-full file:px-4 file:py-2 file:ml-3 file:cursor-pointer
+                                      file:hover:bg-white/[0.10] file:transition">
+                    </div>
+                </div>
             </form>
         </div>
 
-        <div class="form-spacer-mobile"></div>
+        <div class="form-spacer-dock"></div>
     </div>
 
-    {{-- mobile sticky submit so the user always sees the CTA --}}
-    <div class="mobile-cta">
-        <div class="flex-1">
-            <div class="text-[10px] text-[color:var(--prism-text-3)]">الإجمالي</div>
-            <div class="text-sm font-bold text-[color:var(--prism-text)]">
-                <span data-form-mobile-count>0</span> مقعد ·
-                <span class="text-[color:var(--prism-gold)]"><span data-form-mobile-total>0</span> EGP</span>
+    {{-- Floating checkout dock — single source of truth for confirm CTA --}}
+    <div class="anba-dock" data-anba-dock role="region" aria-label="ملخص الحجز">
+        <div class="anba-dock-inner">
+            <div class="anba-dock-summary">
+                <div class="anba-dock-eyebrow">الإجمالي</div>
+                <div class="anba-dock-amount">
+                    <span data-form-mobile-count>0</span> مقعد ·
+                    <span class="gold"><span data-form-mobile-total>0</span> EGP</span>
+                </div>
+                <div class="anba-dock-hint" data-form-dock-hint>اكمل الحقول المطلوبة</div>
             </div>
+            <button type="submit"
+                    form="anbaFinalForm"
+                    data-form-mobile-submit
+                    class="prism-btn prism-ripple anba-dock-cta">
+                تأكيد الحجز
+                <span aria-hidden="true">✓</span>
+            </button>
         </div>
-        <button type="button"
-                data-form-mobile-submit
-                class="prism-btn prism-ripple px-5 py-2 text-xs">
-            تأكيد
-        </button>
     </div>
 </section>
 
@@ -395,11 +508,12 @@
     const totalEl     = root.querySelector('[data-form-total]');
     const attendees   = root.querySelector('[data-form-attendees]');
     const screenshot  = root.querySelector('#anbaScreenshotFinal');
-    const submitBtn   = root.querySelector('#anbaFinalSubmit');
-    const form        = root.querySelector('#anbaFinalForm');
-    const mobileCount = root.querySelector('[data-form-mobile-count]');
-    const mobileTotal = root.querySelector('[data-form-mobile-total]');
-    const mobileSubmit= root.querySelector('[data-form-mobile-submit]');
+    const screenshotZone = root.querySelector('[data-screenshot-zone]');
+    const form        = document.querySelector('#anbaFinalForm');
+    const dock        = document.querySelector('[data-anba-dock]');
+    const dockHint    = document.querySelector('[data-form-dock-hint]');
+    const mobileCount = document.querySelector('[data-form-mobile-count]');
+    const mobileTotal = document.querySelector('[data-form-mobile-total]');
 
     let isSubmitting = false;
 
@@ -465,27 +579,61 @@
             const wrap = document.createElement('div');
             wrap.className = 'attendee-card';
             wrap.dataset.seatId = s.id;
+            const nameId  = `anba-name-${s.id}`;
+            const phoneId = `anba-phone-${s.id}`;
             wrap.innerHTML = `
                 <div class="seat-pill">${escapeHtml(s.label)}</div>
-                <div class="space-y-2">
+                <div class="field-stack">
                     <input type="hidden" name="seat_ids[]" value="${s.id}">
-                    <input type="text" name="names[]"
-                           placeholder="اسم الشخص ${i + 1}"
-                           class="field-input" required
-                           value="${escapeAttr(cached[s.id]?.name || '')}">
-                    <input type="text" name="phones[]"
-                           placeholder="رقم واتساب ${i + 1}"
-                           class="field-input" required
-                           value="${escapeAttr(cached[s.id]?.phone || '')}">
+                    <div>
+                        <label for="${nameId}" class="field-label">
+                            <span>الاسم</span>
+                            <span class="req">مطلوب</span>
+                        </label>
+                        <input type="text"
+                               id="${nameId}"
+                               name="names[]"
+                               placeholder="اسم الشخص ${i + 1}"
+                               class="field-input"
+                               autocomplete="name"
+                               autocapitalize="words"
+                               spellcheck="false"
+                               value="${escapeAttr(cached[s.id]?.name || '')}">
+                    </div>
+                    <div>
+                        <label for="${phoneId}" class="field-label">
+                            <span>رقم واتساب</span>
+                            <span class="req">مطلوب</span>
+                        </label>
+                        <input type="tel"
+                               id="${phoneId}"
+                               name="phones[]"
+                               placeholder="01xxxxxxxxx"
+                               class="field-input"
+                               inputmode="tel"
+                               autocomplete="tel"
+                               dir="ltr"
+                               value="${escapeAttr(cached[s.id]?.phone || '')}">
+                    </div>
                 </div>
             `;
             attendees.appendChild(wrap);
         });
     }
 
-    // Single delegated input listener — survives re-renders since it's
-    // attached once to the parent.
-    attendees.addEventListener('input', updateSubmit);
+    // Clear invalid styling on any input/edit so the user gets immediate
+    // visual feedback that the issue was addressed.
+    attendees.addEventListener('input', (e) => {
+        const t = e.target;
+        if (t && t.classList && t.classList.contains('is-invalid')) {
+            t.classList.remove('is-invalid');
+        }
+        if (dock && dock.classList.contains('has-error')) {
+            // soft-clear hint when user is fixing things
+            const stillBad = form.querySelector('.is-invalid');
+            if (!stillBad) dock.classList.remove('has-error');
+        }
+    });
 
     function escapeHtml(v) {
         return String(v).replace(/[&<>"']/g, c => ({
@@ -505,29 +653,59 @@
         const t = totals();
         const totalStr = t.total.toLocaleString('en-US');
         totalEl.textContent       = totalStr;
-        mobileCount.textContent   = t.count;
-        mobileTotal.textContent   = totalStr;
+        if (mobileCount) mobileCount.textContent = t.count;
+        if (mobileTotal) mobileTotal.textContent = totalStr;
         if (totalInlineEl) totalInlineEl.textContent = totalStr;
     }
 
-    function allFilled() {
-        const names  = attendees.querySelectorAll('input[name="names[]"]');
-        const phones = attendees.querySelectorAll('input[name="phones[]"]');
-        for (let i = 0; i < names.length; i++) {
-            if (!names[i].value.trim() || !phones[i].value.trim()) return false;
+    // Returns the first invalid field in DOM order (or null).
+    // Order: names/phones per seat (top→bottom), then payment screenshot.
+    function firstInvalid() {
+        const fields = attendees.querySelectorAll('input[name="names[]"], input[name="phones[]"]');
+        for (let i = 0; i < fields.length; i++) {
+            if (!fields[i].value.trim()) return fields[i];
         }
-        return names.length > 0;
+        if (!screenshot.files || screenshot.files.length === 0) return screenshot;
+        return null;
     }
 
-    function updateSubmit() {
-        const ready = !isSubmitting
-                   && seats.length > 0
-                   && allFilled()
-                   && screenshot.files && screenshot.files.length > 0;
-        submitBtn.disabled = !ready;
+    function highlightInvalid(el) {
+        if (!el) return;
+        if (el === screenshot) {
+            if (screenshotZone) screenshotZone.classList.add('file-zone', 'is-invalid');
+        } else {
+            el.classList.add('is-invalid');
+        }
     }
 
-    screenshot.addEventListener('change', updateSubmit);
+    function clearAllInvalid() {
+        form.querySelectorAll('.is-invalid').forEach(n => n.classList.remove('is-invalid'));
+        if (dock) dock.classList.remove('has-error');
+    }
+
+    function guideToInvalid(el) {
+        highlightInvalid(el);
+        if (dock) dock.classList.add('has-error');
+        // Smooth scroll into view (centered) — accounts for floating dock height.
+        const target = (el === screenshot && screenshotZone) ? screenshotZone : el;
+        try {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch (_) {
+            target.scrollIntoView();
+        }
+        // Focus after a tick so the smooth-scroll on iOS isn't interrupted.
+        setTimeout(() => {
+            try { el.focus({ preventScroll: true }); } catch (_) { el.focus(); }
+        }, 250);
+    }
+
+    screenshot.addEventListener('change', () => {
+        if (screenshotZone) screenshotZone.classList.remove('is-invalid');
+        if (dock && dock.classList.contains('has-error')) {
+            const stillBad = form.querySelector('.is-invalid');
+            if (!stillBad) dock.classList.remove('has-error');
+        }
+    });
 
     // ----- chip × delete handler -----
     function persistSeats() {
@@ -559,32 +737,39 @@
         renderChips();
         renderAttendees();
         paintTotals();
-        updateSubmit();
     });
 
-    if (mobileSubmit) {
-        mobileSubmit.addEventListener('click', () => {
-            // Trigger the real submit so HTML5 validation runs and the
-            // user gets focus/scroll on missing fields.
-            if (typeof form.requestSubmit === 'function') {
-                form.requestSubmit();
-            } else {
-                form.submit();
-            }
-        });
-    }
-
+    // Smart-validation runs BEFORE the layout-level pt-confirm modal handler
+    // (this listener is registered first because this script is in the page
+    // body, while the pt-confirm handler is registered at the end of the
+    // layout). If we find a missing field we stopImmediatePropagation so
+    // the confirm modal does not appear for an invalid form.
     form.addEventListener('submit', (e) => {
         if (isSubmitting) { e.preventDefault(); return false; }
+
         if (seats.length === 0) {
             e.preventDefault();
+            e.stopImmediatePropagation();
             alert('❌ من فضلك اختر مقعد واحد على الأقل');
             window.location.replace(seatsUrl);
             return false;
         }
+
+        clearAllInvalid();
+        const bad = firstInvalid();
+        if (bad) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            guideToInvalid(bad);
+            return false;
+        }
+
         isSubmitting = true;
-        submitBtn.disabled = true;
-        submitBtn.innerText = 'جارِ الإرسال...';
+        const dockBtn = document.querySelector('[data-form-mobile-submit]');
+        if (dockBtn) {
+            dockBtn.disabled = true;
+            dockBtn.innerText = 'جارِ الإرسال...';
+        }
         // Selection successfully sent — clear so refresh / back doesn't
         // resurrect an old payload. (If the server returns validation
         // errors the user is bounced back to this same page; the form
@@ -599,7 +784,6 @@
     renderChips();
     renderAttendees();
     paintTotals();
-    updateSubmit();
 })();
 </script>
 
