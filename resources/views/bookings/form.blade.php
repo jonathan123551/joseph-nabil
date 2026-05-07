@@ -213,6 +213,20 @@
             padding: 10px 12px;
             padding-bottom: max(10px, env(safe-area-inset-bottom));
             pointer-events: none;
+            /* JS sets `transform` directly to ride above the form's end. */
+            will-change: transform;
+        }
+        /* When the dock has settled above the form's end, soften it slightly
+           so it visually reads as "docked" rather than overlay-floating. */
+        .anba-dock.is-settled .anba-dock-inner {
+            box-shadow:
+                0 14px 40px -22px rgba(2,6,23,0.65),
+                0 0 0 1px rgba(255,255,255,0.04) inset;
+        }
+        :root[data-pt-theme="light"] .anba-dock.is-settled .anba-dock-inner {
+            box-shadow:
+                0 14px 40px -22px rgba(15,23,42,0.22),
+                0 0 0 1px rgba(15,23,42,0.04) inset;
         }
         .anba-dock-inner {
             pointer-events: auto;
@@ -469,7 +483,7 @@
             </form>
         </div>
 
-        <div class="form-spacer-dock"></div>
+        <div class="form-spacer-dock" data-anba-dock-anchor></div>
     </div>
 
     {{-- Floating checkout dock — single source of truth for confirm CTA --}}
@@ -521,6 +535,42 @@
     if (dock && dock.parentElement !== document.body) {
         document.body.appendChild(dock);
     }
+
+    // "Sticky-until-end-of-form" behavior. The dock floats above the
+    // viewport bottom while the user is in the booking flow, then rides
+    // upward to settle right above the form's end (so it never overlays
+    // the page footer). Driven by a single rAF’d scroll listener.
+    const dockAnchor = root.querySelector('[data-anba-dock-anchor]');
+    let dockRafQueued = false;
+    function settleDock() {
+        dockRafQueued = false;
+        if (!dock || !dockAnchor) return;
+        const anchorRect = dockAnchor.getBoundingClientRect();
+        const dockH = dock.offsetHeight;
+        const vh = window.innerHeight || document.documentElement.clientHeight;
+        // Positive when the floating dock would overlap the area below
+        // the form’s end. Translate the dock up by that amount so it
+        // stays just above the anchor and never floats over the footer.
+        const overlap = (vh - dockH) - anchorRect.top;
+        if (overlap > 0) {
+            dock.style.transform = 'translateY(' + (-overlap) + 'px)';
+            if (!dock.classList.contains('is-settled')) dock.classList.add('is-settled');
+        } else {
+            if (dock.style.transform) dock.style.transform = '';
+            if (dock.classList.contains('is-settled')) dock.classList.remove('is-settled');
+        }
+    }
+    function queueDockUpdate() {
+        if (dockRafQueued) return;
+        dockRafQueued = true;
+        requestAnimationFrame(settleDock);
+    }
+    window.addEventListener('scroll', queueDockUpdate, { passive: true });
+    window.addEventListener('resize', queueDockUpdate);
+    // Initial pass + one after layout settles (web fonts, image loads).
+    queueDockUpdate();
+    setTimeout(queueDockUpdate, 120);
+    setTimeout(queueDockUpdate, 600);
 
     const dockHint    = document.querySelector('[data-form-dock-hint]');
     const mobileCount = document.querySelector('[data-form-mobile-count]');
