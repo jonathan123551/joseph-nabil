@@ -511,6 +511,17 @@
     const screenshotZone = root.querySelector('[data-screenshot-zone]');
     const form        = document.querySelector('#anbaFinalForm');
     const dock        = document.querySelector('[data-anba-dock]');
+
+    // The page is wrapped in a `.prism-fade-up` reveal that applies a CSS
+    // transform — and a transformed ancestor creates a containing block,
+    // which traps `position: fixed` elements (the dock would only stay
+    // visible while the form section was on screen). Portal the dock to
+    // <body> on init so it pins to the viewport for the whole journey:
+    // top of page through final upload.
+    if (dock && dock.parentElement !== document.body) {
+        document.body.appendChild(dock);
+    }
+
     const dockHint    = document.querySelector('[data-form-dock-hint]');
     const mobileCount = document.querySelector('[data-form-mobile-count]');
     const mobileTotal = document.querySelector('[data-form-mobile-total]');
