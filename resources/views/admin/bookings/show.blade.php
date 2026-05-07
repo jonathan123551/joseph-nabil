@@ -3,13 +3,24 @@
 @section('title', 'تفاصيل الحجز #' . $booking->id)
 
 @section('content')
+@php
+    // Resend-ticket flash messages get a premium center-screen toast
+    // instead of the static inline banner. The controller emits these
+    // exact strings (see Admin\BookingController::resendTicket); we
+    // sniff them client-side so backend logic stays untouched.
+    $statusMsg     = session('status');
+    $isResendOk    = $statusMsg && str_contains($statusMsg, 'إعادة إرسال');
+    $isResendFail  = $statusMsg && str_contains($statusMsg, 'لم يتم إنشاؤها');
+    $isResendToast = $isResendOk || $isResendFail;
+    $cleanMsg      = $statusMsg ? trim(str_replace(['✅', '❌'], '', $statusMsg)) : '';
+@endphp
 <section class="space-y-5 max-w-4xl mx-auto px-3 sm:px-0">
 
-    {{-- Status flash --}}
-    @if(session('status'))
+    {{-- Status flash (non-resend statuses keep the inline banner) --}}
+    @if($statusMsg && ! $isResendToast)
         <div class="rounded-2xl px-4 py-3 text-sm text-center prism-fade-up"
              style="background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.45); color: #6ee7b7;">
-            {{ session('status') }}
+            {{ $statusMsg }}
         </div>
     @endif
 
@@ -266,5 +277,62 @@
             </div>
         </div>
     </div>
+@endif
+{{-- Premium center-screen toast for resend-ticket feedback. Lives outside
+     the section + pending-review @if so it renders on approved bookings
+     (which is where the resend button lives). --}}
+@if($isResendToast)
+    <div class="pt-toast-overlay" data-pt-toast role="status" aria-live="polite">
+        <div class="pt-toast-card {{ $isResendFail ? 'is-error' : '' }}">
+            <div class="pt-toast-icon" aria-hidden="true">
+                @if($isResendFail)
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 6 L18 18 M18 6 L6 18"/>
+                    </svg>
+                @else
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 12.5 L10 17.5 L19 7"/>
+                    </svg>
+                @endif
+            </div>
+            <div class="pt-toast-title">
+                {{ $isResendFail ? 'تعذّر إعادة الإرسال' : 'تمت إعادة إرسال التذكرة بنجاح' }}
+            </div>
+            @if($cleanMsg)
+                <div class="pt-toast-msg">{{ $cleanMsg }}</div>
+            @endif
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const toast = document.querySelector('[data-pt-toast]');
+            if (!toast) return;
+
+            // Double-rAF so the entrance transition animates from its
+            // initial state instead of jumping to the open state.
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => toast.classList.add('is-on'));
+            });
+
+            let dismissed = false;
+            function dismiss() {
+                if (dismissed) return;
+                dismissed = true;
+                toast.classList.remove('is-on');
+                setTimeout(() => {
+                    toast.parentNode && toast.parentNode.removeChild(toast);
+                }, 320);
+            }
+
+            // Auto-dismiss after a short read window.
+            setTimeout(dismiss, 2800);
+
+            // Tap anywhere on the overlay (including the card) to dismiss
+            // instantly.
+            toast.addEventListener('click', dismiss);
+            toast.addEventListener('touchend', dismiss, { passive: true });
+        })();
+    </script>
 @endif
 @endsection

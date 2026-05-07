@@ -859,6 +859,140 @@
             .pt-action-bar:not(.is-on) { transform: translateY(140%); }
         }
 
+        /* ------------- Premium center-screen toast -------------
+           Lightweight glass success/error popup. Used after admin actions
+           that don't navigate away (e.g. resend ticket). Subtle radial
+           scrim, springy card entrance, animated icon, auto-dismiss +
+           tap-to-dismiss. Avoids generic flash banners and intrusive
+           fullscreen modals. */
+        .pt-toast-overlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 110;
+            padding: 24px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity .25s var(--prism-ease);
+            background: radial-gradient(circle at center,
+                rgba(2,6,23,0.36) 0%,
+                rgba(2,6,23,0.0) 65%);
+        }
+        .pt-toast-overlay.is-on {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .pt-toast-card {
+            background: linear-gradient(180deg, rgba(20,24,38,0.94), rgba(8,10,20,0.97));
+            border: 1px solid rgba(52,211,153,0.45);
+            border-radius: 22px;
+            padding: 22px 28px 20px;
+            max-width: 320px;
+            width: 100%;
+            text-align: center;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.07),
+                0 30px 60px -20px rgba(0,0,0,0.7),
+                0 0 50px rgba(52,211,153,0.22);
+            backdrop-filter: blur(22px) saturate(180%);
+            -webkit-backdrop-filter: blur(22px) saturate(180%);
+            transform: translateY(8px) scale(.96);
+            opacity: 0;
+            transition:
+                transform .35s cubic-bezier(.2,1.2,.2,1),
+                opacity   .25s var(--prism-ease);
+        }
+        .pt-toast-overlay.is-on .pt-toast-card {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+        .pt-toast-icon {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 12px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(52,211,153,0.26), rgba(34,211,238,0.20));
+            border: 1px solid rgba(52,211,153,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 24px rgba(52,211,153,0.35);
+        }
+        .pt-toast-icon svg {
+            width: 28px;
+            height: 28px;
+            stroke: var(--prism-emerald);
+            stroke-width: 3;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .pt-toast-icon svg path {
+            stroke-dasharray: 32;
+            stroke-dashoffset: 32;
+            animation: ptCheckDraw .55s var(--prism-ease) .12s forwards;
+        }
+        @keyframes ptCheckDraw { to { stroke-dashoffset: 0; } }
+        .pt-toast-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--prism-text);
+            line-height: 1.35;
+            margin-bottom: 4px;
+        }
+        .pt-toast-msg {
+            font-size: 13px;
+            color: var(--prism-text-2);
+            line-height: 1.45;
+        }
+        /* Error variant */
+        .pt-toast-card.is-error {
+            border-color: rgba(244,63,94,0.45);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.07),
+                0 30px 60px -20px rgba(0,0,0,0.7),
+                0 0 50px rgba(244,63,94,0.22);
+        }
+        .pt-toast-card.is-error .pt-toast-icon {
+            background: linear-gradient(135deg, rgba(244,63,94,0.26), rgba(251,113,133,0.20));
+            border-color: rgba(244,63,94,0.55);
+            box-shadow: 0 0 24px rgba(244,63,94,0.35);
+        }
+        .pt-toast-card.is-error .pt-toast-icon svg {
+            stroke: var(--prism-rose);
+        }
+        :root[data-pt-theme="light"] .pt-toast-card {
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.98));
+            border-color: rgba(16,185,129,0.45);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.7),
+                0 30px 60px -20px rgba(15,23,42,0.30),
+                0 0 50px rgba(16,185,129,0.18);
+        }
+        :root[data-pt-theme="light"] .pt-toast-overlay {
+            background: radial-gradient(circle at center,
+                rgba(15,23,42,0.18) 0%,
+                rgba(15,23,42,0.0) 65%);
+        }
+        :root[data-pt-theme="light"] .pt-toast-card.is-error {
+            border-color: rgba(244,63,94,0.50);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.7),
+                0 30px 60px -20px rgba(15,23,42,0.30),
+                0 0 50px rgba(244,63,94,0.20);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .pt-toast-card,
+            .pt-toast-overlay { transition: opacity .15s linear; transform: none; }
+            .pt-toast-overlay.is-on .pt-toast-card { transform: none; }
+            .pt-toast-icon svg path {
+                animation: none;
+                stroke-dashoffset: 0;
+            }
+        }
+
         /* ------------- Compact back chevron -------------
            Replaces the heavy "back" + page-header card on detail pages. */
         .pt-back-chevron {
