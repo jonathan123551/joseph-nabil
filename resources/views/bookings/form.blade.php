@@ -161,23 +161,112 @@
             color: var(--prism-gold);
         }
 
-        [data-anba-form] .mobile-cta {
+        /* Floating booking summary — always visible, replaces the inline
+           confirm button so there is only ever one CTA on screen. */
+        [data-anba-form] .booking-summary {
             position: fixed;
-            bottom: 0; left: 0; right: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 14px;
             z-index: 60;
-            display: none;
-            padding: 10px 14px;
-            backdrop-filter: blur(20px) saturate(160%);
-            -webkit-backdrop-filter: blur(20px) saturate(160%);
-            background: linear-gradient(180deg, rgba(5,6,13,0.78), rgba(5,6,13,0.95));
-            border-top: 1px solid rgba(129,140,248,0.32);
+            width: min(720px, calc(100% - 24px));
+            display: flex;
             align-items: center;
-            gap: 10px;
-            padding-bottom: max(10px, env(safe-area-inset-bottom));
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 18px;
+            backdrop-filter: blur(22px) saturate(160%);
+            -webkit-backdrop-filter: blur(22px) saturate(160%);
+            background: linear-gradient(180deg, rgba(8,10,20,0.78), rgba(8,10,20,0.92));
+            border: 1px solid rgba(129,140,248,0.42);
+            box-shadow:
+                0 18px 48px -16px rgba(8,10,20,0.85),
+                0 0 24px -8px rgba(129,140,248,0.45),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+            transition: opacity .25s var(--prism-ease), transform .25s var(--prism-ease);
+            animation: prismFadeUp .35s var(--prism-ease) both;
         }
-        @media (max-width: 1023px) {
-            [data-anba-form] .mobile-cta { display: flex; }
-            [data-anba-form] .form-spacer-mobile { height: 84px; }
+        [data-anba-form] .booking-summary .summary-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        [data-anba-form] .booking-summary .summary-meta {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            color: var(--prism-text);
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        [data-anba-form] .booking-summary .summary-meta .summary-count {
+            color: #e0e7ff;
+        }
+        [data-anba-form] .booking-summary .summary-meta .summary-divider {
+            color: rgba(255,255,255,0.25);
+        }
+        [data-anba-form] .booking-summary .summary-meta .summary-total {
+            color: var(--prism-gold);
+        }
+        [data-anba-form] .booking-summary .summary-meta .summary-currency {
+            font-size: 10px;
+            font-weight: 600;
+            color: rgba(254,243,199,0.7);
+            letter-spacing: .12em;
+            margin-inline-start: 2px;
+        }
+        [data-anba-form] .booking-summary .summary-status {
+            font-size: 10.5px;
+            color: var(--prism-text-3);
+            letter-spacing: .04em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        [data-anba-form] .booking-summary[data-state="ready"] .summary-status {
+            color: rgba(110,231,183,0.9);
+        }
+        [data-anba-form] .booking-summary .summary-submit {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 18px;
+            min-height: 44px;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        [data-anba-form] .booking-summary[data-state="pending"] .summary-submit {
+            opacity: 0.6;
+        }
+        [data-anba-form] .booking-summary[data-state="pending"] .summary-submit:hover {
+            opacity: 0.85;
+        }
+        [data-anba-form] .form-spacer-floating { height: 96px; }
+        @media (min-width: 1024px) {
+            [data-anba-form] .booking-summary { bottom: 22px; }
+            [data-anba-form] .form-spacer-floating { height: 110px; }
+        }
+
+        /* Pulse highlight for the first invalid field after a failed submit
+           attempt so the user can immediately see where to look. */
+        @keyframes prismInvalidPulse {
+            0%   { box-shadow: 0 0 0 0 rgba(244,63,94,0.55); }
+            70%  { box-shadow: 0 0 0 8px rgba(244,63,94,0); }
+            100% { box-shadow: 0 0 0 0 rgba(244,63,94,0); }
+        }
+        [data-anba-form] .field-input.is-invalid-target,
+        [data-anba-form] input.is-invalid-target {
+            border-color: rgba(244,63,94,0.7) !important;
+            background: rgba(244,63,94,0.08) !important;
+            animation: prismInvalidPulse 0.9s var(--prism-ease) 1;
         }
 
         /* Step indicator (re-used) */
@@ -350,33 +439,39 @@
                                   file:rounded-full file:px-4 file:py-2 file:ml-3 file:cursor-pointer
                                   file:hover:bg-white/[0.10] file:transition">
                 </div>
-
-                <button type="submit"
-                        id="anbaFinalSubmit"
-                        disabled
-                        class="prism-btn prism-ripple w-full">
-                    تأكيد الحجز
-                    <span aria-hidden="true">✓</span>
-                </button>
             </form>
         </div>
 
-        <div class="form-spacer-mobile"></div>
+        <div class="form-spacer-floating"></div>
     </div>
 
-    {{-- mobile sticky submit so the user always sees the CTA --}}
-    <div class="mobile-cta">
-        <div class="flex-1">
-            <div class="text-[10px] text-[color:var(--prism-text-3)]">الإجمالي</div>
-            <div class="text-sm font-bold text-[color:var(--prism-text)]">
-                <span data-form-mobile-count>0</span> مقعد ·
-                <span class="text-[color:var(--prism-gold)]"><span data-form-mobile-total>0</span> EGP</span>
+    {{-- Floating booking summary — single source-of-truth CTA. Always
+         visible on every viewport so the user can confirm without scrolling
+         and never sees two "تأكيد الحجز" buttons. --}}
+    <div class="booking-summary"
+         role="region"
+         aria-label="ملخص الحجز"
+         data-summary
+         data-state="pending">
+        <div class="summary-info">
+            <div class="summary-meta">
+                <span class="summary-count" data-form-mobile-count>0</span>
+                <span>مقعد</span>
+                <span class="summary-divider">·</span>
+                <span class="summary-total" data-form-mobile-total>0</span>
+                <span class="summary-currency">EGP</span>
+            </div>
+            <div class="summary-status" data-summary-status>
+                أكمل البيانات لتأكيد الحجز
             </div>
         </div>
         <button type="button"
                 data-form-mobile-submit
-                class="prism-btn prism-ripple px-5 py-2 text-xs">
-            تأكيد
+                id="anbaFinalSubmit"
+                aria-disabled="true"
+                class="prism-btn prism-ripple summary-submit">
+            <span>تأكيد الحجز</span>
+            <span aria-hidden="true">✓</span>
         </button>
     </div>
 </section>
@@ -399,7 +494,8 @@
     const form        = root.querySelector('#anbaFinalForm');
     const mobileCount = root.querySelector('[data-form-mobile-count]');
     const mobileTotal = root.querySelector('[data-form-mobile-total]');
-    const mobileSubmit= root.querySelector('[data-form-mobile-submit]');
+    const summary     = root.querySelector('[data-summary]');
+    const summaryStat = root.querySelector('[data-summary-status]');
 
     let isSubmitting = false;
 
@@ -519,12 +615,81 @@
         return names.length > 0;
     }
 
+    function isReady() {
+        return !isSubmitting
+            && seats.length > 0
+            && allFilled()
+            && screenshot.files && screenshot.files.length > 0;
+    }
+
+    // ----- find first invalid / empty field in DOM order -----
+    function firstInvalidField() {
+        // Order matches the visual order of fields in the form: each
+        // attendee card (name then phone) followed by the screenshot input.
+        const cards = attendees.querySelectorAll('.attendee-card');
+        for (const card of cards) {
+            const name  = card.querySelector('input[name="names[]"]');
+            if (name && !name.value.trim()) return name;
+            const phone = card.querySelector('input[name="phones[]"]');
+            if (phone && !phone.value.trim()) return phone;
+        }
+        if (!screenshot.files || screenshot.files.length === 0) {
+            return screenshot;
+        }
+        // Fallback to native validation (e.g. invalid format) — finds the
+        // first field that fails any browser-level constraint.
+        const fields = form.querySelectorAll('input, select, textarea');
+        for (const f of fields) {
+            if (typeof f.checkValidity === 'function' && !f.checkValidity()) {
+                return f;
+            }
+        }
+        return null;
+    }
+
+    let invalidHighlightTimer = null;
+    function scrollToFirstInvalid() {
+        const target = firstInvalidField();
+        if (!target) return false;
+
+        // Floating summary covers ~110px at the bottom — scroll the field
+        // into the upper third of the viewport so it stays visible above it.
+        try {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch (_) {
+            target.scrollIntoView();
+        }
+
+        // Defer focus until the smooth scroll has had a chance to start so
+        // the browser doesn't yank the viewport.
+        setTimeout(() => {
+            try { target.focus({ preventScroll: true }); } catch (_) { target.focus(); }
+        }, 220);
+
+        target.classList.add('is-invalid-target');
+        if (invalidHighlightTimer) clearTimeout(invalidHighlightTimer);
+        invalidHighlightTimer = setTimeout(() => {
+            target.classList.remove('is-invalid-target');
+        }, 1100);
+
+        return true;
+    }
+
     function updateSubmit() {
-        const ready = !isSubmitting
-                   && seats.length > 0
-                   && allFilled()
-                   && screenshot.files && screenshot.files.length > 0;
-        submitBtn.disabled = !ready;
+        const ready = isReady();
+        if (summary) summary.dataset.state = ready ? 'ready' : 'pending';
+        submitBtn.setAttribute('aria-disabled', ready ? 'false' : 'true');
+        if (summaryStat) {
+            if (isSubmitting) {
+                summaryStat.textContent = 'جارِ إرسال طلب الحجز...';
+            } else if (ready) {
+                summaryStat.textContent = 'كل البيانات جاهزة — اضغط لتأكيد الحجز';
+            } else if (!screenshot.files || screenshot.files.length === 0) {
+                summaryStat.textContent = 'أرفق إيصال التحويل لإكمال الحجز';
+            } else {
+                summaryStat.textContent = 'أكمل بيانات الحضور لتأكيد الحجز';
+            }
+        }
     }
 
     screenshot.addEventListener('change', updateSubmit);
@@ -562,17 +727,38 @@
         updateSubmit();
     });
 
-    if (mobileSubmit) {
-        mobileSubmit.addEventListener('click', () => {
-            // Trigger the real submit so HTML5 validation runs and the
-            // user gets focus/scroll on missing fields.
-            if (typeof form.requestSubmit === 'function') {
-                form.requestSubmit();
-            } else {
-                form.submit();
-            }
-        });
-    }
+    // ----- single submit entry point (only one CTA exists now) -----
+    submitBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (isSubmitting) return;
+
+        if (seats.length === 0) {
+            alert('❌ من فضلك اختر مقعد واحد على الأقل');
+            window.location.replace(seatsUrl);
+            return;
+        }
+
+        if (!isReady()) {
+            scrollToFirstInvalid();
+            return;
+        }
+
+        // requestSubmit() fires the real submit event so the global
+        // data-pt-confirm modal still intercepts and the network call only
+        // runs after the user confirms.
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+        } else {
+            form.submit();
+        }
+    });
+
+    // Native HTML5 validation (e.g. user hits Enter from a field) — also
+    // route through scrollToFirstInvalid for a consistent UX.
+    form.addEventListener('invalid', (e) => {
+        e.preventDefault();
+        scrollToFirstInvalid();
+    }, true);
 
     form.addEventListener('submit', (e) => {
         if (isSubmitting) { e.preventDefault(); return false; }
@@ -582,9 +768,17 @@
             window.location.replace(seatsUrl);
             return false;
         }
+        if (!isReady()) {
+            // Should be unreachable from the floating button, but defends
+            // against Enter-key submits while a field is empty.
+            e.preventDefault();
+            scrollToFirstInvalid();
+            return false;
+        }
         isSubmitting = true;
-        submitBtn.disabled = true;
-        submitBtn.innerText = 'جارِ الإرسال...';
+        updateSubmit();
+        const label = submitBtn.querySelector('span:first-child');
+        if (label) label.textContent = 'جارِ الإرسال...';
         // Selection successfully sent — clear so refresh / back doesn't
         // resurrect an old payload. (If the server returns validation
         // errors the user is bounced back to this same page; the form
