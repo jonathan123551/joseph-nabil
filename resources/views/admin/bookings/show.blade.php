@@ -348,7 +348,11 @@
         toast.addEventListener('click', hide);
         toast.addEventListener('touchend', hide, { passive: true });
 
-        // Intercept any resend-ticket form on this page.
+        // Intercept any resend-ticket form on this page. The controller
+        // returns JSON ({ ok: true } / { ok: false }) for AJAX requests so
+        // the toast variant is decided from a structured response rather
+        // than scraping the redirected page (which used to embed this very
+        // script's strings and always self-matched as an error).
         const forms = document.querySelectorAll('form[action*="/admin/resend-ticket/"]');
         forms.forEach((form) => {
             form.addEventListener('submit', async (ev) => {
@@ -360,23 +364,22 @@
                     const res = await fetch(form.action, {
                         method: 'POST',
                         body: fd,
-                        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
-                        redirect: 'follow',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json',
+                        },
                         credentials: 'same-origin',
                     });
                     if (!res.ok) {
                         show({ error: true });
                         return;
                     }
-                    // Detect the "QR not generated yet" failure by sniffing
-                    // the redirected page's HTML for the controller's flash
-                    // string. If present, show the error variant.
-                    let html = '';
-                    try { html = await res.text(); } catch (_) { /* tolerate */ }
-                    if (html && html.indexOf('لم يتم إنشاؤها') !== -1) {
-                        show({ error: true });
-                    } else {
+                    let payload = null;
+                    try { payload = await res.json(); } catch (_) { /* tolerate */ }
+                    if (payload && payload.ok === true) {
                         show({});
+                    } else {
+                        show({ error: true });
                     }
                 } catch (err) {
                     show({ error: true });
