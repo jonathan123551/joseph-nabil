@@ -25,7 +25,8 @@
     $unitPrice       = $sectionParam === 'balcony' ? $balconyPriceInt : $hallPriceInt;
 @endphp
 
-<section class="max-w-3xl mx-auto prism-fade-up"
+<div class="anba-flow max-w-3xl mx-auto">
+<section class="prism-fade-up"
          data-anba-form
          data-section="{{ $sectionParam }}"
          data-show-time-id="{{ (int) $showTime->id }}"
@@ -204,29 +205,25 @@
             color: var(--prism-gold);
         }
 
-        /* ===== Floating checkout dock (mobile + desktop) ===== */
+        /* ===== Sticky checkout dock (mobile + desktop) =====
+           Native CSS sticky pins to viewport bottom while the booking flow
+           is in view, then naturally settles at the end of its parent
+           wrapper (the .anba-flow div) above the footer.
+           - No JS scroll math → no jitter on iOS Safari URL-bar collapse.
+           - The browser handles the fixed→settled transition on the
+             compositor, no main-thread work, no layout thrash. */
+        .anba-flow {
+            /* Sticky context. Width matches the section it wraps. */
+            position: relative;
+        }
         .anba-dock {
-            position: fixed;
-            left: 0; right: 0;
+            position: -webkit-sticky;
+            position: sticky;
             bottom: 0;
             z-index: 60;
             padding: 10px 12px;
             padding-bottom: max(10px, env(safe-area-inset-bottom));
             pointer-events: none;
-            /* JS sets `transform` directly to ride above the form's end. */
-            will-change: transform;
-        }
-        /* When the dock has settled above the form's end, soften it slightly
-           so it visually reads as "docked" rather than overlay-floating. */
-        .anba-dock.is-settled .anba-dock-inner {
-            box-shadow:
-                0 14px 40px -22px rgba(2,6,23,0.65),
-                0 0 0 1px rgba(255,255,255,0.04) inset;
-        }
-        :root[data-pt-theme="light"] .anba-dock.is-settled .anba-dock-inner {
-            box-shadow:
-                0 14px 40px -22px rgba(15,23,42,0.22),
-                0 0 0 1px rgba(15,23,42,0.04) inset;
         }
         .anba-dock-inner {
             pointer-events: auto;
@@ -288,10 +285,11 @@
             .anba-dock-amount { font-size: 18px; }
             .anba-dock-cta { padding: 14px 28px; font-size: 15px; }
         }
-        /* spacer keeps the last form row above the dock at all viewports */
-        [data-anba-form] .form-spacer-dock { height: 96px; }
+        /* breathing room between last form input and the natural
+           position of the sticky dock when it settles. */
+        [data-anba-form] .form-spacer-dock { height: 24px; }
         @media (min-width: 640px) {
-            [data-anba-form] .form-spacer-dock { height: 104px; }
+            [data-anba-form] .form-spacer-dock { height: 32px; }
         }
 
         /* Step indicator (re-used) */
@@ -485,28 +483,32 @@
 
         <div class="form-spacer-dock" data-anba-dock-anchor></div>
     </div>
-
-    {{-- Floating checkout dock — single source of truth for confirm CTA --}}
-    <div class="anba-dock" data-anba-dock role="region" aria-label="ملخص الحجز">
-        <div class="anba-dock-inner">
-            <div class="anba-dock-summary">
-                <div class="anba-dock-eyebrow">الإجمالي</div>
-                <div class="anba-dock-amount">
-                    <span data-form-mobile-count>0</span> مقعد ·
-                    <span class="gold"><span data-form-mobile-total>0</span> EGP</span>
-                </div>
-                <div class="anba-dock-hint" data-form-dock-hint>اكمل الحقول المطلوبة</div>
-            </div>
-            <button type="submit"
-                    form="anbaFinalForm"
-                    data-form-mobile-submit
-                    class="prism-btn prism-ripple anba-dock-cta">
-                تأكيد الحجز
-                <span aria-hidden="true">✓</span>
-            </button>
-        </div>
-    </div>
 </section>
+
+{{-- Sticky checkout dock — lives OUTSIDE the prism-fade-up section so the
+     transformed ancestor doesn't interfere with sticky bounds. Pinned to
+     viewport bottom while the user scrolls through the .anba-flow wrapper,
+     settles naturally at the end of the booking flow above the footer. --}}
+<div class="anba-dock" data-anba-dock role="region" aria-label="ملخص الحجز">
+    <div class="anba-dock-inner">
+        <div class="anba-dock-summary">
+            <div class="anba-dock-eyebrow">الإجمالي</div>
+            <div class="anba-dock-amount">
+                <span data-form-mobile-count>0</span> مقعد ·
+                <span class="gold"><span data-form-mobile-total>0</span> EGP</span>
+            </div>
+            <div class="anba-dock-hint" data-form-dock-hint>اكمل الحقول المطلوبة</div>
+        </div>
+        <button type="submit"
+                form="anbaFinalForm"
+                data-form-mobile-submit
+                class="prism-btn prism-ripple anba-dock-cta">
+            تأكيد الحجز
+            <span aria-hidden="true">✓</span>
+        </button>
+    </div>
+</div>
+</div>{{-- /.anba-flow --}}
 
 <script>
 (function () {
@@ -526,51 +528,9 @@
     const form        = document.querySelector('#anbaFinalForm');
     const dock        = document.querySelector('[data-anba-dock]');
 
-    // The page is wrapped in a `.prism-fade-up` reveal that applies a CSS
-    // transform — and a transformed ancestor creates a containing block,
-    // which traps `position: fixed` elements (the dock would only stay
-    // visible while the form section was on screen). Portal the dock to
-    // <body> on init so it pins to the viewport for the whole journey:
-    // top of page through final upload.
-    if (dock && dock.parentElement !== document.body) {
-        document.body.appendChild(dock);
-    }
-
-    // "Sticky-until-end-of-form" behavior. The dock floats above the
-    // viewport bottom while the user is in the booking flow, then rides
-    // upward to settle right above the form's end (so it never overlays
-    // the page footer). Driven by a single rAF’d scroll listener.
-    const dockAnchor = root.querySelector('[data-anba-dock-anchor]');
-    let dockRafQueued = false;
-    function settleDock() {
-        dockRafQueued = false;
-        if (!dock || !dockAnchor) return;
-        const anchorRect = dockAnchor.getBoundingClientRect();
-        const dockH = dock.offsetHeight;
-        const vh = window.innerHeight || document.documentElement.clientHeight;
-        // Positive when the floating dock would overlap the area below
-        // the form’s end. Translate the dock up by that amount so it
-        // stays just above the anchor and never floats over the footer.
-        const overlap = (vh - dockH) - anchorRect.top;
-        if (overlap > 0) {
-            dock.style.transform = 'translateY(' + (-overlap) + 'px)';
-            if (!dock.classList.contains('is-settled')) dock.classList.add('is-settled');
-        } else {
-            if (dock.style.transform) dock.style.transform = '';
-            if (dock.classList.contains('is-settled')) dock.classList.remove('is-settled');
-        }
-    }
-    function queueDockUpdate() {
-        if (dockRafQueued) return;
-        dockRafQueued = true;
-        requestAnimationFrame(settleDock);
-    }
-    window.addEventListener('scroll', queueDockUpdate, { passive: true });
-    window.addEventListener('resize', queueDockUpdate);
-    // Initial pass + one after layout settles (web fonts, image loads).
-    queueDockUpdate();
-    setTimeout(queueDockUpdate, 120);
-    setTimeout(queueDockUpdate, 600);
+    // No portal / no scroll math: the dock now uses native CSS sticky
+    // (see .anba-dock styles above). The browser handles pin→settle on
+    // the compositor with no main-thread work — zero jitter.
 
     const dockHint    = document.querySelector('[data-form-dock-hint]');
     const mobileCount = document.querySelector('[data-form-mobile-count]');
