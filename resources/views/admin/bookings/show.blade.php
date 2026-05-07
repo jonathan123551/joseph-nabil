@@ -296,6 +296,13 @@
     (function () {
         const toast = document.querySelector('[data-pt-toast]');
         if (!toast) return;
+        // Portal the toast to <body> so its position:fixed is anchored to the
+        // viewport instead of the transformed `.pt-page` ancestor (which has
+        // an entrance-animation CSS transform that creates a containing block
+        // and pushes the toast far down the page, out of view).
+        if (toast.parentNode !== document.body) {
+            document.body.appendChild(toast);
+        }
         const card  = toast.querySelector('[data-pt-toast-card]');
         const path  = toast.querySelector('[data-pt-toast-path]');
         const title = toast.querySelector('[data-pt-toast-title]');
