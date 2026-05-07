@@ -192,6 +192,119 @@
             [data-anba-root] .canvas-fab .fab-btn { transition: none; }
         }
 
+        /* ===== Pinch & pan onboarding hint (mobile only, once per device) =====
+           Lightweight glass card centered over the seat map. Auto-dismisses
+           after ~3 s, on first canvas touch, or on tap. Hidden on desktop
+           via media query. Animated icon respects prefers-reduced-motion. */
+        [data-anba-root] .gesture-hint {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity .35s var(--p-ease);
+            z-index: 12;
+        }
+        [data-anba-root] .gesture-hint.is-visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        [data-anba-root] .gesture-hint.is-leaving {
+            opacity: 0;
+            pointer-events: none;
+        }
+        [data-anba-root] .gesture-hint .hint-card {
+            background: rgba(8,10,20,0.78);
+            -webkit-backdrop-filter: blur(16px) saturate(160%);
+            backdrop-filter: blur(16px) saturate(160%);
+            border: 1px solid rgba(129,140,248,0.34);
+            border-radius: 18px;
+            padding: 14px 18px 12px;
+            box-shadow:
+                0 18px 40px -16px rgba(2,6,23,0.85),
+                0 0 0 1px rgba(255,255,255,0.04) inset;
+            text-align: center;
+            max-width: 240px;
+            animation: hintCardIn .45s var(--p-ease) both;
+        }
+        [data-anba-root] .gesture-hint.is-leaving .hint-card {
+            animation: hintCardOut .35s var(--p-ease) both;
+        }
+        @keyframes hintCardIn {
+            from { opacity: 0; transform: translateY(8px) scale(.97); }
+            to   { opacity: 1; transform: translateY(0)  scale(1); }
+        }
+        @keyframes hintCardOut {
+            from { opacity: 1; transform: translateY(0)  scale(1); }
+            to   { opacity: 0; transform: translateY(-6px) scale(.98); }
+        }
+        [data-anba-root] .gesture-hint .hint-icon {
+            width: 64px;
+            height: 44px;
+            margin: 0 auto 8px;
+        }
+        [data-anba-root] .gesture-hint .hint-icon svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+        [data-anba-root] .gesture-hint .pinch-finger {
+            fill: rgba(255,255,255,0.92);
+            stroke: rgba(34,211,238,0.55);
+            stroke-width: 1.4;
+            transform-origin: center;
+        }
+        [data-anba-root] .gesture-hint .pinch-finger.a {
+            animation: pinchA 1.8s ease-in-out infinite;
+        }
+        [data-anba-root] .gesture-hint .pinch-finger.b {
+            animation: pinchB 1.8s ease-in-out infinite;
+        }
+        @keyframes pinchA {
+            0%, 100% { transform: translate(-2px, 0); }
+            50%      { transform: translate(-12px, 0); }
+        }
+        @keyframes pinchB {
+            0%, 100% { transform: translate(2px, 0); }
+            50%      { transform: translate(12px, 0); }
+        }
+        [data-anba-root] .gesture-hint .hint-text {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--p-text);
+            line-height: 1.35;
+        }
+        [data-anba-root] .gesture-hint .hint-sub {
+            margin-top: 3px;
+            font-size: 10.5px;
+            font-weight: 600;
+            color: var(--p-text-3);
+            letter-spacing: .18em;
+            text-transform: uppercase;
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .gesture-hint .hint-card {
+            background: rgba(255,255,255,0.92);
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                0 18px 40px -16px rgba(15,23,42,0.30),
+                0 0 0 1px rgba(15,23,42,0.04) inset;
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .gesture-hint .pinch-finger {
+            fill: rgba(15,23,42,0.82);
+            stroke: rgba(99,102,241,0.55);
+        }
+        @media (min-width: 880px) {
+            [data-anba-root] .gesture-hint { display: none !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            [data-anba-root] .gesture-hint .pinch-finger.a,
+            [data-anba-root] .gesture-hint .pinch-finger.b { animation: none; }
+            [data-anba-root] .gesture-hint .hint-card,
+            [data-anba-root] .gesture-hint.is-leaving .hint-card { animation: none; }
+        }
+
         /* ===== Side panel ===== */
         [data-anba-root] .seat-chip {
             display: inline-flex; align-items: center; gap: 4px;
@@ -518,6 +631,22 @@
                         width="1400" height="700"
                         role="img"
                         aria-label="خريطة مقاعد الصالة"></canvas>
+
+                {{-- Pinch & pan onboarding hint. Mobile-only; shown once per
+                     device (localStorage). JS toggles `.is-visible` on init
+                     and removes the node after dismiss. --}}
+                <div class="gesture-hint" data-anba-gesture-hint role="status" aria-live="polite">
+                    <div class="hint-card">
+                        <div class="hint-icon" aria-hidden="true">
+                            <svg viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg">
+                                <circle class="pinch-finger a" cx="22" cy="22" r="6"/>
+                                <circle class="pinch-finger b" cx="42" cy="22" r="6"/>
+                            </svg>
+                        </div>
+                        <div class="hint-text">استخدم إصبعين للتكبير والتحريك</div>
+                        <div class="hint-sub">Pinch &amp; pan</div>
+                    </div>
+                </div>
 
                 @if ($isFullscreen)
                     {{-- Floating zoom controls (fullscreen mobile primary path).
@@ -1768,6 +1897,62 @@
         }
 
         boot();
+
+        // ===== Pinch & pan onboarding hint =====
+        // Mobile-only, once per device. Auto-dismisses after ~3 s, on any
+        // canvas touch, or on tap. Uses localStorage so it never repeats.
+        (function showGestureHint() {
+            const hint = root.querySelector('[data-anba-gesture-hint]');
+            if (!hint) return;
+
+            const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+            const isMobileViewport = window.matchMedia('(max-width: 880px)').matches;
+            if (!isTouch || !isMobileViewport) {
+                hint.parentNode && hint.parentNode.removeChild(hint);
+                return;
+            }
+
+            let seen = false;
+            try { seen = localStorage.getItem('anba_pinchpan_hint_seen') === '1'; } catch (e) {}
+            if (seen) {
+                hint.parentNode && hint.parentNode.removeChild(hint);
+                return;
+            }
+
+            let dismissed = false;
+            function dismiss() {
+                if (dismissed) return;
+                dismissed = true;
+                hint.classList.remove('is-visible');
+                hint.classList.add('is-leaving');
+                try { localStorage.setItem('anba_pinchpan_hint_seen', '1'); } catch (e) {}
+                setTimeout(() => {
+                    hint.parentNode && hint.parentNode.removeChild(hint);
+                }, 450);
+            }
+
+            // Show shortly after init so the canvas has rendered.
+            setTimeout(() => {
+                if (!dismissed) hint.classList.add('is-visible');
+            }, 320);
+
+            // Auto-dismiss after the visible window has elapsed.
+            setTimeout(dismiss, 3300);
+
+            // Tap anywhere on the hint card to dismiss instantly.
+            hint.addEventListener('click', dismiss);
+            hint.addEventListener('touchend', dismiss, { passive: true });
+
+            // First canvas touch dismisses the hint so it never gets in the
+            // way once the user starts interacting.
+            if (canvas) {
+                const onCanvasTouch = () => {
+                    dismiss();
+                    canvas.removeEventListener('touchstart', onCanvasTouch);
+                };
+                canvas.addEventListener('touchstart', onCanvasTouch, { passive: true });
+            }
+        })();
 
         // Redraw on devicePixelRatio change (rare) and re-fit on resize
         // so rotating the device or collapsing the URL bar doesn't leave
