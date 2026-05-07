@@ -664,9 +664,19 @@
              · admin booking detail (approve / reject)
              · public booking step 2 (continue)
              · future: anywhere we need a confirm-style sticky CTA. */
+        /* Native CSS sticky pins the bar to the viewport bottom while the
+           page is scrolling, then settles at the bar's natural position
+           (end of @yield('content')) once the user scrolls past it. The
+           browser handles pin↔settle on the compositor — no main-thread
+           scroll math, no jitter when iOS Safari's URL bar collapses or on
+           momentum scroll. Same approach as the customer checkout dock
+           (PR #34). Note: switching to sticky escapes the containing-block
+           trap caused by `main.pt-page` having a transform animation —
+           with `position: fixed` the bar was anchored to main's bottom
+           instead of the viewport, which is why it only became visible
+           near the bottom of the page. */
         .pt-action-bar {
-            position: fixed;
-            left: 0; right: 0;
+            position: sticky;
             bottom: 0;
             z-index: 45;
             padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
