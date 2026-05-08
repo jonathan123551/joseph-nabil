@@ -420,13 +420,27 @@
                 @if (!empty($transferWallet))
                     <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
                         <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_wallet">📱 محفظة</p>
-                        <p class="text-sm font-bold text-[color:var(--prism-text)] tracking-wide" dir="ltr">{{ $transferWallet }}</p>
+                        <button type="button"
+                                class="prism-copyable w-full justify-between text-sm tracking-wide"
+                                data-pt-copy="{{ $transferWallet }}"
+                                data-i18n-attr="aria-label:copy_aria"
+                                aria-label="نسخ">
+                            <span dir="ltr">{{ $transferWallet }}</span>
+                            <span class="copy-icon" aria-hidden="true">⧉</span>
+                        </button>
                     </div>
                 @endif
                 @if (!empty($transferInsta))
                     <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
                         <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_insta">⚡ InstaPay</p>
-                        <p class="text-sm font-bold text-[color:var(--prism-text)] tracking-wide" dir="ltr">{{ $transferInsta }}</p>
+                        <button type="button"
+                                class="prism-copyable w-full justify-between text-sm tracking-wide"
+                                data-pt-copy="{{ $transferInsta }}"
+                                data-i18n-attr="aria-label:copy_aria"
+                                aria-label="نسخ">
+                            <span dir="ltr">{{ $transferInsta }}</span>
+                            <span class="copy-icon" aria-hidden="true">⧉</span>
+                        </button>
                     </div>
                 @endif
             </div>
@@ -512,7 +526,7 @@
         <button type="submit"
                 form="anbaFinalForm"
                 data-form-mobile-submit
-                class="prism-btn prism-ripple anba-dock-cta">
+                class="prism-btn-gold prism-ripple anba-dock-cta">
             <span data-i18n="form_confirm_btn">تأكيد الحجز</span>
             <span aria-hidden="true">✓</span>
         </button>

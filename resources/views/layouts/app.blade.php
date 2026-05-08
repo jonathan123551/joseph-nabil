@@ -341,6 +341,209 @@
         .prism-badge-amber   { background: rgba(245,158,11,0.10); color: #fcd34d; border-color: rgba(251,191,36,0.45); }
         .prism-badge-sky     { background: rgba(56,189,248,0.10); color: #7dd3fc; border-color: rgba(56,189,248,0.45); }
 
+        /* ------------- Wave 1: copy / share / heart / ribbons ------------- */
+        /* Copyable value: tap target with subtle hover lift + flash on copy */
+        .prism-copyable {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 10px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.04);
+            border: 1px dashed rgba(129,140,248,0.35);
+            color: var(--prism-text);
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .15s var(--prism-ease), border-color .15s var(--prism-ease), transform .15s var(--prism-ease);
+            min-height: 36px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .prism-copyable:hover { background: rgba(129,140,248,0.10); border-color: rgba(129,140,248,0.6); }
+        .prism-copyable:active { transform: scale(0.97); }
+        .prism-copyable .copy-icon {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 22px; height: 22px;
+            border-radius: 6px;
+            background: rgba(34,211,238,0.14);
+            border: 1px solid rgba(34,211,238,0.35);
+            color: #67e8f9;
+            font-size: 12px;
+            transition: background .15s var(--prism-ease), color .15s var(--prism-ease);
+        }
+        .prism-copyable.is-copied { border-color: rgba(52,211,153,0.7); background: rgba(16,185,129,0.10); }
+        .prism-copyable.is-copied .copy-icon {
+            background: rgba(16,185,129,0.18);
+            border-color: rgba(52,211,153,0.7);
+            color: #6ee7b7;
+        }
+
+        /* Heart-to-favorite button (used on show cards) */
+        .prism-heart-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 36px; height: 36px;
+            border-radius: 999px;
+            background: rgba(8,10,20,0.55);
+            border: 1px solid rgba(255,255,255,0.10);
+            color: rgba(255,255,255,0.78);
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            transition: transform .15s var(--prism-ease), background .15s var(--prism-ease), border-color .15s var(--prism-ease), color .15s var(--prism-ease);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .prism-heart-btn:hover { transform: scale(1.08); background: rgba(244,63,94,0.18); border-color: rgba(251,113,133,0.5); color: #fecdd3; }
+        .prism-heart-btn[aria-pressed="true"] {
+            background: rgba(244,63,94,0.20);
+            border-color: rgba(251,113,133,0.7);
+            color: #fb7185;
+            box-shadow: 0 0 14px rgba(251,113,133,0.35);
+        }
+        .prism-heart-btn[aria-pressed="true"] .heart-glyph::before { content: '♥'; }
+        .prism-heart-btn .heart-glyph::before { content: '♡'; }
+        @media (prefers-reduced-motion: reduce) {
+            .prism-heart-btn:hover { transform: none; }
+        }
+
+        /* Show-card ribbon (selling fast / last N / trending) */
+        .prism-ribbon {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 10px; font-weight: 800;
+            letter-spacing: .04em;
+            line-height: 1.2;
+            white-space: nowrap;
+            border: 1px solid rgba(255,255,255,0.18);
+            color: var(--prism-text);
+            background: rgba(8,10,20,0.55);
+            box-shadow: 0 4px 14px -4px rgba(2,6,23,0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .prism-ribbon-trending {
+            background: linear-gradient(135deg, rgba(34,211,238,0.30), rgba(129,140,248,0.30));
+            border-color: rgba(129,140,248,0.55);
+            color: #e0e7ff;
+        }
+        .prism-ribbon-fast {
+            background: linear-gradient(135deg, rgba(245,158,11,0.32), rgba(251,113,133,0.20));
+            border-color: rgba(251,191,36,0.55);
+            color: #fef3c7;
+        }
+        .prism-ribbon-last {
+            background: linear-gradient(135deg, rgba(244,63,94,0.36), rgba(190,18,60,0.28));
+            border-color: rgba(251,113,133,0.65);
+            color: #ffe4e6;
+            animation: prismRibbonPulse 2.4s ease-in-out infinite;
+        }
+        @keyframes prismRibbonPulse {
+            0%, 100% { box-shadow: 0 4px 14px -4px rgba(2,6,23,0.6), 0 0 0 0 rgba(251,113,133,0); }
+            50%      { box-shadow: 0 4px 14px -4px rgba(2,6,23,0.6), 0 0 0 6px rgba(251,113,133,0.18); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .prism-ribbon-last { animation: none; }
+        }
+
+        /* Skip-to-shows pill (homepage intro for return visitors) */
+        .prism-skip-pill {
+            display: none;
+            position: absolute;
+            inset-inline-start: 50%;
+            bottom: clamp(24px, 6vh, 60px);
+            transform: translateX(-50%);
+            z-index: 5;
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 12px; font-weight: 700;
+            letter-spacing: .04em;
+            color: #e0e7ff;
+            background: linear-gradient(135deg, rgba(34,211,238,0.22), rgba(129,140,248,0.22));
+            border: 1px solid rgba(129,140,248,0.55);
+            box-shadow: 0 8px 24px -8px rgba(129,140,248,0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            text-decoration: none;
+            opacity: 0;
+            transition: transform .2s var(--prism-ease), background .2s var(--prism-ease), opacity .2s var(--prism-ease);
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .prism-skip-pill.is-shown,
+        body.is-return-visitor .prism-skip-pill { display: inline-flex; opacity: 1; }
+        .prism-skip-pill:hover { transform: translateX(-50%) translateY(-2px); background: linear-gradient(135deg, rgba(34,211,238,0.32), rgba(129,140,248,0.32)); }
+        :root[dir="rtl"] .prism-skip-pill { transform: translateX(50%); }
+        :root[dir="rtl"] .prism-skip-pill:hover { transform: translateX(50%) translateY(-2px); }
+
+        /* WhatsApp share button — small green pill, fits inline next to other meta pills */
+        .prism-share-wa {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 12px; font-weight: 700;
+            color: #d1fae5;
+            background: linear-gradient(135deg, rgba(16,185,129,0.22), rgba(5,150,105,0.18));
+            border: 1px solid rgba(52,211,153,0.55);
+            box-shadow: 0 4px 14px -4px rgba(16,185,129,0.4);
+            text-decoration: none;
+            transition: transform .15s var(--prism-ease), background .15s var(--prism-ease), border-color .15s var(--prism-ease);
+            -webkit-tap-highlight-color: transparent;
+            line-height: 1.2;
+        }
+        .prism-share-wa:hover {
+            transform: translateY(-1px);
+            background: linear-gradient(135deg, rgba(16,185,129,0.32), rgba(5,150,105,0.26));
+            border-color: rgba(52,211,153,0.85);
+        }
+        .prism-share-wa .share-wa-icon {
+            display: inline-flex; align-items: center; justify-content: center;
+            color: #6ee7b7;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .prism-share-wa:hover { transform: none; }
+        }
+
+        /* Auto-pick best-seats button (seat picker side panel) */
+        .prism-auto-pick {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 9px 14px;
+            border-radius: 12px;
+            font-size: 12px; font-weight: 700;
+            color: #fef3c7;
+            background: linear-gradient(135deg, rgba(245,158,11,0.20), rgba(251,191,36,0.10));
+            border: 1px solid rgba(251,191,36,0.55);
+            box-shadow: 0 4px 14px -4px rgba(245,158,11,0.45);
+            cursor: pointer;
+            transition: transform .15s var(--prism-ease), background .15s var(--prism-ease), border-color .15s var(--prism-ease);
+            -webkit-tap-highlight-color: transparent;
+            min-height: 38px;
+        }
+        .prism-auto-pick:hover {
+            transform: translateY(-1px);
+            background: linear-gradient(135deg, rgba(245,158,11,0.30), rgba(251,191,36,0.16));
+            border-color: rgba(251,191,36,0.8);
+        }
+        .prism-auto-pick:active { transform: scale(0.98); }
+        @media (prefers-reduced-motion: reduce) {
+            .prism-auto-pick:hover { transform: none; }
+        }
+
+        /* Saved shows pill in topbar (subtle counter, currently unused but
+           reserved for the §6.1 hamburger-sheet wave) */
+        .prism-fav-counter-pill {
+            display: none;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 11px; font-weight: 700;
+            color: #fecdd3;
+            background: rgba(244,63,94,0.14);
+            border: 1px solid rgba(251,113,133,0.45);
+            white-space: nowrap;
+        }
+        .prism-fav-counter-pill.is-shown,
+        .prism-fav-counter-pill[data-count]:not([data-count="0"]) { display: inline-flex; }
+
         /* ------------- Inputs ------------- */
         .prism-input {
             width: 100%;
@@ -5309,7 +5512,35 @@
                 thx_step3_html: 'عملية المراجعة قد تستغرق بحد أقصى <span class="text-[color:var(--prism-text)] font-semibold">24 ساعة</span>.',
                 thx_footer_html: 'لو في أي مشكلة في التحويل أو البيانات، هنتواصل معاك قبل رفض الطلب.<br>متقلقش، طلبك محفوظ على السيستم ✨',
                 thx_back_home: 'رجوع للصفحة الرئيسية',
+                thx_countdown_label: 'يبدأ العرض خلال',
+                thx_countdown_now: 'العرض بدأ! 🎉',
+                thx_countdown_days: 'يوم',
+                thx_countdown_hours: 'س',
+                thx_countdown_mins: 'د',
+                thx_add_calendar: 'أضف للتقويم',
+                thx_share_wa: 'مشاركة عبر واتساب',
+                thx_share_wa_text: 'حجزت تذكرة لـ "{title}" يوم {date} 🎭',
                 common_egp: 'جنيه',
+
+                /* ===== Wave 1 quick wins (copy / share / favorites / ribbons) ===== */
+                copy_aria: 'نسخ',
+                copy_done: 'تم النسخ ✓',
+                copy_failed: 'تعذر النسخ',
+                fav_save_aria: 'حفظ في المفضلة',
+                fav_unsave_aria: 'إزالة من المفضلة',
+                fav_saved_toast: 'تمت الإضافة للمفضلة',
+                fav_unsaved_toast: 'تمت الإزالة من المفضلة',
+                fav_pill: 'المحفوظة',
+                ribbon_trending: 'الأكثر طلبًا',
+                ribbon_selling_fast: 'يُحجز بسرعة',
+                ribbon_last_n: 'آخر {n} مقاعد',
+                share_wa: 'مشاركة عبر واتساب',
+                share_wa_text: 'احجز تذكرتك لـ "{title}" 🎭',
+                shows_skip_pill: 'تخطّي إلى العروض ↓',
+                seat_auto_pick: 'اختر أفضل المقاعد',
+                seat_auto_pick_done: 'تم اختيار أفضل المقاعد',
+                seat_auto_pick_none: 'لا توجد مقاعد متجاورة كافية',
+                seat_auto_pick_prompt: 'كم مقعد تريد؟',
 
                 /* ===== auth pages ===== */
                 auth_admin_pill: 'دخول الأدمن',
@@ -6013,7 +6244,35 @@
                 thx_step3_html: 'Review usually takes up to <span class="text-[color:var(--prism-text)] font-semibold">24 hours</span>.',
                 thx_footer_html: 'If anything is wrong with the transfer or your details, we’ll reach out before rejecting the request.<br>Don’t worry — your booking is safely stored on our system ✨',
                 thx_back_home: 'Back to home',
+                thx_countdown_label: 'Show starts in',
+                thx_countdown_now: 'The show has started! 🎉',
+                thx_countdown_days: 'd',
+                thx_countdown_hours: 'h',
+                thx_countdown_mins: 'm',
+                thx_add_calendar: 'Add to calendar',
+                thx_share_wa: 'Share on WhatsApp',
+                thx_share_wa_text: 'I just booked a ticket for "{title}" on {date} 🎭',
                 common_egp: 'EGP',
+
+                /* ===== Wave 1 quick wins (copy / share / favorites / ribbons) ===== */
+                copy_aria: 'Copy',
+                copy_done: 'Copied ✓',
+                copy_failed: 'Copy failed',
+                fav_save_aria: 'Save to favorites',
+                fav_unsave_aria: 'Remove from favorites',
+                fav_saved_toast: 'Added to favorites',
+                fav_unsaved_toast: 'Removed from favorites',
+                fav_pill: 'Saved',
+                ribbon_trending: 'Trending',
+                ribbon_selling_fast: 'Selling fast',
+                ribbon_last_n: 'Last {n} seats',
+                share_wa: 'Share on WhatsApp',
+                share_wa_text: 'Book your ticket for "{title}" 🎭',
+                shows_skip_pill: 'Skip to shows ↓',
+                seat_auto_pick: 'Auto-pick best seats',
+                seat_auto_pick_done: 'Best seats picked for you',
+                seat_auto_pick_none: 'Not enough adjacent seats free',
+                seat_auto_pick_prompt: 'How many seats?',
 
                 /* ===== auth pages ===== */
                 auth_admin_pill: 'Admin Access',
@@ -6528,15 +6787,27 @@
             document.documentElement.setAttribute('data-pt-lang', lang);
             document.documentElement.lang = lang;
             document.documentElement.dir  = (lang === 'en') ? 'ltr' : 'rtl';
+            // Read optional `data-i18n-vars='{"n": 5}'` JSON for placeholder
+            // substitution in {n}-style templates. Returns an empty object on
+            // missing/invalid JSON so the raw template still renders cleanly.
+            const readVars = (el) => {
+                const raw = el.getAttribute('data-i18n-vars');
+                if (!raw) return null;
+                try { return JSON.parse(raw); } catch (_) { return null; }
+            };
+            const interp = (s, vars) => {
+                if (!vars || typeof s !== 'string') return s;
+                return s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? vars[k] : m));
+            };
             // Text content
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const k = el.getAttribute('data-i18n');
-                if (dict[k] !== undefined) el.textContent = dict[k];
+                if (dict[k] !== undefined) el.textContent = interp(dict[k], readVars(el));
             });
             // HTML content (for strings that include inline tags / line breaks)
             document.querySelectorAll('[data-i18n-html]').forEach(el => {
                 const k = el.getAttribute('data-i18n-html');
-                if (dict[k] !== undefined) el.innerHTML = dict[k];
+                if (dict[k] !== undefined) el.innerHTML = interp(dict[k], readVars(el));
             });
             // Attribute translation. Encode as `data-i18n-attr="placeholder:key,title:key2"`.
             document.querySelectorAll('[data-i18n-attr]').forEach(el => {
@@ -6649,6 +6920,57 @@
         window.PT.lang = () => document.documentElement.getAttribute('data-pt-lang') || 'ar';
         window.PT.theme = () => document.documentElement.getAttribute('data-pt-theme') || 'dark';
         window.PT.setTheme = applyTheme;
+
+        // ---------- Wave 1: copy + share helpers ----------
+        // Tap-to-copy: any element with [data-pt-copy="value"] copies that
+        // value to clipboard on click and shows a toast. Falls back to
+        // execCommand for older browsers / non-secure contexts.
+        function ptCopyValue(value) {
+            if (value == null) return Promise.reject();
+            const text = String(value);
+            if (navigator.clipboard && window.isSecureContext) {
+                return navigator.clipboard.writeText(text);
+            }
+            return new Promise((resolve, reject) => {
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.setAttribute('readonly', '');
+                    ta.style.position = 'fixed';
+                    ta.style.top = '-1000px';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    const ok = document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    ok ? resolve() : reject();
+                } catch (e) { reject(e); }
+            });
+        }
+        window.PT.copy = ptCopyValue;
+
+        document.addEventListener('click', (e) => {
+            const trigger = e.target.closest('[data-pt-copy]');
+            if (!trigger) return;
+            const value = trigger.getAttribute('data-pt-copy');
+            if (!value) return;
+            e.preventDefault();
+            ptCopyValue(value).then(() => {
+                showToast(window.PT.t('copy_done'));
+                trigger.classList.add('is-copied');
+                setTimeout(() => trigger.classList.remove('is-copied'), 1200);
+            }).catch(() => {
+                showToast(window.PT.t('copy_failed'));
+            });
+        });
+
+        // Share helper — wa.me deep link, falls back to navigator.share
+        // when available. Returns the wa.me URL so callers can also use
+        // it as a plain href.
+        window.PT.shareWA = function (text, url) {
+            const body = (text || '') + (url ? (text ? ' ' : '') + url : '');
+            return 'https://wa.me/?text=' + encodeURIComponent(body);
+        };
 
         // ---------- cinematic homepage v2 (homepage-only motion) ----------
         // Wires up: hero spotlight cursor glow, scroll-parallax orbs,

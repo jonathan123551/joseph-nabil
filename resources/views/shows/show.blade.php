@@ -30,7 +30,7 @@
 
                         <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent pointer-events-none"></div>
 
-                        <div class="absolute top-3 right-3">
+                        <div class="absolute top-3 end-3">
                             <span class="prism-pill prism-pill-neon" data-i18n="show_pill_kind">عرض مسرحي</span>
                         </div>
                     </div>
@@ -43,9 +43,26 @@
                         {{ $show->description }}
                     </p>
 
-                    <div class="mt-3 flex flex-wrap gap-2">
+                    <div class="mt-3 flex flex-wrap gap-2 items-center">
                         <span class="prism-pill"><span class="prism-dot prism-dot-sky"></span> <span data-i18n="show_pill_online">حجز إلكتروني</span></span>
                         <span class="prism-pill"><span class="prism-dot prism-dot-emerald"></span> <span data-i18n="show_pill_qr">تذكرة QR</span></span>
+
+                        {{-- QW#5: WhatsApp share — pre-fills show title + page link.
+                             href is computed at click time via window.PT.shareWA so
+                             the user's own URL (with utm/ref) is captured. --}}
+                        <a href="https://wa.me/?text={{ urlencode('احجز تذكرتك لـ "' . $show->title . '" 🎭 ' . url()->current()) }}"
+                           class="prism-share-wa"
+                           target="_blank" rel="noopener"
+                           data-pt-share-wa
+                           data-share-title="{{ $show->title }}"
+                           data-share-url="{{ url()->current() }}"
+                           data-i18n-attr="aria-label:share_wa"
+                           aria-label="مشاركة عبر واتساب">
+                            <span class="share-wa-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M20.52 3.48A11.86 11.86 0 0 0 12.05 0C5.5 0 .2 5.3.2 11.86c0 2.09.55 4.13 1.59 5.93L0 24l6.36-1.66a11.83 11.83 0 0 0 5.69 1.45h.01c6.55 0 11.86-5.3 11.86-11.85 0-3.17-1.23-6.15-3.4-8.46zM12.06 21.6h-.01a9.8 9.8 0 0 1-4.99-1.36l-.36-.21-3.78.99 1.01-3.69-.23-.38a9.78 9.78 0 0 1-1.5-5.21c0-5.42 4.41-9.83 9.83-9.83 2.62 0 5.09 1.02 6.95 2.88a9.78 9.78 0 0 1 2.88 6.95c.01 5.43-4.4 9.86-9.8 9.86zm5.39-7.36c-.3-.15-1.75-.86-2.02-.96-.27-.1-.47-.15-.66.15-.2.3-.76.96-.93 1.16-.17.2-.34.22-.64.07-.3-.15-1.25-.46-2.38-1.46-.88-.78-1.47-1.74-1.64-2.04-.17-.3-.02-.46.13-.61.13-.13.3-.34.45-.51.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.66-1.6-.91-2.19-.24-.58-.49-.5-.66-.51l-.56-.01c-.2 0-.51.07-.78.37-.27.3-1.03 1.01-1.03 2.46 0 1.45 1.06 2.85 1.21 3.05.15.2 2.09 3.2 5.06 4.49.71.31 1.26.49 1.69.62.71.22 1.35.19 1.86.12.57-.08 1.75-.71 2-1.4.25-.69.25-1.28.17-1.4-.07-.13-.27-.2-.57-.35z"/></svg>
+                            </span>
+                            <span data-i18n="share_wa">مشاركة عبر واتساب</span>
+                        </a>
                     </div>
                 </div>
 
@@ -77,8 +94,9 @@
                                 flex flex-col sm:flex-row sm:items-center justify-between gap-3
                                 @if($isSoldOut) opacity-60 @endif">
 
-                        {{-- Left status accent rail --}}
-                        <div class="absolute right-0 top-0 bottom-0 w-1 rounded-r-2xl
+                        {{-- Status accent rail — uses logical inset-inline-start so
+                             it stays on the leading edge in both RTL and LTR. --}}
+                        <div class="absolute start-0 top-0 bottom-0 w-1 rounded-e-2xl
                             @if($isSoldOut)
                                 bg-rose-500
                             @elseif($fewTickets)
@@ -89,7 +107,7 @@
                             style="box-shadow: 0 0 14px currentColor;">
                         </div>
 
-                        <div class="pr-3 space-y-1">
+                        <div class="ps-3 space-y-1">
                             <div class="text-sm font-medium text-[color:var(--prism-text)]">
                                 {{ $time->date->format('d/m/Y') }}
                                 <span class="text-[color:var(--prism-text-4)] mx-1">·</span>
@@ -135,7 +153,7 @@
                             </div>
                         </div>
 
-                        <div class="pl-1">
+                        <div class="pe-1">
                             @if($isSoldOut)
                                 <span class="prism-pill prism-badge-rose border" data-i18n="shows_status_sold">Sold Out</span>
                             @else
