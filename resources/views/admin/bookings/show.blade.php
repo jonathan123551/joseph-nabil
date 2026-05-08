@@ -180,6 +180,7 @@
          buttons that used to render here have been removed to eliminate
          the duplicate-CTA experience. --}}
 
+         
     {{-- DELETE BUTTON (يظهر بس لو approved) --}}
     @if($booking->status === 'approved')
         <div class="text-center mt-6">
