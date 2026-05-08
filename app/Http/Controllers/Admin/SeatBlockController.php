@@ -134,12 +134,17 @@ class SeatBlockController extends Controller
 
         $requested = array_values(array_unique(array_map('intval', $data['seat_ids'])));
 
-        // Filter to seats that actually belong to this theater.
-        $validSeatIds = Seat::query()
-            ->where('theater_id', $showTime->show->theater_id)
-            ->whereIn('id', $requested)
-            ->pluck('id')
-            ->all();
+        // Filter to seats that actually belong to the Anba-Ruweis theater.
+        // (`shows` has no `theater_id` column — the theater is resolved by
+        // `theater_type`, the same way BookingController does.)
+        $theater = Theater::anbaRuweis();
+        $validSeatIds = $theater
+            ? Seat::query()
+                ->where('theater_id', $theater->id)
+                ->whereIn('id', $requested)
+                ->pluck('id')
+                ->all()
+            : [];
 
         // Refuse to touch seats already booked by a real customer.
         $bookedIds = $showTime->bookedSeats()
