@@ -3758,13 +3758,17 @@
         }
 
         /* Magnetic hover — subtle pull toward the cursor. JS writes
-           --pt-mx and --pt-my and toggles .is-magnet. */
+           --pt-mx and --pt-my and toggles .is-magnet. We use the
+           standalone CSS `translate` property (composed AFTER any
+           `transform` from existing :hover rules) so the magnet
+           layers on top of the existing hover lift instead of
+           fighting it on specificity. */
         .pt-cinema-magnet {
-            transition: transform .25s var(--prism-ease);
-            will-change: transform;
+            transition: translate .25s var(--prism-ease);
+            will-change: translate;
         }
         .pt-cinema-magnet.is-magnet {
-            transform: translate3d(var(--pt-mx, 0px), var(--pt-my, 0px), 0);
+            translate: var(--pt-mx, 0px) var(--pt-my, 0px);
         }
 
         /* ====================================
