@@ -3971,9 +3971,746 @@
                 transform: none !important;
             }
         }
+
+        /* ============================================================
+           CINEMATIC HOMEPAGE LAYER v3 (full-screen scene shell)
+           Mobile-first scroll-driven story. Each scene is 100svh and
+           animates in via IntersectionObserver — JS toggles .is-active
+           on the section. The floating nav fades out while the intro
+           scene is in view for a true full-screen opener. All effects
+           scoped under body.is-pt-cine so other pages are untouched.
+        ============================================================ */
+
+        /* Floating nav fades out while intro is visible */
+        body.is-pt-cine .pt-topbar-wrap {
+            transition: opacity .55s var(--prism-ease), transform .55s var(--prism-ease);
+        }
+        body.is-pt-cine.has-cine-intro-active .pt-topbar-wrap {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-12px);
+        }
+
+        /* Container — homepage only */
+        body.is-pt-cine .pt-cine {
+            position: relative;
+            isolation: isolate;
+        }
+
+        /* Edge-to-edge bleed under the existing layout container */
+        body.is-pt-cine main.prism-stage,
+        body.is-pt-cine .prism-container,
+        body.is-pt-cine .pt-app-shell-main {
+            padding-inline: 0 !important;
+            max-width: none !important;
+        }
+
+        /* Scene shell — 100svh full-screen sections */
+        .pt-cine-scene {
+            position: relative;
+            min-height: 100svh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 96px 22px 80px;
+            overflow: hidden;
+            isolation: isolate;
+        }
+        @supports not (height: 100svh) {
+            .pt-cine-scene { min-height: 100vh; }
+        }
+        @media (min-width: 768px) {
+            .pt-cine-scene { padding: 120px 64px 96px; }
+        }
+
+        /* Backgrounds */
+        .pt-cine-bg {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .pt-cine-orb {
+            position: absolute;
+            width: 60vmin;
+            height: 60vmin;
+            border-radius: 999px;
+            filter: blur(60px);
+            opacity: 0.5;
+            will-change: transform, opacity;
+            animation: ptCineOrbDrift 14s ease-in-out infinite;
+        }
+        .pt-cine-orb-a { background: radial-gradient(circle, #22d3ee 0%, transparent 70%); top: -10%; inset-inline-start: -10%; }
+        .pt-cine-orb-b { background: radial-gradient(circle, #818cf8 0%, transparent 70%); bottom: -15%; inset-inline-end: -15%; animation-delay: -4s; }
+        .pt-cine-orb-c { background: radial-gradient(circle, #c084fc 0%, transparent 70%); top: 30%; inset-inline-end: 10%; opacity: 0.35; animation-delay: -8s; width: 40vmin; height: 40vmin; }
+        .pt-cine-orb-d { background: radial-gradient(circle, #34d399 0%, transparent 70%); top: 18%; inset-inline-start: 5%; }
+        .pt-cine-orb-e { background: radial-gradient(circle, #f472b6 0%, transparent 70%); bottom: 18%; inset-inline-end: -5%; opacity: 0.35; animation-delay: -6s; }
+        .pt-cine-orb-step-a { background: radial-gradient(circle, #f59e0b 0%, transparent 70%); bottom: -8%; inset-inline-end: -5%; opacity: 0.4; }
+        .pt-cine-orb-step-b { background: radial-gradient(circle, #22d3ee 0%, transparent 70%); top: -5%; inset-inline-start: -10%; opacity: 0.42; }
+        .pt-cine-orb-step-c { background: radial-gradient(circle, #34d399 0%, transparent 70%); bottom: -10%; inset-inline-end: -5%; opacity: 0.38; }
+        .pt-cine-orb-step-d { background: radial-gradient(circle, #c084fc 0%, transparent 70%); top: 8%; inset-inline-end: 0%; opacity: 0.42; }
+        .pt-cine-orb-shows-a { background: radial-gradient(circle, #818cf8 0%, transparent 70%); top: -5%; inset-inline-start: -5%; }
+        .pt-cine-orb-shows-b { background: radial-gradient(circle, #34d399 0%, transparent 70%); bottom: -10%; inset-inline-end: -10%; opacity: 0.35; }
+
+        @keyframes ptCineOrbDrift {
+            0%, 100% { transform: translate3d(0,0,0) scale(1); }
+            50%      { transform: translate3d(20px,-30px,0) scale(1.06); }
+        }
+
+        .pt-cine-grain {
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(255,255,255,0.04) 0px, transparent 1.5px),
+                radial-gradient(circle at 70% 80%, rgba(255,255,255,0.03) 0px, transparent 1.5px);
+            background-size: 6px 6px, 8px 8px;
+            opacity: 0.55;
+            pointer-events: none;
+        }
+
+        /* Particles */
+        .pt-cine-particles {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .pt-cine-particles span {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.6);
+            box-shadow: 0 0 8px rgba(255,255,255,0.6);
+            animation: ptCineParticleFloat 10s linear infinite;
+            opacity: 0;
+        }
+        .pt-cine-particles span:nth-child(1)  { top: 10%; left: 8%;  animation-delay: -1s;  animation-duration: 12s; }
+        .pt-cine-particles span:nth-child(2)  { top: 80%; left: 20%; animation-delay: -3s;  animation-duration: 14s; }
+        .pt-cine-particles span:nth-child(3)  { top: 30%; left: 75%; animation-delay: -5s;  animation-duration: 11s; }
+        .pt-cine-particles span:nth-child(4)  { top: 60%; left: 50%; animation-delay: -7s;  animation-duration: 13s; }
+        .pt-cine-particles span:nth-child(5)  { top: 20%; left: 90%; animation-delay: -2s;  animation-duration: 15s; }
+        .pt-cine-particles span:nth-child(6)  { top: 70%; left: 5%;  animation-delay: -4s;  animation-duration: 12s; }
+        .pt-cine-particles span:nth-child(7)  { top: 45%; left: 30%; animation-delay: -6s;  animation-duration: 14s; }
+        .pt-cine-particles span:nth-child(8)  { top: 15%; left: 60%; animation-delay: -8s;  animation-duration: 11s; }
+        .pt-cine-particles span:nth-child(9)  { top: 85%; left: 75%; animation-delay: -9s;  animation-duration: 13s; }
+        .pt-cine-particles span:nth-child(10) { top: 50%; left: 95%; animation-delay: -10s; animation-duration: 15s; }
+        @keyframes ptCineParticleFloat {
+            0%   { opacity: 0; transform: translate3d(0,0,0); }
+            20%  { opacity: 0.8; }
+            50%  { transform: translate3d(20px,-30px,0); }
+            80%  { opacity: 0.4; }
+            100% { opacity: 0; transform: translate3d(40px,-60px,0); }
+        }
+
+        /* Scene-entry stagger — children cascade in once .is-active is set */
+        .pt-cine-stagger > * {
+            opacity: 0;
+            transform: translateY(22px) scale(0.97);
+            filter: blur(8px);
+            transition:
+                opacity .8s var(--prism-ease),
+                transform .8s var(--prism-ease),
+                filter .8s var(--prism-ease);
+            transition-delay: .04s;
+        }
+        .pt-cine-stagger > *:nth-child(2) { transition-delay: .14s; }
+        .pt-cine-stagger > *:nth-child(3) { transition-delay: .26s; }
+        .pt-cine-stagger > *:nth-child(4) { transition-delay: .38s; }
+        .pt-cine-stagger > *:nth-child(5) { transition-delay: .50s; }
+        .pt-cine-stagger > *:nth-child(6) { transition-delay: .62s; }
+        .pt-cine-scene.is-active .pt-cine-stagger > * {
+            opacity: 1;
+            transform: none;
+            filter: none;
+        }
+
+        /* Intro */
+        .pt-cine-intro-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+            text-align: center;
+            max-width: 720px;
+            width: 100%;
+        }
+        .pt-cine-brand-mark {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 72px;
+            height: 72px;
+            border-radius: 22px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+        .pt-cine-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--prism-text-2);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+        .pt-cine-intro-title {
+            font-family: 'Space Grotesk', 'Tajawal', sans-serif;
+            font-size: clamp(38px, 9vw, 76px);
+            line-height: 1.04;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--prism-text);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .pt-cine-line { display: block; }
+        .pt-cine-grad {
+            background: linear-gradient(120deg, #22d3ee 0%, #818cf8 50%, #c084fc 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+        }
+        .pt-cine-intro-sub {
+            color: var(--prism-text-2);
+            font-size: clamp(14px, 2.6vw, 17px);
+            line-height: 1.6;
+            margin: 0;
+            max-width: 540px;
+        }
+        .pt-cine-scroll-cue {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-top: 18px;
+            color: var(--prism-text-3);
+            font-size: 10.5px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+        .pt-cine-scroll-cue-line {
+            display: block;
+            width: 1px;
+            height: 32px;
+            background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.6), transparent);
+            animation: ptCineCue 2s ease-in-out infinite;
+        }
+        @keyframes ptCineCue {
+            0%, 100% { transform: scaleY(0.5); opacity: 0.4; }
+            50%      { transform: scaleY(1);   opacity: 1; }
+        }
+
+        /* Prologue card */
+        .pt-cine-prologue-card {
+            position: relative;
+            z-index: 2;
+            max-width: 600px;
+            width: 100%;
+            padding: 28px 22px;
+            border-radius: 26px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015));
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        @media (min-width: 768px) {
+            .pt-cine-prologue-card { padding: 48px 44px; }
+        }
+        .pt-cine-prologue-title {
+            font-family: 'Space Grotesk', 'Tajawal', sans-serif;
+            font-size: clamp(30px, 6vw, 52px);
+            line-height: 1.06;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--prism-text);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .pt-cine-prologue-body {
+            color: var(--prism-text-2);
+            font-size: clamp(14px, 2.6vw, 17px);
+            line-height: 1.65;
+            margin: 0;
+        }
+        .pt-cine-prologue-tags {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .pt-cine-prologue-tag {
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--prism-text-2);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Step scenes */
+        .pt-cine-scene.is-scene-step {
+            display: grid;
+            grid-template-rows: 1fr auto;
+            align-items: center;
+            justify-items: center;
+            gap: 28px;
+            padding-top: 110px;
+        }
+        .pt-cine-step-num.pt-cine-step-num-bg {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(140px, 36vw, 280px);
+            line-height: 0.85;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            color: rgba(255,255,255,0.04);
+            -webkit-text-stroke: 1px rgba(255,255,255,0.07);
+            pointer-events: none;
+            position: absolute;
+            z-index: 0;
+            top: 50%;
+            inset-inline-start: 50%;
+            transform: translate(-50%, -50%);
+            user-select: none;
+        }
+        .pt-cine-step-stage {
+            position: relative;
+            z-index: 2;
+            width: min(420px, 88vw);
+            aspect-ratio: 4 / 3;
+            border-radius: 26px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.012));
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08);
+            padding: 24px;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+        }
+        .pt-cine-step-stage > * { width: 100%; height: 100%; }
+        /* The mock containers come from v2 — make them fill the new bigger stage */
+        .pt-cine-step-stage .pt-cinema-mock-posters,
+        .pt-cine-step-stage .pt-cinema-mock-seats,
+        .pt-cine-step-stage .pt-cinema-mock-upload,
+        .pt-cine-step-stage .pt-cinema-mock-qr {
+            width: 100%;
+            height: 100%;
+        }
+        .pt-cine-step-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            text-align: center;
+            max-width: 540px;
+        }
+        .pt-cine-step-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--prism-text-3);
+            font-size: 11px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+        .pt-cine-step-emoji { font-size: 16px; line-height: 1; }
+        .pt-cine-step-title {
+            font-family: 'Space Grotesk', 'Tajawal', sans-serif;
+            font-size: clamp(28px, 5vw, 44px);
+            line-height: 1.1;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--prism-text);
+            margin: 0;
+        }
+        .pt-cine-step-body {
+            color: var(--prism-text-2);
+            font-size: clamp(14px, 2.4vw, 16px);
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* Shows scene */
+        .pt-cine-scene.is-scene-shows {
+            align-items: stretch;
+            padding: 96px 22px;
+        }
+        @media (min-width: 768px) {
+            .pt-cine-scene.is-scene-shows { padding: 120px 56px; }
+        }
+        .pt-cine-shows-head {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            text-align: center;
+            margin: 0 auto 32px;
+            max-width: 760px;
+        }
+        .pt-cine-shows-title {
+            font-family: 'Space Grotesk', 'Tajawal', sans-serif;
+            font-size: clamp(34px, 7vw, 60px);
+            line-height: 1.05;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--prism-text);
+            margin: 0;
+        }
+        .pt-cine-shows-sub {
+            color: var(--prism-text-2);
+            font-size: clamp(14px, 2.4vw, 16px);
+            margin: 0;
+        }
+        .pt-cine-shows-stats {
+            display: inline-flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 6px;
+        }
+        .pt-cine-shows-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 16px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            min-width: 88px;
+        }
+        .pt-cine-shows-stat-num {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 19px;
+            font-weight: 800;
+            background: linear-gradient(120deg, #22d3ee, #818cf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .pt-cine-shows-stat-label {
+            color: var(--prism-text-3);
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        /* Featured */
+        .pt-cine-featured {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0;
+            margin: 0 auto 36px;
+            max-width: 1080px;
+            width: 100%;
+            border-radius: 26px;
+            overflow: hidden;
+            background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.012));
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+        }
+        @media (min-width: 768px) {
+            .pt-cine-featured { grid-template-columns: 1.1fr 1fr; }
+        }
+        .pt-cine-featured-poster {
+            position: relative;
+            aspect-ratio: 16 / 10;
+            overflow: hidden;
+        }
+        @media (min-width: 768px) {
+            .pt-cine-featured-poster { aspect-ratio: auto; min-height: 420px; }
+        }
+        .pt-cine-featured-poster img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .pt-cine-featured-poster-empty {
+            height: 100%;
+            display: grid;
+            place-items: center;
+            color: var(--prism-text-4);
+            background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+        }
+        .pt-cine-featured-badge {
+            position: absolute;
+            top: 14px;
+            inset-inline-start: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: var(--prism-text);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .pt-cine-featured-body {
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        @media (min-width: 768px) {
+            .pt-cine-featured-body { padding: 32px; }
+        }
+        .pt-cine-featured-title {
+            font-family: 'Space Grotesk', 'Tajawal', sans-serif;
+            font-size: clamp(22px, 3.5vw, 28px);
+            font-weight: 800;
+            color: var(--prism-text);
+            margin: 0;
+            line-height: 1.18;
+        }
+        .pt-cine-featured-desc {
+            color: var(--prism-text-2);
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0;
+            white-space: pre-line;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .pt-cine-featured-times {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .pt-cine-featured-time {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 9px 12px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            font-size: 13px;
+            color: var(--prism-text-2);
+            gap: 12px;
+        }
+        .pt-cine-featured-time-when { flex: 1; }
+        .pt-cine-featured-time-price { color: var(--prism-text); font-weight: 600; }
+        .pt-cine-featured-time-unit { font-size: 10px; opacity: 0.7; margin-inline-start: 4px; }
+        .pt-cine-featured-empty { color: var(--prism-text-4); font-size: 13px; }
+        .pt-cine-cta-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-radius: 14px;
+            background: linear-gradient(120deg, #22d3ee, #818cf8 50%, #c084fc);
+            color: #0b0c14;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            box-shadow: 0 12px 28px rgba(99,102,241,0.35);
+            transition: transform .2s var(--prism-ease), box-shadow .2s var(--prism-ease);
+            align-self: flex-start;
+        }
+        .pt-cine-cta-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 36px rgba(99,102,241,0.45);
+        }
+
+        /* Show grid */
+        .pt-cine-shows-grid {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            max-width: 1080px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        @media (min-width: 600px) { .pt-cine-shows-grid { grid-template-columns: 1fr 1fr; } }
+        @media (min-width: 1024px) { .pt-cine-shows-grid { grid-template-columns: 1fr 1fr 1fr; } }
+        .pt-cine-show-card {
+            position: relative;
+            border-radius: 22px;
+            overflow: hidden;
+            background: linear-gradient(135deg, rgba(255,255,255,0.045), rgba(255,255,255,0.012));
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            transition: transform .3s var(--prism-ease), box-shadow .3s var(--prism-ease), border-color .3s var(--prism-ease);
+            display: flex;
+            flex-direction: column;
+        }
+        .pt-cine-show-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 28px 70px rgba(0,0,0,0.45);
+            border-color: rgba(34,211,238,0.3);
+        }
+        .pt-cine-show-card-poster {
+            display: block;
+            position: relative;
+            aspect-ratio: 16 / 10;
+            overflow: hidden;
+        }
+        .pt-cine-show-card-poster img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform .6s var(--prism-ease);
+        }
+        .pt-cine-show-card:hover .pt-cine-show-card-poster img {
+            transform: scale(1.06);
+        }
+        .pt-cine-show-card-poster-empty {
+            display: grid;
+            place-items: center;
+            color: var(--prism-text-4);
+            background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+        }
+        .pt-cine-show-card-veil {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.6), transparent 60%);
+            pointer-events: none;
+        }
+        .pt-cine-show-card-body {
+            padding: 14px 16px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+        }
+        .pt-cine-show-card-title {
+            font-family: 'Space Grotesk', 'Tajawal', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--prism-text);
+            margin: 0;
+            line-height: 1.2;
+        }
+        .pt-cine-show-card-desc {
+            color: var(--prism-text-2);
+            font-size: 12.5px;
+            line-height: 1.5;
+            margin: 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .pt-cine-show-card-foot {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: auto;
+            gap: 8px;
+        }
+        .pt-cine-show-card-times {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--prism-text-3);
+            font-size: 11px;
+        }
+        .pt-cine-cta-mini {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            border-radius: 10px;
+            background: rgba(34,211,238,0.12);
+            border: 1px solid rgba(34,211,238,0.25);
+            color: var(--prism-text);
+            font-size: 11px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background .2s var(--prism-ease);
+        }
+        .pt-cine-cta-mini:hover { background: rgba(34,211,238,0.2); }
+        .pt-cine-shows-empty {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--prism-text-2);
+        }
+
+        /* Mobile-first softening */
+        @media (max-width: 540px) {
+            .pt-cine-orb { filter: blur(50px); opacity: 0.4; }
+            .pt-cine-particles span { width: 2px; height: 2px; }
+            .pt-cine-step-num.pt-cine-step-num-bg { font-size: clamp(140px, 38vw, 200px); }
+        }
+
+        /* Touch devices: kill the show-card lift on tap-and-release */
+        @media (hover: none) {
+            .pt-cine-show-card:hover { transform: none; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+            .pt-cine-show-card:hover .pt-cine-show-card-poster img { transform: none; }
+        }
+
+        /* Reduced-motion: freeze the new layer */
+        @media (prefers-reduced-motion: reduce) {
+            .pt-cine-orb,
+            .pt-cine-particles span,
+            .pt-cine-scroll-cue-line {
+                animation: none !important;
+            }
+            .pt-cine-stagger > * {
+                opacity: 1 !important;
+                transform: none !important;
+                filter: none !important;
+                transition: none !important;
+            }
+            .pt-cine-show-card:hover { transform: none !important; }
+            body.is-pt-cine.has-cine-intro-active .pt-topbar-wrap {
+                opacity: 1;
+                pointer-events: auto;
+                transform: none;
+            }
+        }
     </style>
 </head>
-<body class="prism-stage min-h-screen">
+<body class="prism-stage min-h-screen @yield('body_class')">
 
     {{-- ============== Floating Cinematic Header ============== --}}
     <div class="pt-topbar-wrap" id="pt-topbar-wrap">
@@ -4396,6 +5133,25 @@
                 cine_3_b: 'حوّل على المحفظة أو InstaPay وارفع صورة التحويل بثواني داخل تدفق آمن وأنيق.',
                 cine_4_t: 'استلم تذكرتك',
                 cine_4_b: 'تذكرة QR توصلك على واتساب فور الاعتماد · جاهزة للمسح عند البوابة.',
+                // Cinematic homepage v3 (full-screen scenes)
+                cine_intro_eyebrow: 'PREMIUM TICKETS',
+                cine_intro_line_a: 'اكتشف',
+                cine_intro_line_b: 'حجز التذاكر',
+                cine_intro_line_c: 'بشكل مختلف.',
+                cine_intro_sub: 'تجربة سينمائية للحجز على الموبايل · من اختيار العرض حتى تذكرة الـQR على واتساب.',
+                cine_scroll_cue: 'اسحب للأسفل',
+                cine_prologue_eyebrow: 'أهلا بك',
+                cine_prologue_title_a: 'حجز',
+                cine_prologue_title_b: 'من نوع تاني.',
+                cine_prologue_body: 'اختر العرض، احجز مقعدك من الخريطة المباشرة، ادفع بأمان، وتسلّم تذكرتك بكود QR على واتساب — كل ده من الموبايل.',
+                cine_prologue_tag_1: 'سينمائي',
+                cine_prologue_tag_2: 'مباشر',
+                cine_prologue_tag_3: 'آمن',
+                cine_step_eyebrow_1: 'الخطوة الأولى',
+                cine_step_eyebrow_2: 'الخطوة الثانية',
+                cine_step_eyebrow_3: 'الخطوة الثالثة',
+                cine_step_eyebrow_4: 'الخطوة الرابعة',
+                cine_shows_eyebrow: 'العروض المباشرة الآن',
                 shows_title: 'العروض المتاحة', shows_sub: 'اختر عرضك وابدأ الحجز.',
                 shows_eyebrow_featured: 'عرض مميز',
                 shows_pill_times: 'موعد متاح',
@@ -5081,6 +5837,25 @@
                 cine_3_b: 'Transfer to wallet or InstaPay, drop the screenshot, and we take it from there — secure and elegant.',
                 cine_4_t: 'Receive your QR ticket',
                 cine_4_b: 'Your QR ticket lands on WhatsApp the moment we approve — ready to scan at the door.',
+                // Cinematic homepage v3 (full-screen scenes)
+                cine_intro_eyebrow: 'PREMIUM TICKETS',
+                cine_intro_line_a: 'Discover',
+                cine_intro_line_b: 'ticket booking',
+                cine_intro_line_c: 'differently.',
+                cine_intro_sub: 'A cinematic mobile booking experience — from picking a show to your QR ticket on WhatsApp.',
+                cine_scroll_cue: 'Scroll down',
+                cine_prologue_eyebrow: 'Welcome',
+                cine_prologue_title_a: 'Booking',
+                cine_prologue_title_b: 'like never before.',
+                cine_prologue_body: 'Pick a show, book your seat from a live map, pay securely, and receive your QR ticket on WhatsApp — all from your phone.',
+                cine_prologue_tag_1: 'Cinematic',
+                cine_prologue_tag_2: 'Live',
+                cine_prologue_tag_3: 'Secure',
+                cine_step_eyebrow_1: 'Step one',
+                cine_step_eyebrow_2: 'Step two',
+                cine_step_eyebrow_3: 'Step three',
+                cine_step_eyebrow_4: 'Step four',
+                cine_shows_eyebrow: 'Live shows now',
                 shows_title: 'Available shows', shows_sub: 'Pick a show and start booking.',
                 shows_eyebrow_featured: 'Featured show',
                 shows_pill_times: 'showtimes',
@@ -5988,6 +6763,63 @@
                         el.style.setProperty('--pt-my', '0px');
                     });
                 });
+            }
+        })();
+
+        // ---------- Cinematic homepage v3 (full-screen scene story) ----------
+        // Activates each .pt-cine-scene as it enters the viewport (.is-active),
+        // and tracks when the intro scene is in view so the floating nav can
+        // fade out for a true full-screen opener. Homepage-scoped: silently
+        // no-ops on every other page (no [data-pt-cine] root present).
+        (function setupCinemaV3() {
+            const root = document.querySelector('[data-pt-cine]');
+            if (!root) return;
+
+            const scenes = root.querySelectorAll('.pt-cine-scene');
+            if (!scenes.length) return;
+
+            // Intro is full-screen on first paint — flag the body so the
+            // floating nav stays hidden until the user scrolls past it.
+            const introScene = root.querySelector('.is-scene-intro');
+            if (introScene) {
+                document.body.classList.add('has-cine-intro-active');
+            }
+
+            // Activate first scene immediately so its stagger plays on load.
+            requestAnimationFrame(() => {
+                if (scenes[0]) scenes[0].classList.add('is-active');
+            });
+
+            // IntersectionObserver: mark each scene .is-active when it
+            // crosses 35% visibility. We never remove the class once it's
+            // set so re-scrolling up doesn't re-trigger the entrance.
+            if ('IntersectionObserver' in window) {
+                const sceneIO = new IntersectionObserver((entries) => {
+                    entries.forEach((entry) => {
+                        if (entry.isIntersecting && entry.intersectionRatio >= 0.34) {
+                            entry.target.classList.add('is-active');
+                        }
+                    });
+                }, { threshold: [0.34, 0.6] });
+                scenes.forEach((scene) => sceneIO.observe(scene));
+
+                // Watch the intro scene: nav fades back in once it leaves.
+                if (introScene) {
+                    const introIO = new IntersectionObserver((entries) => {
+                        entries.forEach((entry) => {
+                            if (entry.intersectionRatio >= 0.45) {
+                                document.body.classList.add('has-cine-intro-active');
+                            } else {
+                                document.body.classList.remove('has-cine-intro-active');
+                            }
+                        });
+                    }, { threshold: [0, 0.2, 0.45, 0.8] });
+                    introIO.observe(introScene);
+                }
+            } else {
+                // No IO support — just activate everything so content shows.
+                scenes.forEach((s) => s.classList.add('is-active'));
+                document.body.classList.remove('has-cine-intro-active');
             }
         })();
     })();
