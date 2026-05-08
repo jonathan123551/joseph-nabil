@@ -6,21 +6,31 @@
     use App\Models\Show;
     $usesSectionPricing = $show->theater_type === Show::THEATER_ANBA_RUWEIS;
 @endphp
+
 @section('content')
-<section class="max-w-2xl mx-auto px-2 space-y-6 prism-fade-up">
+<section class="max-w-2xl mx-auto space-y-4 prism-fade-up">
 
     {{-- Header --}}
     <div class="prism-glass prism-glow-border p-5">
-        <span class="prism-pill prism-pill-neon">
-            <span class="prism-dot prism-dot-emerald"></span>
-            Edit Show Time
-        </span>
-        <h1 class="prism-headline text-xl md:text-2xl mt-2">
-            <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
-                تعديل موعد
-            </span>
-        </h1>
-        <p class="text-xs text-[color:var(--prism-text-3)] mt-1">🎭 {{ $show->title }}</p>
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div class="space-y-1">
+                <span class="prism-pill prism-pill-neon">
+                    <span class="prism-dot prism-dot-emerald"></span>
+                    Edit Show Time
+                </span>
+                <h1 class="prism-headline text-xl md:text-2xl">
+                    <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                        تعديل موعد
+                    </span>
+                </h1>
+                <p class="text-xs text-[color:var(--prism-text-3)]">🎭 {{ $show->title }}</p>
+            </div>
+
+            <a href="{{ route('admin.shows.times.index', $show) }}" class="prism-btn-ghost text-xs">
+                <span aria-hidden="true">→</span>
+                رجوع للمواعيد
+            </a>
+        </div>
     </div>
 
     {{-- Errors --}}
@@ -35,30 +45,47 @@
         </div>
     @endif
 
-    <form action="{{ route('admin.shows.times.update', [$show, $showTime]) }}" method="POST" class="space-y-5">
+    <form action="{{ route('admin.shows.times.update', [$show, $showTime]) }}" method="POST"
+          class="space-y-4" autocomplete="off">
         @csrf
         @method('PUT')
 
-        <div class="prism-glass p-5 space-y-5 prism-fade-up">
-
-            {{-- DATE & TIME --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-xs text-[color:var(--prism-text-3)]">📅 التاريخ</label>
-                    <input type="date" name="date"
-                           value="{{ old('date', $showTime->date->format('Y-m-d')) }}"
-                           class="prism-input text-sm text-center">
-                </div>
-
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-xs text-[color:var(--prism-text-3)]">⏰ الساعة</label>
-                    <input type="time" name="time"
-                           value="{{ old('time', $showTime->time) }}"
-                           class="prism-input text-sm text-center">
-                </div>
+        {{-- Section: scheduling --}}
+        <div class="pt-form-section">
+            <div class="pt-form-section-head">
+                <span class="pt-form-section-head-icon" aria-hidden="true">📅</span>
+                <span class="pt-form-section-head-title">الموعد</span>
             </div>
 
-            {{-- PRICE & TOTAL --}}
+            <div class="pt-form-grid">
+                <div class="pt-form-field">
+                    <label class="pt-form-field-label">
+                        التاريخ
+                        <span class="pt-form-req" aria-hidden="true">*</span>
+                    </label>
+                    <input type="date" name="date"
+                           value="{{ old('date', $showTime->date->format('Y-m-d')) }}"
+                           class="prism-input text-sm">
+                </div>
+                <div class="pt-form-field">
+                    <label class="pt-form-field-label">
+                        الساعة
+                        <span class="pt-form-req" aria-hidden="true">*</span>
+                    </label>
+                    <input type="time" name="time"
+                           value="{{ old('time', $showTime->time) }}"
+                           class="prism-input text-sm">
+                </div>
+            </div>
+        </div>
+
+        {{-- Section: pricing & inventory --}}
+        <div class="pt-form-section">
+            <div class="pt-form-section-head">
+                <span class="pt-form-section-head-icon" aria-hidden="true">💰</span>
+                <span class="pt-form-section-head-title">السعر والتذاكر</span>
+            </div>
+
             @if ($usesSectionPricing)
                 {{-- Hidden — keep the column populated to satisfy validation,
                      but the value is not used by the booking flow for shows
@@ -66,7 +93,7 @@
                 <input type="hidden" name="ticket_price"
                        value="{{ old('ticket_price', $showTime->ticket_price ?? 0) }}">
 
-                <div class="rounded-xl px-4 py-3 text-xs"
+                <div class="rounded-xl px-3 py-3 text-xs"
                      style="background: rgba(34,211,238,0.06); border: 1px solid rgba(129,140,248,0.32); color: var(--prism-text-2);">
                     <div class="flex items-center gap-2 mb-2">
                         <span class="prism-dot prism-dot-emerald"></span>
@@ -88,41 +115,55 @@
                             </div>
                         </div>
                     </div>
-                    <div class="mt-2 text-[10px] text-[color:var(--prism-text-3)] leading-relaxed">
+                    <p class="pt-form-helper mt-2">
                         هذا العرض يستخدم تسعير حسب القسم. عدّل الأسعار من صفحة تعديل العرض.
-                    </div>
+                    </p>
                 </div>
 
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-xs text-[color:var(--prism-text-3)]">🎟️ إجمالي التذاكر</label>
+                <div class="pt-form-field">
+                    <label class="pt-form-field-label">
+                        إجمالي التذاكر
+                        <span class="pt-form-req" aria-hidden="true">*</span>
+                    </label>
                     <input type="number" min="1" name="total_tickets"
                            value="{{ old('total_tickets', $showTime->total_tickets) }}"
-                           class="prism-input text-sm text-center">
+                           class="prism-input text-sm" inputmode="numeric">
                 </div>
             @else
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs text-[color:var(--prism-text-3)]">💰 سعر التذكرة</label>
+                <div class="pt-form-grid">
+                    <div class="pt-form-field">
+                        <label class="pt-form-field-label">
+                            سعر التذكرة (جنيه)
+                            <span class="pt-form-req" aria-hidden="true">*</span>
+                        </label>
                         <input type="number" step="0.5" min="0" name="ticket_price"
                                value="{{ old('ticket_price', $showTime->ticket_price) }}"
-                               class="prism-input text-sm text-center"
+                               class="prism-input text-sm" inputmode="decimal"
                                style="color: var(--prism-gold); font-weight: 700;">
                     </div>
 
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs text-[color:var(--prism-text-3)]">🎟️ إجمالي التذاكر</label>
+                    <div class="pt-form-field">
+                        <label class="pt-form-field-label">
+                            إجمالي التذاكر
+                            <span class="pt-form-req" aria-hidden="true">*</span>
+                        </label>
                         <input type="number" min="1" name="total_tickets"
                                value="{{ old('total_tickets', $showTime->total_tickets) }}"
-                               class="prism-input text-sm text-center">
+                               class="prism-input text-sm" inputmode="numeric">
                     </div>
                 </div>
             @endif
+        </div>
 
-            {{-- PRISM SWITCH --}}
-            <div class="flex items-center justify-between rounded-xl px-3 py-3"
-                 style="background: rgba(255,255,255,0.04); border: 1px solid var(--prism-border);">
+        {{-- Section: status --}}
+        <div class="pt-form-section">
+            <div class="pt-form-section-head">
+                <span class="pt-form-section-head-icon" aria-hidden="true">⚙️</span>
+                <span class="pt-form-section-head-title">الحالة</span>
+            </div>
 
-                <span class="text-xs text-[color:var(--prism-text-2)]">الحالة</span>
+            <div class="pt-switch-row">
+                <span class="text-xs text-[color:var(--prism-text-2)]">حالة الموعد</span>
 
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" name="is_sold_out" value="1"
@@ -145,18 +186,19 @@
                     </style>
                 </label>
             </div>
-
+            <p class="pt-form-helper">
+                لما تفعّل Sold Out، الموعد بيختفي من صفحات الحجز ومش هيقدر يحجزه أي حد.
+            </p>
         </div>
 
-        {{-- ACTIONS --}}
-        <div class="flex flex-col sm:flex-row gap-3">
+        {{-- Sticky action bar --}}
+        <div class="pt-form-actions-sticky">
             <a href="{{ route('admin.shows.times.index', $show) }}"
-               class="flex-1 text-center prism-btn-ghost text-xs">
+               class="prism-btn-ghost text-sm flex items-center justify-center">
                 <span aria-hidden="true">→</span>
                 رجوع
             </a>
-
-            <button type="submit" class="flex-1 prism-btn text-sm">
+            <button type="submit" class="prism-btn text-sm pt-form-actions-primary flex items-center justify-center">
                 حفظ التعديلات
                 <span aria-hidden="true">←</span>
             </button>

@@ -1391,6 +1391,238 @@
             box-shadow: 0 0 10px rgba(129,140,248,0.6);
         }
 
+        /* ========================================================
+           Admin form helpers
+           Reusable building blocks for the admin create/edit
+           forms (shows + show times). Provides consistent
+           card-based grouping, comfortable touch ergonomics, and
+           a sticky save bar on mobile so primary actions stay
+           reachable on long forms.
+           ======================================================== */
+
+        /* A grouped form section card (basic info, pricing, scheduling…). */
+        .pt-form-section {
+            background:
+                linear-gradient(180deg, rgba(20,24,38,0.55), rgba(8,10,20,0.65));
+            border: 1px solid var(--prism-border);
+            border-radius: 18px;
+            padding: 18px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            position: relative;
+            isolation: isolate;
+        }
+        .pt-form-section + .pt-form-section { margin-top: 14px; }
+
+        @media (min-width: 640px) {
+            .pt-form-section { padding: 22px; gap: 16px; }
+        }
+
+        /* Eyebrow row above section content — small icon + title + optional hint. */
+        .pt-form-section-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px dashed rgba(129,140,248,0.18);
+        }
+        .pt-form-section-head-icon {
+            width: 28px; height: 28px; border-radius: 9px;
+            display: inline-flex; align-items: center; justify-content: center;
+            background:
+                linear-gradient(135deg, rgba(34,211,238,0.18), rgba(192,132,252,0.18));
+            border: 1px solid rgba(129,140,248,0.45);
+            color: var(--prism-text);
+            font-size: 14px;
+            box-shadow: 0 0 14px rgba(129,140,248,0.18);
+        }
+        .pt-form-section-head-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--prism-text);
+            letter-spacing: 0.01em;
+        }
+        .pt-form-section-head-sub {
+            font-size: 11px;
+            color: var(--prism-text-3);
+            margin-inline-start: auto;
+        }
+
+        /* Single column on mobile, two columns at ≥ sm. Used for date/time
+           rows, price/total rows, etc. */
+        .pt-form-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        @media (min-width: 640px) {
+            .pt-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+        }
+        .pt-form-grid-3 {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        @media (min-width: 640px) {
+            .pt-form-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+
+        /* Label/input/helper triplet. The label has a bit more breathing
+           room and the helper text sits muted below the input. */
+        .pt-form-field { display: flex; flex-direction: column; gap: 6px; }
+        .pt-form-field-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--prism-text-2);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .pt-form-field-label .pt-form-req { color: var(--prism-rose); font-weight: 700; }
+        .pt-form-helper {
+            font-size: 11px;
+            color: var(--prism-text-3);
+            line-height: 1.55;
+        }
+
+        /* Drop-zone style file upload. Wraps a native <input type="file">. */
+        .pt-file-zone {
+            position: relative;
+            border-radius: 14px;
+            border: 1px dashed rgba(129,140,248,0.45);
+            background:
+                radial-gradient(120% 80% at 50% 0%, rgba(34,211,238,0.06), transparent 60%),
+                rgba(8,10,20,0.45);
+            padding: 18px 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-align: center;
+            transition: border-color .2s var(--prism-ease), background .2s var(--prism-ease);
+            min-height: 120px;
+        }
+        .pt-file-zone:hover, .pt-file-zone:focus-within {
+            border-color: rgba(34,211,238,0.6);
+            background:
+                radial-gradient(120% 80% at 50% 0%, rgba(34,211,238,0.12), transparent 60%),
+                rgba(8,10,20,0.55);
+        }
+        .pt-file-zone-icon {
+            width: 38px; height: 38px; border-radius: 12px;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, rgba(34,211,238,0.22), rgba(192,132,252,0.22));
+            border: 1px solid rgba(129,140,248,0.45);
+            color: var(--prism-text);
+        }
+        .pt-file-zone-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--prism-text);
+        }
+        .pt-file-zone-sub {
+            font-size: 11px;
+            color: var(--prism-text-3);
+        }
+        .pt-file-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* Form action bar.
+           - On mobile: docks to the bottom of the viewport with a glass
+             pill, respecting safe-area insets, so the primary save CTA is
+             always reachable on long forms.
+           - On ≥ md: collapses to an inline row at the natural form
+             position. */
+        .pt-form-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .pt-form-actions > .pt-form-actions-primary {
+            margin-inline-start: auto;
+        }
+        .pt-form-actions-sticky {
+            position: sticky;
+            bottom: 0;
+            z-index: 30;
+            margin: 4px -4px 0 -4px;
+            padding: 10px 12px calc(10px + env(safe-area-inset-bottom)) 12px;
+            background:
+                linear-gradient(180deg, rgba(8,10,20,0) 0%, rgba(8,10,20,0.85) 35%, rgba(8,10,20,0.95) 100%);
+            backdrop-filter: blur(14px) saturate(160%);
+            -webkit-backdrop-filter: blur(14px) saturate(160%);
+            border-top: 1px solid rgba(129,140,248,0.22);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .pt-form-actions-sticky > * { flex: 1; min-height: 48px; }
+        @media (min-width: 768px) {
+            .pt-form-actions-sticky {
+                position: static;
+                margin: 0;
+                padding: 0;
+                background: none;
+                border: none;
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+            }
+            .pt-form-actions-sticky > * { flex: initial; }
+            .pt-form-actions-sticky .pt-form-actions-primary { margin-inline-start: auto; }
+        }
+
+        /* Theater-type radio cards. Larger touch targets, glow when checked. */
+        .pt-radio-group {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        @media (min-width: 480px) {
+            .pt-radio-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        .pt-radio-card {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 52px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(8,10,20,0.45);
+            border: 1px solid var(--prism-border);
+            color: var(--prism-text);
+            cursor: pointer;
+            transition: border-color .2s var(--prism-ease), background .2s var(--prism-ease), box-shadow .2s var(--prism-ease);
+        }
+        .pt-radio-card:hover { border-color: var(--prism-border-strong); background: rgba(129,140,248,0.06); }
+        .pt-radio-card input[type="radio"] { width: 18px; height: 18px; accent-color: #818cf8; }
+        .pt-radio-card:has(input:checked) {
+            border-color: rgba(129,140,248,0.7);
+            background: linear-gradient(135deg, rgba(34,211,238,0.10), rgba(192,132,252,0.10)), rgba(8,10,20,0.6);
+            box-shadow: 0 0 0 3px rgba(129,140,248,0.12), 0 8px 30px -12px rgba(34,211,238,0.35);
+        }
+
+        /* Inline status switch — used on show-time edit. Same stop motion as
+           the existing custom switch but tidier and bigger touch area. */
+        .pt-switch-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            min-height: 56px;
+            padding: 10px 14px;
+            border-radius: 14px;
+            background: rgba(8,10,20,0.45);
+            border: 1px solid var(--prism-border);
+        }
+
         /* Toolbar — header strip above tables / lists. Holds an
            eyebrow + title on the start, search + filters on the
            end. Sticks to the top of the page on scroll on
