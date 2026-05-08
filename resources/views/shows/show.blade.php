@@ -31,7 +31,7 @@
                         <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent pointer-events-none"></div>
 
                         <div class="absolute top-3 right-3">
-                            <span class="prism-pill prism-pill-neon">عرض مسرحي</span>
+                            <span class="prism-pill prism-pill-neon" data-i18n="show_pill_kind">عرض مسرحي</span>
                         </div>
                     </div>
                 @endif
@@ -44,8 +44,8 @@
                     </p>
 
                     <div class="mt-3 flex flex-wrap gap-2">
-                        <span class="prism-pill"><span class="prism-dot prism-dot-sky"></span> حجز إلكتروني</span>
-                        <span class="prism-pill"><span class="prism-dot prism-dot-emerald"></span> تذكرة QR</span>
+                        <span class="prism-pill"><span class="prism-dot prism-dot-sky"></span> <span data-i18n="show_pill_online">حجز إلكتروني</span></span>
+                        <span class="prism-pill"><span class="prism-dot prism-dot-emerald"></span> <span data-i18n="show_pill_qr">تذكرة QR</span></span>
                     </div>
                 </div>
 
@@ -54,7 +54,7 @@
 
         {{-- ===== Available show times — preserved data, restyled rows ===== --}}
         <div class="space-y-3">
-            <h2 class="prism-headline text-lg sm:text-xl">المواعيد المتاحة</h2>
+            <h2 class="prism-headline text-lg sm:text-xl" data-i18n="show_times_title">المواعيد المتاحة</h2>
 
             <div class="space-y-3 prism-stagger">
 
@@ -100,21 +100,21 @@
 
                                 @if ($usesSectionPricing)
                                     <span>
-                                        الأسعار:
-                                        <span class="text-[color:var(--prism-gold)] font-semibold">
+                                        <span data-i18n="show_prices_label">الأسعار:</span>
+                                        <span class="text-[color:var(--prism-gold)] font-semibold" data-i18n="shows_section_balcony_hall">
                                             بلكون / صالة
                                         </span>
                                         @if ($sectionStartsFrom !== null)
                                             <span class="text-[color:var(--prism-text-3)] text-[10px]">
-                                                — تبدأ من {{ $sectionStartsFrom }} ج
+                                                — <span data-i18n="shows_starts_from">تبدأ من</span> {{ $sectionStartsFrom }} <span data-i18n="shows_egp">جنيه</span>
                                             </span>
                                         @endif
                                     </span>
                                 @else
                                     <span>
-                                        سعر التذكرة:
+                                        <span data-i18n="show_price_label">سعر التذكرة:</span>
                                         <span class="text-[color:var(--prism-gold)] font-semibold">
-                                            {{ $time->ticket_price }} جنيه
+                                            {{ $time->ticket_price }} <span data-i18n="shows_egp">جنيه</span>
                                         </span>
                                     </span>
                                 @endif
@@ -125,11 +125,11 @@
                                     @else                  prism-badge-emerald
                                     @endif border">
                                     @if($isSoldOut)
-                                        Sold Out
+                                        <span data-i18n="shows_status_sold">Sold Out</span>
                                     @elseif($fewTickets)
-                                        تبقّى {{ $remaining }} تذكرة
+                                        <span data-i18n="shows_status_few">تبقّى</span> {{ $remaining }} <span data-i18n="shows_status_few_suffix">تذكرة</span>
                                     @else
-                                        متاح للحجز
+                                        <span data-i18n="shows_status_available">متاح للحجز</span>
                                     @endif
                                 </span>
                             </div>
@@ -137,12 +137,12 @@
 
                         <div class="pl-1">
                             @if($isSoldOut)
-                                <span class="prism-pill prism-badge-rose border">Sold Out</span>
+                                <span class="prism-pill prism-badge-rose border" data-i18n="shows_status_sold">Sold Out</span>
                             @else
                                 <a href="{{ route('bookings.create', $time) }}"
                                    class="@if($fewTickets) prism-btn-gold @else prism-btn @endif prism-ripple">
-                                    احجز الآن
-                                    <span aria-hidden="true">←</span>
+                                    <span data-i18n="btn_book_now">احجز الآن</span>
+                                    <span class="pt-arrow-rtl" aria-hidden="true">←</span>
                                 </a>
                             @endif
                         </div>
@@ -150,7 +150,7 @@
                     </div>
 
                 @empty
-                    <p class="text-xs text-[color:var(--prism-text-3)]">
+                    <p class="text-xs text-[color:var(--prism-text-3)]" data-i18n="show_no_times">
                         لا توجد مواعيد متاحة حاليًا لهذا العرض.
                     </p>
                 @endforelse
@@ -159,8 +159,8 @@
         </div>
 
         <a href="{{ route('shows.index') }}" class="inline-flex items-center gap-2 text-sm text-[color:var(--prism-text-3)] hover:text-[color:var(--prism-text)] transition">
-            <span aria-hidden="true">→</span>
-            رجوع لكل العروض
+            <span class="pt-arrow-rtl-back" aria-hidden="true">→</span>
+            <span data-i18n="btn_back_shows">رجوع لكل العروض</span>
         </a>
 
     </section>

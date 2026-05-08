@@ -122,13 +122,13 @@
         {{-- step indicator --}}
         <div class="step-indicator prism-fade-up">
             <span class="dot">1</span>
-            <span>القسم</span>
+            <span data-i18n="step_section">القسم</span>
             <span class="line"></span>
             <span class="dot dim">2</span>
-            <span>المقعد</span>
+            <span data-i18n="step_seat">المقعد</span>
             <span class="line"></span>
             <span class="dot dim">3</span>
-            <span>التأكيد</span>
+            <span data-i18n="step_confirm">التأكيد</span>
         </div>
 
         {{-- show header --}}
@@ -145,8 +145,8 @@
         {{-- section choice --}}
         <div class="prism-glass p-5 sm:p-6 space-y-4 prism-fade-up" style="animation-delay:.1s;">
             <div class="text-center">
-                <h2 class="prism-headline text-sm sm:text-base">اختار القسم</h2>
-                <p class="text-[11px] text-[color:var(--prism-text-3)] mt-1">
+                <h2 class="prism-headline text-sm sm:text-base" data-i18n="pick_section_title">اختار القسم</h2>
+                <p class="text-[11px] text-[color:var(--prism-text-3)] mt-1" data-i18n="pick_section_sub">
                     حدد القسم اللي عايز تحجز فيه
                 </p>
             </div>
@@ -155,11 +155,14 @@
                 <a href="{{ route('bookings.seats', $showTime) }}?section=hall"
                    class="section-btn prism-ripple"
                    data-section="hall">
-                    <span class="section-label">الصالة (Hall)</span>
-                    <span class="section-price">
-                        {{ $hallPrice }} جنيه / مقعد
+                    <span class="section-label">
+                        <span data-i18n="section_hall">الصالة</span>
+                        <span class="opacity-70">(<span data-i18n="section_hall_en">Hall</span>)</span>
                     </span>
-                    <span class="section-meta">اختار مقعدك من خريطة الصالة</span>
+                    <span class="section-price">
+                        {{ $hallPrice }} <span data-i18n="shows_per_seat">جنيه / مقعد</span>
+                    </span>
+                    <span class="section-meta" data-i18n="section_hall_meta">اختار مقعدك من خريطة الصالة</span>
                 </a>
 
                 <button type="button"
@@ -167,11 +170,18 @@
                         disabled
                         aria-disabled="true"
                         data-section="balcony">
-                    <span class="section-label">البلكون (Balcony)</span>
-                    <span class="section-price">
-                        {{ $balconyPrice > 0 ? $balconyPrice . ' جنيه / تذكرة' : '—' }}
+                    <span class="section-label">
+                        <span data-i18n="section_balcony">البلكون</span>
+                        <span class="opacity-70">(<span data-i18n="section_balcony_en">Balcony</span>)</span>
                     </span>
-                    <span class="badge-soon">قريبًا</span>
+                    <span class="section-price">
+                        @if ($balconyPrice > 0)
+                            {{ $balconyPrice }} <span data-i18n="shows_per_ticket">جنيه / تذكرة</span>
+                        @else
+                            —
+                        @endif
+                    </span>
+                    <span class="badge-soon" data-i18n="section_soon">قريبًا</span>
                 </button>
             </div>
         </div>
@@ -181,18 +191,19 @@
         @if (!empty($transferWallet) || !empty($transferInsta))
             <div class="prism-glass p-5 sm:p-6 space-y-2 prism-fade-up" style="animation-delay:.15s;">
                 <h3 class="text-[12px] font-semibold flex items-center gap-2"
-                    style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                    style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;"
+                    data-i18n="pay_eyebrow">
                     💸 ادفع قيمة التذكرة على
                 </h3>
                 @if (!empty($transferWallet))
                     <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
-                        <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5">📱 محفظة</p>
+                        <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_wallet">📱 محفظة</p>
                         <p class="text-sm font-bold text-[color:var(--prism-text)] tracking-wide" dir="ltr">{{ $transferWallet }}</p>
                     </div>
                 @endif
                 @if (!empty($transferInsta))
                     <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
-                        <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5">⚡ InstaPay</p>
+                        <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_insta">⚡ InstaPay</p>
                         <p class="text-sm font-bold text-[color:var(--prism-text)] tracking-wide" dir="ltr">{{ $transferInsta }}</p>
                     </div>
                 @endif
@@ -229,7 +240,8 @@
         <div class="md:col-span-1 prism-glass prism-glow-border p-5 space-y-4">
 
             <h2 class="text-sm font-semibold prism-headline"
-                style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;"
+                data-i18n="book_form_show_details">
                 🎭 تفاصيل العرض
             </h2>
 
@@ -241,7 +253,7 @@
                 <p class="flex items-center gap-2"><span>📅</span>{{ \Carbon\Carbon::parse($showTime->date)->format('d-m-Y') }}</p>
                 <p class="flex items-center gap-2"><span>⏰</span>{{ \Carbon\Carbon::parse($showTime->time)->format('g:i A') }}</p>
                 <p class="text-[color:var(--prism-gold)] font-semibold flex items-center gap-2">
-                    <span>🎟️</span>{{ $showTime->ticket_price }} جنيه
+                    <span>🎟️</span>{{ $showTime->ticket_price }} <span data-i18n="shows_egp">جنيه</span>
                 </p>
             </div>
 
@@ -249,21 +261,24 @@
             <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-2xl p-4 space-y-2">
 
                 <h3 class="text-xs font-semibold"
-                    style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                    style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;"
+                    data-i18n="book_step1_pay_title">
                     خطوة 1: حوّل قيمة التذكرة
                 </h3>
 
                 <p class="text-[11px] text-[color:var(--prism-text-3)]">
-                    حوّل {{ $showTime->ticket_price }} جنيه على أحد الأرقام التالية:
+                    <span data-i18n="book_step1_pay_desc_a">حوّل</span>
+                    {{ $showTime->ticket_price }}
+                    <span data-i18n="book_step1_pay_desc_b">جنيه على أحد الأرقام التالية:</span>
                 </p>
 
                 <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl p-2.5">
-                    <p class="text-[10px] text-[color:var(--prism-text-3)]">📱 محفظة</p>
+                    <p class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="pay_wallet">📱 محفظة</p>
                     <p class="text-sm font-bold text-[color:var(--prism-text)]" dir="ltr">{{ $transferWallet }}</p>
                 </div>
 
                 <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl p-2.5">
-                    <p class="text-[10px] text-[color:var(--prism-text-3)]">⚡ InstaPay</p>
+                    <p class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="pay_insta">⚡ InstaPay</p>
                     <p class="text-sm font-bold text-[color:var(--prism-text)]" dir="ltr">{{ $transferInsta }}</p>
                 </div>
 
@@ -277,7 +292,8 @@
         <div class="md:col-span-2 prism-glass p-6 space-y-4">
 
             <h2 class="text-sm font-semibold"
-                style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;"
+                data-i18n="book_step2_title">
                 خطوة 2: ارفع Screenshot وكمّل البيانات
             </h2>
 
@@ -300,7 +316,7 @@
 
                 {{-- 👥 عدد التذاكر --}}
                 <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-2xl p-4 space-y-3">
-                    <label class="text-xs font-semibold text-[color:var(--prism-text)]">
+                    <label class="text-xs font-semibold text-[color:var(--prism-text)]" data-i18n="book_tickets_count">
                         👥 عدد التذاكر
                     </label>
 
@@ -322,7 +338,7 @@
 
                 {{-- Screenshot --}}
                 <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-2xl p-4 space-y-2">
-                    <label class="text-xs font-semibold text-[color:var(--prism-text)]">
+                    <label class="text-xs font-semibold text-[color:var(--prism-text)]" data-i18n="book_screenshot_legacy">
                         📸 Screenshot التحويل
                     </label>
 
@@ -341,8 +357,8 @@
                         id="submitBtn"
                         disabled
                         class="prism-btn prism-ripple w-full sm:w-auto">
-                    إرسال طلب الحجز
-                    <span aria-hidden="true">←</span>
+                    <span data-i18n="book_send_request">إرسال طلب الحجز</span>
+                    <span class="pt-arrow-rtl" aria-hidden="true">←</span>
                 </button>
             </form>
         </div>
@@ -367,28 +383,42 @@ const namesContainer = document.getElementById('namesContainer');
 const ticketsInput = document.getElementById('tickets_count');
 const countDisplay = document.getElementById('ticketsCount');
 
+function escapeAttr(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+function tt(key, fallback, vars) {
+    const fn = (window.PT_T || ((k, f) => f));
+    return fn(key, fallback, vars || {});
+}
+
 function renderNames() {
     namesContainer.innerHTML = '';
 
     for (let i = 1; i <= count; i++) {
         const wrap = document.createElement('div');
         wrap.className = 'space-y-2 bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl p-3';
+        const namePh  = tt('book_form_name_ph', 'اسم الشخص {n}', { n: i });
+        const phonePh = tt('book_form_phone_ph', 'رقم موبايل واتساب {n}', { n: i });
         wrap.innerHTML = `
             <input type="text"
                 name="names[]"
-                placeholder="اسم الشخص ${i}"
+                placeholder="${escapeAttr(namePh)}"
                 class="prism-input"
                 required>
 
             <input type="text"
                 name="phones[]"
-                placeholder="رقم موبايل واتساب ${i}"
+                placeholder="${escapeAttr(phonePh)}"
                 class="prism-input"
                 required>
         `;
         namesContainer.appendChild(wrap);
     }
 }
+
+// Re-render placeholders when language changes so AR/EN switch live.
+window.addEventListener('pt-lang-changed', renderNames);
 
 function changeCount(val) {
     count += val;
@@ -398,7 +428,7 @@ function changeCount(val) {
     if (count > maxTickets) {
         count = maxTickets;
 
-        alert("❌ لا يوجد تذاكر متاحة، المتاح: " + maxTickets);
+        alert(tt('book_no_tickets_alert', '❌ لا يوجد تذاكر متاحة، المتاح: {n}', { n: maxTickets }));
     }
 
     countDisplay.innerText = count;
@@ -435,7 +465,7 @@ bookingForm.addEventListener('submit', function (e) {
 
     isSubmitting = true;
     submitBtn.disabled = true;
-    submitBtn.innerText = 'جارِ الإرسال...';
+    submitBtn.innerText = tt('book_sending', 'جارِ الإرسال...');
 });
 
 </script>

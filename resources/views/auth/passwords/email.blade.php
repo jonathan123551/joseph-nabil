@@ -9,11 +9,12 @@
             <div class="text-center space-y-2">
                 <span class="prism-pill prism-pill-neon mx-auto">
                     <span class="prism-dot prism-dot-sky"></span>
-                    {{ __('Reset Password') }}
+                    <span data-i18n="auth_reset_pill">إعادة تعيين كلمة المرور</span>
                 </span>
                 <h2 class="prism-headline text-xl">
-                    <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
-                        {{ __('Reset Password') }}
+                    <span data-i18n="auth_reset_title"
+                          style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                        إعادة تعيين كلمة المرور
                     </span>
                 </h2>
             </div>
@@ -29,7 +30,8 @@
                 @csrf
 
                 <div>
-                    <label for="email" class="text-xs mb-1 block text-[color:var(--prism-text-2)]">{{ __('Email Address') }}</label>
+                    <label for="email" class="text-xs mb-1 block text-[color:var(--prism-text-2)]"
+                           data-i18n="auth_email">البريد الإلكتروني</label>
                     <input id="email" type="email" name="email" value="{{ old('email') }}"
                            class="prism-input text-sm @error('email') ring-1 ring-rose-400 @enderror"
                            required autocomplete="email" autofocus>
@@ -38,8 +40,9 @@
                     @enderror
                 </div>
 
-                <button type="submit" class="prism-btn w-full mt-2">
-                    {{ __('Send Password Reset Link') }}
+                <button type="submit" class="prism-btn w-full mt-2"
+                        data-i18n="auth_send_reset_link">
+                    إرسال رابط إعادة التعيين
                 </button>
             </form>
         </div>

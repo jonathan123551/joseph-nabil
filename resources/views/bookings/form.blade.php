@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'إكمال الحجز · ' . $showTime->show->title)
+@section('title', __('إكمال الحجز') . ' · ' . $showTime->show->title)
 
 @section('content')
 
@@ -322,13 +322,13 @@
         {{-- step indicator --}}
         <div class="step-indicator">
             <span class="dot done">✓</span>
-            <span>القسم</span>
+            <span data-i18n="step_section">القسم</span>
             <span class="line"></span>
             <span class="dot done">✓</span>
-            <span>المقعد</span>
+            <span data-i18n="step_seat">المقعد</span>
             <span class="line"></span>
             <span class="dot cur">3</span>
-            <span>التأكيد</span>
+            <span data-i18n="step_confirm">التأكيد</span>
         </div>
 
         {{-- show details --}}
@@ -341,7 +341,12 @@
                 <span class="prism-pill">📅 {{ \Carbon\Carbon::parse($showTime->date)->format('d-m-Y') }}</span>
                 <span class="prism-pill">⏰ {{ \Carbon\Carbon::parse($showTime->time)->format('g:i A') }}</span>
                 <span class="prism-pill prism-pill-neon">
-                    🎟️ {{ $unitPrice }} جنيه / مقعد · {{ $sectionParam === 'balcony' ? 'البلكون' : 'الصالة' }}
+                    🎟️ {{ $unitPrice }} <span data-i18n="seat_per_seat">جنيه / مقعد</span> ·
+                    @if ($sectionParam === 'balcony')
+                        <span data-i18n="section_balcony">البلكون</span>
+                    @else
+                        <span data-i18n="section_hall">الصالة</span>
+                    @endif
                 </span>
             </div>
         </div>
@@ -350,26 +355,27 @@
         <div class="prism-glass p-5 sm:p-6 space-y-3">
             <div class="flex items-center justify-between gap-2 flex-wrap">
                 <h2 class="prism-headline text-sm sm:text-base"
-                    style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                    style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;"
+                    data-i18n="seat_selected_label">
                     المقاعد المختارة
                 </h2>
                 <a href="{{ route('bookings.seats', $showTime) }}?section={{ $sectionParam }}"
                    class="add-seats-btn prism-ripple">
                     <span>＋</span>
-                    <span>إضافة / تعديل المقاعد</span>
+                    <span data-i18n="form_add_edit_seats">إضافة / تعديل المقاعد</span>
                 </a>
             </div>
 
-            <p class="text-[11px] text-[color:var(--prism-text-3)] leading-relaxed">
+            <p class="text-[11px] text-[color:var(--prism-text-3)] leading-relaxed" data-i18n="form_chips_hint">
                 اضغط × على أي مقعد لإلغاء اختياره، أو اضغط "إضافة / تعديل المقاعد" للرجوع لخريطة المقاعد.
             </p>
 
             <div data-form-chips class="flex flex-wrap gap-1.5 min-h-[44px] p-2 rounded-xl bg-black/40 border border-[color:var(--prism-border)]">
-                <span class="text-[11px] text-[color:var(--prism-text-4)]" data-empty-msg>جارٍ تحميل المقاعد المختارة...</span>
+                <span class="text-[11px] text-[color:var(--prism-text-4)]" data-empty-msg data-i18n="form_loading_seats">جارٍ تحميل المقاعد المختارة...</span>
             </div>
 
             <div class="total-bar">
-                <span class="label">الإجمالي</span>
+                <span class="label" data-i18n="seat_total">الإجمالي</span>
                 <span><span class="amount" data-form-total>0</span> <span class="text-[10px] text-[color:var(--prism-text-3)]">EGP</span></span>
             </div>
         </div>
@@ -377,25 +383,28 @@
         {{-- booking instructions --}}
         <div class="prism-glass p-5 sm:p-6 space-y-3">
             <h3 class="prism-headline text-sm flex items-center gap-2"
-                style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;"
+                data-i18n="form_steps_title">
                 📌 خطوات إكمال الحجز
             </h3>
             <ol class="step-list">
                 <li>
-                    حوّل قيمة الحجز
-                    (<span class="text-[color:var(--prism-gold)] font-bold"><span data-form-total-inline>0</span> جنيه</span>)
-                    على المحفظة أو InstaPay الموضحة بالأسفل.
+                    <span data-i18n="form_step1_a">حوّل قيمة الحجز</span>
+                    (<span class="text-[color:var(--prism-gold)] font-bold"><span data-form-total-inline>0</span> <span data-i18n="shows_egp">جنيه</span></span>)
+                    <span data-i18n="form_step1_b">على المحفظة أو InstaPay الموضحة بالأسفل.</span>
                 </li>
-                <li>
+                <li data-i18n="form_step2">
                     التقط صورة (Screenshot) لإيصال التحويل وارفعها في الخانة المخصصة.
                 </li>
-                <li>
+                <li data-i18n="form_step3">
                     اكتب اسم ورقم واتساب لكل شخص بترتيب المقاعد المحجوزة.
                 </li>
                 <li>
-                    اضغط <span class="text-[color:var(--prism-text)] font-bold">"تأكيد الحجز"</span> —
-                    هنراجع الطلب ونرسل التذاكر على رقم الواتساب خلال
-                    <span class="text-[color:var(--prism-text)] font-semibold">24 ساعة</span> كحد أقصى.
+                    <span data-i18n="form_step4_a">اضغط</span>
+                    <span class="text-[color:var(--prism-text)] font-bold">"<span data-i18n="form_confirm_btn">تأكيد الحجز</span>"</span> —
+                    <span data-i18n="form_step4_b">هنراجع الطلب ونرسل التذاكر على رقم الواتساب خلال</span>
+                    <span class="text-[color:var(--prism-text)] font-semibold" data-i18n="form_step4_24h">24 ساعة</span>
+                    <span data-i18n="form_step4_max">كحد أقصى.</span>
                 </li>
             </ol>
         </div>
@@ -404,18 +413,19 @@
         @if (!empty($transferWallet) || !empty($transferInsta))
             <div class="prism-glass p-5 sm:p-6 space-y-2">
                 <h3 class="text-[12px] font-semibold flex items-center gap-2"
-                    style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                    style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;"
+                    data-i18n="pay_eyebrow">
                     💸 ادفع قيمة الحجز على
                 </h3>
                 @if (!empty($transferWallet))
                     <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
-                        <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5">📱 محفظة</p>
+                        <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_wallet">📱 محفظة</p>
                         <p class="text-sm font-bold text-[color:var(--prism-text)] tracking-wide" dir="ltr">{{ $transferWallet }}</p>
                     </div>
                 @endif
                 @if (!empty($transferInsta))
                     <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
-                        <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5">⚡ InstaPay</p>
+                        <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_insta">⚡ InstaPay</p>
                         <p class="text-sm font-bold text-[color:var(--prism-text)] tracking-wide" dir="ltr">{{ $transferInsta }}</p>
                     </div>
                 @endif
@@ -441,7 +451,7 @@
                   id="anbaFinalForm"
                   class="space-y-5"
                   novalidate
-                  data-pt-confirm='{"tone":"warn","title":"تأكيد الحجز","body":"هتقدم طلب الحجز للمراجعة. لما يتأكد، هتوصلك التذكرة على واتساب.","okLabel":"تأكيد","cancelLabel":"إلغاء","okVariant":"emerald"}'>
+                  data-pt-confirm='{"tone":"warn","i18nKeys":{"title":"form_confirm_modal_title","body":"form_confirm_modal_body","okLabel":"form_confirm_ok","cancelLabel":"form_confirm_cancel"},"title":"تأكيد الحجز","body":"هتقدم طلب الحجز للمراجعة. لما يتأكد، هتوصلك التذكرة على واتساب.","okLabel":"تأكيد","cancelLabel":"إلغاء","okVariant":"emerald"}'>
                 @csrf
                 <input type="hidden" name="section" value="{{ $sectionParam }}">
 
@@ -449,9 +459,9 @@
                     <div class="flex items-center justify-between gap-2 flex-wrap">
                         <h3 class="text-[13px] font-bold text-[color:var(--prism-text)] flex items-center gap-2">
                             <span aria-hidden="true">👥</span>
-                            بيانات الحضور
+                            <span data-i18n="form_attendees_title">بيانات الحضور</span>
                         </h3>
-                        <span class="text-[10px] text-[color:var(--prism-text-3)]">اكتب اسم ورقم واتساب لكل مقعد</span>
+                        <span class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="form_attendees_hint">اكتب اسم ورقم واتساب لكل مقعد</span>
                     </div>
 
                     {{-- attendee cards rendered into here from localStorage --}}
@@ -462,9 +472,9 @@
                     <label for="anbaScreenshotFinal" class="field-label" style="margin-bottom:0;">
                         <span class="flex items-center gap-2 text-[12px] font-semibold text-[color:var(--prism-text)]">
                             <span aria-hidden="true">📸</span>
-                            إيصال التحويل
+                            <span data-i18n="form_screenshot">إيصال التحويل</span>
                         </span>
-                        <span class="req">مطلوب</span>
+                        <span class="req" data-i18n="form_required">مطلوب</span>
                     </label>
                     <div data-screenshot-zone>
                         <input type="file"
@@ -489,21 +499,21 @@
      transformed ancestor doesn't interfere with sticky bounds. Pinned to
      viewport bottom while the user scrolls through the .anba-flow wrapper,
      settles naturally at the end of the booking flow above the footer. --}}
-<div class="anba-dock" data-anba-dock role="region" aria-label="ملخص الحجز">
+<div class="anba-dock" data-anba-dock role="region" data-i18n-attr="aria-label:form_dock_aria" aria-label="ملخص الحجز">
     <div class="anba-dock-inner">
         <div class="anba-dock-summary">
-            <div class="anba-dock-eyebrow">الإجمالي</div>
+            <div class="anba-dock-eyebrow" data-i18n="seat_total">الإجمالي</div>
             <div class="anba-dock-amount">
-                <span data-form-mobile-count>0</span> مقعد ·
+                <span data-form-mobile-count>0</span> <span data-i18n="seat_chip_seat">مقعد</span> ·
                 <span class="gold"><span data-form-mobile-total>0</span> EGP</span>
             </div>
-            <div class="anba-dock-hint" data-form-dock-hint>اكمل الحقول المطلوبة</div>
+            <div class="anba-dock-hint" data-form-dock-hint data-i18n="form_dock_hint">اكمل الحقول المطلوبة</div>
         </div>
         <button type="submit"
                 form="anbaFinalForm"
                 data-form-mobile-submit
                 class="prism-btn prism-ripple anba-dock-cta">
-            تأكيد الحجز
+            <span data-i18n="form_confirm_btn">تأكيد الحجز</span>
             <span aria-hidden="true">✓</span>
         </button>
     </div>
@@ -560,21 +570,27 @@
     const emptyMsg      = root.querySelector('[data-empty-msg]');
 
     // ----- render chips (with × delete) -----
+    function tt(key, fallback, vars) {
+        const fn = (window.PT_T || ((k, f) => f));
+        return fn(key, fallback, vars || {});
+    }
+
     function renderChips() {
         chipsBox.innerHTML = '';
         if (seats.length === 0) {
             const span = document.createElement('span');
             span.className = 'text-[11px] text-[color:var(--prism-text-4)]';
-            span.textContent = 'لم يعد هناك مقاعد مختارة';
+            span.textContent = tt('form_chips_empty', 'لم يعد هناك مقاعد مختارة');
             chipsBox.appendChild(span);
             return;
         }
         seats.forEach(s => {
             const chip = document.createElement('span');
             chip.className = 'seat-chip';
+            const removeAria = tt('form_chip_remove_aria', 'إلغاء {label}', { label: s.label });
             chip.innerHTML = `
                 <span>${escapeHtml(s.label)}</span>
-                <button type="button" data-remove="${s.id}" aria-label="إلغاء ${escapeHtml(s.label)}">✕</button>
+                <button type="button" data-remove="${s.id}" aria-label="${escapeAttr(removeAria)}">✕</button>
             `;
             chipsBox.appendChild(chip);
         });
@@ -602,19 +618,23 @@
             wrap.dataset.seatId = s.id;
             const nameId  = `anba-name-${s.id}`;
             const phoneId = `anba-phone-${s.id}`;
+            const nameLbl   = tt('form_name_label',  'الاسم');
+            const phoneLbl  = tt('form_phone_label', 'رقم واتساب');
+            const reqLbl    = tt('form_required',    'مطلوب');
+            const namePh    = tt('book_form_name_ph', 'اسم الشخص {n}', { n: i + 1 });
             wrap.innerHTML = `
                 <div class="seat-pill">${escapeHtml(s.label)}</div>
                 <div class="field-stack">
                     <input type="hidden" name="seat_ids[]" value="${s.id}">
                     <div>
                         <label for="${nameId}" class="field-label">
-                            <span>الاسم</span>
-                            <span class="req">مطلوب</span>
+                            <span>${escapeHtml(nameLbl)}</span>
+                            <span class="req">${escapeHtml(reqLbl)}</span>
                         </label>
                         <input type="text"
                                id="${nameId}"
                                name="names[]"
-                               placeholder="اسم الشخص ${i + 1}"
+                               placeholder="${escapeAttr(namePh)}"
                                class="field-input"
                                autocomplete="name"
                                autocapitalize="words"
@@ -623,8 +643,8 @@
                     </div>
                     <div>
                         <label for="${phoneId}" class="field-label">
-                            <span>رقم واتساب</span>
-                            <span class="req">مطلوب</span>
+                            <span>${escapeHtml(phoneLbl)}</span>
+                            <span class="req">${escapeHtml(reqLbl)}</span>
                         </label>
                         <input type="tel"
                                id="${phoneId}"
@@ -641,6 +661,12 @@
             attendees.appendChild(wrap);
         });
     }
+
+    // Re-render attendee cards + chips when language toggles so AR/EN labels stay in sync.
+    window.addEventListener('pt-lang-changed', () => {
+        renderChips();
+        renderAttendees();
+    });
 
     // Clear invalid styling on any input/edit so the user gets immediate
     // visual feedback that the issue was addressed.
@@ -771,7 +797,7 @@
         if (seats.length === 0) {
             e.preventDefault();
             e.stopImmediatePropagation();
-            alert('❌ من فضلك اختر مقعد واحد على الأقل');
+            alert(tt('form_at_least_one', '❌ من فضلك اختر مقعد واحد على الأقل'));
             window.location.replace(seatsUrl);
             return false;
         }
@@ -789,7 +815,7 @@
         const dockBtn = document.querySelector('[data-form-mobile-submit]');
         if (dockBtn) {
             dockBtn.disabled = true;
-            dockBtn.innerText = 'جارِ الإرسال...';
+            dockBtn.innerText = tt('book_sending', 'جارِ الإرسال...');
         }
         // Selection successfully sent — clear so refresh / back doesn't
         // resurrect an old payload. (If the server returns validation

@@ -17,10 +17,11 @@
         <div class="space-y-1">
             <span class="prism-pill prism-pill-neon">
                 <span class="prism-dot prism-dot-emerald"></span>
-                Show Times
+                <span data-i18n="adm_times_pill">Show Times</span>
             </span>
             <h1 class="prism-headline text-xl sm:text-2xl">
-                <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                <span data-i18n="adm_times_title"
+                      style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
                     مواعيد العرض
                 </span>
             </h1>
@@ -29,12 +30,12 @@
 
         <div class="flex items-center gap-2 flex-wrap">
             <a href="{{ route('admin.shows.times.create', $show) }}" class="prism-btn text-sm">
-                + إضافة موعد جديد
+                <span data-i18n="adm_times_add">+ إضافة موعد جديد</span>
             </a>
 
             <a href="{{ route('admin.shows.index') }}" class="prism-btn-ghost text-xs">
-                <span aria-hidden="true">→</span>
-                رجوع
+                <span aria-hidden="true" class="pt-arrow-rtl">→</span>
+                <span data-i18n="adm_back">رجوع</span>
             </a>
         </div>
     </div>
@@ -48,7 +49,8 @@
     @endif
 
     @if($times->isEmpty())
-        <div class="prism-glass p-6 text-center text-sm text-[color:var(--prism-text-3)] prism-fade-up">
+        <div class="prism-glass p-6 text-center text-sm text-[color:var(--prism-text-3)] prism-fade-up"
+             data-i18n="adm_times_empty">
             لا توجد مواعيد لهذا العرض حتى الآن.
         </div>
     @else
@@ -60,12 +62,12 @@
 
                     <thead style="background: rgba(255,255,255,0.04);">
                         <tr class="text-xs uppercase" style="letter-spacing:.14em; color: var(--prism-text-3);">
-                            <th class="px-3 py-3 text-center">التاريخ</th>
-                            <th class="px-3 py-3 text-center">الساعة</th>
-                            <th class="px-3 py-3 text-center">السعر</th>
-                            <th class="px-3 py-3 text-center">المتاح / الإجمالي</th>
-                            <th class="px-3 py-3 text-center">الحالة</th>
-                            <th class="px-3 py-3 text-center">إجراءات</th>
+                            <th class="px-3 py-3 text-center" data-i18n="adm_times_col_date">التاريخ</th>
+                            <th class="px-3 py-3 text-center" data-i18n="adm_times_col_time">الساعة</th>
+                            <th class="px-3 py-3 text-center" data-i18n="adm_times_col_price">السعر</th>
+                            <th class="px-3 py-3 text-center" data-i18n="adm_times_col_avail">المتاح / الإجمالي</th>
+                            <th class="px-3 py-3 text-center" data-i18n="adm_times_col_status">الحالة</th>
+                            <th class="px-3 py-3 text-center" data-i18n="adm_times_col_actions">إجراءات</th>
                         </tr>
                     </thead>
 
@@ -97,7 +99,7 @@
                                         {{ $sectionPriceLabel }}
                                     </span>
                                 @else
-                                    {{ $time->ticket_price }} ج
+                                    {{ $time->ticket_price }} <span data-i18n="common_currency_short">ج</span>
                                 @endif
                             </td>
 
@@ -133,6 +135,7 @@
                                             </div>
 
                                             <span class="text-xs w-full text-center font-medium z-10"
+                                                  data-i18n="{{ ($time->is_sold_out || $isLocked) ? 'adm_status_sold_out' : 'adm_status_available' }}"
                                                   style="color: {{ ($time->is_sold_out || $isLocked) ? '#fda4af' : '#6ee7b7' }};">
                                                 {{ ($time->is_sold_out || $isLocked) ? 'Sold Out' : 'متاح' }}
                                             </span>
@@ -146,6 +149,7 @@
                                     @if($show->theater_type === \App\Models\Show::THEATER_ANBA_RUWEIS)
                                         <a href="{{ route('admin.show-times.seats.index', $time) }}"
                                            class="px-3 py-1 rounded-full text-xs transition"
+                                           data-i18n="adm_seats"
                                            style="background: rgba(251,191,36,0.14); border: 1px solid rgba(251,191,36,0.40); color: #fcd34d;"
                                            onmouseover="this.style.background='rgba(251,191,36,0.22)'; this.style.boxShadow='0 0 16px rgba(251,191,36,0.3)';"
                                            onmouseout="this.style.background='rgba(251,191,36,0.14)'; this.style.boxShadow='';">
@@ -154,14 +158,17 @@
                                     @endif
 
                                     <a href="{{ route('admin.shows.times.edit', [$show, $time]) }}"
-                                       class="prism-btn-ghost text-xs px-3 py-1">
+                                       class="prism-btn-ghost text-xs px-3 py-1"
+                                       data-i18n="adm_edit">
                                         تعديل
                                     </a>
 
-                                    <form action="{{ route('admin.shows.times.destroy', [$show, $time]) }}" method="POST">
+                                    <form action="{{ route('admin.shows.times.destroy', [$show, $time]) }}" method="POST"
+                                          onsubmit="return confirm((window.PT && window.PT.lang() === 'en') ? 'Are you sure you want to delete this show time?' : 'متأكد إنك عايز تحذف الموعد؟');">
                                         @csrf
                                         @method('DELETE')
                                         <button class="px-3 py-1 rounded-full text-xs transition"
+                                                data-i18n="adm_delete"
                                                 style="background: rgba(244,63,94,0.14); border: 1px solid rgba(251,113,133,0.40); color: #fda4af;"
                                                 onmouseover="this.style.background='rgba(244,63,94,0.22)'; this.style.boxShadow='0 0 16px rgba(244,63,94,0.3)';"
                                                 onmouseout="this.style.background='rgba(244,63,94,0.14)'; this.style.boxShadow='';">
@@ -201,27 +208,28 @@
                     <div class="grid grid-cols-3 text-center text-xs gap-2">
                         <div class="rounded-lg py-2"
                              style="background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.32);">
-                            <div class="text-[color:var(--prism-text-3)] text-[10px]">
+                            <div class="text-[color:var(--prism-text-3)] text-[10px]"
+                                 data-i18n="{{ $usesSectionPricing ? 'adm_times_col_price_split' : 'adm_times_col_price' }}">
                                 @if ($usesSectionPricing) صالة / بلكون @else السعر @endif
                             </div>
                             <div style="color: var(--prism-gold);" class="font-semibold">
                                 @if ($usesSectionPricing)
                                     {{ $sectionPriceLabel }}
                                 @else
-                                    {{ $time->ticket_price }} ج
+                                    {{ $time->ticket_price }} <span data-i18n="common_currency_short">ج</span>
                                 @endif
                             </div>
                         </div>
 
                         <div class="rounded-lg py-2"
                              style="background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.32);">
-                            <div class="text-[color:var(--prism-text-3)] text-[10px]">المتاح</div>
+                            <div class="text-[color:var(--prism-text-3)] text-[10px]" data-i18n="adm_times_col_avail_short">المتاح</div>
                             <div style="color: var(--prism-emerald);" class="font-semibold">{{ $remaining }}</div>
                         </div>
 
                         <div class="rounded-lg py-2"
                              style="background: rgba(255,255,255,0.04); border: 1px solid var(--prism-border);">
-                            <div class="text-[color:var(--prism-text-3)] text-[10px]">الإجمالي</div>
+                            <div class="text-[color:var(--prism-text-3)] text-[10px]" data-i18n="adm_times_col_total">الإجمالي</div>
                             <div class="text-[color:var(--prism-text)] font-semibold">{{ $time->total_tickets }}</div>
                         </div>
                     </div>
@@ -250,6 +258,7 @@
                                 </div>
 
                                 <span class="text-xs w-full text-center font-medium z-10"
+                                      data-i18n="{{ ($time->is_sold_out || $isLocked) ? 'adm_status_sold_out' : 'adm_status_available' }}"
                                       style="color: {{ ($time->is_sold_out || $isLocked) ? '#fda4af' : '#6ee7b7' }};">
                                     {{ ($time->is_sold_out || $isLocked) ? 'Sold Out' : 'متاح' }}
                                 </span>
@@ -261,6 +270,7 @@
                         @if($show->theater_type === \App\Models\Show::THEATER_ANBA_RUWEIS)
                             <a href="{{ route('admin.show-times.seats.index', $time) }}"
                                class="flex-1 text-center py-2 rounded-lg text-xs transition"
+                               data-i18n="adm_seats"
                                style="background: rgba(251,191,36,0.14); border: 1px solid rgba(251,191,36,0.40); color: #fcd34d;">
                                 المقاعد
                             </a>
@@ -268,14 +278,17 @@
 
                         <a href="{{ route('admin.shows.times.edit', [$show, $time]) }}"
                            class="flex-1 text-center py-2 rounded-lg text-xs transition"
+                           data-i18n="adm_edit"
                            style="background: rgba(255,255,255,0.06); border: 1px solid var(--prism-border); color: var(--prism-text);">
                             تعديل
                         </a>
 
-                        <form action="{{ route('admin.shows.times.destroy', [$show, $time]) }}" method="POST" class="flex-1">
+                        <form action="{{ route('admin.shows.times.destroy', [$show, $time]) }}" method="POST" class="flex-1"
+                              onsubmit="return confirm((window.PT && window.PT.lang() === 'en') ? 'Are you sure you want to delete this show time?' : 'متأكد إنك عايز تحذف الموعد؟');">
                             @csrf
                             @method('DELETE')
                             <button class="w-full py-2 rounded-lg text-xs transition"
+                                    data-i18n="adm_delete"
                                     style="background: rgba(244,63,94,0.14); border: 1px solid rgba(251,113,133,0.40); color: #fda4af;">
                                 حذف
                             </button>

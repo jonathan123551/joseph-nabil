@@ -21,7 +21,7 @@
     <div class="pt-toast-card">
         <div class="pt-toast-icon" data-toast-icon>✓</div>
         <div class="pt-toast-text">
-            <div class="pt-toast-title" data-toast-title>تم حفظ التغييرات</div>
+            <div class="pt-toast-title" data-toast-title data-i18n="adm_seats_saved">تم حفظ التغييرات</div>
             <div class="pt-toast-body"  data-toast-body></div>
         </div>
     </div>

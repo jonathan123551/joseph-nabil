@@ -8,18 +8,19 @@
         <div class="space-y-1">
             <span class="prism-pill prism-pill-neon">
                 <span class="prism-dot prism-dot-emerald"></span>
-                Payment Settings
+                <span data-i18n="adm_pay_pill">Payment Settings</span>
             </span>
             <h1 class="prism-headline text-xl">
-                <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                <span data-i18n-html="adm_pay_title"
+                      style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
                     إعدادات التحويلات 💳
                 </span>
             </h1>
         </div>
 
         <a href="{{ route('admin.dashboard') }}" class="prism-btn-ghost text-xs">
-            <span aria-hidden="true">→</span>
-            رجوع للوحة التحكم
+            <span aria-hidden="true" class="pt-arrow-rtl">→</span>
+            <span data-i18n="adm_back_dashboard">رجوع للوحة التحكم</span>
         </a>
     </div>
 
@@ -35,28 +36,28 @@
         @csrf
 
         <div>
-            <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">رقم المحفظة (اختياري)</label>
+            <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]" data-i18n="adm_pay_wallet_label">رقم المحفظة (اختياري)</label>
             <input type="text" name="transfer_wallet"
                    value="{{ old('transfer_wallet', $transferWallet) }}"
                    class="prism-input text-sm">
-            <p class="text-[11px] text-[color:var(--prism-text-3)] mt-1.5">
+            <p class="text-[11px] text-[color:var(--prism-text-3)] mt-1.5" data-i18n="adm_pay_wallet_hint">
                 مثلاً: 0100xxxxxxx
             </p>
         </div>
 
         <div>
-            <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">حساب InstaPay (اختياري)</label>
+            <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]" data-i18n="adm_pay_insta_label">حساب InstaPay (اختياري)</label>
             <input type="text" name="transfer_insta"
                    value="{{ old('transfer_insta', $transferInsta) }}"
                    class="prism-input text-sm">
-            <p class="text-[11px] text-[color:var(--prism-text-3)] mt-1.5">
+            <p class="text-[11px] text-[color:var(--prism-text-3)] mt-1.5" data-i18n="adm_pay_insta_hint">
                 مثلاً: EGxxxxxxxxxx أو email@domain.com
             </p>
         </div>
 
         <button type="submit" class="prism-btn mt-2">
-            حفظ الإعدادات
-            <span aria-hidden="true">←</span>
+            <span data-i18n="adm_pay_save">حفظ الإعدادات</span>
+            <span aria-hidden="true" class="pt-arrow-rtl">←</span>
         </button>
     </form>
 </section>
