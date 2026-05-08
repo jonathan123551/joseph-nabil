@@ -2,6 +2,14 @@
 
 @section('title', 'إضافة موعد جديد - ' . $show->title)
 
+@php
+    use App\Models\Show;
+    // Section-based pricing means the ticket price is defined on the Show
+    // (per section: hall / balcony) rather than per-showtime. When that
+    // applies, the standalone showtime ticket_price input is hidden — its
+    // value is irrelevant to the booking flow and only causes confusion.
+    $usesSectionPricing = $show->theater_type === Show::THEATER_ANBA_RUWEIS;
+@endphp
 @section('content')
     <section class="max-w-xl mx-auto space-y-4 prism-fade-up">
         <div class="prism-glass prism-glow-border p-5">
@@ -49,18 +57,59 @@
                 </div>
             </div>
 
-            <div class="grid md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">سعر التذكرة (جنيه)</label>
-                    <input type="number" step="0.5" min="0" name="ticket_price" value="{{ old('ticket_price') }}"
-                           class="prism-input text-sm">
+            @if ($usesSectionPricing)
+                {{-- Section-based pricing: the showtime ticket_price input is
+                     hidden because real prices come from the show's section
+                     (hall / balcony) prices. We still POST a 0 to satisfy the
+                     existing required-numeric validator. --}}
+                <input type="hidden" name="ticket_price" value="0">
+
+                <div class="rounded-xl px-4 py-3 text-xs"
+                     style="background: rgba(34,211,238,0.06); border: 1px solid rgba(129,140,248,0.32); color: var(--prism-text-2);">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="prism-dot prism-dot-emerald"></span>
+                        <span class="font-semibold" style="color: var(--prism-text);">الأسعار من العرض (لكل فئة)</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="rounded-lg px-3 py-2"
+                             style="background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.32);">
+                            <div class="text-[10px] text-[color:var(--prism-text-3)]">صالة</div>
+                            <div class="font-semibold" style="color: var(--prism-gold);">
+                                {{ (int) ($show->hall_price ?? 0) }} ج
+                            </div>
+                        </div>
+                        <div class="rounded-lg px-3 py-2"
+                             style="background: rgba(192,132,252,0.08); border: 1px solid rgba(192,132,252,0.32);">
+                            <div class="text-[10px] text-[color:var(--prism-text-3)]">بلكون</div>
+                            <div class="font-semibold" style="color: var(--prism-violet, #c084fc);">
+                                {{ (int) ($show->balcony_price ?? 0) }} ج
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-[10px] text-[color:var(--prism-text-3)] leading-relaxed">
+                        هذا العرض يستخدم تسعير حسب القسم. عدّل الأسعار من صفحة تعديل العرض.
+                    </div>
                 </div>
+
                 <div>
                     <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">إجمالي التذاكر</label>
                     <input type="number" min="1" name="total_tickets" value="{{ old('total_tickets', 50) }}"
                            class="prism-input text-sm">
                 </div>
-            </div>
+            @else
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">سعر التذكرة (جنيه)</label>
+                        <input type="number" step="0.5" min="0" name="ticket_price" value="{{ old('ticket_price') }}"
+                               class="prism-input text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">إجمالي التذاكر</label>
+                        <input type="number" min="1" name="total_tickets" value="{{ old('total_tickets', 50) }}"
+                               class="prism-input text-sm">
+                    </div>
+                </div>
+            @endif
 
             <div>
                 <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">التذاكر المتاحة الآن (اختياري)</label>

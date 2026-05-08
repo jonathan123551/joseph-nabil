@@ -3,6 +3,16 @@
 
 @section('title', $show->title . ' · Premium Tickets')
 
+@php
+    use App\Models\Show as ShowModel;
+    $usesSectionPricing = $show->theater_type === ShowModel::THEATER_ANBA_RUWEIS;
+    $sectionPrices = [];
+    if ($usesSectionPricing) {
+        if ((int) ($show->hall_price    ?? 0) > 0) $sectionPrices[] = (int) $show->hall_price;
+        if ((int) ($show->balcony_price ?? 0) > 0) $sectionPrices[] = (int) $show->balcony_price;
+    }
+    $sectionStartsFrom = !empty($sectionPrices) ? min($sectionPrices) : null;
+@endphp
 @section('content')
 
     <section class="space-y-6 prism-fade-up">
@@ -88,12 +98,26 @@
 
                             <div class="text-xs text-[color:var(--prism-text-3)] flex flex-wrap gap-2 items-center">
 
-                                <span>
-                                    سعر التذكرة:
-                                    <span class="text-[color:var(--prism-gold)] font-semibold">
-                                        {{ $time->ticket_price }} جنيه
+                                @if ($usesSectionPricing)
+                                    <span>
+                                        الأسعار:
+                                        <span class="text-[color:var(--prism-gold)] font-semibold">
+                                            بلكون / صالة
+                                        </span>
+                                        @if ($sectionStartsFrom !== null)
+                                            <span class="text-[color:var(--prism-text-3)] text-[10px]">
+                                                — تبدأ من {{ $sectionStartsFrom }} ج
+                                            </span>
+                                        @endif
                                     </span>
-                                </span>
+                                @else
+                                    <span>
+                                        سعر التذكرة:
+                                        <span class="text-[color:var(--prism-gold)] font-semibold">
+                                            {{ $time->ticket_price }} جنيه
+                                        </span>
+                                    </span>
+                                @endif
 
                                 <span class="prism-pill
                                     @if($isSoldOut)        prism-badge-rose

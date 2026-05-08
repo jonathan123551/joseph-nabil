@@ -2,6 +2,13 @@
 
 @section('title', 'مواعيد العرض - ' . $show->title)
 
+@php
+    use App\Models\Show as ShowModel;
+    $usesSectionPricing = $show->theater_type === ShowModel::THEATER_ANBA_RUWEIS;
+    $sectionPriceLabel  = $usesSectionPricing
+        ? ((int) ($show->hall_price ?? 0)) . ' / ' . ((int) ($show->balcony_price ?? 0)) . ' ج'
+        : null;
+@endphp
 @section('content')
 <section class="space-y-6">
 
@@ -85,7 +92,13 @@
                             </td>
 
                             <td class="px-3 py-3" style="color: var(--prism-gold);">
-                                {{ $time->ticket_price }} ج
+                                @if ($usesSectionPricing)
+                                    <span class="text-[11px]" title="صالة / بلكون">
+                                        {{ $sectionPriceLabel }}
+                                    </span>
+                                @else
+                                    {{ $time->ticket_price }} ج
+                                @endif
                             </td>
 
                             <td class="px-3 py-3 text-center align-middle">
@@ -188,8 +201,16 @@
                     <div class="grid grid-cols-3 text-center text-xs gap-2">
                         <div class="rounded-lg py-2"
                              style="background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.32);">
-                            <div class="text-[color:var(--prism-text-3)] text-[10px]">السعر</div>
-                            <div style="color: var(--prism-gold);" class="font-semibold">{{ $time->ticket_price }} ج</div>
+                            <div class="text-[color:var(--prism-text-3)] text-[10px]">
+                                @if ($usesSectionPricing) صالة / بلكون @else السعر @endif
+                            </div>
+                            <div style="color: var(--prism-gold);" class="font-semibold">
+                                @if ($usesSectionPricing)
+                                    {{ $sectionPriceLabel }}
+                                @else
+                                    {{ $time->ticket_price }} ج
+                                @endif
+                            </div>
                         </div>
 
                         <div class="rounded-lg py-2"
