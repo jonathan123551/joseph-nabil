@@ -128,13 +128,11 @@
 
             @if($startAt)
                 {{-- QW#6: live countdown to show. Pure ms diff against ISO start;
-                     updated every 30s by JS below. The value is wrapped in a
-                     `whitespace-nowrap` span so the "X d · Y h · Z m" string
-                     never breaks mid-line on narrow phones. Stacks vertically
-                     under the label only when there really isn't enough room. --}}
+                     updated every 30s by JS below. Compact "5d 3h 22m" / "5ي 3س 22د"
+                     format keeps the value short enough to never wrap on a phone. --}}
                 <div class="h-px bg-[color:var(--prism-border)]"></div>
-                <div class="flex justify-between items-center gap-3 flex-wrap">
-                    <span class="text-[color:var(--prism-text-3)] text-xs shrink-0" data-i18n="thx_countdown_label">الوقت المتبقي</span>
+                <div class="flex justify-between items-center gap-3">
+                    <span class="text-[color:var(--prism-text-3)] text-xs shrink-0" data-i18n="thx_countdown_label">يبدأ العرض خلال</span>
                     <span class="font-semibold text-sm text-[color:var(--prism-text)] whitespace-nowrap tabular-nums"
                           data-pt-countdown
                           data-target-iso="{{ $startAt->toIso8601String() }}"
@@ -241,6 +239,12 @@
     var nodes = document.querySelectorAll('[data-pt-countdown]');
     if (!nodes.length) return;
 
+    // Hardcoded short suffixes — the previous "thx_cd_days/hours/mins"
+    // i18n keys were never added to the dictionary, so PT.t() fell
+    // through to returning the key name and the countdown rendered as
+    // e.g. "5 thx_cd_days · 3 thx_cd_hours · 22 thx_cd_mins". Using
+    // single-letter glyphs per language gives a compact, predictable
+    // "5d 3h 22m" / "5ي 3س 22د" that never wraps on a phone.
     function fmt(ms) {
         if (!isFinite(ms) || ms <= 0) {
             return (window.PT && window.PT.t) ? window.PT.t('thx_countdown_started') : '—';
@@ -249,14 +253,16 @@
         var d = Math.floor(totalMin / (60 * 24));
         var h = Math.floor((totalMin % (60 * 24)) / 60);
         var m = totalMin % 60;
-        var t = (window.PT && window.PT.t) ? window.PT.t : function (k) { return k; };
-        // Build "X days · Y h · Z m" using i18n suffixes — falls through to
-        // single-letter shortforms when keys are missing.
+        var isAr = (document.documentElement.lang || 'ar').toLowerCase().indexOf('ar') === 0
+                || document.documentElement.dir === 'rtl';
+        var lD = isAr ? 'ي' : 'd';
+        var lH = isAr ? 'س' : 'h';
+        var lM = isAr ? 'د' : 'm';
         var parts = [];
-        if (d > 0) parts.push(d + ' ' + t('thx_cd_days'));
-        if (h > 0 || d > 0) parts.push(h + ' ' + t('thx_cd_hours'));
-        parts.push(m + ' ' + t('thx_cd_mins'));
-        return parts.join(' · ');
+        if (d > 0)            parts.push(d + lD);
+        if (h > 0 || d > 0)   parts.push(h + lH);
+        parts.push(m + lM);
+        return parts.join(' ');
     }
 
     function tick() {

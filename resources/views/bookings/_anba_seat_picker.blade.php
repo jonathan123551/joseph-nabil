@@ -2144,8 +2144,11 @@
             }
 
             scroller.addEventListener('pointerdown', (e) => {
-                // Don't capture from the floating FAB or zoom-bar buttons.
-                if (e.target.closest('.canvas-fab, .zoom-bar')) return;
+                // Don't capture from the floating FAB, zoom-bar buttons, or
+                // the auto-pick chip — those have their own click handlers
+                // and capturing the pointer here would also trigger a stray
+                // seat-tap synthesis on pointerup.
+                if (e.target.closest('.canvas-fab, .zoom-bar, .auto-pick-fab')) return;
                 try { scroller.setPointerCapture(e.pointerId); } catch (_) {}
                 pointers.set(e.pointerId, {
                     x: e.clientX, y: e.clientY,
@@ -2237,15 +2240,19 @@
                 const wasNotDrag    = !suppressClick;
                 const wasOnlyOne    = pointers.size === 1;
                 endPointer(e);
-                // For mouse / pen pointers, calling preventDefault() on
-                // pointerdown (needed to suppress native scroll/pan)
-                // blocks the subsequent synthetic click event on desktop
-                // in some browsers — so the canvas's `click` listener
-                // never fires. Synthesize a tap from pointerup whenever
-                // the gesture was a clean (non-drag) single-finger tap.
-                if (e.pointerType !== 'touch'
-                    && wasOurPointer && wasOnlyOne && wasNotDrag) {
+                // Synthesize a tap from pointerup for ALL pointer types
+                // (mouse, pen, AND touch). Calling preventDefault() on
+                // pointerdown to suppress native scroll/pan also blocks
+                // the subsequent synthetic `click` event in some browsers
+                // — we observed this on desktop after PR #57 and on iOS
+                // Safari after PR #58. Going through pointerup is the
+                // single deterministic path. The `__tapHandled` flag +
+                // 350 ms reset window keeps a stray browser-fired click
+                // from double-toggling the seat without permanently
+                // suppressing future clicks if no click ever arrives.
+                if (wasOurPointer && wasOnlyOne && wasNotDrag) {
                     canvas.__tapHandled = true;
+                    setTimeout(() => { canvas.__tapHandled = false; }, 350);
                     handleCanvasTap(e);
                 }
             });
