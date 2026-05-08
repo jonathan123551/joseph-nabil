@@ -212,6 +212,24 @@
             @endif
         </div>
 
+        {{-- Section: visibility --}}
+        <div class="pt-form-section">
+            <div class="pt-form-section-head">
+                <span class="pt-form-section-head-icon" aria-hidden="true">👁️</span>
+                <span class="pt-form-section-head-title">الظهور</span>
+            </div>
+
+            <label class="pt-switch-row cursor-pointer">
+                <span class="text-xs text-[color:var(--prism-text-2)]">عرض هذا العرض على الموقع</span>
+                <input type="checkbox" name="is_active" value="1" class="w-5 h-5"
+                       {{ old('is_active', $show->is_active) ? 'checked' : '' }}
+                       style="accent-color: #34d399;">
+            </label>
+            <p class="pt-form-helper">
+                لما تلغي التحديد، العرض هيختفي من صفحة العروض ومش هيقدر أي حد يحجزه.
+            </p>
+        </div>
+
         {{-- Sticky action bar --}}
         <div class="pt-form-actions-sticky">
             <a href="{{ route('admin.shows.index') }}"

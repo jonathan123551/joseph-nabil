@@ -166,7 +166,12 @@ class ShowController extends Controller
         $show->ticket_qr_x    = $data['ticket_qr_x'] ?? 0;
         $show->ticket_qr_y    = $data['ticket_qr_y'] ?? 0;
         $show->ticket_qr_size = $data['ticket_qr_size'] ?? 220;
-        $show->is_active      = $request->boolean('is_active');
+        // Only update visibility when the form actually submitted the field.
+        // Otherwise an unchecked checkbox (or a form variant that omits it)
+        // would silently flip the show to inactive on every save.
+        if ($request->has('is_active')) {
+            $show->is_active = $request->boolean('is_active');
+        }
         $show->theater_type   = $data['theater_type'];
         $show->balcony_price  = $isAnbaRuweis ? ($data['balcony_price'] ?? null) : null;
         $show->hall_price     = $isAnbaRuweis ? ($data['hall_price']    ?? null) : null;
@@ -174,7 +179,7 @@ class ShowController extends Controller
         $show->save();
 
         return redirect()
-            ->route('admin.shows.edit', $show)
+            ->route('admin.shows.index')
             ->with('status', 'تم تحديث العرض بنجاح ✨');
     }
 
