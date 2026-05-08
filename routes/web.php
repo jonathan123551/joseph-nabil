@@ -168,6 +168,8 @@ Route::middleware('admin')
         ->name('show-times.seats.index');
     Route::post('/show-times/{showTime}/seats/{seat}/toggle', [SeatBlockController::class, 'toggle'])
         ->name('show-times.seats.toggle');
+    Route::post('/show-times/{showTime}/seats/bulk-toggle', [SeatBlockController::class, 'bulkToggle'])
+        ->name('show-times.seats.bulk-toggle');
 
     // Scanner
     Route::get('/scanner', [ScannerController::class, 'index'])->name('scanner');

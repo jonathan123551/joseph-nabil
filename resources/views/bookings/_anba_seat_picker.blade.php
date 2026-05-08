@@ -17,17 +17,26 @@
     $unitPrice       = $sectionParam === 'balcony' ? $balconyPriceInt : $hallPriceInt;
     $hallSeats       = $seatsByRow['hall'] ?? [];
     $isFullscreen    = (bool) ($fullscreen ?? false);
+    // Admin variant: same picker, same gestures, but the click semantics
+    // toggle SeatBlock rows via a bulk endpoint instead of redirecting to
+    // the customer form.
+    $adminMode       = (bool) ($adminMode ?? false);
+    $bulkToggleUrl   = $bulkToggleUrl ?? '';
+    $adminBackUrl    = $adminBackUrl ?? '';
     // Produce a stable A→R order so the script doesn't have to sort.
     ksort($hallSeats);
 @endphp
 
 <div data-anba-root
      @if ($isFullscreen) data-fullscreen="1" @endif
+     @if ($adminMode) data-admin-mode="1" @endif
      data-hall-price="{{ $unitPrice }}"
      data-section="{{ $sectionParam }}"
      data-show-time-id="{{ (int) $showTime->id }}"
-     data-form-url="{{ route('bookings.form', $showTime) }}?section={{ $sectionParam }}"
-     data-back-url="{{ route('bookings.create', $showTime) }}"
+     data-form-url="{{ $adminMode ? '' : (route('bookings.form', $showTime) . '?section=' . $sectionParam) }}"
+     data-back-url="{{ $adminMode ? $adminBackUrl : route('bookings.create', $showTime) }}"
+     data-bulk-toggle-url="{{ $bulkToggleUrl }}"
+     data-csrf="{{ csrf_token() }}"
      data-unavailable='@json($unavailableSeats)'
      data-blocked='@json($blockedSeats ?? [])'>
 
@@ -603,12 +612,16 @@
             @if ($isFullscreen)
                 {{-- compact top bar shown only in fullscreen mode --}}
                 <div class="fs-topbar">
-                    <a href="{{ route('bookings.create', $showTime) }}" class="fs-back">
+                    <a href="{{ $adminMode ? $adminBackUrl : route('bookings.create', $showTime) }}" class="fs-back">
                         <span aria-hidden="true">→</span>
                         رجوع
                     </a>
                     <span class="fs-title">
-                        ◆ اختار مقعدك
+                        @if ($adminMode)
+                            ◆ إدارة المقاعد · {{ $showTime->show->title ?? '' }}
+                        @else
+                            ◆ اختار مقعدك
+                        @endif
                     </span>
                     <div class="zoom-bar">
                         <button type="button" class="zoom-btn" data-zoom="-1" aria-label="تصغير">−</button>
@@ -684,12 +697,16 @@
                 <div class="text-[11px] text-[color:var(--p-text-2)] space-y-0.5">
                     <p>📅 {{ \Carbon\Carbon::parse($showTime->date)->format('d-m-Y') }}</p>
                     <p>⏰ {{ \Carbon\Carbon::parse($showTime->time)->format('g:i A') }}</p>
-                    <p class="font-semibold" style="color: var(--p-gold);">🎟️ {{ $hallPriceInt }} جنيه / مقعد</p>
+                    @if ($adminMode)
+                        <p class="font-semibold" style="color: var(--p-gold);">🛠️ وضع الإدارة</p>
+                    @else
+                        <p class="font-semibold" style="color: var(--p-gold);">🎟️ {{ $hallPriceInt }} جنيه / مقعد</p>
+                    @endif
                 </div>
             </div>
 
-            {{-- transfer instructions --}}
-            @if (!empty($transferWallet) || !empty($transferInsta))
+            {{-- transfer instructions — customer flow only --}}
+            @if (!$adminMode && (!empty($transferWallet) || !empty($transferInsta)))
                 <div class="rounded-2xl p-3 space-y-2"
                      style="background: rgba(8,10,20,0.55); border: 1px solid rgba(129,140,248,0.18);">
                     <h4 class="text-[11px] font-semibold"
@@ -714,10 +731,14 @@
             <div>
                 <h3 class="text-sm font-bold mb-2"
                     style="background: linear-gradient(135deg,#22d3ee,#818cf8,#c084fc); -webkit-background-clip: text; background-clip: text; color: transparent;">
-                    اختار مقاعدك
+                    @if ($adminMode) إدارة المقاعد @else اختار مقاعدك @endif
                 </h3>
                 <p class="text-[11px] text-[color:var(--p-text-3)] leading-relaxed">
-                    اضغط على أي مقعد رمادي لاختياره. المقاعد ذات العلامة ✕ مخصصة للإدارة ولا يمكن حجزها.
+                    @if ($adminMode)
+                        اضغط على المقاعد لتحديدها — رمادي يصبح مذهَّباً (محجوب للإدارة) والعكس صحيح. المقاعد المحجوزة من العملاء (وردية) لا يمكن تعديلها.
+                    @else
+                        اضغط على أي مقعد رمادي لاختياره. المقاعد ذات العلامة ✕ مخصصة للإدارة ولا يمكن حجزها.
+                    @endif
                 </p>
             </div>
 
@@ -743,30 +764,41 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-between rounded-xl px-3 py-2"
-                     style="background: linear-gradient(135deg, rgba(251,191,36,0.10), rgba(251,191,36,0.04));
-                            border: 1px solid rgba(251,191,36,0.32); color: #fef3c7;">
-                    <span class="text-[11px] uppercase" style="letter-spacing: .18em;">الإجمالي</span>
-                    <span class="text-base font-bold" style="color: var(--p-gold);">
-                        <span data-total-price>0</span> <span class="text-[10px] opacity-80">EGP</span>
-                    </span>
-                </div>
+                @unless ($adminMode)
+                    <div class="flex items-center justify-between rounded-xl px-3 py-2"
+                         style="background: linear-gradient(135deg, rgba(251,191,36,0.10), rgba(251,191,36,0.04));
+                                border: 1px solid rgba(251,191,36,0.32); color: #fef3c7;">
+                        <span class="text-[11px] uppercase" style="letter-spacing: .18em;">الإجمالي</span>
+                        <span class="text-base font-bold" style="color: var(--p-gold);">
+                            <span data-total-price>0</span> <span class="text-[10px] opacity-80">EGP</span>
+                        </span>
+                    </div>
+                @endunless
 
                 <button type="button"
                         id="anbaContinueBtn"
                         data-continue
                         disabled
                         class="cta-primary w-full">
-                    إكمال الحجز
-                    <span aria-hidden="true">←</span>
+                    @if ($adminMode)
+                        <span data-cta-label>حفظ التغييرات</span>
+                        <span aria-hidden="true">✔</span>
+                    @else
+                        إكمال الحجز
+                        <span aria-hidden="true">←</span>
+                    @endif
                 </button>
 
-                <a href="{{ route('bookings.create', $showTime) }}"
+                <a href="{{ $adminMode ? $adminBackUrl : route('bookings.create', $showTime) }}"
                    class="block text-center text-[11px] transition"
                    style="color: var(--p-text-3);"
                    onmouseover="this.style.color='var(--p-text)'"
                    onmouseout="this.style.color='var(--p-text-3)'">
-                    → الرجوع لاختيار القسم
+                    @if ($adminMode)
+                        → رجوع لإدارة العروض
+                    @else
+                        → الرجوع لاختيار القسم
+                    @endif
                 </a>
             </div>
         </aside>
@@ -775,15 +807,26 @@
     {{-- mobile sticky CTA --}}
     <div class="mobile-cta">
         <div class="flex-1">
-            <div class="text-[10px] text-[color:var(--p-text-3)]">المختار</div>
+            <div class="text-[10px] text-[color:var(--p-text-3)]">
+                @if ($adminMode) تغييرات معلَّقة @else المختار @endif
+            </div>
             <div class="text-sm font-bold text-[color:var(--p-text)]">
-                <span data-mobile-count>0</span> مقعد ·
-                <span style="color: var(--p-gold);"><span data-mobile-total>0</span> EGP</span>
+                <span data-mobile-count>0</span> مقعد
+                @unless ($adminMode)
+                    ·
+                    <span style="color: var(--p-gold);"><span data-mobile-total>0</span> EGP</span>
+                @endunless
             </div>
         </div>
         <button type="button" data-continue
                 disabled
-                class="cta-primary px-5 py-2 text-xs">إكمال الحجز</button>
+                class="cta-primary px-5 py-2 text-xs">
+            @if ($adminMode)
+                <span data-cta-label>حفظ التغييرات</span>
+            @else
+                إكمال الحجز
+            @endif
+        </button>
     </div>
 
     <script type="application/json" data-seat-data>
@@ -819,6 +862,9 @@
         const showTimeId   = parseInt(root.dataset.showTimeId || '0', 10);
         const formUrl      = root.dataset.formUrl || '';
         const isFullscreen = root.dataset.fullscreen === '1';
+        const adminMode    = root.dataset.adminMode === '1';
+        const bulkToggleUrl= root.dataset.bulkToggleUrl || '';
+        const csrfToken    = root.dataset.csrf || '';
 
         const canvas       = root.querySelector('[data-seat-canvas]');
         const scroller     = root.querySelector('[data-canvas-scroller]');
@@ -1075,6 +1121,15 @@
         function getState(seat) {
             if (selected.has(seat.id))               return 'selected';
             if (seat.isAdminOnly)                    return 'admin';
+            // In admin mode `unavailable` carries customer-booked only and
+            // `blocked` carries the toggleable admin blocks. Distinguish
+            // them so blocked seats render gold and customer-booked seats
+            // render rose (and stay non-toggleable).
+            if (adminMode) {
+                if (unavailable.has(seat.id))        return 'booked';
+                if (blocked.has(seat.id))            return 'admin';
+                return 'available';
+            }
             if (unavailable.has(seat.id) && blocked.has(seat.id)) return 'admin';
             if (unavailable.has(seat.id))            return 'booked';
             return 'available';
@@ -1383,7 +1438,12 @@
                 if (idx >= 0) {
                     const s = SEATS[idx];
                     const st = getState(s);
-                    canvas.style.cursor = (st === 'available') ? 'pointer' : 'not-allowed';
+                    // Admin can also click admin/blocked seats to unblock
+                    // them, so reflect that with the pointer cursor.
+                    const isClickable = adminMode
+                        ? (st === 'available' || st === 'selected' || st === 'admin')
+                        : (st === 'available');
+                    canvas.style.cursor = isClickable ? 'pointer' : 'not-allowed';
                     hoverStatus.textContent = describeSeat(s, st);
                 } else {
                     canvas.style.cursor = 'default';
@@ -1407,7 +1467,13 @@
             if (idx < 0) return;
             const s = SEATS[idx];
             const st = getState(s);
-            if (st !== 'available' && st !== 'selected') return;
+            if (adminMode) {
+                // Admin can toggle available, already-selected (pending),
+                // and admin-blocked seats. Customer-booked stays locked.
+                if (st === 'booked') return;
+            } else {
+                if (st !== 'available' && st !== 'selected') return;
+            }
             toggleSeat(s);
         });
 
@@ -1459,10 +1525,12 @@
             const ids = Array.from(selected.keys());
             const n = ids.length;
 
-            countEl.textContent     = n;
-            totalEl.textContent     = (n * hallPrice).toLocaleString('en-US');
-            mobileCount.textContent = n;
-            mobileTotal.textContent = (n * hallPrice).toLocaleString('en-US');
+            if (countEl)      countEl.textContent     = n;
+            if (mobileCount)  mobileCount.textContent = n;
+            // Price elements are absent in admin mode — null-check before
+            // writing so the same renderer works for both flows.
+            if (totalEl)      totalEl.textContent     = (n * hallPrice).toLocaleString('en-US');
+            if (mobileTotal)  mobileTotal.textContent = (n * hallPrice).toLocaleString('en-US');
             root.classList.toggle('has-selection', n > 0);
 
             // chips
@@ -1470,7 +1538,7 @@
             if (n === 0) {
                 const m = document.createElement('span');
                 m.className = 'text-[11px] text-gray-500';
-                m.textContent = 'لم تختر أي مقعد بعد';
+                m.textContent = adminMode ? 'لا توجد تغييرات معلَّقة' : 'لم تختر أي مقعد بعد';
                 chipsBox.appendChild(m);
             } else {
                 ids.sort((a, b) => {
@@ -1481,6 +1549,12 @@
                     const meta = selected.get(id);
                     const chip = document.createElement('span');
                     chip.className = 'seat-chip';
+                    // In admin mode each chip carries a hint of direction
+                    // (will block / will unblock) via its data-flip attr.
+                    if (adminMode) {
+                        const flip = blocked.has(id) ? 'unblock' : 'block';
+                        chip.setAttribute('data-flip', flip);
+                    }
                     chip.innerHTML = `<span>${meta.row}${meta.n}</span><button type="button" aria-label="إلغاء" data-remove="${id}">✕</button>`;
                     chipsBox.appendChild(chip);
                 });
@@ -1491,7 +1565,17 @@
 
         function updateContinueButton() {
             const ready = selected.size > 0;
-            continueBtns.forEach(btn => { btn.disabled = !ready; });
+            continueBtns.forEach(btn => {
+                btn.disabled = !ready;
+                if (adminMode) {
+                    const lbl = btn.querySelector('[data-cta-label]');
+                    if (lbl) {
+                        lbl.textContent = ready
+                            ? `حفظ التغييرات (${selected.size})`
+                            : 'حفظ التغييرات';
+                    }
+                }
+            });
         }
 
         chipsBox.addEventListener('click', (e) => {
@@ -1509,6 +1593,7 @@
         // tampered localStorage can't bypass anything.
         function saveAndContinue() {
             if (selected.size === 0) return;
+            if (adminMode) { saveAdminBulk(); return; }
             const ids = Array.from(selected.keys()).sort((a, b) => {
                 const ma = selected.get(a), mb = selected.get(b);
                 if (ma.row !== mb.row) return ma.row < mb.row ? -1 : 1;
@@ -1530,10 +1615,121 @@
             window.location.href = formUrl;
         }
 
+        // ===== Admin: bulk apply pending toggles =====
+        // POSTs the selected seat IDs to the bulk-toggle endpoint, then
+        // patches the local `blocked` set + clears `selected`. No page
+        // reload — the dock just collapses and the canvas redraws.
+        let saveInFlight = false;
+        function saveAdminBulk() {
+            if (saveInFlight) return;
+            if (selected.size === 0) return;
+            if (!bulkToggleUrl) return;
+            saveInFlight = true;
+
+            // Optimistic feedback: disable + relabel CTA buttons.
+            continueBtns.forEach(btn => {
+                btn.disabled = true;
+                const lbl = btn.querySelector('[data-cta-label]');
+                if (lbl) lbl.textContent = 'جارٍ الحفظ…';
+            });
+
+            const seatIds = Array.from(selected.keys());
+            fetch(bulkToggleUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ seat_ids: seatIds }),
+            })
+            .then(async (res) => {
+                if (!res.ok) throw new Error('http ' + res.status);
+                return res.json();
+            })
+            .then((data) => {
+                // Authoritative blocked set from the server — replace local.
+                if (Array.isArray(data.blocked_set)) {
+                    blocked.clear();
+                    data.blocked_set.forEach(id => blocked.add(Number(id)));
+                }
+                const blockedN   = (data.blocked   || []).length;
+                const unblockedN = (data.unblocked || []).length;
+                const rejectedN  = (data.rejected  || []).length;
+                selected.clear();
+                renderSidePanel();
+                requestRedraw();
+                showAdminToast({
+                    ok: true,
+                    blocked: blockedN,
+                    unblocked: unblockedN,
+                    rejected: rejectedN,
+                });
+            })
+            .catch(() => {
+                showAdminToast({ ok: false });
+            })
+            .finally(() => {
+                saveInFlight = false;
+                // Re-enable & re-label.
+                continueBtns.forEach(btn => {
+                    const lbl = btn.querySelector('[data-cta-label]');
+                    if (lbl) lbl.textContent = 'حفظ التغييرات';
+                    btn.disabled = selected.size === 0;
+                });
+            });
+        }
+
+        // Premium center toast for admin save feedback. Reuses the layout's
+        // pt-toast-overlay node when present (rendered by the admin wrapper
+        // view) and falls back to window.PT.toast for plain text.
+        function showAdminToast(payload) {
+            const overlay = document.querySelector('[data-admin-toast]');
+            if (!overlay) {
+                if (window.PT && window.PT.toast) {
+                    window.PT.toast(payload.ok
+                        ? '✅ تم حفظ التغييرات'
+                        : '❌ تعذر حفظ التغييرات');
+                }
+                return;
+            }
+            const card    = overlay.querySelector('.pt-toast-card') || overlay;
+            const iconEl  = overlay.querySelector('[data-toast-icon]');
+            const titleEl = overlay.querySelector('[data-toast-title]');
+            const bodyEl  = overlay.querySelector('[data-toast-body]');
+            if (payload.ok) {
+                if (iconEl)  iconEl.textContent  = '✓';
+                if (titleEl) titleEl.textContent = 'تم حفظ التغييرات';
+                const parts = [];
+                if (payload.blocked)   parts.push(`حُجِب ${payload.blocked}`);
+                if (payload.unblocked) parts.push(`فُعِّل ${payload.unblocked}`);
+                if (payload.rejected)  parts.push(`تم تجاهل ${payload.rejected}`);
+                if (bodyEl)  bodyEl.textContent  = parts.length
+                    ? parts.join(' · ')
+                    : 'لم يتغيّر شيء';
+                card.classList.remove('is-error');
+                card.classList.add('is-success');
+            } else {
+                if (iconEl)  iconEl.textContent  = '✕';
+                if (titleEl) titleEl.textContent = 'تعذر حفظ التغييرات';
+                if (bodyEl)  bodyEl.textContent  = 'حاول مرة أخرى من فضلك';
+                card.classList.remove('is-success');
+                card.classList.add('is-error');
+            }
+            overlay.classList.add('is-on');
+            clearTimeout(overlay._t);
+            overlay._t = setTimeout(() => overlay.classList.remove('is-on'), 2200);
+        }
+
         continueBtns.forEach(btn => btn.addEventListener('click', saveAndContinue));
 
         // Restore prior selection (e.g. user came back from the form page).
+        // Admin mode never restores — pending changes are intentionally
+        // ephemeral so the admin starts each visit with a clean slate.
         try {
+            if (adminMode) throw new Error('skip restore');
             const stored = JSON.parse(localStorage.getItem('booking_selection') || 'null');
             if (stored
                 && stored.showTimeId === showTimeId
