@@ -201,6 +201,51 @@
             [data-anba-root] .canvas-fab .fab-btn { transition: none; }
         }
 
+        /* ===== QW#7 fullscreen auto-pick chip =====
+           Floats over the canvas at top-inline-start (mirrors .canvas-fab
+           which is bottom-inline-end). Glass + amber so it reads as a
+           "shortcut" affordance distinct from the zoom rail. */
+        [data-anba-root] .auto-pick-fab {
+            position: absolute;
+            top: 12px;
+            inset-inline-start: 12px;
+            z-index: 5;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #fef3c7;
+            background: linear-gradient(135deg, rgba(245,158,11,0.34), rgba(251,191,36,0.18));
+            border: 1px solid rgba(251,191,36,0.55);
+            box-shadow:
+                0 6px 18px -6px rgba(245,158,11,0.55),
+                inset 0 1px 0 rgba(255,255,255,0.10);
+            backdrop-filter: blur(10px) saturate(160%);
+            -webkit-backdrop-filter: blur(10px) saturate(160%);
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            transition: transform .15s var(--p-ease), box-shadow .2s var(--p-ease), background .15s var(--p-ease);
+        }
+        [data-anba-root] .auto-pick-fab:hover {
+            background: linear-gradient(135deg, rgba(245,158,11,0.50), rgba(251,191,36,0.30));
+            box-shadow:
+                0 10px 24px -6px rgba(245,158,11,0.7),
+                inset 0 1px 0 rgba(255,255,255,0.14);
+        }
+        [data-anba-root] .auto-pick-fab:active { transform: scale(0.96); }
+        @media (max-width: 480px) {
+            [data-anba-root] .auto-pick-fab {
+                font-size: 11px;
+                padding: 7px 10px;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            [data-anba-root] .auto-pick-fab { transition: none; }
+        }
+
         /* ===== Pinch & pan onboarding hint (mobile only) =====
            Lightweight glass card centered over the seat map. Stays visible
            until the user actually interacts with the seat map (tap, pan,
@@ -674,6 +719,21 @@
                         <button type="button" class="fab-btn" data-zoom="0"  data-i18n-attr="aria-label:seat_zoom_reset" aria-label="إعادة">⤢</button>
                         <button type="button" class="fab-btn" data-zoom="-1" data-i18n-attr="aria-label:seat_zoom_out"   aria-label="تصغير">−</button>
                     </div>
+
+                    {{-- QW#7 (fullscreen): floating auto-pick chip. The
+                         side-panel auto-pick button is hidden in fullscreen
+                         mode (.fs-aside { display: none }), so customers
+                         couldn't reach it. This chip is rendered on top of
+                         the canvas at the leading-top edge so it's always
+                         discoverable on the seat-picker page. --}}
+                    @unless ($adminMode)
+                        <button type="button"
+                                data-anba-auto-pick
+                                class="auto-pick-fab">
+                            <span aria-hidden="true">✨</span>
+                            <span data-i18n="seat_auto_pick">اختر أفضل المقاعد</span>
+                        </button>
+                    @endunless
                 @endif
             </div>
 
@@ -1491,8 +1551,14 @@
             }
         });
 
-        canvas.addEventListener('click', (e) => {
-            const { x, y } = pointToCanvas(e);
+        // Resolve a tap/click on the canvas to a seat-toggle. Extracted
+        // so we can call it from both the native `click` event AND the
+        // pointerup-based tap detector below — `e.preventDefault()` on
+        // pointerdown (needed to suppress browser pan/scroll) blocks the
+        // synthetic click on desktop in some browsers, which previously
+        // made desktop seat selection silently unresponsive.
+        function handleCanvasTap(evt) {
+            const { x, y } = pointToCanvas(evt);
             const idx = findSeatAt(x, y);
             if (idx < 0) return;
             const s = SEATS[idx];
@@ -1505,6 +1571,13 @@
                 if (st !== 'available' && st !== 'selected') return;
             }
             toggleSeat(s);
+        }
+
+        canvas.addEventListener('click', (e) => {
+            // Skipped if a tap was already handled via pointerup (mouse).
+            if (canvas.__tapHandled) { canvas.__tapHandled = false; return; }
+            if (suppressClick) return;
+            handleCanvasTap(e);
         });
 
         function describeSeat(s, st) {
@@ -1614,12 +1687,13 @@
             return true;
         }
 
-        // Wire up the side-panel auto-pick button. The same N is used
-        // across re-clicks, but we re-prompt every time so the user can
-        // adjust without reaching for a separate input.
-        const autoPickBtn = root.querySelector('[data-anba-auto-pick]');
-        if (autoPickBtn) {
-            autoPickBtn.addEventListener('click', () => {
+        // Wire up auto-pick buttons. There may be more than one button —
+        // the side-panel one is hidden in fullscreen, so a second copy is
+        // rendered as a floating chip on the canvas. Same prompt + same
+        // N for both. We re-prompt every click so the user can adjust
+        // without reaching for a separate input.
+        root.querySelectorAll('[data-anba-auto-pick]').forEach((btn) => {
+            btn.addEventListener('click', () => {
                 const t = window.PT_T || ((k) => k);
                 const promptStr = t('seat_auto_pick_prompt');
                 const raw = window.prompt(promptStr, '2');
@@ -1628,7 +1702,7 @@
                 if (!isFinite(n) || n <= 0 || n > 12) return;
                 applyAutoPickN(n);
             });
-        }
+        });
 
         // Selection pop driver — schedules a single rAF loop that redraws
         // the canvas until the animation map is empty. No-op under
@@ -2157,7 +2231,24 @@
                 }
             }
 
-            scroller.addEventListener('pointerup',     endPointer);
+            scroller.addEventListener('pointerup', (e) => {
+                // Capture state BEFORE endPointer mutates it.
+                const wasOurPointer = pointers.has(e.pointerId);
+                const wasNotDrag    = !suppressClick;
+                const wasOnlyOne    = pointers.size === 1;
+                endPointer(e);
+                // For mouse / pen pointers, calling preventDefault() on
+                // pointerdown (needed to suppress native scroll/pan)
+                // blocks the subsequent synthetic click event on desktop
+                // in some browsers — so the canvas's `click` listener
+                // never fires. Synthesize a tap from pointerup whenever
+                // the gesture was a clean (non-drag) single-finger tap.
+                if (e.pointerType !== 'touch'
+                    && wasOurPointer && wasOnlyOne && wasNotDrag) {
+                    canvas.__tapHandled = true;
+                    handleCanvasTap(e);
+                }
+            });
             scroller.addEventListener('pointercancel', endPointer);
             scroller.addEventListener('pointerleave', (e) => {
                 // pointerleave also fires on capture loss — only end if we
