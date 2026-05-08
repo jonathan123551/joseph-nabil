@@ -22,7 +22,19 @@
      - Dual spotlight beams + animated marquee + ticket-stub motif
      - Strong gradient headline, supporting copy, CTA pair, stat trio
 ===================================================================== --}}
-<section class="pt-hero prism-fade-up" aria-labelledby="pt-hero-heading">
+<section class="pt-hero prism-fade-up" aria-labelledby="pt-hero-heading" style="position: relative;">
+    {{-- Cinematic ambient layer (orbs + particles). Sits behind the
+         existing beams/marquee/curtain so they remain the dominant motif. --}}
+    <div class="pt-cinema-atmos" aria-hidden="true">
+        <span class="pt-cinema-orb pt-cinema-orb-a"></span>
+        <span class="pt-cinema-orb pt-cinema-orb-b"></span>
+        <span class="pt-cinema-orb pt-cinema-orb-c"></span>
+    </div>
+    <div class="pt-cinema-particles" aria-hidden="true">
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+    </div>
+
     <div class="pt-hero-marquee" aria-hidden="true">
         <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
     </div>
@@ -30,8 +42,8 @@
     <div class="pt-hero-beam pt-hero-beam-right" aria-hidden="true"></div>
     <div class="pt-hero-curtain" aria-hidden="true"></div>
 
-    <div class="pt-hero-inner">
-        <div>
+    <div class="pt-hero-inner" style="position: relative; z-index: 2;">
+        <div class="pt-cinema-float-slow">
             <span class="pt-hero-eyebrow">
                 <span class="pt-live-dot"></span>
                 <span data-i18n="hero_eyebrow">حجز مباشر · المسرح المصري</span>
@@ -69,7 +81,7 @@
         </div>
 
         {{-- Hero ticket-stub motif (decorative) --}}
-        <div class="pt-hero-art" aria-hidden="true">
+        <div class="pt-hero-art pt-cinema-float" aria-hidden="true">
             <div class="pt-ticket-stub">
                 <div class="pt-ticket-stub-side">
                     <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
@@ -252,41 +264,86 @@
 @endif
 
 {{-- =====================================================================
-     4) How it works (3 steps)
+     4) Cinematic scroll storytelling (4 steps)
+     - Alternating glass cards with neon-edge, drift orbs, and a
+       central spine line on desktop. Reveals as user scrolls.
 ===================================================================== --}}
-<section id="how-it-works" class="mt-12 prism-fade-up" aria-labelledby="pt-how-title" style="animation-delay:.18s;">
-    <div class="pt-section-head">
+<section id="how-it-works" class="mt-14 sm:mt-20 prism-fade-up" aria-labelledby="pt-how-title" style="animation-delay:.18s;">
+    <div class="pt-section-head pt-cinema-reveal pt-reveal">
         <div>
             <h2 id="pt-how-title" class="pt-section-title" data-i18n="how_title">كيف تحجز تذكرتك</h2>
-            <div class="pt-section-sub" data-i18n="how_sub">ثلاث خطوات بسيطة من الاختيار حتى الواتساب.</div>
+            <div class="pt-section-sub" data-i18n="how_sub_4">أربع خطوات سينمائية من الاختيار حتى الواتساب.</div>
         </div>
     </div>
 
-    <div class="pt-how">
-        <div class="pt-how-step">
-            <div class="pt-how-step-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 12h18"/></svg>
+    <div class="pt-cinema-story">
+        <article class="pt-cinema-step pt-cinema-reveal pt-cinema-reveal-l pt-reveal">
+            <div class="pt-cinema-step-head">
+                <span class="pt-cinema-step-emoji" aria-hidden="true">🎭</span>
+                <span class="pt-cinema-step-num">01</span>
             </div>
-            <div class="pt-how-step-num">01</div>
-            <div class="pt-how-step-title" data-i18n="how_1_t">اختر العرض</div>
-            <div class="pt-how-step-body" data-i18n="how_1_b">استعرض العروض المتاحة واختر الموعد المناسب.</div>
-        </div>
-        <div class="pt-how-step">
-            <div class="pt-how-step-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h18M5 14h14M7 18h10"/><circle cx="12" cy="6" r="2"/></svg>
+            <h3 class="pt-cinema-step-title" data-i18n="cine_1_t">اختر عرضك</h3>
+            <p class="pt-cinema-step-body" data-i18n="cine_1_b">تصفح العروض المباشرة واختر الموعد اللي يناسبك بلمسة واحدة.</p>
+            <div class="pt-cinema-step-visual" aria-hidden="true">
+                <div class="pt-cinema-step-visual-row is-row-1">
+                    <span class="pt-cinema-step-visual-bar is-bar-a"></span>
+                </div>
+                <div class="pt-cinema-step-visual-row is-row-2">
+                    <span class="pt-cinema-step-visual-bar is-bar-b"></span>
+                </div>
             </div>
-            <div class="pt-how-step-num">02</div>
-            <div class="pt-how-step-title" data-i18n="how_2_t">احجز مقعدك</div>
-            <div class="pt-how-step-body" data-i18n="how_2_b">اختر مقعدك من خريطة القاعة المباشرة وادفع بأمان.</div>
-        </div>
-        <div class="pt-how-step">
-            <div class="pt-how-step-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/></svg>
+        </article>
+
+        <article class="pt-cinema-step pt-cinema-reveal pt-cinema-reveal-r pt-reveal">
+            <div class="pt-cinema-step-head">
+                <span class="pt-cinema-step-emoji" aria-hidden="true">🪑</span>
+                <span class="pt-cinema-step-num">02</span>
             </div>
-            <div class="pt-how-step-num">03</div>
-            <div class="pt-how-step-title" data-i18n="how_3_t">استقبل التذكرة</div>
-            <div class="pt-how-step-body" data-i18n="how_3_b">تذكرة QR تصلك على واتساب في أقل من دقيقة.</div>
-        </div>
+            <h3 class="pt-cinema-step-title" data-i18n="cine_2_t">اختر مقعدك</h3>
+            <p class="pt-cinema-step-body" data-i18n="cine_2_b">خريطة مباشرة للصالة توريلك المتاح لحظة بلحظة عشان تحجز مقعدك بثقة.</p>
+            <div class="pt-cinema-step-visual" aria-hidden="true">
+                <div class="pt-cinema-step-visual-row is-row-1">
+                    <span class="pt-cinema-step-visual-bar is-bar-c"></span>
+                </div>
+                <div class="pt-cinema-step-visual-row is-row-2">
+                    <span class="pt-cinema-step-visual-bar is-bar-d"></span>
+                </div>
+            </div>
+        </article>
+
+        <article class="pt-cinema-step pt-cinema-reveal pt-cinema-reveal-l pt-reveal">
+            <div class="pt-cinema-step-head">
+                <span class="pt-cinema-step-emoji" aria-hidden="true">📲</span>
+                <span class="pt-cinema-step-num">03</span>
+            </div>
+            <h3 class="pt-cinema-step-title" data-i18n="cine_3_t">ارفع التحويل</h3>
+            <p class="pt-cinema-step-body" data-i18n="cine_3_b">حوّل على المحفظة أو InstaPay وارفع صورة التحويل بثواني داخل تدفق آمن وأنيق.</p>
+            <div class="pt-cinema-step-visual" aria-hidden="true">
+                <div class="pt-cinema-step-visual-row is-row-1">
+                    <span class="pt-cinema-step-visual-bar is-bar-c"></span>
+                </div>
+                <div class="pt-cinema-step-visual-row is-row-2">
+                    <span class="pt-cinema-step-visual-bar is-bar-a"></span>
+                </div>
+            </div>
+        </article>
+
+        <article class="pt-cinema-step pt-cinema-reveal pt-cinema-reveal-r pt-reveal">
+            <div class="pt-cinema-step-head">
+                <span class="pt-cinema-step-emoji" aria-hidden="true">🎟️</span>
+                <span class="pt-cinema-step-num">04</span>
+            </div>
+            <h3 class="pt-cinema-step-title" data-i18n="cine_4_t">استلم تذكرتك</h3>
+            <p class="pt-cinema-step-body" data-i18n="cine_4_b">تذكرة QR توصلك على واتساب فور الاعتماد · جاهزة للمسح عند البوابة.</p>
+            <div class="pt-cinema-step-visual" aria-hidden="true">
+                <div class="pt-cinema-step-visual-row is-row-1">
+                    <span class="pt-cinema-step-visual-bar is-bar-a"></span>
+                </div>
+                <div class="pt-cinema-step-visual-row is-row-2">
+                    <span class="pt-cinema-step-visual-bar is-bar-c"></span>
+                </div>
+            </div>
+        </article>
     </div>
 </section>
 
@@ -316,7 +373,7 @@
     @else
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 prism-stagger pt-reveal pt-reveal-stagger">
             @foreach($rest->count() ? $rest : $shows as $show)
-                <article class="pt-show-card group">
+                <article class="pt-show-card pt-cinema-tilt group">
                     <span class="pt-show-card-glow" aria-hidden="true"></span>
                     @if($show->poster_path)
                         <a href="{{ route('shows.show', $show) }}" class="pt-show-poster" aria-label="{{ $show->title }}">
