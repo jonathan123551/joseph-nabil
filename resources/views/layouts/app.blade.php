@@ -3011,11 +3011,6 @@
                    data-i18n="nav_shows">
                     <span>العروض</span>
                 </a>
-                <a href="{{ route('team.apply') }}"
-                   class="pt-nav-link {{ request()->routeIs('team.*') ? 'is-active' : '' }}"
-                   data-i18n="nav_join">
-                    <span>انضم للفريق</span>
-                </a>
                 @auth
                     @if(auth()->user()->is_admin ?? false)
                         <a href="{{ route('admin.dashboard') }}"
@@ -3108,12 +3103,6 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 12h18"/></svg>
                 <span>العروض</span>
             </a>
-            <a href="{{ route('team.apply') }}"
-               class="pt-drawer-link {{ request()->routeIs('team.*') ? 'is-active' : '' }}"
-               data-i18n="nav_join">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>
-                <span>انضم للفريق</span>
-            </a>
             @auth
                 @if(auth()->user()->is_admin ?? false)
                     <a href="{{ route('admin.dashboard') }}"
@@ -3198,7 +3187,6 @@
                     <div class="flex flex-col">
                         <a class="pt-footer-link" href="{{ route('shows.index') }}" data-i18n="nav_home">الرئيسية</a>
                         <a class="pt-footer-link" href="{{ route('shows.index') }}#shows-grid" data-i18n="nav_shows">العروض</a>
-                        <a class="pt-footer-link" href="{{ route('team.apply') }}" data-i18n="nav_join">انضم للفريق</a>
                     </div>
                 </div>
 
@@ -3354,7 +3342,7 @@
         const I18N = {
             ar: {
                 brand: 'PREMIUM', brand_tag: 'TICKETS · STAGE',
-                nav_home: 'الرئيسية', nav_shows: 'العروض', nav_join: 'انضم للفريق', nav_admin: 'لوحة التحكم',
+                nav_home: 'الرئيسية', nav_shows: 'العروض', nav_admin: 'لوحة التحكم',
                 foot_fast: 'حجز فوري', foot_secure: 'دفع آمن', foot_qr: 'QR على واتساب',
                 bar_total: 'الإجمالي', bar_seats: 'المقاعد المختارة',
                 btn_confirm: 'تأكيد الحجز',
@@ -3389,7 +3377,7 @@
             },
             en: {
                 brand: 'PREMIUM', brand_tag: 'TICKETS · STAGE',
-                nav_home: 'Home', nav_shows: 'Shows', nav_join: 'Join Team', nav_admin: 'Admin',
+                nav_home: 'Home', nav_shows: 'Shows', nav_admin: 'Admin',
                 foot_fast: 'Instant booking', foot_secure: 'Secure payment', foot_qr: 'QR via WhatsApp',
                 bar_total: 'TOTAL', bar_seats: 'Selected seats',
                 btn_confirm: 'Confirm booking',

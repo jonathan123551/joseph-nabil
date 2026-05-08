@@ -11,7 +11,6 @@ use App\Http\Controllers\SiteController;
 use App\Http\Controllers\ShowController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\TeamApplicationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -60,11 +59,6 @@ Route::post('/book/{showTime}', [BookingController::class, 'store'])
     ->name('bookings.store');
 
 Route::get('/ticket/{reference}', [App\Http\Controllers\Admin\BookingController::class, 'sendTicketsByReference']);
-// 🎭 Team Application (Public)
-Route::get('/join-team', [TeamApplicationController::class, 'create'])
-    ->name('team.apply');
-Route::post('/join-team', [TeamApplicationController::class, 'store'])
-    ->name('team.apply.store');
 
 /*
 |--------------------------------------------------------------------------
