@@ -119,7 +119,9 @@
     'fullscreen'       => true,
     'adminMode'        => true,
     'bulkToggleUrl'    => route('admin.show-times.seats.bulk-toggle', $showTime),
-    'adminBackUrl'     => route('admin.show-times.index'),
+    'adminBackUrl'     => $showTime->show
+        ? route('admin.shows.times.index', $showTime->show)
+        : route('admin.shows.index'),
 ])
 
 @endsection
