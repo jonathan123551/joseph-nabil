@@ -2,6 +2,13 @@
 
 @section('title', 'العروض المتاحة · Premium Tickets')
 
+@php
+    // Bilingual price chip helpers — declared above the markup so partials
+    // and JS can both reach them. Section-priced shows surface a generic
+    // "Balcony / Hall" chip with a "from {min}" hint; everything else uses
+    // the per-time ticket price.
+@endphp
+
 @section('content')
 
 @php
@@ -105,7 +112,7 @@
 {{-- =====================================================================
      2) Trust marquee
 ===================================================================== --}}
-<section class="pt-trust prism-fade-up" aria-label="Why us" style="animation-delay:.06s;">
+<section class="pt-trust prism-fade-up" aria-label="Trust" style="animation-delay:.06s;">
     <div class="pt-trust-track">
         @php
             $items = [
@@ -136,7 +143,12 @@
     // "from X" hint), for everything else we keep the legacy single price.
     $priceChipFor = function ($show, $time) {
         if (!$show || $show->theater_type !== ShowModel::THEATER_ANBA_RUWEIS) {
-            return ['label' => $time->ticket_price, 'unit' => 'EGP', 'sub' => null];
+            return [
+                'label'       => $time->ticket_price,
+                'label_key'   => null,
+                'unit'        => 'EGP',
+                'starts_from' => null,
+            ];
         }
         $prices = array_values(array_filter([
             (int) ($show->hall_price    ?? 0),
@@ -144,9 +156,12 @@
         ]));
         $startsFrom = !empty($prices) ? min($prices) : null;
         return [
-            'label' => 'بلكون / صالة',
-            'unit'  => null,
-            'sub'   => $startsFrom !== null ? ('من ' . $startsFrom . ' ج') : null,
+            // Bilingual: rendered with `shows_section_balcony_hall` key,
+            // sub-line composed at render-time from `shows_from` + price + `shows_egp`.
+            'label'       => 'بلكون / صالة',
+            'label_key'   => 'shows_section_balcony_hall',
+            'unit'        => null,
+            'starts_from' => $startsFrom,
         ];
     };
 @endphp
@@ -156,14 +171,14 @@
         <div>
             <div class="prism-pill prism-pill-amber inline-flex items-center gap-2">
                 <span class="prism-dot prism-dot-amber"></span>
-                <span>عرض مميز</span>
+                <span data-i18n="shows_eyebrow_featured">عرض مميز</span>
             </div>
             <h2 id="pt-featured-title" class="pt-section-title mt-2">{{ $featured->title }}</h2>
         </div>
         <div class="hidden sm:block">
             <span class="prism-pill">
                 <span class="prism-dot prism-dot-emerald"></span>
-                {{ $featured->showTimes->count() }} موعد متاح
+                {{ $featured->showTimes->count() }} <span data-i18n="shows_pill_times">موعد متاح</span>
             </span>
         </div>
     </div>
@@ -173,7 +188,7 @@
             @if($featured->poster_path)
                 <img src="{{ $featured->poster_path }}" alt="{{ $featured->title }}" loading="eager" decoding="async">
             @else
-                <div class="w-full h-full flex items-center justify-center text-[color:var(--prism-text-4)]">No poster</div>
+                <div class="w-full h-full flex items-center justify-center text-[color:var(--prism-text-4)]" data-i18n="shows_no_poster">بدون بوستر</div>
             @endif
         </div>
         <div class="pt-featured-content">
@@ -193,16 +208,20 @@
                         </span>
                         @php $chip = $priceChipFor($featured, $time); @endphp
                         <span class="pt-show-time-price">
-                            {{ $chip['label'] }}
+                            @if (!empty($chip['label_key']))
+                                <span data-i18n="{{ $chip['label_key'] }}">{{ $chip['label'] }}</span>
+                            @else
+                                {{ $chip['label'] }}
+                            @endif
                             @if (!empty($chip['unit']))
                                 <span class="text-[10px] opacity-70">{{ $chip['unit'] }}</span>
-                            @elseif (!empty($chip['sub']))
-                                <span class="text-[10px] opacity-70">· {{ $chip['sub'] }}</span>
+                            @elseif (!empty($chip['starts_from']))
+                                <span class="text-[10px] opacity-70">· <span data-i18n="shows_from">من</span> {{ $chip['starts_from'] }} <span data-i18n="shows_egp">جنيه</span></span>
                             @endif
                         </span>
                     </div>
                 @empty
-                    <div class="text-xs" style="color: var(--prism-text-4);">لا توجد مواعيد متاحة حاليا.</div>
+                    <div class="text-xs" style="color: var(--prism-text-4);" data-i18n="shows_no_times_card">لا توجد مواعيد متاحة حاليا.</div>
                 @endforelse
             </div>
 
@@ -221,9 +240,10 @@
                 }
             @endphp
             <div class="pt-show-card-foot mt-2">
-                <span class="text-xs" style="color: var(--prism-text-3);">من <span class="prism-wordmark" style="font-size:11px;">EGP</span> {{ $featuredFromLabel }}</span>
+                <span class="text-xs" style="color: var(--prism-text-3);"><span data-i18n="shows_from">من</span> <span class="prism-wordmark" style="font-size:11px;">EGP</span> {{ $featuredFromLabel }}</span>
                 <a href="{{ route('shows.show', $featured) }}" class="prism-btn prism-ripple">
-                    تفاصيل وحجز <span aria-hidden="true">←</span>
+                    <span data-i18n="btn_details_book">تفاصيل وحجز</span>
+                    <span class="pt-arrow-rtl" aria-hidden="true">←</span>
                 </a>
             </div>
         </div>
@@ -282,13 +302,16 @@
         </div>
         <span class="prism-pill prism-pill-neon">
             <span class="prism-dot prism-dot-emerald"></span>
-            {{ $shows->count() }} عرض متاح للحجز
+            {{ $shows->count() }} <span data-i18n="hero_stat_shows_label">عرض متاح</span>
         </span>
     </div>
 
     @if($shows->isEmpty())
         <div class="prism-glass p-8 sm:p-10 text-center">
-            <p class="text-[color:var(--prism-text-2)]">لا توجد عروض متاحة حالياً. تابعونا قريباً.</p>
+            <p class="text-[color:var(--prism-text-2)]">
+                <span data-i18n="shows_empty_title">لا توجد عروض متاحة حاليا</span>.
+                <span data-i18n="shows_empty_body">تابعنا — هنفعّل عروض جديدة قريبا.</span>
+            </p>
         </div>
     @else
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 prism-stagger pt-reveal pt-reveal-stagger">
@@ -316,16 +339,20 @@
                                     </span>
                                     @php $chip = $priceChipFor($show, $time); @endphp
                                     <span class="pt-show-time-price">
-                                        {{ $chip['label'] }}
+                                        @if (!empty($chip['label_key']))
+                                            <span data-i18n="{{ $chip['label_key'] }}">{{ $chip['label'] }}</span>
+                                        @else
+                                            {{ $chip['label'] }}
+                                        @endif
                                         @if (!empty($chip['unit']))
                                             <span class="text-[10px] opacity-70">{{ $chip['unit'] }}</span>
-                                        @elseif (!empty($chip['sub']))
-                                            <span class="text-[10px] opacity-70">· {{ $chip['sub'] }}</span>
+                                        @elseif (!empty($chip['starts_from']))
+                                            <span class="text-[10px] opacity-70">· <span data-i18n="shows_from">من</span> {{ $chip['starts_from'] }} <span data-i18n="shows_egp">جنيه</span></span>
                                         @endif
                                     </span>
                                 </div>
                             @empty
-                                <div class="text-xs" style="color: var(--prism-text-4);">لا توجد مواعيد متاحة حالياً.</div>
+                                <div class="text-xs" style="color: var(--prism-text-4);" data-i18n="shows_no_times_card">لا توجد مواعيد متاحة حاليا.</div>
                             @endforelse
                         </div>
                     </div>
@@ -333,10 +360,11 @@
                     <div class="pt-show-card-foot">
                         <span class="text-xs flex items-center gap-2" style="color: var(--prism-text-3);">
                             <span class="prism-dot prism-dot-emerald" style="animation: prismGlowPulse 2s ease-in-out infinite;"></span>
-                            {{ $show->showTimes->count() }} موعد متاح
+                            {{ $show->showTimes->count() }} <span data-i18n="shows_pill_times">موعد متاح</span>
                         </span>
                         <a href="{{ route('shows.show', $show) }}" class="prism-btn prism-ripple text-xs">
-                            تفاصيل وحجز <span aria-hidden="true">←</span>
+                            <span data-i18n="btn_details_book">تفاصيل وحجز</span>
+                            <span class="pt-arrow-rtl" aria-hidden="true">←</span>
                         </a>
                     </div>
                 </article>

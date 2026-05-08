@@ -10,10 +10,11 @@
         <div class="space-y-1">
             <span class="prism-pill prism-pill-neon">
                 <span class="prism-dot prism-dot-emerald"></span>
-                Shows
+                <span data-i18n="adm_shows_pill">Shows</span>
             </span>
             <h1 class="prism-headline text-xl sm:text-2xl">
-                <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                <span data-i18n="adm_shows_title"
+                      style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
                     إدارة العروض
                 </span>
             </h1>
@@ -21,12 +22,12 @@
 
         <div class="flex gap-2 flex-wrap">
             <a href="{{ route('admin.shows.create') }}" class="prism-btn text-sm">
-                + إضافة عرض
+                <span data-i18n="adm_shows_add">+ إضافة عرض</span>
             </a>
 
             <a href="{{ route('admin.dashboard') }}" class="prism-btn-ghost text-xs">
-                <span aria-hidden="true">→</span>
-                رجوع
+                <span aria-hidden="true" class="pt-arrow-rtl">→</span>
+                <span data-i18n="adm_back">رجوع</span>
             </a>
         </div>
     </div>
@@ -41,7 +42,8 @@
 
     {{-- Empty --}}
     @if($shows->isEmpty())
-        <div class="prism-glass p-6 text-center text-sm text-[color:var(--prism-text-3)]">
+        <div class="prism-glass p-6 text-center text-sm text-[color:var(--prism-text-3)]"
+             data-i18n="adm_shows_empty">
             لا يوجد عروض حالياً.
         </div>
     @else
@@ -82,6 +84,7 @@
                             <button type="submit" class="flex items-center gap-2">
 
                                 <span class="text-[11px]"
+                                      data-i18n="{{ $show->is_active ? 'adm_show_active' : 'adm_show_hidden' }}"
                                       style="color: {{ $show->is_active ? 'var(--prism-emerald)' : 'var(--prism-text-3)' }};">
                                     {{ $show->is_active ? 'فعال' : 'مخفي' }}
                                 </span>
@@ -104,6 +107,7 @@
 
                         <a href="{{ route('admin.shows.times.index', $show) }}"
                            class="flex-1 text-center px-3 py-2 rounded-xl transition"
+                           data-i18n="adm_shows_times"
                            style="background: rgba(192,132,252,0.12); border: 1px solid rgba(192,132,252,0.35); color: #ddd6fe;"
                            onmouseover="this.style.background='rgba(192,132,252,0.22)'; this.style.boxShadow='0 0 16px rgba(192,132,252,0.3)';"
                            onmouseout="this.style.background='rgba(192,132,252,0.12)'; this.style.boxShadow='';">
@@ -112,6 +116,7 @@
 
                         <a href="{{ route('admin.shows.edit', $show) }}"
                            class="flex-1 text-center px-3 py-2 rounded-xl transition"
+                           data-i18n="adm_edit"
                            style="background: rgba(255,255,255,0.06); border: 1px solid var(--prism-border); color: var(--prism-text);"
                            onmouseover="this.style.background='rgba(129,140,248,0.16)'; this.style.borderColor='rgba(129,140,248,0.4)';"
                            onmouseout="this.style.background='rgba(255,255,255,0.06)'; this.style.borderColor='var(--prism-border)';">
@@ -120,12 +125,13 @@
 
                         <form action="{{ route('admin.shows.destroy', $show) }}" method="POST"
                               class="flex-1"
-                              onsubmit="return confirm('متأكد إنك عايز تحذف العرض؟');">
+                              onsubmit="return confirm((window.PT && window.PT.lang() === 'en') ? 'Are you sure you want to delete this show?' : 'متأكد إنك عايز تحذف العرض؟');">
                             @csrf
                             @method('DELETE')
 
                             <button type="submit"
                                     class="w-full px-3 py-2 rounded-xl transition"
+                                    data-i18n="adm_delete"
                                     style="background: rgba(244,63,94,0.12); border: 1px solid rgba(251,113,133,0.35); color: #fda4af;"
                                     onmouseover="this.style.background='rgba(244,63,94,0.22)'; this.style.boxShadow='0 0 16px rgba(244,63,94,0.3)';"
                                     onmouseout="this.style.background='rgba(244,63,94,0.12)'; this.style.boxShadow='';">

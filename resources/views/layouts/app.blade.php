@@ -9,7 +9,7 @@
     {{-- Inline SVG favicon — neutral premium identity --}}
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2322d3ee'/><stop offset='0.5' stop-color='%23818cf8'/><stop offset='1' stop-color='%23c084fc'/></linearGradient></defs><path d='M32 6 L56 20 L46 56 L18 56 L8 20 Z' fill='none' stroke='url(%23g)' stroke-width='3' stroke-linejoin='round'/><path d='M32 6 L32 56 M8 20 L56 20 M18 56 L46 56' stroke='url(%23g)' stroke-width='1.5' opacity='0.6'/></svg>">
 
-    {{-- Theme bootstrap (runs before paint to avoid FOUC) --}}
+    {{-- Theme + language bootstrap (runs before paint to avoid FOUC / RTL flash) --}}
     <script>
         (function () {
             try {
@@ -22,6 +22,13 @@
                 var meta = document.getElementById('pt-theme-color') || document.querySelector('meta[name="theme-color"]');
                 if (meta) meta.setAttribute('content', theme === 'light' ? '#f4f1ea' : '#05060d');
             } catch (e) { /* keep dark default */ }
+            try {
+                var lang = localStorage.getItem('pt-lang');
+                if (lang !== 'ar' && lang !== 'en') lang = 'ar';
+                document.documentElement.setAttribute('data-pt-lang', lang);
+                document.documentElement.setAttribute('lang', lang);
+                document.documentElement.setAttribute('dir', lang === 'en' ? 'ltr' : 'rtl');
+            } catch (e) { /* keep AR default */ }
         })();
     </script>
 
@@ -3199,6 +3206,37 @@
             .pt-brand:hover .pt-brand-logo,
             .pt-theme-toggle:hover { transform: none !important; }
         }
+
+        /* ========================================================
+           RTL/LTR helpers — only impact LTR mode so Arabic stays
+           visually identical to current production.
+        ======================================================== */
+        /* Direction-aware text alignment: stays right in RTL, flips left in LTR. */
+        .pt-rtl-text { text-align: right; }
+        :root[dir="ltr"] .pt-rtl-text,
+        :root[data-pt-lang="en"] .pt-rtl-text { text-align: left; }
+
+        /* Decorative arrow (e.g. "→ back") that should visually point the
+           same way regardless of direction. AR keeps the original glyph,
+           LTR flips it. */
+        .pt-arrow-rtl { display: inline-block; }
+        :root[dir="ltr"] .pt-arrow-rtl,
+        :root[data-pt-lang="en"] .pt-arrow-rtl { transform: scaleX(-1); }
+
+        /* List bullets that hug the start edge: 5px padding + dot pinned to
+           the right in RTL, mirrored to the left in LTR. */
+        .pt-rtl-bullet { padding-right: 1.25rem; }
+        .pt-rtl-bullet::before { right: 0; }
+        :root[dir="ltr"] .pt-rtl-bullet,
+        :root[data-pt-lang="en"] .pt-rtl-bullet {
+            padding-right: 0;
+            padding-left: 1.25rem;
+        }
+        :root[dir="ltr"] .pt-rtl-bullet::before,
+        :root[data-pt-lang="en"] .pt-rtl-bullet::before {
+            right: auto;
+            left: 0;
+        }
     </style>
 </head>
 <body class="prism-stage min-h-screen">
@@ -3232,23 +3270,20 @@
             </a>
 
             {{-- Center nav (desktop) --}}
-            <nav class="pt-nav" aria-label="Primary">
+            <nav class="pt-nav" data-i18n-attr="aria-label:primary_nav" aria-label="Primary">
                 <a href="{{ route('shows.index') }}"
-                   class="pt-nav-link {{ (request()->routeIs('shows.index') || request()->routeIs('home')) ? 'is-active' : '' }}"
-                   data-i18n="nav_home">
-                    <span>الرئيسية</span>
+                   class="pt-nav-link {{ (request()->routeIs('shows.index') || request()->routeIs('home')) ? 'is-active' : '' }}">
+                    <span data-i18n="nav_home">الرئيسية</span>
                 </a>
                 <a href="{{ route('shows.index') }}#shows-grid"
-                   class="pt-nav-link"
-                   data-i18n="nav_shows">
-                    <span>العروض</span>
+                   class="pt-nav-link">
+                    <span data-i18n="nav_shows">العروض</span>
                 </a>
                 @auth
                     @if(auth()->user()->is_admin ?? false)
                         <a href="{{ route('admin.dashboard') }}"
-                           class="pt-nav-link pt-nav-link-admin {{ request()->routeIs('admin.*') ? 'is-active' : '' }}"
-                           data-i18n="nav_admin">
-                            <span>لوحة التحكم</span>
+                           class="pt-nav-link pt-nav-link-admin {{ request()->routeIs('admin.*') ? 'is-active' : '' }}">
+                            <span data-i18n="nav_admin">لوحة التحكم</span>
                         </a>
                     @endif
                 @endauth
@@ -3260,6 +3295,7 @@
                 <button type="button"
                         class="pt-theme-toggle"
                         id="pt-theme-toggle"
+                        data-i18n-attr="aria-label:theme_toggle_aria,title:theme_toggle_aria"
                         aria-label="Toggle theme"
                         title="Toggle theme">
                     <span class="pt-theme-icon pt-theme-icon-sun" aria-hidden="true">
@@ -3276,7 +3312,7 @@
                 </button>
 
                 {{-- Lang toggle (desktop) --}}
-                <div class="pt-lang-toggle pt-lang-toggle-desktop" id="pt-lang-toggle" role="group" aria-label="Language">
+                <div class="pt-lang-toggle pt-lang-toggle-desktop" id="pt-lang-toggle" role="group" data-i18n-attr="aria-label:lang_label" aria-label="Language">
                     <span class="pt-lang-thumb" id="pt-lang-thumb"></span>
                     <button type="button" data-pt-lang="ar" aria-pressed="true">AR</button>
                     <button type="button" data-pt-lang="en" aria-pressed="false">EN</button>
@@ -3286,6 +3322,7 @@
                 <button type="button"
                         class="pt-burger"
                         id="pt-burger"
+                        data-i18n-attr="aria-label:menu_open"
                         aria-label="Open menu"
                         aria-controls="pt-drawer"
                         aria-expanded="false">
@@ -3571,27 +3608,40 @@
         }
 
         // ---------- language toggle ----------
+        // Comprehensive bilingual dictionary. Arabic preserves the existing
+        // copy verbatim, English is human-tuned for native quality. Keys are
+        // flat to keep templates terse.
         const I18N = {
             ar: {
+                /* ===== brand / nav / footer / theme / lang chrome ===== */
                 brand: 'PREMIUM', brand_tag: 'TICKETS · STAGE',
                 nav_home: 'الرئيسية', nav_shows: 'العروض', nav_admin: 'لوحة التحكم',
                 foot_fast: 'حجز فوري', foot_secure: 'دفع آمن', foot_qr: 'QR على واتساب',
+                foot_about: 'منصة حجز تذاكر مسرح مصرية، مصممة لتجربة فاخرة وسريعة على الموبايل والديسكتوب.',
+                foot_quick: 'روابط سريعة', foot_legal: 'الدعم',
+                theme_label: 'الوضع', theme_light: 'فاتح', theme_dark: 'داكن',
+                theme_toggle_aria: 'تبديل الوضع',
+                lang_label: 'اللغة', menu_open: 'افتح القائمة', menu_close: 'إغلاق القائمة',
+                primary_nav: 'القائمة الرئيسية', mobile_nav: 'قائمة الموبايل',
+
+                /* ===== sticky bar / generic CTAs / modals / toasts ===== */
                 bar_total: 'الإجمالي', bar_seats: 'المقاعد المختارة',
-                btn_confirm: 'تأكيد الحجز',
-                btn_cancel: 'إلغاء',
-                btn_continue: 'متابعة',
-                btn_approve: 'تأكيد الحجز',
-                btn_reject:  'رفض الحجز',
+                btn_confirm: 'تأكيد الحجز', btn_cancel: 'إلغاء', btn_continue: 'متابعة',
+                btn_approve: 'تأكيد الحجز', btn_reject:  'رفض الحجز',
+                btn_back: 'رجوع', btn_save: 'حفظ', btn_save_changes: 'حفظ التغييرات',
+                btn_book_now: 'احجز الآن', btn_details_book: 'تفاصيل وحجز',
+                btn_back_shows: 'رجوع لكل العروض',
                 modal_processing: 'جارٍ إرسال الطلب...',
                 modal_processing_body: 'برجاء الانتظار ثوانٍ دون إغلاق الصفحة.',
-                theme_label: 'الوضع', theme_light: 'فاتح', theme_dark: 'داكن',
-                lang_label: 'اللغة', cta_browse: 'تصفح العروض',
+                modal_confirm_title: 'تأكيد',
+
+                /* ===== homepage hero ===== */
+                cta_browse: 'تصفح العروض',
                 hero_eyebrow: 'حجز مباشر · المسرح المصري',
                 hero_title_a: 'احجز تجربتك',
                 hero_title_b: 'على المسرح',
                 hero_sub: 'منصة حجز سلسة وأنيقة: تختار العرض، تحجز مقعدك من الخريطة المباشرة، تدفع بأمان، وتستقبل تذكرتك بكود QR على واتساب.',
-                hero_cta_primary: 'تصفح العروض',
-                hero_cta_secondary: 'كيف يعمل؟',
+                hero_cta_primary: 'تصفح العروض', hero_cta_secondary: 'كيف يعمل؟',
                 hero_stat_shows_label: 'عرض متاح',
                 hero_stat_seats_label: 'مقعد جاهز',
                 hero_stat_qr_label: 'تذكرة QR فورية',
@@ -3604,29 +3654,670 @@
                 how_2_t: 'احجز مقعدك', how_2_b: 'اختر مقعدك من خريطة القاعة المباشرة وادفع بأمان.',
                 how_3_t: 'استقبل التذكرة', how_3_b: 'تذكرة QR تصلك على واتساب في أقل من دقيقة.',
                 shows_title: 'العروض المتاحة', shows_sub: 'اختر عرضك وابدأ الحجز.',
-                foot_about: 'منصة حجز تذاكر مسرح مصرية، مصممة لتجربة فاخرة وسريعة على الموبايل والديسكتوب.',
-                foot_quick: 'روابط سريعة', foot_legal: 'الدعم'
+                shows_eyebrow_featured: 'عرض مميز',
+                shows_pill_times: 'موعد متاح',
+                shows_pill_times_one: 'موعد واحد متاح',
+                shows_pill_no_times: 'لا توجد مواعيد',
+                shows_no_poster: 'بدون بوستر',
+                shows_from: 'من',
+                shows_per_seat: 'جنيه / مقعد',
+                shows_per_ticket: 'جنيه / تذكرة',
+                shows_starts_from: 'تبدأ من',
+                shows_egp: 'جنيه',
+                shows_section_balcony_hall: 'بلكون / صالة',
+                shows_status_available: 'متاح للحجز',
+                shows_status_few: 'تبقّى',
+                shows_status_few_suffix: 'تذكرة',
+                shows_status_sold: 'Sold Out',
+                shows_no_times_card: 'لا توجد مواعيد متاحة حاليا.',
+                shows_empty_title: 'لا توجد عروض متاحة حاليا',
+                shows_empty_body: 'تابعنا — هنفعّل عروض جديدة قريبا.',
+
+                /* ===== show details page ===== */
+                show_pill_kind: 'عرض مسرحي',
+                show_pill_online: 'حجز إلكتروني',
+                show_pill_qr: 'تذكرة QR',
+                show_times_title: 'المواعيد المتاحة',
+                show_prices_label: 'الأسعار:',
+                show_price_label: 'سعر التذكرة:',
+                show_no_times: 'لا توجد مواعيد متاحة حاليًا لهذا العرض.',
+
+                /* ===== booking step 1 (anba section pick) ===== */
+                step_section: 'القسم', step_seat: 'المقعد', step_confirm: 'التأكيد',
+                pick_section_title: 'اختار القسم',
+                pick_section_sub: 'حدد القسم اللي عايز تحجز فيه',
+                section_hall: 'الصالة', section_hall_en: 'Hall',
+                section_balcony: 'البلكون', section_balcony_en: 'Balcony',
+                section_hall_meta: 'اختار مقعدك من خريطة الصالة',
+                section_soon: 'قريبًا',
+                pay_eyebrow: '💸 ادفع قيمة التذكرة على',
+                pay_wallet: '📱 محفظة',
+                pay_insta: '⚡ InstaPay',
+
+                /* ===== seat picker (anba) ===== */
+                seat_back: 'رجوع',
+                seat_admin_title: 'إدارة المقاعد',
+                seat_pick_title: 'اختار مقعدك',
+                seat_zoom_out: 'تصغير', seat_zoom_reset: 'إعادة', seat_zoom_in: 'تكبير',
+                seat_map: 'خريطة المقاعد',
+                seat_canvas_aria: 'خريطة مقاعد الصالة',
+                seat_gesture_hint: 'استخدم إصبعين للتكبير والتحريك',
+                seat_legend_hint_user: 'اسحب للتنقل · قرّب بإصبعين أو بضغطة مزدوجة · المقاعد ذات الـ✕ مخصصة للإدارة',
+                seat_legend_hint_admin: 'اسحب للتنقل · قرّب بإصبعين أو بضغطة مزدوجة · اضغط على أي مقعد لحظره أو فك حظره',
+                seat_admin_mode: 'وضع الإدارة',
+                seat_per_seat: 'جنيه / مقعد',
+                seat_step1_pay: 'خطوة 1 · حوّل قيمة الحجز',
+                seat_wallet: 'محفظة',
+                seat_admin_panel_title: 'إدارة المقاعد',
+                seat_user_panel_title: 'اختار مقاعدك',
+                seat_admin_instructions: 'اضغط على أي مقعد لحظره أو فك حظره. التغييرات تُحفظ بالضغط على زر الحفظ بالأسفل.',
+                seat_user_instructions: 'اضغط على أي مقعد للاختيار. ممكن تختار أكثر من مقعد. اضغط مرة تانية لإلغاء الاختيار.',
+                seat_legend_available: 'متاح',
+                seat_legend_selected: 'مختار',
+                seat_legend_reserved: 'محجوز',
+                seat_legend_admin: 'إدارة',
+                seat_selected_label: 'المقاعد المختارة',
+                seat_none_selected: 'لم تختر أي مقعد بعد',
+                seat_total: 'الإجمالي',
+                seat_save_changes: 'حفظ التغييرات',
+                seat_complete_booking: 'إكمال الحجز',
+                seat_back_shows_admin: 'رجوع لإدارة العروض',
+                seat_back_section: 'الرجوع لاختيار القسم',
+                seat_pending_changes: 'تغييرات معلَّقة',
+                seat_chip_selected: 'المختار',
+                seat_chip_seat: 'مقعد',
+
+                /* ===== booking form (step 3) ===== */
+                book_show_details: 'تفاصيل العرض',
+                book_step1_title: 'خطوة 1: حوّل قيمة التذكرة',
+                book_step1_desc: 'حوّل {amount} جنيه على أحد الأرقام التالية:',
+                book_step2_title: 'خطوة 2: ارفع Screenshot وكمّل البيانات',
+                book_seats_title: 'مقاعدك',
+                book_change_seats: 'تغيير المقاعد',
+                book_attendees_title: 'بيانات الحضور',
+                book_attendees_desc: 'اكتب الاسم ورقم الواتساب للشخص اللي هيستلم كل مقعد.',
+                book_seat_label: 'مقعد',
+                book_name: 'الاسم', book_name_ph: 'مثال: مينا جورج',
+                book_phone: 'واتساب', book_phone_ph: '01XXXXXXXXX',
+                book_required: 'مطلوب',
+                book_attendee_n: 'بيانات الشخص رقم',
+                book_screenshot_title: '📸 Screenshot التحويل',
+                book_screenshot_desc: 'ارفع صورة شاشة التحويل بصيغة PNG أو JPG.',
+                book_upload_click: 'اضغط لرفع الصورة',
+                book_upload_replace: 'استبدال الصورة',
+                book_upload_remove: 'إزالة',
+                book_total: 'الإجمالي',
+                book_total_x_seats: '{n} مقعد',
+                book_continue_cta: 'إكمال الحجز',
+                book_dock_eyebrow: 'إجمالي الحجز',
+                book_dock_total: 'الإجمالي',
+                book_dock_hint_missing: 'كمّل بيانات الحضور وارفع Screenshot التحويل.',
+                book_tickets_count: '👥 عدد التذاكر',
+                book_screenshot_legacy: '📸 Screenshot التحويل',
+                book_send_request: 'إرسال طلب الحجز',
+                book_no_seats_redirect: 'مفيش مقاعد مختارة، رجّعناك لاختيار المقاعد.',
+                book_invalid_session: 'انتهت الجلسة، اختار مقاعدك من جديد.',
+
+                /* ===== bookings/create non-anba form ===== */
+                book_form_show_details: '🎭 تفاصيل العرض',
+                book_step1_pay_title: 'خطوة 1: حوّل قيمة التذكرة',
+                book_step1_pay_desc_a: 'حوّل',
+                book_step1_pay_desc_b: 'جنيه على أحد الأرقام التالية:',
+                book_form_person_label: '👤 بيانات الشخص رقم',
+                book_form_name_ph: 'اسم الشخص {n}',
+                book_form_phone_ph: 'رقم موبايل واتساب {n}',
+                book_no_tickets_alert: '❌ لا يوجد تذاكر متاحة، المتاح: {n}',
+                book_sending: 'جارِ الإرسال...',
+
+                /* ===== bookings/form (final attendee form) ===== */
+                form_add_edit_seats: 'إضافة / تعديل المقاعد',
+                form_chips_hint: 'اضغط × على أي مقعد لإلغاء اختياره، أو اضغط "إضافة / تعديل المقاعد" للرجوع لخريطة المقاعد.',
+                form_loading_seats: 'جارٍ تحميل المقاعد المختارة...',
+                form_chips_empty: 'لم يعد هناك مقاعد مختارة',
+                form_chip_remove_aria: 'إلغاء {label}',
+                form_steps_title: '📌 خطوات إكمال الحجز',
+                form_step1_a: 'حوّل قيمة الحجز',
+                form_step1_b: 'على المحفظة أو InstaPay الموضحة بالأسفل.',
+                form_step2: 'التقط صورة (Screenshot) لإيصال التحويل وارفعها في الخانة المخصصة.',
+                form_step3: 'اكتب اسم ورقم واتساب لكل شخص بترتيب المقاعد المحجوزة.',
+                form_step4_a: 'اضغط',
+                form_step4_b: 'هنراجع الطلب ونرسل التذاكر على رقم الواتساب خلال',
+                form_step4_24h: '24 ساعة',
+                form_step4_max: 'كحد أقصى.',
+                form_attendees_title: '👥 بيانات الحضور',
+                form_attendees_hint: 'اكتب اسم ورقم واتساب لكل مقعد',
+                form_screenshot: 'إيصال التحويل',
+                form_required: 'مطلوب',
+                form_name_label: 'الاسم',
+                form_phone_label: 'رقم واتساب',
+                form_dock_aria: 'ملخص الحجز',
+                form_dock_hint: 'اكمل الحقول المطلوبة',
+                form_confirm_btn: 'تأكيد الحجز',
+                form_at_least_one: '❌ من فضلك اختر مقعد واحد على الأقل',
+                form_confirm_modal_title: 'تأكيد الحجز',
+                form_confirm_modal_body: 'هتقدم طلب الحجز للمراجعة. لما يتأكد، هتوصلك التذكرة على واتساب.',
+                form_confirm_ok: 'تأكيد',
+                form_confirm_cancel: 'إلغاء',
+
+                /* ===== bookings/thankyou ===== */
+                thx_title: 'تم إرسال طلب الحجز بنجاح',
+                thx_thanks_prefix: 'شكرًا يا',
+                thx_ref_label: 'رقم الحجز',
+                thx_total_label: 'إجمالي المبلغ',
+                thx_next_step: 'الخطوة الجاية',
+                thx_step1_html: 'يتم <span class="text-[color:var(--prism-text)] font-semibold">مراجعة عملية الدفع</span> والتأكد من التحويل.',
+                thx_step2_html: 'بعد <span class="text-[color:var(--prism-emerald)] font-semibold">تأكيد الحجز</span>، سيتم إرسال <span class="text-[color:var(--prism-text)] font-semibold">التذكرة</span> مباشرة على <span class="text-[color:var(--prism-text)] font-semibold">رقم الواتساب المسجل</span>.',
+                thx_step3_html: 'عملية المراجعة قد تستغرق بحد أقصى <span class="text-[color:var(--prism-text)] font-semibold">24 ساعة</span>.',
+                thx_footer_html: 'لو في أي مشكلة في التحويل أو البيانات، هنتواصل معاك قبل رفض الطلب.<br>متقلقش، طلبك محفوظ على السيستم ✨',
+                thx_back_home: 'رجوع للصفحة الرئيسية',
+                common_egp: 'جنيه',
+
+                /* ===== auth pages ===== */
+                auth_admin_pill: 'دخول الأدمن',
+                auth_admin_title: 'دخول الأدمن',
+                auth_admin_subtitle: 'سجّل دخولك للوحة التحكم',
+                auth_email: 'البريد الإلكتروني',
+                auth_password: 'كلمة المرور',
+                auth_password_confirm: 'تأكيد كلمة المرور',
+                auth_name: 'الاسم',
+                auth_login_btn: 'دخول',
+                auth_register_btn: 'حساب جديد',
+                auth_register_title: 'إنشاء حساب',
+                auth_forgot_password: 'نسيت كلمة المرور؟',
+                auth_reset_pill: 'إعادة تعيين كلمة المرور',
+                auth_reset_title: 'إعادة تعيين كلمة المرور',
+                auth_reset_btn: 'إعادة تعيين كلمة المرور',
+                auth_send_reset_link: 'إرسال رابط إعادة التعيين',
+                auth_confirm_pwd_title: 'تأكيد كلمة المرور',
+                auth_confirm_pwd_subtitle: 'من فضلك أكّد كلمة المرور قبل المتابعة.',
+                auth_verify_title: 'تأكيد البريد الإلكتروني',
+                auth_verify_resent: 'تم إرسال رابط تأكيد جديد إلى بريدك الإلكتروني.',
+                auth_verify_check_email: 'قبل المتابعة، تحقق من بريدك الإلكتروني للحصول على رابط التأكيد.',
+                auth_verify_didnt_receive: 'إذا لم يصلك البريد',
+                auth_verify_resend_link: 'اضغط هنا لإرسال رابط جديد',
+
+                /* ===== thank you page ===== */
+                thx_title: 'تم استلام طلبك',
+                thx_sub: 'هنراجع التحويل ونرجعلك بتأكيد الحجز على واتساب.',
+                thx_back: 'رجوع للرئيسية',
+
+                /* ===== auth ===== */
+                auth_admin_pill: 'دخول الأدمن',
+                auth_admin_title: 'دخول الأدمن',
+                auth_admin_sub: 'سجّل دخولك للوحة التحكم',
+                auth_email: 'البريد الإلكتروني',
+                auth_password: 'كلمة المرور',
+                auth_confirm_password: 'تأكيد كلمة المرور',
+                auth_login: 'دخول',
+                auth_register: 'حساب جديد',
+                auth_register_pill: 'حساب جديد',
+                auth_name: 'الاسم',
+                auth_verify_title: 'تأكيد البريد الإلكتروني',
+                auth_verify_resent: 'تم إرسال رابط تحقق جديد إلى بريدك.',
+                auth_verify_body: 'برجاء فتح بريدك للضغط على رابط التحقق.',
+                auth_verify_didnt: 'لو ما وصلكش الإيميل،',
+                auth_verify_request: 'اضغط هنا لإرسال إيميل جديد',
+                auth_reset_pill: 'إعادة تعيين كلمة المرور',
+                auth_reset_title: 'إعادة تعيين كلمة المرور',
+                auth_reset_send: 'أرسل رابط إعادة التعيين',
+                auth_confirm_title: 'تأكيد كلمة المرور',
+                auth_confirm_sub: 'برجاء تأكيد كلمة المرور قبل المتابعة.',
+                auth_confirm_btn: 'تأكيد كلمة المرور',
+                auth_forgot: 'نسيت كلمة المرور؟',
+
+                /* ===== admin: dashboard ===== */
+                admin_dash_pill: 'لوحة تحكم الأدمن',
+                admin_dash_title: 'لوحة تحكم الأدمن',
+                admin_dash_sub: 'من هنا تقدر تتابع نبض العروض، الحجوزات، والتذاكر اللي طلعت للجمهور.',
+                admin_kpi_revenue: 'إجمالي الإيرادات المعتمدة',
+                admin_kpi_revenue_desc: 'مجموع التذاكر المعتمدة على كل المواعيد.',
+                admin_kpi_revenue_currency: 'EGP',
+                admin_kpi_pending: 'قيد المراجعة',
+                admin_kpi_pending_unit: 'يحتاج مراجعة',
+                admin_kpi_pending_desc: 'طلبات حجز محتاجة Screenshot والاعتماد.',
+                admin_kpi_section: 'المؤشرات العامة',
+                admin_kpi_shows: 'عدد العروض',
+                admin_kpi_shows_desc: 'إجمالي العروض المنشورة في السيستم.',
+                admin_kpi_times: 'مواعيد العروض',
+                admin_kpi_times_desc: 'عدد المرات اللي العروض هتتقدَّم فيها على المسرح.',
+                admin_kpi_approved: 'التذاكر approved',
+                admin_kpi_approved_desc: 'تذاكر لحجوزات اتأكدت واتقبلت، وطلع لها QR.',
+                admin_kpi_remaining: 'التذاكر المتبقية',
+                admin_kpi_remaining_desc: 'الفرق بين إجمالي التذاكر المخصصة لكل موعد وإجمالي التذاكر المعتمدة.',
+                admin_quick: 'الإجراءات السريعة',
+                admin_quick_shows: 'إدارة العروض',
+                admin_quick_shows_pill: 'العروض المسرحية',
+                admin_quick_shows_desc: 'إضافة عروض جديدة، تعديل التفاصيل، رفع البوسترات، وتفعيل/إخفاء العروض من الموقع.',
+                admin_quick_bookings: 'إدارة الحجوزات',
+                admin_quick_bookings_pill: 'الحجوزات والتحويلات',
+                admin_quick_bookings_desc: 'مراجعة طلبات الحجز، التأكد من التحويلات، واعتماد التذاكر وإرسال الـ QR للحضور.',
+                admin_quick_scanner: 'على الباب',
+                admin_quick_scanner_pill: 'وضع Scan تذاكر QR',
+                admin_quick_scanner_desc: 'افتح من موبايل المسؤول على باب المسرح، وامسح كود كل تذكرة عشان تتأكد إن الحجز صالح.',
+                admin_table_title: 'المواعيد والتذاكر لكل عرض',
+                admin_table_h_show: 'العرض',
+                admin_table_h_date: 'التاريخ',
+                admin_table_h_time: 'الساعة',
+                admin_table_h_total: 'إجمالي',
+                admin_table_h_approved: 'Approved',
+                admin_table_h_pending: 'Pending',
+                admin_table_h_remaining: 'المتبقي',
+                admin_table_h_revenue: 'Revenue',
+                admin_table_empty: 'لسه مفيش مواعيد متسجلة على السيستم.',
+                admin_pay_settings_pill: 'إعدادات الدفع',
+                admin_pay_settings_title: 'إعدادات الدفع',
+                admin_pay_wallet: 'رقم المحفظة',
+                admin_pay_insta: 'InstaPay',
+                admin_pay_help: 'هتظهر في صفحة الدفع للعميل عشان يحوّل عليها.',
+                admin_pay_save: 'حفظ بيانات التحويل',
+
+                /* ===== admin: shows index/edit/create ===== */
+                admin_shows_title: 'إدارة العروض',
+                admin_shows_pill: 'إدارة العروض',
+                admin_shows_add: '+ إضافة عرض',
+                admin_shows_back: 'رجوع',
+                admin_shows_empty: 'لا يوجد عروض حالياً.',
+                admin_shows_active: 'فعال',
+                admin_shows_hidden: 'مخفي',
+                admin_shows_times: 'المواعيد',
+                admin_shows_edit: 'تعديل',
+                admin_shows_delete: 'حذف',
+                admin_shows_delete_confirm: 'متأكد إنك عايز تحذف العرض؟',
+                admin_show_create_title: 'إضافة عرض جديد',
+                admin_show_edit_title: 'تعديل العرض',
+                admin_show_back_to_list: 'رجوع لقائمة العروض',
+                admin_show_data: 'بيانات العرض',
+                admin_show_name: 'اسم العرض',
+                admin_show_desc: 'وصف العرض',
+                admin_show_desc_help: 'يظهر تحت اسم العرض في صفحة التفاصيل وعلى الكروت.',
+                admin_show_pricing: 'نوع المسرح والأسعار',
+                admin_show_anba_note: 'الأنبا رويس بيستخدم تسعير لكل فئة (بلكون / صالة). هتظهر أسعار التذاكر تحت.',
+                admin_show_balcony_price: 'سعر تذكرة البلكون (EGP)',
+                admin_show_hall_price: 'سعر تذكرة الصالة (EGP)',
+                admin_show_poster: 'بوستر العرض',
+                admin_show_poster_optional: 'اختياري',
+                admin_show_poster_click: 'اضغط لاختيار صورة البوستر',
+                admin_show_poster_format: 'PNG / JPG · ينصح بنسبة عمودية (2:3)',
+                admin_show_poster_replace: 'استبدال البوستر',
+                admin_show_ticket_design: 'تصميم التذكرة وموضع الـ QR',
+                admin_show_ticket_design_desc: 'ارفع تصميم التذكرة (PNG / JPG)، وحدد مكان مربع الـ QR بالسحب على الصورة أو بالأرقام. لو ما رفعتش تصميم، النظام هيطلع QR لوحده بدون خلفية.',
+                admin_show_ticket_file: 'ملف تصميم التذكرة',
+                admin_show_ticket_upload: 'اضغط لرفع تصميم التذكرة',
+                admin_show_ticket_upload_help: 'بعد الرفع تقدر تحرك مربع الـ QR وتغيّر حجمه على التصميم',
+                admin_show_ticket_design_preview: 'تصميم التذكرة',
+                admin_show_qr_x: 'X (من الشمال)',
+                admin_show_qr_y: 'Y (من فوق)',
+                admin_show_qr_size: 'حجم الـ QR',
+                admin_show_qr_help: 'حرّك مربع الـ QR على الصورة بالفأرة أو اللمس، واسحب المربع الصغير في الركن لتكبير/تصغير الحجم. الأرقام بتتحوّل أوتوماتيك حسب موضعك على التصميم الأصلي (بالبكسل).',
+                admin_show_visibility: 'الظهور',
+                admin_show_visible: 'عرض هذا العرض على الموقع',
+                admin_show_cancel: 'إلغاء',
+                admin_show_create_btn: 'اضافه العرض',
+                admin_show_save: 'حفظ التعديلات',
+
+                /* ===== admin: show times ===== */
+                admin_times_title: 'مواعيد العرض',
+                admin_times_add: '+ إضافة موعد جديد',
+                admin_times_empty: 'لا توجد مواعيد لهذا العرض حتى الآن.',
+                admin_time_create_title: 'إضافة موعد جديد',
+                admin_time_edit_title: 'تعديل موعد',
+                admin_time_back_to_times: 'رجوع للمواعيد',
+                admin_time_section_when: 'الموعد',
+                admin_time_date: 'التاريخ',
+                admin_time_time: 'الساعة',
+                admin_time_section_pricing: 'السعر والتذاكر',
+                admin_time_anba_pricing: 'الأسعار من العرض (لكل فئة)',
+                admin_time_anba_help: 'هذا العرض يستخدم تسعير حسب القسم. عدّل الأسعار من صفحة تعديل العرض.',
+                admin_time_total: 'إجمالي التذاكر',
+                admin_time_price: 'سعر التذكرة (جنيه)',
+                admin_time_status: 'الحالة',
+                admin_time_state: 'حالة الموعد',
+                admin_time_sold_out_help: 'لما تفعّل Sold Out، الموعد بيختفي من صفحات الحجز ومش هيقدر يحجزه أي حد.',
+
+                /* ===== admin: bookings index/show ===== */
+                admin_bookings_title: 'الحجوزات',
+                admin_bookings_pill: 'إدارة الحجوزات',
+                admin_bookings_back: 'رجوع',
+                admin_bookings_filter: 'تصفية',
+                admin_bookings_status_all: 'الكل',
+                admin_bookings_status_pending: 'قيد المراجعة',
+                admin_bookings_status_approved: 'مُعتمد',
+                admin_bookings_status_rejected: 'مرفوض',
+                admin_bookings_h_user: 'المستخدم',
+                admin_bookings_h_show: 'العرض',
+                admin_bookings_h_date: 'التاريخ',
+                admin_bookings_h_seats: 'مقاعد',
+                admin_bookings_h_amount: 'القيمة',
+                admin_bookings_h_status: 'الحالة',
+                admin_bookings_empty: 'لا توجد حجوزات.',
+                admin_bookings_view: 'عرض',
+                admin_booking_detail: 'تفاصيل الحجز',
+                admin_booking_attendees: 'الحضور',
+                admin_booking_screenshot: 'Screenshot التحويل',
+                admin_booking_seat_pill: 'مقعد',
+                admin_booking_resend: 'إعادة إرسال QR',
+                admin_booking_resend_done: 'تم إرسال التذاكر مرة أخرى',
+                admin_booking_resend_err: 'حصل خطأ، حاول مرة تانية',
+
+                /* ===== admin: payments settings ===== */
+                admin_payments_title: 'إعدادات التحويلات',
+                admin_payments_back: 'رجوع للوحة التحكم',
+                admin_payments_wallet: 'رقم المحفظة (اختياري)',
+                admin_payments_wallet_eg: 'مثلاً: 0100xxxxxxx',
+                admin_payments_insta: 'حساب InstaPay (اختياري)',
+                admin_payments_insta_eg: 'مثلاً: EGxxxxxxxxxx أو email@domain.com',
+                admin_payments_save: 'حفظ الإعدادات',
+
+                /* ===== scanner ===== */
+                scanner_pill: 'سكانر البوابة',
+                scanner_title: '🎫 سكانر البوابة',
+                scanner_back: 'رجوع',
+                scanner_ready: 'جاهز للفحص',
+                scanner_flash: '🔦 فلاش',
+                scanner_restart: '🔄 إعادة',
+                scanner_status_ok: '✅ دخول مسموح',
+                scanner_status_used: '⚠️ مستخدمة',
+                scanner_status_invalid: '❌ غير صالح',
+                scanner_entered: 'دخل',
+                scanner_flash_unsupported: 'الفلاش غير مدعوم',
+
+                /* ===== validation / common ===== */
+                err_required_name: 'لازم تكتب اسم',
+                err_required_phone: 'لازم تكتب رقم واتساب',
+                err_invalid_phone: 'رقم الواتساب لازم يكون 11 رقم ويبدأ بـ 01',
+                err_required_screenshot: 'لازم ترفع صورة شاشة التحويل',
+                err_select_seats: 'لازم تختار مقعد على الأقل',
+                err_seat_taken: 'المقعد ده اتحجز قبلك، اختار غيره.',
+                err_save_failed: 'مقدرتش أحفظ التعديلات، حاول تاني.',
+                ok_seats_saved: 'تم حفظ التغييرات',
+                ok_seat_blocked: 'المقعد اتحظر',
+                ok_seat_unblocked: 'المقعد اتفتح',
+
+                /* ===== common (shared across admin / auth) ===== */
+                common_cancel: 'إلغاء',
+                common_currency: 'جنيه',
+                common_currency_short: 'ج.م',
+                common_egp: 'جنيه',
+                common_optional: '(اختياري)',
+                common_ticket_word: 'تذكرة',
+
+                /* ===== admin: console / dashboard ===== */
+                adm_console_pill: 'لوحة التحكم',
+                adm_console_eyebrow: 'PREMIUM · CONTROL',
+                adm_dashboard_title: 'لوحة تحكم الأدمن',
+                adm_dashboard_lede: 'من هنا تقدر تتابع نبض العروض، الحجوزات، والتذاكر اللي طلعت للجمهور.',
+                adm_back: 'رجوع',
+                adm_back_dashboard: 'رجوع للوحة التحكم',
+                adm_back_shows_list: 'رجوع لقائمة العروض',
+                adm_back_times: 'رجوع للمواعيد',
+                adm_overview_title: 'نظرة عامة',
+                adm_edit: 'تعديل',
+                adm_delete: 'حذف',
+                adm_seats: 'مقاعد',
+                adm_seats_saved: 'إدارة المقاعد',
+                adm_section_hall: 'الصالة',
+                adm_section_balcony: 'البلكون',
+                adm_revenue: 'الإيرادات',
+                adm_tickets_approved: 'تذكرة معتمدة',
+
+                /* ===== admin: KPI cards ===== */
+                adm_kpi_revenue_label: 'إجمالي الإيرادات المعتمدة',
+                adm_kpi_revenue_caption: 'من الحجوزات المعتمدة فقط',
+                adm_kpi_pending: 'حجوزات بتنتظر مراجعتك',
+                adm_kpi_pending_pill: 'يحتاج إجراء',
+                adm_kpi_pending_caption: 'افتح القائمة وادخل وافق أو ارفض.',
+                adm_kpi_approved: 'حجوزات معتمدة',
+                adm_kpi_approved_caption: 'إجمالي الحجوزات اللي اتأكدت',
+                adm_kpi_shows: 'عروض',
+                adm_kpi_shows_caption: 'إجمالي العروض على المنصة',
+                adm_kpi_showtimes: 'مواعيد',
+                adm_kpi_showtimes_caption: 'مواعيد عرض مفعلة',
+                adm_kpi_remaining: 'تذاكر متبقية',
+                adm_kpi_remaining_caption: 'متاح للحجز الآن',
+
+                /* ===== admin: status pills ===== */
+                adm_status_pending: 'قيد المراجعة',
+                adm_status_approved: 'معتمد',
+                adm_status_rejected: 'مرفوض',
+                adm_status_available: 'متاح',
+                adm_status_sold_out: 'نفدت التذاكر',
+
+                /* ===== admin: quick actions ===== */
+                adm_quick_title: 'الأدوات السريعة',
+                adm_quick_bookings_eyebrow: 'الحجوزات',
+                adm_quick_bookings_title: 'إدارة الحجوزات',
+                adm_quick_bookings_body: 'راجع، اعتمد، أو ارفض الحجوزات وأرسل التذاكر للعملاء.',
+                adm_quick_shows_eyebrow: 'العروض',
+                adm_quick_shows_title: 'إدارة العروض والمواعيد',
+                adm_quick_shows_body: 'أضف عروض جديدة، عدّل التفاصيل، وأدِر المواعيد المتاحة.',
+                adm_quick_scanner_eyebrow: 'البوابة',
+                adm_quick_scanner_title: 'سكانر التذاكر',
+                adm_quick_scanner_body: 'افتح كاميرا الموبايل وافحص تذاكر QR على الباب.',
+
+                /* ===== admin: shows list ===== */
+                adm_shows_pill: 'العروض',
+                adm_shows_title: 'إدارة العروض',
+                adm_shows_add: 'إضافة عرض جديد',
+                adm_shows_times: 'المواعيد',
+                adm_shows_empty: 'مفيش عروض لسه. اضغط "إضافة عرض جديد" عشان تبدأ.',
+                adm_show_active: 'مفعل',
+                adm_show_hidden: 'مخفي',
+
+                /* ===== admin: show form (create / edit) ===== */
+                adm_show_new_pill: 'عرض جديد',
+                adm_show_new_title: 'إضافة عرض جديد',
+                adm_show_edit_pill: 'تعديل العرض',
+                adm_show_edit_title: 'تعديل بيانات العرض',
+                adm_show_basic: 'البيانات الأساسية',
+                adm_show_title_label: 'اسم العرض',
+                adm_show_theater: 'المسرح',
+                adm_show_description: 'وصف العرض',
+                adm_show_description_helper: 'وصف مختصر يظهر في صفحة العرض.',
+                adm_show_anba_helper: 'لو فعلت تسعير الصالة والبلكون، السعر هيتقسم تلقائيًا حسب القسم.',
+                adm_show_anba_helper_short: 'تسعير منفصل للصالة والبلكون',
+                adm_show_hall_price: 'سعر الصالة',
+                adm_show_balcony_price: 'سعر البلكون',
+                adm_show_visibility: 'الظهور',
+                adm_show_visibility_label: 'مفعل للجمهور',
+                adm_show_visibility_helper: 'لو شيلت العلامة، العرض هيختفي من الصفحة الرئيسية.',
+                adm_show_poster: 'بوستر العرض',
+                adm_show_poster_pick: 'اختر صورة',
+                adm_show_poster_replace: 'تغيير الصورة',
+                adm_show_poster_hint: 'PNG / JPG · أفضل أبعاد 1200×1600',
+                adm_show_ticket_design: 'تصميم التذكرة',
+                adm_show_ticket_design_helper: 'صورة الخلفية اللي بتطلع عليها بيانات التذكرة وكود QR.',
+                adm_show_ticket_template_file: 'قالب التذكرة',
+                adm_show_ticket_template_pick: 'اختر صورة قالب',
+                adm_show_ticket_template_replace: 'تغيير القالب',
+                adm_show_ticket_template_hint: 'PNG شفافة بأبعاد 2480×3508 (A4 @300dpi) لأفضل جودة.',
+                adm_show_ticket_template_hint_short: 'PNG / JPG · أفضل أبعاد A4',
+                adm_show_qr_helper: 'حدد مكان وحجم QR على القالب (بالبكسل).',
+                adm_show_qr_x: 'موقع QR · X',
+                adm_show_qr_y: 'موقع QR · Y',
+                adm_show_qr_size: 'حجم QR',
+                adm_show_create_btn: 'إضافة العرض',
+                adm_show_save_btn: 'حفظ التغييرات',
+
+                /* ===== admin: show times list ===== */
+                adm_times_pill: 'المواعيد',
+                adm_times_title: 'مواعيد العرض',
+                adm_times_add: 'إضافة موعد جديد',
+                adm_times_empty: 'مفيش مواعيد لسه. اضغط "إضافة موعد جديد".',
+                adm_times_col_date: 'التاريخ',
+                adm_times_col_time: 'الوقت',
+                adm_times_col_total: 'إجمالي',
+                adm_times_col_avail: 'المتاح',
+                adm_times_col_avail_short: 'المتبقي',
+                adm_times_col_price: 'السعر',
+                adm_times_col_price_split: 'الأسعار',
+                adm_times_col_status: 'الحالة',
+                adm_times_col_actions: 'إجراءات',
+                adm_showtimes_title: 'المواعيد',
+                adm_showtimes_empty: 'لا توجد مواعيد لهذا العرض.',
+                adm_th_date: 'التاريخ',
+                adm_th_time: 'الوقت',
+                adm_th_show: 'العرض',
+                adm_th_total: 'إجمالي',
+                adm_th_remaining: 'المتبقي',
+
+                /* ===== admin: show time form (create / edit) ===== */
+                adm_time_new_pill: 'موعد جديد',
+                adm_time_new_title: 'إضافة موعد عرض',
+                adm_time_edit_pill: 'تعديل الموعد',
+                adm_time_edit_title: 'تعديل بيانات الموعد',
+                adm_time_section_when: 'الموعد',
+                adm_time_section_when_sub: 'حدد التاريخ والوقت اللي العرض هيتقدم فيه.',
+                adm_time_section_pricing: 'التسعير وعدد التذاكر',
+                adm_time_section_pricing_helper: 'حدد سعر التذكرة وعدد التذاكر المتاحة.',
+                adm_time_section_pricing_split: 'تسعير الصالة والبلكون مفعل من العرض. عدّل الأسعار من بيانات العرض.',
+                adm_time_ticket_price: 'سعر التذكرة',
+                adm_time_total: 'إجمالي التذاكر',
+                adm_time_available_now: 'المتاح حاليًا',
+                adm_time_available_helper: 'اتركه فاضي عشان يستخدم نفس الإجمالي.',
+                adm_time_available_placeholder: 'نفس الإجمالي',
+                adm_time_section_status: 'الحالة',
+                adm_time_status_label: 'متاح للحجز',
+                adm_time_status_helper: 'لو شيلت العلامة الموعد هيختفي من الحجز.',
+                adm_time_force_sold_out: 'إجبار "نفدت التذاكر"',
+                adm_time_save_btn: 'حفظ',
+
+                /* ===== admin: bookings list ===== */
+                adm_bookings_eyebrow: 'الحجوزات',
+                adm_bookings_title: 'إدارة الحجوزات',
+                adm_bookings_search_placeholder: 'ابحث بالاسم أو الموبايل أو الكود...',
+                adm_filter_all: 'الكل',
+                adm_filter_pending: 'قيد المراجعة',
+                adm_filter_approved: 'معتمد',
+                adm_filter_rejected: 'مرفوض',
+                adm_filter_all_times: 'كل المواعيد',
+                adm_bk_col_guest: 'الضيف',
+                adm_bk_col_show: 'العرض / الموعد',
+                adm_bk_col_status: 'الحالة',
+                adm_bk_col_ticket: 'تذاكر',
+                adm_bk_col_actions: 'إجراءات',
+                adm_bk_col_code: 'الكود',
+                adm_bk_details: 'تفاصيل',
+                adm_bk_no_match: 'مفيش حجوزات تطابق الفلاتر دي.',
+                adm_bk_reset_filters: 'إعادة ضبط الفلاتر',
+
+                /* ===== admin: booking detail (show) ===== */
+                adm_bk_pill_prefix: 'حجز',
+                adm_bk_tickets_title: '🎟️ التذاكر',
+                adm_bk_tickets_word: 'تذاكر',
+                adm_bk_received: 'تم الإرسال',
+                adm_bk_not_received: 'لم يُرسل بعد',
+                adm_bk_view_ticket: '🎫 عرض التذكرة',
+                adm_bk_resend: 'إعادة إرسال',
+                adm_bk_resend_ok: 'تم إرسال التذاكر مرة أخرى',
+                adm_bk_resend_fail: 'حصل خطأ، حاول مرة تانية',
+                adm_bk_summary_title: '📋 ملخص الحجز',
+                adm_bk_summary_eyebrow: 'تفاصيل',
+                adm_bk_count: 'عدد التذاكر',
+                adm_bk_price: 'السعر',
+                adm_bk_status: 'الحالة',
+                adm_bk_status_approved: '✅ معتمد',
+                adm_bk_status_rejected: '❌ مرفوض',
+                adm_bk_status_pending: '⏳ قيد المراجعة',
+                adm_bk_ref: 'كود الحجز',
+                adm_bk_name: 'الاسم',
+                adm_bk_phone: 'الموبايل',
+                adm_bk_transfer_title: 'صورة التحويل',
+                adm_bk_transfer_eyebrow: 'إثبات الدفع',
+                adm_bk_delete_title: 'حذف الحجز؟',
+                adm_bk_delete_body: 'هتمسح الحجز ده نهائيًا. مش هتقدر ترجعه.',
+                adm_bk_delete_ok: 'حذف',
+                adm_bk_delete_btn: '🗑️ حذف الحجز',
+                adm_bk_actions_aria: 'إجراءات الحجز',
+                adm_bk_pending_label: 'الحجز قيد المراجعة',
+                adm_bk_reject_title: 'رفض الحجز؟',
+                adm_bk_reject_body: 'العميل هيتبلغ بالرفض. متأكد؟',
+                adm_bk_reject_ok: 'رفض',
+                adm_bk_reject_btn: 'رفض',
+                adm_bk_approve_title: 'اعتماد الحجز؟',
+                adm_bk_approve_body: 'هيتم اعتماد الحجز وإرسال التذاكر للعميل.',
+                adm_bk_approve_ok: 'اعتماد',
+                adm_bk_approve_btn: 'اعتماد',
+
+                /* ===== admin: payments settings ===== */
+                adm_pay_pill: 'إعدادات التحويلات',
+                adm_pay_title: '💳 إعدادات التحويلات',
+                adm_pay_wallet_label: 'رقم المحفظة',
+                adm_pay_wallet_hint: 'مثلاً: 0100xxxxxxx',
+                adm_pay_insta_label: 'حساب InstaPay',
+                adm_pay_insta_hint: 'مثلاً: EGxxxxxxxxxx أو email@domain.com',
+                adm_pay_save: 'حفظ الإعدادات',
+                adm_payments_eyebrow: 'وسائل الدفع',
+                adm_payments_title: 'إعدادات التحويلات',
+                adm_payments_hint: 'اضبط أرقام المحفظة و InstaPay اللي بيظهروا للعميل.',
+                adm_payments_wallet: 'محفظة',
+                adm_payments_save: 'حفظ',
+
+                /* ===== admin: scanner ===== */
+                adm_scanner_pill: 'سكانر البوابة',
+                adm_scanner_title: '🎫 سكانر البوابة',
+                adm_scanner_ready: 'جاهز للفحص',
+                adm_scanner_flash: '🔦 فلاش',
+                adm_scanner_restart: '🔄 إعادة',
+                adm_scanner_ok: '✅ دخول مسموح',
+                adm_scanner_used: '⚠️ مستخدمة',
+                adm_scanner_invalid: '❌ غير صالح',
+                adm_scanner_entered: 'دخل',
+                adm_scanner_no_torch: 'الفلاش غير مدعوم',
+
+                /* ===== auth ===== */
+                auth_admin_pill: 'تسجيل الدخول',
+                auth_admin_title: 'دخول الأدمن',
+                auth_admin_subtitle: 'سجّل دخولك لإدارة العروض والحجوزات.',
+                auth_email: 'البريد الإلكتروني',
+                auth_password: 'كلمة المرور',
+                auth_password_confirm: 'تأكيد كلمة المرور',
+                auth_name: 'الاسم',
+                auth_login_btn: 'تسجيل الدخول',
+                auth_register_title: 'إنشاء حساب جديد',
+                auth_register_btn: 'إنشاء الحساب',
+                auth_forgot_password: 'نسيت كلمة المرور؟',
+                auth_reset_pill: 'إعادة تعيين',
+                auth_reset_title: 'إعادة تعيين كلمة المرور',
+                auth_reset_btn: 'تحديث كلمة المرور',
+                auth_send_reset_link: 'إرسال رابط الاستعادة',
+                auth_confirm_pwd_title: 'تأكيد كلمة المرور',
+                auth_confirm_pwd_subtitle: 'أكد كلمة المرور قبل المتابعة.',
+                auth_verify_title: 'تأكيد بريدك الإلكتروني',
+                auth_verify_check_email: 'افحص بريدك للحصول على رابط التفعيل.',
+                auth_verify_resent: 'تم إرسال رابط جديد لبريدك.',
+                auth_verify_didnt_receive: 'لم يصلك الرابط؟',
+                auth_verify_resend_link: 'إرسال رابط جديد'
             },
             en: {
+                /* ===== brand / nav / footer / theme / lang chrome ===== */
                 brand: 'PREMIUM', brand_tag: 'TICKETS · STAGE',
                 nav_home: 'Home', nav_shows: 'Shows', nav_admin: 'Admin',
                 foot_fast: 'Instant booking', foot_secure: 'Secure payment', foot_qr: 'QR via WhatsApp',
+                foot_about: 'Egyptian theater ticketing platform built for a fast, premium experience on mobile and desktop.',
+                foot_quick: 'Quick links', foot_legal: 'Support',
+                theme_label: 'Theme', theme_light: 'Light', theme_dark: 'Dark',
+                theme_toggle_aria: 'Toggle theme',
+                lang_label: 'Language', menu_open: 'Open menu', menu_close: 'Close menu',
+                primary_nav: 'Primary', mobile_nav: 'Mobile',
+
+                /* ===== sticky bar / generic CTAs / modals / toasts ===== */
                 bar_total: 'TOTAL', bar_seats: 'Selected seats',
-                btn_confirm: 'Confirm booking',
-                btn_cancel: 'Cancel',
-                btn_continue: 'Continue',
-                btn_approve: 'Approve booking',
-                btn_reject:  'Reject booking',
+                btn_confirm: 'Confirm booking', btn_cancel: 'Cancel', btn_continue: 'Continue',
+                btn_approve: 'Approve booking', btn_reject:  'Reject booking',
+                btn_back: 'Back', btn_save: 'Save', btn_save_changes: 'Save changes',
+                btn_book_now: 'Book now', btn_details_book: 'Details & booking',
+                btn_back_shows: 'Back to all shows',
                 modal_processing: 'Sending request...',
                 modal_processing_body: 'Please hold on a moment, do not close the page.',
-                theme_label: 'Theme', theme_light: 'Light', theme_dark: 'Dark',
-                lang_label: 'Language', cta_browse: 'Browse shows',
+                modal_confirm_title: 'Confirm',
+
+                /* ===== homepage hero ===== */
+                cta_browse: 'Browse shows',
                 hero_eyebrow: 'Live booking · Egyptian stage',
                 hero_title_a: 'Book your seat',
                 hero_title_b: 'on stage',
                 hero_sub: 'A premium ticketing experience: pick a show, choose your seat from a live map, pay securely, and get your QR ticket on WhatsApp.',
-                hero_cta_primary: 'Browse shows',
-                hero_cta_secondary: 'How it works',
+                hero_cta_primary: 'Browse shows', hero_cta_secondary: 'How it works',
                 hero_stat_shows_label: 'live shows',
                 hero_stat_seats_label: 'seats ready',
                 hero_stat_qr_label: 'instant QR tickets',
@@ -3639,8 +4330,639 @@
                 how_2_t: 'Choose seats', how_2_b: 'Pick your seats from a live theater map and pay securely.',
                 how_3_t: 'Receive ticket', how_3_b: 'A QR ticket arrives on WhatsApp in under a minute.',
                 shows_title: 'Available shows', shows_sub: 'Pick a show and start booking.',
-                foot_about: 'Egyptian theater ticketing platform built for a fast, premium experience on mobile and desktop.',
-                foot_quick: 'Quick links', foot_legal: 'Support'
+                shows_eyebrow_featured: 'Featured show',
+                shows_pill_times: 'showtimes',
+                shows_pill_times_one: '1 showtime',
+                shows_pill_no_times: 'No showtimes',
+                shows_no_poster: 'No poster',
+                shows_from: 'From',
+                shows_per_seat: 'EGP / seat',
+                shows_per_ticket: 'EGP / ticket',
+                shows_starts_from: 'starts from',
+                shows_egp: 'EGP',
+                shows_section_balcony_hall: 'Balcony / Hall',
+                shows_status_available: 'Available',
+                shows_status_few: 'Only',
+                shows_status_few_suffix: 'left',
+                shows_status_sold: 'Sold Out',
+                shows_no_times_card: 'No showtimes available right now.',
+                shows_empty_title: 'No shows available right now',
+                shows_empty_body: 'Stay tuned — new shows are coming up soon.',
+
+                /* ===== show details page ===== */
+                show_pill_kind: 'Theater show',
+                show_pill_online: 'Online booking',
+                show_pill_qr: 'QR ticket',
+                show_times_title: 'Available showtimes',
+                show_prices_label: 'Prices:',
+                show_price_label: 'Ticket price:',
+                show_no_times: 'No showtimes available for this show right now.',
+
+                /* ===== booking step 1 (anba section pick) ===== */
+                step_section: 'Section', step_seat: 'Seat', step_confirm: 'Confirm',
+                pick_section_title: 'Pick a section',
+                pick_section_sub: 'Choose the section you want to book in',
+                section_hall: 'Hall', section_hall_en: 'Hall',
+                section_balcony: 'Balcony', section_balcony_en: 'Balcony',
+                section_hall_meta: 'Pick your seat from the hall map',
+                section_soon: 'Coming soon',
+                pay_eyebrow: '💸 Pay your ticket via',
+                pay_wallet: '📱 Wallet',
+                pay_insta: '⚡ InstaPay',
+
+                /* ===== seat picker (anba) ===== */
+                seat_back: 'Back',
+                seat_admin_title: 'Manage seats',
+                seat_pick_title: 'Pick your seat',
+                seat_zoom_out: 'Zoom out', seat_zoom_reset: 'Reset', seat_zoom_in: 'Zoom in',
+                seat_map: 'Seat map',
+                seat_canvas_aria: 'Hall seat map',
+                seat_gesture_hint: 'Pinch with two fingers to zoom and pan',
+                seat_legend_hint_user: 'Drag to pan · pinch or double-tap to zoom · seats marked ✕ are admin-only',
+                seat_legend_hint_admin: 'Drag to pan · pinch or double-tap to zoom · tap any seat to block or unblock it',
+                seat_admin_mode: 'Admin mode',
+                seat_per_seat: 'EGP / seat',
+                seat_step1_pay: 'Step 1 · pay your reservation',
+                seat_wallet: 'Wallet',
+                seat_admin_panel_title: 'Manage seats',
+                seat_user_panel_title: 'Pick your seats',
+                seat_admin_instructions: 'Tap any seat to block or unblock it. Changes are saved with the button below.',
+                seat_user_instructions: 'Tap any seat to select it. You can pick more than one. Tap again to deselect.',
+                seat_legend_available: 'Available',
+                seat_legend_selected: 'Selected',
+                seat_legend_reserved: 'Reserved',
+                seat_legend_admin: 'Admin',
+                seat_selected_label: 'Selected seats',
+                seat_none_selected: 'No seats selected yet',
+                seat_total: 'Total',
+                seat_save_changes: 'Save changes',
+                seat_complete_booking: 'Continue booking',
+                seat_back_shows_admin: 'Back to shows',
+                seat_back_section: 'Back to section',
+                seat_pending_changes: 'Pending changes',
+                seat_chip_selected: 'Selected',
+                seat_chip_seat: 'seat',
+
+                /* ===== booking form (step 3) ===== */
+                book_show_details: 'Show details',
+                book_step1_title: 'Step 1: pay your ticket',
+                book_step1_desc: 'Send {amount} EGP to one of the numbers below:',
+                book_step2_title: 'Step 2: upload screenshot and fill details',
+                book_seats_title: 'Your seats',
+                book_change_seats: 'Change seats',
+                book_attendees_title: 'Attendee details',
+                book_attendees_desc: 'Enter the name and WhatsApp number for each seat holder.',
+                book_seat_label: 'Seat',
+                book_name: 'Name', book_name_ph: 'e.g. Mina George',
+                book_phone: 'WhatsApp', book_phone_ph: '01XXXXXXXXX',
+                book_required: 'required',
+                book_attendee_n: 'Attendee #',
+                book_screenshot_title: '📸 Transfer screenshot',
+                book_screenshot_desc: 'Upload a screenshot of your transfer (PNG or JPG).',
+                book_upload_click: 'Click to upload',
+                book_upload_replace: 'Replace image',
+                book_upload_remove: 'Remove',
+                book_total: 'Total',
+                book_total_x_seats: '{n} seats',
+                book_continue_cta: 'Confirm booking',
+                book_dock_eyebrow: 'Booking total',
+                book_dock_total: 'Total',
+                book_dock_hint_missing: 'Fill in attendee details and upload a transfer screenshot.',
+                book_tickets_count: '👥 Number of tickets',
+                book_screenshot_legacy: '📸 Transfer screenshot',
+                book_send_request: 'Send booking request',
+                book_no_seats_redirect: 'No seats selected — sending you back to pick seats.',
+                book_invalid_session: 'Session expired, please pick your seats again.',
+
+                /* ===== bookings/create non-anba form ===== */
+                book_form_show_details: '🎭 Show details',
+                book_step1_pay_title: 'Step 1: pay your ticket',
+                book_step1_pay_desc_a: 'Send',
+                book_step1_pay_desc_b: 'EGP to one of the numbers below:',
+                book_form_person_label: '👤 Attendee #',
+                book_form_name_ph: 'Attendee {n} name',
+                book_form_phone_ph: 'Attendee {n} WhatsApp number',
+                book_no_tickets_alert: '❌ No tickets available. Max available: {n}',
+                book_sending: 'Submitting...',
+
+                /* ===== bookings/form (final attendee form) ===== */
+                form_add_edit_seats: 'Add / change seats',
+                form_chips_hint: 'Tap × on any seat to remove it, or tap "Add / change seats" to go back to the seat map.',
+                form_loading_seats: 'Loading your selection...',
+                form_chips_empty: 'No seats selected anymore',
+                form_chip_remove_aria: 'Remove {label}',
+                form_steps_title: '📌 How to complete your booking',
+                form_step1_a: 'Send the total',
+                form_step1_b: 'to one of the wallet / InstaPay numbers below.',
+                form_step2: 'Take a screenshot of the transfer receipt and upload it in the field below.',
+                form_step3: 'Enter a name and WhatsApp number for each attendee, in the same order as the seats.',
+                form_step4_a: 'Tap',
+                form_step4_b: '— we’ll review your request and send the tickets to the WhatsApp number within',
+                form_step4_24h: '24 hours',
+                form_step4_max: 'at most.',
+                form_attendees_title: '👥 Attendee details',
+                form_attendees_hint: 'Enter a name and WhatsApp number for each seat',
+                form_screenshot: 'Transfer receipt',
+                form_required: 'required',
+                form_name_label: 'Name',
+                form_phone_label: 'WhatsApp number',
+                form_dock_aria: 'Booking summary',
+                form_dock_hint: 'Please complete the required fields',
+                form_confirm_btn: 'Confirm booking',
+                form_at_least_one: '❌ Please select at least one seat',
+                form_confirm_modal_title: 'Confirm your booking',
+                form_confirm_modal_body: 'You’re submitting your booking for review. Once approved, your ticket will be sent on WhatsApp.',
+                form_confirm_ok: 'Confirm',
+                form_confirm_cancel: 'Cancel',
+
+                /* ===== bookings/thankyou ===== */
+                thx_title: 'Your booking request was sent successfully',
+                thx_thanks_prefix: 'Thank you,',
+                thx_ref_label: 'Booking reference',
+                thx_total_label: 'Total amount',
+                thx_next_step: 'What happens next',
+                thx_step1_html: 'We’ll <span class="text-[color:var(--prism-text)] font-semibold">review your payment</span> and verify the transfer.',
+                thx_step2_html: 'Once your <span class="text-[color:var(--prism-emerald)] font-semibold">booking is confirmed</span>, your <span class="text-[color:var(--prism-text)] font-semibold">ticket</span> will be sent directly to the <span class="text-[color:var(--prism-text)] font-semibold">WhatsApp number you registered</span>.',
+                thx_step3_html: 'Review usually takes up to <span class="text-[color:var(--prism-text)] font-semibold">24 hours</span>.',
+                thx_footer_html: 'If anything is wrong with the transfer or your details, we’ll reach out before rejecting the request.<br>Don’t worry — your booking is safely stored on our system ✨',
+                thx_back_home: 'Back to home',
+                common_egp: 'EGP',
+
+                /* ===== auth pages ===== */
+                auth_admin_pill: 'Admin Access',
+                auth_admin_title: 'Admin Login',
+                auth_admin_subtitle: 'Sign in to access the dashboard',
+                auth_email: 'Email address',
+                auth_password: 'Password',
+                auth_password_confirm: 'Confirm password',
+                auth_name: 'Name',
+                auth_login_btn: 'Sign in',
+                auth_register_btn: 'Create account',
+                auth_register_title: 'Create your account',
+                auth_forgot_password: 'Forgot your password?',
+                auth_reset_pill: 'Reset password',
+                auth_reset_title: 'Reset your password',
+                auth_reset_btn: 'Reset password',
+                auth_send_reset_link: 'Send reset link',
+                auth_confirm_pwd_title: 'Confirm password',
+                auth_confirm_pwd_subtitle: 'Please confirm your password before continuing.',
+                auth_verify_title: 'Verify your email address',
+                auth_verify_resent: 'A fresh verification link has been sent to your email address.',
+                auth_verify_check_email: 'Before continuing, please check your email for a verification link.',
+                auth_verify_didnt_receive: 'If you didn’t receive the email,',
+                auth_verify_resend_link: 'click here to request another',
+
+                /* ===== thank you page ===== */
+                thx_title: 'Booking received',
+                thx_sub: 'We\u2019ll review the transfer and confirm your booking on WhatsApp shortly.',
+                thx_back: 'Back to home',
+
+                /* ===== auth ===== */
+                auth_admin_pill: 'Admin Access',
+                auth_admin_title: 'Admin sign in',
+                auth_admin_sub: 'Sign in to the admin dashboard',
+                auth_email: 'Email address',
+                auth_password: 'Password',
+                auth_confirm_password: 'Confirm password',
+                auth_login: 'Sign in',
+                auth_register: 'Register',
+                auth_register_pill: 'Register',
+                auth_name: 'Name',
+                auth_verify_title: 'Verify your email',
+                auth_verify_resent: 'A fresh verification link has been sent to your email.',
+                auth_verify_body: 'Please check your email for a verification link before continuing.',
+                auth_verify_didnt: 'Didn\u2019t receive the email?',
+                auth_verify_request: 'Click here to send a new one',
+                auth_reset_pill: 'Reset password',
+                auth_reset_title: 'Reset password',
+                auth_reset_send: 'Send reset link',
+                auth_confirm_title: 'Confirm password',
+                auth_confirm_sub: 'Please confirm your password before continuing.',
+                auth_confirm_btn: 'Confirm password',
+                auth_forgot: 'Forgot your password?',
+
+                /* ===== admin: dashboard ===== */
+                admin_dash_pill: 'Admin Dashboard',
+                admin_dash_title: 'Admin dashboard',
+                admin_dash_sub: 'Track your shows, bookings, and tickets — all in one place.',
+                admin_kpi_revenue: 'Approved revenue',
+                admin_kpi_revenue_desc: 'Sum of approved tickets across all showtimes.',
+                admin_kpi_revenue_currency: 'EGP',
+                admin_kpi_pending: 'Pending review',
+                admin_kpi_pending_unit: 'need review',
+                admin_kpi_pending_desc: 'Booking requests awaiting screenshot approval.',
+                admin_kpi_section: 'Key metrics',
+                admin_kpi_shows: 'Shows',
+                admin_kpi_shows_desc: 'Total number of published shows.',
+                admin_kpi_times: 'Showtimes',
+                admin_kpi_times_desc: 'How many times your shows will run on stage.',
+                admin_kpi_approved: 'Approved tickets',
+                admin_kpi_approved_desc: 'Bookings that were approved and got a QR ticket.',
+                admin_kpi_remaining: 'Remaining tickets',
+                admin_kpi_remaining_desc: 'Difference between total seats per showtime and approved tickets.',
+                admin_quick: 'Quick actions',
+                admin_quick_shows: 'Manage shows',
+                admin_quick_shows_pill: 'Theater shows',
+                admin_quick_shows_desc: 'Add new shows, edit details, upload posters, and toggle visibility on the site.',
+                admin_quick_bookings: 'Manage bookings',
+                admin_quick_bookings_pill: 'Bookings & transfers',
+                admin_quick_bookings_desc: 'Review booking requests, verify transfers, approve tickets, and send QR codes.',
+                admin_quick_scanner: 'At the door',
+                admin_quick_scanner_pill: 'QR ticket scanner',
+                admin_quick_scanner_desc: 'Open this on the staff phone at the gate to scan and validate each ticket.',
+                admin_table_title: 'Showtimes & tickets per show',
+                admin_table_h_show: 'Show',
+                admin_table_h_date: 'Date',
+                admin_table_h_time: 'Time',
+                admin_table_h_total: 'Total',
+                admin_table_h_approved: 'Approved',
+                admin_table_h_pending: 'Pending',
+                admin_table_h_remaining: 'Remaining',
+                admin_table_h_revenue: 'Revenue',
+                admin_table_empty: 'No showtimes registered yet.',
+                admin_pay_settings_pill: 'Payment settings',
+                admin_pay_settings_title: 'Payment settings',
+                admin_pay_wallet: 'Wallet number',
+                admin_pay_insta: 'InstaPay',
+                admin_pay_help: 'Shown to the customer on the payment page so they can transfer.',
+                admin_pay_save: 'Save payment details',
+
+                /* ===== admin: shows index/edit/create ===== */
+                admin_shows_title: 'Manage shows',
+                admin_shows_pill: 'Manage shows',
+                admin_shows_add: '+ Add show',
+                admin_shows_back: 'Back',
+                admin_shows_empty: 'No shows yet.',
+                admin_shows_active: 'Active',
+                admin_shows_hidden: 'Hidden',
+                admin_shows_times: 'Showtimes',
+                admin_shows_edit: 'Edit',
+                admin_shows_delete: 'Delete',
+                admin_shows_delete_confirm: 'Are you sure you want to delete this show?',
+                admin_show_create_title: 'Add a new show',
+                admin_show_edit_title: 'Edit show',
+                admin_show_back_to_list: 'Back to shows',
+                admin_show_data: 'Show details',
+                admin_show_name: 'Show name',
+                admin_show_desc: 'Show description',
+                admin_show_desc_help: 'Shown under the title on the details page and on cards.',
+                admin_show_pricing: 'Theater type & prices',
+                admin_show_anba_note: 'Anba Ruweis uses per-section pricing (Balcony / Hall). Ticket prices appear below.',
+                admin_show_balcony_price: 'Balcony ticket price (EGP)',
+                admin_show_hall_price: 'Hall ticket price (EGP)',
+                admin_show_poster: 'Show poster',
+                admin_show_poster_optional: 'Optional',
+                admin_show_poster_click: 'Click to choose poster image',
+                admin_show_poster_format: 'PNG / JPG · portrait ratio (2:3) recommended',
+                admin_show_poster_replace: 'Replace poster',
+                admin_show_ticket_design: 'Ticket design & QR placement',
+                admin_show_ticket_design_desc: 'Upload a ticket design (PNG / JPG) and place the QR box by dragging or with numbers. If no design is uploaded, the system generates a plain QR.',
+                admin_show_ticket_file: 'Ticket design file',
+                admin_show_ticket_upload: 'Click to upload ticket design',
+                admin_show_ticket_upload_help: 'After uploading you can move and resize the QR box on top of the design.',
+                admin_show_ticket_design_preview: 'Ticket design',
+                admin_show_qr_x: 'X (from left)',
+                admin_show_qr_y: 'Y (from top)',
+                admin_show_qr_size: 'QR size',
+                admin_show_qr_help: 'Drag the QR box on the image, and use the corner handle to resize. Coordinates are computed automatically against the original artwork (in pixels).',
+                admin_show_visibility: 'Visibility',
+                admin_show_visible: 'Show this on the website',
+                admin_show_cancel: 'Cancel',
+                admin_show_create_btn: 'Create show',
+                admin_show_save: 'Save changes',
+
+                /* ===== admin: show times ===== */
+                admin_times_title: 'Showtimes',
+                admin_times_add: '+ Add showtime',
+                admin_times_empty: 'No showtimes for this show yet.',
+                admin_time_create_title: 'Add showtime',
+                admin_time_edit_title: 'Edit showtime',
+                admin_time_back_to_times: 'Back to showtimes',
+                admin_time_section_when: 'Schedule',
+                admin_time_date: 'Date',
+                admin_time_time: 'Time',
+                admin_time_section_pricing: 'Price & inventory',
+                admin_time_anba_pricing: 'Prices from the show (per section)',
+                admin_time_anba_help: 'This show uses per-section pricing. Edit prices from the show edit page.',
+                admin_time_total: 'Total tickets',
+                admin_time_price: 'Ticket price (EGP)',
+                admin_time_status: 'Status',
+                admin_time_state: 'Showtime status',
+                admin_time_sold_out_help: 'When Sold Out is on, this showtime is hidden from booking pages.',
+
+                /* ===== admin: bookings index/show ===== */
+                admin_bookings_title: 'Bookings',
+                admin_bookings_pill: 'Manage bookings',
+                admin_bookings_back: 'Back',
+                admin_bookings_filter: 'Filter',
+                admin_bookings_status_all: 'All',
+                admin_bookings_status_pending: 'Pending',
+                admin_bookings_status_approved: 'Approved',
+                admin_bookings_status_rejected: 'Rejected',
+                admin_bookings_h_user: 'Customer',
+                admin_bookings_h_show: 'Show',
+                admin_bookings_h_date: 'Date',
+                admin_bookings_h_seats: 'Seats',
+                admin_bookings_h_amount: 'Amount',
+                admin_bookings_h_status: 'Status',
+                admin_bookings_empty: 'No bookings yet.',
+                admin_bookings_view: 'View',
+                admin_booking_detail: 'Booking detail',
+                admin_booking_attendees: 'Attendees',
+                admin_booking_screenshot: 'Transfer screenshot',
+                admin_booking_seat_pill: 'Seat',
+                admin_booking_resend: 'Resend QR',
+                admin_booking_resend_done: 'Tickets sent again',
+                admin_booking_resend_err: 'Something went wrong, please try again',
+
+                /* ===== admin: payments settings ===== */
+                admin_payments_title: 'Payment settings',
+                admin_payments_back: 'Back to dashboard',
+                admin_payments_wallet: 'Wallet number (optional)',
+                admin_payments_wallet_eg: 'e.g. 0100xxxxxxx',
+                admin_payments_insta: 'InstaPay account (optional)',
+                admin_payments_insta_eg: 'e.g. EGxxxxxxxxxx or email@domain.com',
+                admin_payments_save: 'Save settings',
+
+                /* ===== scanner ===== */
+                scanner_pill: 'Gate Scanner',
+                scanner_title: '🎫 Gate Scanner',
+                scanner_back: 'Back',
+                scanner_ready: 'Ready to scan',
+                scanner_flash: '🔦 Flash',
+                scanner_restart: '🔄 Restart',
+                scanner_status_ok: '✅ Allowed',
+                scanner_status_used: '⚠️ Already used',
+                scanner_status_invalid: '❌ Invalid',
+                scanner_entered: 'Entered',
+                scanner_flash_unsupported: 'Flash not supported',
+
+                /* ===== validation / common ===== */
+                err_required_name: 'Please enter a name',
+                err_required_phone: 'Please enter a WhatsApp number',
+                err_invalid_phone: 'WhatsApp number must be 11 digits and start with 01',
+                err_required_screenshot: 'Please upload a transfer screenshot',
+                err_select_seats: 'Please select at least one seat',
+                err_seat_taken: 'This seat was just taken — please pick another.',
+                err_save_failed: 'Could not save changes — please try again.',
+                ok_seats_saved: 'Changes saved',
+                ok_seat_blocked: 'Seat blocked',
+                ok_seat_unblocked: 'Seat unblocked',
+
+                /* ===== common (shared across admin / auth) ===== */
+                common_cancel: 'Cancel',
+                common_currency: 'EGP',
+                common_currency_short: 'EGP',
+                common_egp: 'EGP',
+                common_optional: '(optional)',
+                common_ticket_word: 'tickets',
+
+                /* ===== admin: console / dashboard ===== */
+                adm_console_pill: 'Admin Console',
+                adm_console_eyebrow: 'PREMIUM · CONTROL',
+                adm_dashboard_title: 'Admin dashboard',
+                adm_dashboard_lede: 'Track shows, bookings, and the tickets that have gone out to your audience — all in one place.',
+                adm_back: 'Back',
+                adm_back_dashboard: 'Back to dashboard',
+                adm_back_shows_list: 'Back to shows',
+                adm_back_times: 'Back to show times',
+                adm_overview_title: 'Overview',
+                adm_edit: 'Edit',
+                adm_delete: 'Delete',
+                adm_seats: 'Seats',
+                adm_seats_saved: 'Manage seats',
+                adm_section_hall: 'Hall',
+                adm_section_balcony: 'Balcony',
+                adm_revenue: 'Revenue',
+                adm_tickets_approved: 'tickets approved',
+
+                /* ===== admin: KPI cards ===== */
+                adm_kpi_revenue_label: 'Total approved revenue',
+                adm_kpi_revenue_caption: 'From approved bookings only',
+                adm_kpi_pending: 'Bookings awaiting your review',
+                adm_kpi_pending_pill: 'Action needed',
+                adm_kpi_pending_caption: 'Open the list to approve or reject.',
+                adm_kpi_approved: 'Approved bookings',
+                adm_kpi_approved_caption: 'Total confirmed bookings',
+                adm_kpi_shows: 'Shows',
+                adm_kpi_shows_caption: 'Total shows on the platform',
+                adm_kpi_showtimes: 'Show times',
+                adm_kpi_showtimes_caption: 'Active scheduled times',
+                adm_kpi_remaining: 'Remaining tickets',
+                adm_kpi_remaining_caption: 'Available for booking now',
+
+                /* ===== admin: status pills ===== */
+                adm_status_pending: 'Pending',
+                adm_status_approved: 'Approved',
+                adm_status_rejected: 'Rejected',
+                adm_status_available: 'Available',
+                adm_status_sold_out: 'Sold out',
+
+                /* ===== admin: quick actions ===== */
+                adm_quick_title: 'Quick actions',
+                adm_quick_bookings_eyebrow: 'Bookings',
+                adm_quick_bookings_title: 'Manage bookings',
+                adm_quick_bookings_body: 'Review, approve, or reject bookings and send tickets to customers.',
+                adm_quick_shows_eyebrow: 'Shows',
+                adm_quick_shows_title: 'Manage shows & times',
+                adm_quick_shows_body: 'Add new shows, edit details, and manage the available show times.',
+                adm_quick_scanner_eyebrow: 'Gate',
+                adm_quick_scanner_title: 'Ticket scanner',
+                adm_quick_scanner_body: 'Open the camera and scan QR tickets right at the door.',
+
+                /* ===== admin: shows list ===== */
+                adm_shows_pill: 'Shows',
+                adm_shows_title: 'Manage shows',
+                adm_shows_add: 'Add new show',
+                adm_shows_times: 'Show times',
+                adm_shows_empty: 'No shows yet. Click "Add new show" to get started.',
+                adm_show_active: 'Active',
+                adm_show_hidden: 'Hidden',
+
+                /* ===== admin: show form (create / edit) ===== */
+                adm_show_new_pill: 'New show',
+                adm_show_new_title: 'Add a new show',
+                adm_show_edit_pill: 'Edit show',
+                adm_show_edit_title: 'Edit show details',
+                adm_show_basic: 'Basic information',
+                adm_show_title_label: 'Show title',
+                adm_show_theater: 'Theater',
+                adm_show_description: 'Description',
+                adm_show_description_helper: 'A short summary that appears on the show page.',
+                adm_show_anba_helper: 'When hall and balcony pricing is enabled, the price is split automatically by section.',
+                adm_show_anba_helper_short: 'Separate hall and balcony pricing',
+                adm_show_hall_price: 'Hall price',
+                adm_show_balcony_price: 'Balcony price',
+                adm_show_visibility: 'Visibility',
+                adm_show_visibility_label: 'Visible to the public',
+                adm_show_visibility_helper: 'Uncheck to hide this show from the homepage.',
+                adm_show_poster: 'Show poster',
+                adm_show_poster_pick: 'Choose image',
+                adm_show_poster_replace: 'Replace image',
+                adm_show_poster_hint: 'PNG / JPG · ideal size 1200×1600',
+                adm_show_ticket_design: 'Ticket design',
+                adm_show_ticket_design_helper: 'The background image used to render ticket details and the QR code.',
+                adm_show_ticket_template_file: 'Ticket template',
+                adm_show_ticket_template_pick: 'Choose template image',
+                adm_show_ticket_template_replace: 'Replace template',
+                adm_show_ticket_template_hint: 'Transparent PNG at 2480×3508 (A4 @300dpi) for best results.',
+                adm_show_ticket_template_hint_short: 'PNG / JPG · A4 sized for best results',
+                adm_show_qr_helper: 'Set the position and size of the QR on the template (in pixels).',
+                adm_show_qr_x: 'QR position · X',
+                adm_show_qr_y: 'QR position · Y',
+                adm_show_qr_size: 'QR size',
+                adm_show_create_btn: 'Create show',
+                adm_show_save_btn: 'Save changes',
+
+                /* ===== admin: show times list ===== */
+                adm_times_pill: 'Show times',
+                adm_times_title: 'Show times',
+                adm_times_add: 'Add new show time',
+                adm_times_empty: 'No show times yet. Click "Add new show time".',
+                adm_times_col_date: 'Date',
+                adm_times_col_time: 'Time',
+                adm_times_col_total: 'Total',
+                adm_times_col_avail: 'Available',
+                adm_times_col_avail_short: 'Remaining',
+                adm_times_col_price: 'Price',
+                adm_times_col_price_split: 'Prices',
+                adm_times_col_status: 'Status',
+                adm_times_col_actions: 'Actions',
+                adm_showtimes_title: 'Show times',
+                adm_showtimes_empty: 'This show has no times.',
+                adm_th_date: 'Date',
+                adm_th_time: 'Time',
+                adm_th_show: 'Show',
+                adm_th_total: 'Total',
+                adm_th_remaining: 'Remaining',
+
+                /* ===== admin: show time form (create / edit) ===== */
+                adm_time_new_pill: 'New show time',
+                adm_time_new_title: 'Add a show time',
+                adm_time_edit_pill: 'Edit show time',
+                adm_time_edit_title: 'Edit show time details',
+                adm_time_section_when: 'When',
+                adm_time_section_when_sub: 'Pick the date and start time of this performance.',
+                adm_time_section_pricing: 'Pricing & ticket count',
+                adm_time_section_pricing_helper: 'Set the ticket price and how many tickets are available.',
+                adm_time_section_pricing_split: 'Hall / balcony pricing is enabled at the show level. Edit the prices from the show details.',
+                adm_time_ticket_price: 'Ticket price',
+                adm_time_total: 'Total tickets',
+                adm_time_available_now: 'Available now',
+                adm_time_available_helper: 'Leave empty to match the total.',
+                adm_time_available_placeholder: 'Same as total',
+                adm_time_section_status: 'Status',
+                adm_time_status_label: 'Open for booking',
+                adm_time_status_helper: 'When unchecked, this time will be hidden from booking.',
+                adm_time_force_sold_out: 'Force "sold out"',
+                adm_time_save_btn: 'Save',
+
+                /* ===== admin: bookings list ===== */
+                adm_bookings_eyebrow: 'Bookings',
+                adm_bookings_title: 'Manage bookings',
+                adm_bookings_search_placeholder: 'Search by name, phone, or code...',
+                adm_filter_all: 'All',
+                adm_filter_pending: 'Pending',
+                adm_filter_approved: 'Approved',
+                adm_filter_rejected: 'Rejected',
+                adm_filter_all_times: 'All show times',
+                adm_bk_col_guest: 'Guest',
+                adm_bk_col_show: 'Show / time',
+                adm_bk_col_status: 'Status',
+                adm_bk_col_ticket: 'Tickets',
+                adm_bk_col_actions: 'Actions',
+                adm_bk_col_code: 'Code',
+                adm_bk_details: 'Details',
+                adm_bk_no_match: 'No bookings match these filters.',
+                adm_bk_reset_filters: 'Reset filters',
+
+                /* ===== admin: booking detail (show) ===== */
+                adm_bk_pill_prefix: 'Booking',
+                adm_bk_tickets_title: '🎟️ Tickets',
+                adm_bk_tickets_word: 'tickets',
+                adm_bk_received: 'Sent',
+                adm_bk_not_received: 'Not sent yet',
+                adm_bk_view_ticket: '🎫 View ticket',
+                adm_bk_resend: 'Resend',
+                adm_bk_resend_ok: 'Tickets sent again',
+                adm_bk_resend_fail: 'Something went wrong, please try again',
+                adm_bk_summary_title: '📋 Booking summary',
+                adm_bk_summary_eyebrow: 'Details',
+                adm_bk_count: 'Ticket count',
+                adm_bk_price: 'Price',
+                adm_bk_status: 'Status',
+                adm_bk_status_approved: '✅ Approved',
+                adm_bk_status_rejected: '❌ Rejected',
+                adm_bk_status_pending: '⏳ Pending',
+                adm_bk_ref: 'Booking code',
+                adm_bk_name: 'Name',
+                adm_bk_phone: 'Phone',
+                adm_bk_transfer_title: 'Transfer screenshot',
+                adm_bk_transfer_eyebrow: 'Payment proof',
+                adm_bk_delete_title: 'Delete booking?',
+                adm_bk_delete_body: 'This will permanently remove the booking. This cannot be undone.',
+                adm_bk_delete_ok: 'Delete',
+                adm_bk_delete_btn: '🗑️ Delete booking',
+                adm_bk_actions_aria: 'Booking actions',
+                adm_bk_pending_label: 'Booking pending review',
+                adm_bk_reject_title: 'Reject booking?',
+                adm_bk_reject_body: 'The customer will be notified that the booking was rejected. Are you sure?',
+                adm_bk_reject_ok: 'Reject',
+                adm_bk_reject_btn: 'Reject',
+                adm_bk_approve_title: 'Approve booking?',
+                adm_bk_approve_body: 'The booking will be approved and tickets will be sent to the customer.',
+                adm_bk_approve_ok: 'Approve',
+                adm_bk_approve_btn: 'Approve',
+
+                /* ===== admin: payments settings ===== */
+                adm_pay_pill: 'Payment settings',
+                adm_pay_title: '💳 Payment settings',
+                adm_pay_wallet_label: 'Wallet number',
+                adm_pay_wallet_hint: 'e.g. 0100xxxxxxx',
+                adm_pay_insta_label: 'InstaPay account',
+                adm_pay_insta_hint: 'e.g. EGxxxxxxxxxx or email@domain.com',
+                adm_pay_save: 'Save settings',
+                adm_payments_eyebrow: 'Payment methods',
+                adm_payments_title: 'Payment settings',
+                adm_payments_hint: 'Configure the wallet and InstaPay account customers will see.',
+                adm_payments_wallet: 'Wallet',
+                adm_payments_save: 'Save',
+
+                /* ===== admin: scanner ===== */
+                adm_scanner_pill: 'Gate scanner',
+                adm_scanner_title: '🎫 Gate scanner',
+                adm_scanner_ready: 'Ready to scan',
+                adm_scanner_flash: '🔦 Flash',
+                adm_scanner_restart: '🔄 Restart',
+                adm_scanner_ok: '✅ Allowed',
+                adm_scanner_used: '⚠️ Already used',
+                adm_scanner_invalid: '❌ Invalid',
+                adm_scanner_entered: 'Entered',
+                adm_scanner_no_torch: 'Flash is not supported',
+
+                /* ===== auth ===== */
+                auth_admin_pill: 'Sign in',
+                auth_admin_title: 'Admin sign in',
+                auth_admin_subtitle: 'Sign in to manage shows and bookings.',
+                auth_email: 'Email',
+                auth_password: 'Password',
+                auth_password_confirm: 'Confirm password',
+                auth_name: 'Name',
+                auth_login_btn: 'Sign in',
+                auth_register_title: 'Create a new account',
+                auth_register_btn: 'Create account',
+                auth_forgot_password: 'Forgot your password?',
+                auth_reset_pill: 'Reset',
+                auth_reset_title: 'Reset your password',
+                auth_reset_btn: 'Update password',
+                auth_send_reset_link: 'Send reset link',
+                auth_confirm_pwd_title: 'Confirm your password',
+                auth_confirm_pwd_subtitle: 'Please confirm your password before continuing.',
+                auth_verify_title: 'Verify your email',
+                auth_verify_check_email: 'Check your inbox for the activation link.',
+                auth_verify_resent: 'A new link was sent to your email.',
+                auth_verify_didnt_receive: 'Didn\u2019t get the link?',
+                auth_verify_resend_link: 'Resend link'
             }
         };
         // Match all lang toggle button groups (desktop + mobile drawer)
@@ -3656,15 +4978,49 @@
             const offset = r.left - wrap.left;
             thumb.style.transform = 'translateX(' + offset + 'px)';
         }
+        // Look up a translation key against the current dictionary, with simple
+        // {placeholder} interpolation. Falls back to the AR dictionary, then to
+        // the key itself, so missing keys never blow up the page.
+        function ptT(key, vars) {
+            const lang = document.documentElement.getAttribute('data-pt-lang') || 'ar';
+            const dict = I18N[lang] || I18N.ar;
+            let s = dict[key];
+            if (s === undefined) s = (I18N.ar || {})[key];
+            if (s === undefined) return key;
+            if (vars && typeof s === 'string') {
+                s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? vars[k] : m));
+            }
+            return s;
+        }
+        // Expose helpers globally so per-page JS (seat picker, booking form,
+        // scanner, ...) can build dynamic strings in the active language.
+        window.PT_I18N = I18N;
+        window.PT_T    = ptT;
         function applyLang(lang) {
             const dict = I18N[lang] || I18N.ar;
             document.documentElement.setAttribute('data-pt-lang', lang);
             document.documentElement.lang = lang;
             document.documentElement.dir  = (lang === 'en') ? 'ltr' : 'rtl';
+            // Text content
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const k = el.getAttribute('data-i18n');
                 if (dict[k] !== undefined) el.textContent = dict[k];
             });
+            // HTML content (for strings that include inline tags / line breaks)
+            document.querySelectorAll('[data-i18n-html]').forEach(el => {
+                const k = el.getAttribute('data-i18n-html');
+                if (dict[k] !== undefined) el.innerHTML = dict[k];
+            });
+            // Attribute translation. Encode as `data-i18n-attr="placeholder:key,title:key2"`.
+            document.querySelectorAll('[data-i18n-attr]').forEach(el => {
+                const spec = el.getAttribute('data-i18n-attr') || '';
+                spec.split(',').forEach(pair => {
+                    const [attr, key] = pair.split(':').map(s => s && s.trim());
+                    if (!attr || !key) return;
+                    if (dict[key] !== undefined) el.setAttribute(attr, dict[key]);
+                });
+            });
+            // Update language toggle button states + thumb
             langButtons.forEach(b => {
                 const on = b.getAttribute('data-pt-lang') === lang;
                 b.classList.toggle('is-active', on);
@@ -3672,8 +5028,10 @@
             });
             document.querySelectorAll('.pt-lang-toggle').forEach(group => moveThumbForGroup(group, lang));
             try { localStorage.setItem('pt-lang', lang); } catch(_){}
+            window.PT_LANG = lang;
             document.dispatchEvent(new CustomEvent('pt:langchange', { detail: { lang } }));
         }
+        window.PT_APPLY_LANG = applyLang;
         langButtons.forEach(b => b.addEventListener('click', () => applyLang(b.getAttribute('data-pt-lang'))));
         let initLang = 'ar';
         try { initLang = localStorage.getItem('pt-lang') || 'ar'; } catch(_){}
@@ -3777,10 +5135,18 @@
             let opts;
             try { opts = JSON.parse(cfg); } catch (_) { opts = { title: cfg }; }
             const tone = opts.tone || 'warn';
-            const title = opts.title || (window.PT.lang() === 'en' ? 'Are you sure?' : 'هل أنت متأكد؟');
-            const body  = opts.body  || '';
-            const okLabel    = opts.okLabel    || (window.PT.lang() === 'en' ? 'Continue' : 'متابعة');
-            const cancelLabel = opts.cancelLabel || (window.PT.lang() === 'en' ? 'Cancel' : 'إلغاء');
+            // i18nKeys lets callers translate title/body/labels at runtime
+            // without committing English copy into the markup. Resolution
+            // order: i18nKeys[field] (translated) → opts[field] (literal AR) → safe default.
+            const k = (opts.i18nKeys || {});
+            const tr = (key, fallback) => key ? window.PT.t(key) || fallback : fallback;
+            const title = tr(k.title, opts.title)
+                || (window.PT.lang() === 'en' ? 'Are you sure?' : 'هل أنت متأكد؟');
+            const body  = tr(k.body, opts.body) || '';
+            const okLabel = tr(k.okLabel, opts.okLabel)
+                || (window.PT.lang() === 'en' ? 'Continue' : 'متابعة');
+            const cancelLabel = tr(k.cancelLabel, opts.cancelLabel)
+                || (window.PT.lang() === 'en' ? 'Cancel' : 'إلغاء');
             const okVariant = opts.okVariant || 'emerald';
             window.PT.modal.open({
                 tone, title, body,

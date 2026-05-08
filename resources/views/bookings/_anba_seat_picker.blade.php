@@ -613,32 +613,32 @@
                 {{-- compact top bar shown only in fullscreen mode --}}
                 <div class="fs-topbar">
                     <a href="{{ $adminMode ? $adminBackUrl : route('bookings.create', $showTime) }}" class="fs-back">
-                        <span aria-hidden="true">→</span>
-                        رجوع
+                        <span class="pt-arrow-rtl-back" aria-hidden="true">→</span>
+                        <span data-i18n="seat_back">رجوع</span>
                     </a>
                     <span class="fs-title">
                         @if ($adminMode)
-                            ◆ إدارة المقاعد · {{ $showTime->show->title ?? '' }}
+                            ◆ <span data-i18n="seat_admin_title">إدارة المقاعد</span> · {{ $showTime->show->title ?? '' }}
                         @else
-                            ◆ اختار مقعدك
+                            ◆ <span data-i18n="seat_pick_title">اختار مقعدك</span>
                         @endif
                     </span>
                     <div class="zoom-bar">
-                        <button type="button" class="zoom-btn" data-zoom="-1" aria-label="تصغير">−</button>
-                        <button type="button" class="zoom-btn" data-zoom="0"  aria-label="إعادة">⟳</button>
-                        <button type="button" class="zoom-btn" data-zoom="1"  aria-label="تكبير">+</button>
+                        <button type="button" class="zoom-btn" data-zoom="-1" data-i18n-attr="aria-label:seat_zoom_out" aria-label="تصغير">−</button>
+                        <button type="button" class="zoom-btn" data-zoom="0"  data-i18n-attr="aria-label:seat_zoom_reset" aria-label="إعادة">⟳</button>
+                        <button type="button" class="zoom-btn" data-zoom="1"  data-i18n-attr="aria-label:seat_zoom_in" aria-label="تكبير">+</button>
                     </div>
                 </div>
             @else
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-sm font-semibold"
                         style="background: linear-gradient(135deg,#22d3ee,#818cf8,#c084fc); -webkit-background-clip: text; background-clip: text; color: transparent;">
-                        ◆ خريطة المقاعد · {{ $showTime->show->title ?? 'مسرح الأنبا رويس' }}
+                        ◆ <span data-i18n="seat_map">خريطة المقاعد</span> · {{ $showTime->show->title ?? '' }}
                     </h2>
                     <div class="zoom-bar">
-                        <button type="button" class="zoom-btn" data-zoom="-1" aria-label="تصغير">−</button>
-                        <button type="button" class="zoom-btn" data-zoom="0"  aria-label="إعادة">⟳</button>
-                        <button type="button" class="zoom-btn" data-zoom="1"  aria-label="تكبير">+</button>
+                        <button type="button" class="zoom-btn" data-zoom="-1" data-i18n-attr="aria-label:seat_zoom_out" aria-label="تصغير">−</button>
+                        <button type="button" class="zoom-btn" data-zoom="0"  data-i18n-attr="aria-label:seat_zoom_reset" aria-label="إعادة">⟳</button>
+                        <button type="button" class="zoom-btn" data-zoom="1"  data-i18n-attr="aria-label:seat_zoom_in" aria-label="تكبير">+</button>
                     </div>
                 </div>
             @endif
@@ -647,6 +647,7 @@
                 <canvas class="seat-canvas" data-seat-canvas
                         width="1400" height="700"
                         role="img"
+                        data-i18n-attr="aria-label:seat_canvas_aria"
                         aria-label="خريطة مقاعد الصالة"></canvas>
 
                 {{-- Pinch & pan onboarding hint. Mobile-only; shown once per
@@ -660,7 +661,7 @@
                                 <circle class="pinch-finger b" cx="42" cy="22" r="6"/>
                             </svg>
                         </div>
-                        <div class="hint-text">استخدم إصبعين للتكبير والتحريك</div>
+                        <div class="hint-text" data-i18n="seat_gesture_hint">استخدم إصبعين للتكبير والتحريك</div>
                         <div class="hint-sub">Pinch &amp; pan</div>
                     </div>
                 </div>
@@ -669,15 +670,20 @@
                     {{-- Floating zoom controls (fullscreen mobile primary path).
                          Glass + neon, sits above the sticky CTA. --}}
                     <div class="canvas-fab" aria-hidden="false">
-                        <button type="button" class="fab-btn" data-zoom="1"  aria-label="تكبير">+</button>
-                        <button type="button" class="fab-btn" data-zoom="0"  aria-label="احتواء">⤢</button>
-                        <button type="button" class="fab-btn" data-zoom="-1" aria-label="تصغير">−</button>
+                        <button type="button" class="fab-btn" data-zoom="1"  data-i18n-attr="aria-label:seat_zoom_in"    aria-label="تكبير">+</button>
+                        <button type="button" class="fab-btn" data-zoom="0"  data-i18n-attr="aria-label:seat_zoom_reset" aria-label="إعادة">⤢</button>
+                        <button type="button" class="fab-btn" data-zoom="-1" data-i18n-attr="aria-label:seat_zoom_out"   aria-label="تصغير">−</button>
                     </div>
                 @endif
             </div>
 
-            <p class="mt-3 text-center text-[11px] text-[color:var(--p-text-3)]">
-                اسحب للتنقل · قرّب بإصبعين أو بضغطة مزدوجة · المقاعد ذات الـ✕ مخصصة للإدارة
+            <p class="mt-3 text-center text-[11px] text-[color:var(--p-text-3)]"
+               @if ($adminMode) data-i18n="seat_legend_hint_admin" @else data-i18n="seat_legend_hint_user" @endif>
+                @if ($adminMode)
+                    اسحب للتنقل · قرّب بإصبعين أو بضغطة مزدوجة · اضغط على أي مقعد لحظره أو فك حظره
+                @else
+                    اسحب للتنقل · قرّب بإصبعين أو بضغطة مزدوجة · المقاعد ذات الـ✕ مخصصة للإدارة
+                @endif
             </p>
 
             {{-- live status (used by canvas tooltip on hover) --}}
@@ -698,9 +704,9 @@
                     <p>📅 {{ \Carbon\Carbon::parse($showTime->date)->format('d-m-Y') }}</p>
                     <p>⏰ {{ \Carbon\Carbon::parse($showTime->time)->format('g:i A') }}</p>
                     @if ($adminMode)
-                        <p class="font-semibold" style="color: var(--p-gold);">🛠️ وضع الإدارة</p>
+                        <p class="font-semibold" style="color: var(--p-gold);">🛠️ <span data-i18n="seat_admin_mode">وضع الإدارة</span></p>
                     @else
-                        <p class="font-semibold" style="color: var(--p-gold);">🎟️ {{ $hallPriceInt }} جنيه / مقعد</p>
+                        <p class="font-semibold" style="color: var(--p-gold);">🎟️ {{ $hallPriceInt }} <span data-i18n="seat_per_seat">جنيه / مقعد</span></p>
                     @endif
                 </div>
             </div>
@@ -710,18 +716,19 @@
                 <div class="rounded-2xl p-3 space-y-2"
                      style="background: rgba(8,10,20,0.55); border: 1px solid rgba(129,140,248,0.18);">
                     <h4 class="text-[11px] font-semibold"
-                        style="background: linear-gradient(135deg,#22d3ee,#818cf8,#c084fc); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                        style="background: linear-gradient(135deg,#22d3ee,#818cf8,#c084fc); -webkit-background-clip: text; background-clip: text; color: transparent;"
+                        data-i18n="seat_step1_pay">
                         خطوة 1 · حوّل قيمة الحجز
                     </h4>
                     @if (!empty($transferWallet))
                         <div class="bg-white/[0.04] border border-[color:var(--p-border)] rounded-xl px-3 py-2">
-                            <p class="text-[9px] text-[color:var(--p-text-3)] mb-0.5">📱 محفظة</p>
+                            <p class="text-[9px] text-[color:var(--p-text-3)] mb-0.5" data-i18n="pay_wallet">📱 محفظة</p>
                             <p class="text-xs font-bold text-[color:var(--p-text)]" dir="ltr">{{ $transferWallet }}</p>
                         </div>
                     @endif
                     @if (!empty($transferInsta))
                         <div class="bg-white/[0.04] border border-[color:var(--p-border)] rounded-xl px-3 py-2">
-                            <p class="text-[9px] text-[color:var(--p-text-3)] mb-0.5">⚡ InstaPay</p>
+                            <p class="text-[9px] text-[color:var(--p-text-3)] mb-0.5" data-i18n="pay_insta">⚡ InstaPay</p>
                             <p class="text-xs font-bold text-[color:var(--p-text)]" dir="ltr">{{ $transferInsta }}</p>
                         </div>
                     @endif
@@ -731,9 +738,14 @@
             <div>
                 <h3 class="text-sm font-bold mb-2"
                     style="background: linear-gradient(135deg,#22d3ee,#818cf8,#c084fc); -webkit-background-clip: text; background-clip: text; color: transparent;">
-                    @if ($adminMode) إدارة المقاعد @else اختار مقاعدك @endif
+                    @if ($adminMode)
+                        <span data-i18n="seat_admin_panel_title">إدارة المقاعد</span>
+                    @else
+                        <span data-i18n="seat_user_panel_title">اختار مقاعدك</span>
+                    @endif
                 </h3>
-                <p class="text-[11px] text-[color:var(--p-text-3)] leading-relaxed">
+                <p class="text-[11px] text-[color:var(--p-text-3)] leading-relaxed"
+                   @if ($adminMode) data-i18n="seat_admin_panel_desc" @else data-i18n="seat_user_panel_desc" @endif>
                     @if ($adminMode)
                         اضغط على المقاعد لتحديدها — رمادي يصبح مذهَّباً (محجوب للإدارة) والعكس صحيح. المقاعد المحجوزة من العملاء (وردية) لا يمكن تعديلها.
                     @else
@@ -744,10 +756,10 @@
 
             {{-- legend --}}
             <div class="grid grid-cols-2 gap-2 text-[11px] text-[color:var(--p-text-2)]">
-                <div class="legend-pill"><span class="legend-swatch avail"></span> متاح</div>
-                <div class="legend-pill"><span class="legend-swatch sel"></span> مختار</div>
-                <div class="legend-pill"><span class="legend-swatch booked"></span> محجوز</div>
-                <div class="legend-pill"><span class="legend-swatch admin"></span> إدارة</div>
+                <div class="legend-pill"><span class="legend-swatch avail"></span> <span data-i18n="seat_legend_available">متاح</span></div>
+                <div class="legend-pill"><span class="legend-swatch sel"></span> <span data-i18n="seat_legend_selected">مختار</span></div>
+                <div class="legend-pill"><span class="legend-swatch booked"></span> <span data-i18n="seat_legend_reserved">محجوز</span></div>
+                <div class="legend-pill"><span class="legend-swatch admin"></span> <span data-i18n="seat_legend_admin">إدارة</span></div>
             </div>
 
             {{-- selection summary (chips + total) — read-only here; the
@@ -755,12 +767,12 @@
             <div class="space-y-3">
                 <div>
                     <div class="flex items-center justify-between text-[11px] text-[color:var(--p-text-3)] mb-1">
-                        <span>المقاعد المختارة</span>
+                        <span data-i18n="seat_selected_label">المقاعد المختارة</span>
                         <span data-selected-count>0</span>
                     </div>
                     <div data-selected-chips class="flex flex-wrap gap-1.5 min-h-[36px] p-2 rounded-xl"
                          style="background: rgba(8,10,20,0.55); border: 1px solid var(--p-border);">
-                        <span class="text-[11px] text-[color:var(--p-text-4)]" data-empty-msg>لم تختر أي مقعد بعد</span>
+                        <span class="text-[11px] text-[color:var(--p-text-4)]" data-empty-msg data-i18n="seat_none_selected">لم تختر أي مقعد بعد</span>
                     </div>
                 </div>
 
@@ -768,7 +780,7 @@
                     <div class="flex items-center justify-between rounded-xl px-3 py-2"
                          style="background: linear-gradient(135deg, rgba(251,191,36,0.10), rgba(251,191,36,0.04));
                                 border: 1px solid rgba(251,191,36,0.32); color: #fef3c7;">
-                        <span class="text-[11px] uppercase" style="letter-spacing: .18em;">الإجمالي</span>
+                        <span class="text-[11px] uppercase" style="letter-spacing: .18em;" data-i18n="seat_total">الإجمالي</span>
                         <span class="text-base font-bold" style="color: var(--p-gold);">
                             <span data-total-price>0</span> <span class="text-[10px] opacity-80">EGP</span>
                         </span>
@@ -781,11 +793,11 @@
                         disabled
                         class="cta-primary w-full">
                     @if ($adminMode)
-                        <span data-cta-label>حفظ التغييرات</span>
+                        <span data-cta-label data-i18n="seat_save_changes">حفظ التغييرات</span>
                         <span aria-hidden="true">✔</span>
                     @else
-                        إكمال الحجز
-                        <span aria-hidden="true">←</span>
+                        <span data-i18n="seat_complete_booking">إكمال الحجز</span>
+                        <span class="pt-arrow-rtl" aria-hidden="true">←</span>
                     @endif
                 </button>
 
@@ -795,9 +807,11 @@
                    onmouseover="this.style.color='var(--p-text)'"
                    onmouseout="this.style.color='var(--p-text-3)'">
                     @if ($adminMode)
-                        → رجوع لإدارة العروض
+                        <span class="pt-arrow-rtl-back" aria-hidden="true">→</span>
+                        <span data-i18n="seat_back_shows_admin">رجوع لإدارة العروض</span>
                     @else
-                        → الرجوع لاختيار القسم
+                        <span class="pt-arrow-rtl-back" aria-hidden="true">→</span>
+                        <span data-i18n="seat_back_section">الرجوع لاختيار القسم</span>
                     @endif
                 </a>
             </div>
@@ -808,10 +822,14 @@
     <div class="mobile-cta">
         <div class="flex-1">
             <div class="text-[10px] text-[color:var(--p-text-3)]">
-                @if ($adminMode) تغييرات معلَّقة @else المختار @endif
+                @if ($adminMode)
+                    <span data-i18n="seat_pending_changes">تغييرات معلَّقة</span>
+                @else
+                    <span data-i18n="seat_chip_selected">المختار</span>
+                @endif
             </div>
             <div class="text-sm font-bold text-[color:var(--p-text)]">
-                <span data-mobile-count>0</span> مقعد
+                <span data-mobile-count>0</span> <span data-i18n="seat_chip_seat">مقعد</span>
                 @unless ($adminMode)
                     ·
                     <span style="color: var(--p-gold);"><span data-mobile-total>0</span> EGP</span>
@@ -822,9 +840,9 @@
                 disabled
                 class="cta-primary px-5 py-2 text-xs">
             @if ($adminMode)
-                <span data-cta-label>حفظ التغييرات</span>
+                <span data-cta-label data-i18n="seat_save_changes">حفظ التغييرات</span>
             @else
-                إكمال الحجز
+                <span data-i18n="seat_complete_booking">إكمال الحجز</span>
             @endif
         </button>
     </div>

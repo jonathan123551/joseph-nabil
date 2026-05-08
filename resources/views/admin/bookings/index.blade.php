@@ -19,16 +19,17 @@
     {{-- ========================== HEADER ========================== --}}
     <div class="flex items-end justify-between gap-3 flex-wrap prism-fade-up">
         <div class="space-y-1">
-            <span class="prism-eyebrow">BOOKINGS · MANAGEMENT</span>
+            <span class="prism-eyebrow" data-i18n="adm_bookings_eyebrow">BOOKINGS · MANAGEMENT</span>
             <h1 class="prism-headline text-xl sm:text-2xl"
+                data-i18n="adm_bookings_title"
                 style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
                 إدارة الحجوزات
             </h1>
         </div>
 
         <a href="{{ route('admin.dashboard') }}" class="prism-btn-ghost text-xs">
-            <span aria-hidden="true">→</span>
-            رجوع للوحة التحكم
+            <span aria-hidden="true" class="pt-arrow-rtl">→</span>
+            <span data-i18n="adm_back_dashboard">رجوع للوحة التحكم</span>
         </a>
     </div>
 
@@ -43,23 +44,23 @@
     {{-- ========================== QUICK STATS STRIP ========================== --}}
     <div class="prism-stat-strip prism-fade-up">
         <div class="prism-stat-strip-item">
-            <span class="prism-stat-strip-label">قيد المراجعة</span>
+            <span class="prism-stat-strip-label" data-i18n="adm_status_pending">قيد المراجعة</span>
             <span class="prism-stat-strip-val prism-stat-strip-val-cyan">{{ $bkPending }}</span>
         </div>
         <div class="prism-stat-strip-item">
-            <span class="prism-stat-strip-label">معتمد</span>
+            <span class="prism-stat-strip-label" data-i18n="adm_status_approved">معتمد</span>
             <span class="prism-stat-strip-val prism-stat-strip-val-emerald">{{ $bkApproved }}</span>
         </div>
         <div class="prism-stat-strip-item">
-            <span class="prism-stat-strip-label">مرفوض</span>
+            <span class="prism-stat-strip-label" data-i18n="adm_status_rejected">مرفوض</span>
             <span class="prism-stat-strip-val prism-stat-strip-val-rose">{{ $bkRejected }}</span>
         </div>
         <div class="prism-stat-strip-item">
-            <span class="prism-stat-strip-label">تذاكر معتمدة</span>
+            <span class="prism-stat-strip-label" data-i18n="adm_tickets_approved">تذاكر معتمدة</span>
             <span class="prism-stat-strip-val">{{ $bkTickets }}</span>
         </div>
         <div class="prism-stat-strip-item">
-            <span class="prism-stat-strip-label">Revenue</span>
+            <span class="prism-stat-strip-label" data-i18n="adm_revenue">Revenue</span>
             <span class="prism-stat-strip-val prism-stat-strip-val-gold">{{ number_format($bkRevenue, 0) }}<span class="opacity-60 ms-1 text-[11px] font-semibold">EGP</span></span>
         </div>
     </div>
@@ -69,6 +70,7 @@
         <div class="flex items-center gap-2 flex-1 min-w-0">
             <input id="searchInput" type="text"
                    placeholder="بحث بالاسم / الموبايل / كود الحجز"
+                   data-i18n-attr="placeholder:adm_bookings_search_placeholder"
                    class="prism-input text-xs"
                    style="max-width: 320px; min-height: 38px; padding: 8px 12px;">
         </div>
@@ -77,21 +79,21 @@
             {{-- Segmented status control: hidden radios drive .prism-segment label state. --}}
             <div class="prism-segment" role="radiogroup" aria-label="Status filter">
                 <input type="radio" name="statusSegment" id="seg-all" value="" checked>
-                <label for="seg-all">كل الحالات</label>
+                <label for="seg-all" data-i18n="adm_filter_all">كل الحالات</label>
 
                 <input type="radio" name="statusSegment" id="seg-pending" value="pending">
-                <label for="seg-pending"><span style="color: var(--prism-cyan);">●</span> Pending</label>
+                <label for="seg-pending"><span style="color: var(--prism-cyan);">●</span> <span data-i18n="adm_filter_pending">Pending</span></label>
 
                 <input type="radio" name="statusSegment" id="seg-approved" value="approved">
-                <label for="seg-approved"><span style="color: var(--prism-emerald);">●</span> Approved</label>
+                <label for="seg-approved"><span style="color: var(--prism-emerald);">●</span> <span data-i18n="adm_filter_approved">Approved</span></label>
 
                 <input type="radio" name="statusSegment" id="seg-rejected" value="rejected">
-                <label for="seg-rejected"><span style="color: var(--prism-rose);">●</span> Rejected</label>
+                <label for="seg-rejected"><span style="color: var(--prism-rose);">●</span> <span data-i18n="adm_filter_rejected">Rejected</span></label>
             </div>
 
             <select id="dateTimeFilter" class="prism-input text-xs"
                     style="max-width: 220px; min-height: 38px; padding: 6px 10px;">
-                <option value="">كل المواعيد</option>
+                <option value="" data-i18n="adm_filter_all_times">كل المواعيد</option>
                 @foreach(
                     $bookings->map(fn($b) => $b->showTime
                         ? $b->showTime->date->format('Y-m-d').' '.$b->showTime->time
@@ -112,12 +114,12 @@
             <table class="prism-table-clean w-full">
                 <thead>
                     <tr>
-                        <th class="text-right">الضيف</th>
-                        <th class="text-right">العرض / الموعد</th>
-                        <th class="text-right">الحالة</th>
-                        <th class="text-center">التذكرة</th>
-                        <th class="text-right">إجراءات</th>
-                        <th class="text-right">الكود</th>
+                        <th class="pt-rtl-text text-start" data-i18n="adm_bk_col_guest">الضيف</th>
+                        <th class="pt-rtl-text text-start" data-i18n="adm_bk_col_show">العرض / الموعد</th>
+                        <th class="pt-rtl-text text-start" data-i18n="adm_bk_col_status">الحالة</th>
+                        <th class="text-center" data-i18n="adm_bk_col_ticket">التذكرة</th>
+                        <th class="pt-rtl-text text-start" data-i18n="adm_bk_col_actions">إجراءات</th>
+                        <th class="pt-rtl-text text-start" data-i18n="adm_bk_col_code">الكود</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -136,7 +138,7 @@
                             <div>
                                 <p class="font-bold text-[color:var(--prism-text)]">{{ $booking->full_name }}</p>
                                 <p class="text-xs" style="color: var(--prism-gold);">
-                                    🎟️ {{ $booking->tickets_count }} تذكرة
+                                    🎟️ {{ $booking->tickets_count }} <span data-i18n="common_ticket_word">تذكرة</span>
                                 </p>
                             </div>
                             <span class="text-[color:var(--prism-text-3)] block mb-1">{{ $booking->phone }}</span>
@@ -180,7 +182,8 @@
                         </td>
 
                         <td class="align-top">
-                            <a href="{{ route('admin.bookings.show',$booking) }}" class="prism-btn-ghost text-xs px-3 py-1.5">
+                            <a href="{{ route('admin.bookings.show',$booking) }}" class="prism-btn-ghost text-xs px-3 py-1.5"
+                               data-i18n="adm_bk_details">
                                 تفاصيل
                             </a>
                         </td>
@@ -215,7 +218,7 @@
                         <div class="font-semibold text-sm text-[color:var(--prism-text)]">{{ $booking->full_name }}</div>
 
                         <div class="text-xs mb-1" style="color: var(--prism-gold);">
-                            🎟️ {{ $booking->tickets_count }} تذكرة
+                            🎟️ {{ $booking->tickets_count }} <span data-i18n="common_ticket_word">تذكرة</span>
                         </div>
 
                         <div class="text-[color:var(--prism-text-3)]">{{ $booking->phone }}</div>
@@ -261,7 +264,8 @@
                         </span>
                     </div>
 
-                    <a href="{{ route('admin.bookings.show',$booking) }}" class="prism-btn-ghost text-xs px-3 py-1.5">
+                    <a href="{{ route('admin.bookings.show',$booking) }}" class="prism-btn-ghost text-xs px-3 py-1.5"
+                       data-i18n="adm_bk_details">
                         تفاصيل
                     </a>
                 </div>
@@ -271,8 +275,9 @@
 
     {{-- Empty state for filters that match nothing --}}
     <div id="emptyFilterState" class="prism-glass p-6 text-center prism-fade-up" style="display:none;">
-        <div class="text-sm text-[color:var(--prism-text-2)] mb-1">لا توجد حجوزات تطابق هذا الفلتر.</div>
-        <button type="button" id="resetFilters" class="prism-btn-ghost text-xs mt-2 inline-flex">
+        <div class="text-sm text-[color:var(--prism-text-2)] mb-1" data-i18n="adm_bk_no_match">لا توجد حجوزات تطابق هذا الفلتر.</div>
+        <button type="button" id="resetFilters" class="prism-btn-ghost text-xs mt-2 inline-flex"
+                data-i18n="adm_bk_reset_filters">
             تصفير الفلاتر
         </button>
     </div>

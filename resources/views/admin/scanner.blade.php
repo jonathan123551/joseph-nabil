@@ -10,10 +10,11 @@
         <div class="space-y-1">
             <span class="prism-pill prism-pill-neon">
                 <span class="prism-dot prism-dot-emerald"></span>
-                Gate Scanner
+                <span data-i18n="adm_scanner_pill">Gate Scanner</span>
             </span>
             <h1 class="prism-headline text-base">
-                <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                <span data-i18n-html="adm_scanner_title"
+                      style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
                     🎫 Gate Scanner
                 </span>
             </h1>
@@ -23,13 +24,13 @@
              door staff using a shared device (the scanner is now public). --}}
         @auth
             <a href="{{ route('admin.dashboard') }}" class="prism-btn-ghost text-xs">
-                <span aria-hidden="true">→</span>
-                رجوع
+                <span aria-hidden="true" class="pt-arrow-rtl">→</span>
+                <span data-i18n="adm_back">رجوع</span>
             </a>
         @else
             <a href="{{ url('/') }}" class="prism-btn-ghost text-xs">
-                <span aria-hidden="true">→</span>
-                رجوع
+                <span aria-hidden="true" class="pt-arrow-rtl">→</span>
+                <span data-i18n="adm_back">رجوع</span>
             </a>
         @endauth
     </div>
@@ -57,6 +58,7 @@
 
         {{-- STATUS OVERLAY TOP --}}
         <div id="status"
+             data-i18n="adm_scanner_ready"
              class="absolute top-5 left-1/2 -translate-x-1/2 z-50
                     px-4 py-2 rounded-full
                     text-sm
@@ -69,11 +71,13 @@
     {{-- CONTROLS --}}
     <div class="flex gap-2">
 
-        <button id="flashBtn" class="flex-1 prism-btn-ghost text-xs py-3">
+        <button id="flashBtn" class="flex-1 prism-btn-ghost text-xs py-3"
+                data-i18n-html="adm_scanner_flash">
             🔦 Flash
         </button>
 
-        <button onclick="location.reload()" class="flex-1 prism-btn-ghost text-xs py-3">
+        <button onclick="location.reload()" class="flex-1 prism-btn-ghost text-xs py-3"
+                data-i18n-html="adm_scanner_restart">
             🔄 Restart
         </button>
 
@@ -213,9 +217,17 @@ function setStatus(text,type){
 }
 
 // 📊 render — PRISM-themed result card
+function tt(key, fallback) {
+    try {
+        if (window.PT_T) return window.PT_T(key, fallback);
+    } catch (_) {}
+    return fallback;
+}
 function render(d){
     const c = document.getElementById('card');
     c.classList.remove('hidden');
+
+    const enteredLabel = tt('adm_scanner_entered', 'دخل');
 
     c.innerHTML = `
         <div class="space-y-2">
@@ -240,7 +252,7 @@ function render(d){
             ${
                 d.scanned_at
                 ? `<div class="text-[12px] font-semibold" style="color: var(--prism-emerald);">
-                        ✅ دخل: ${d.scanned_at}
+                        ✅ ${enteredLabel}: ${d.scanned_at}
                    </div>`
                 : ''
             }
@@ -264,21 +276,21 @@ function check(code){
     .then(d=>{
 
         if(d.status==='ok'){
-            setStatus('✅ دخول مسموح','ok');
+            setStatus(tt('adm_scanner_ok', '✅ دخول مسموح'),'ok');
             vibrate('ok');
             beep('ok');
             flash('ok');
             render(d);
         }
         else if(d.status==='used'){
-            setStatus('⚠️ مستخدمة','used');
+            setStatus(tt('adm_scanner_used', '⚠️ مستخدمة'),'used');
             vibrate('used');
             beep('used');
             flash('used');
             render(d);
         }
         else{
-            setStatus('❌ غير صالح','error');
+            setStatus(tt('adm_scanner_invalid', '❌ غير صالح'),'error');
             vibrate('error');
             beep('error');
             flash('error');
@@ -323,7 +335,7 @@ document.getElementById('flashBtn').onclick = async () => {
             advanced: [{ torch: flashOn }]
         });
     }catch(e){
-        alert('الفلاش غير مدعوم');
+        alert(tt('adm_scanner_no_torch', 'الفلاش غير مدعوم'));
     }
 };
 </script>

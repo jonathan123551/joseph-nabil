@@ -9,14 +9,16 @@
             <div class="text-center space-y-2">
                 <span class="prism-pill prism-pill-neon mx-auto">
                     <span class="prism-dot prism-dot-emerald"></span>
-                    Admin Access
+                    <span data-i18n="auth_admin_pill">Admin Access</span>
                 </span>
                 <h2 class="prism-headline text-xl">
-                    <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                    <span data-i18n="auth_admin_title"
+                          style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
                         دخول الأدمن
                     </span>
                 </h2>
-                <p class="text-xs text-[color:var(--prism-text-3)]">سجّل دخولك للوحة التحكم</p>
+                <p class="text-xs text-[color:var(--prism-text-3)]"
+                   data-i18n="auth_admin_subtitle">سجّل دخولك للوحة التحكم</p>
             </div>
 
             @if ($errors->any())
@@ -30,20 +32,22 @@
                 @csrf
 
                 <div>
-                    <label class="text-xs mb-1 block text-[color:var(--prism-text-2)]">البريد الإلكتروني</label>
+                    <label class="text-xs mb-1 block text-[color:var(--prism-text-2)]"
+                           data-i18n="auth_email">البريد الإلكتروني</label>
                     <input type="email" name="email" value="{{ old('email') }}"
                            class="prism-input text-sm" autocomplete="email">
                 </div>
 
                 <div>
-                    <label class="text-xs mb-1 block text-[color:var(--prism-text-2)]">كلمة المرور</label>
+                    <label class="text-xs mb-1 block text-[color:var(--prism-text-2)]"
+                           data-i18n="auth_password">كلمة المرور</label>
                     <input type="password" name="password"
                            class="prism-input text-sm" autocomplete="current-password">
                 </div>
 
                 <button class="prism-btn w-full mt-2">
-                    دخول
-                    <span aria-hidden="true">←</span>
+                    <span data-i18n="auth_login_btn">دخول</span>
+                    <span aria-hidden="true" class="pt-arrow-rtl">←</span>
                 </button>
             </form>
         </div>

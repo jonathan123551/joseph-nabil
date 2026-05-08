@@ -11,10 +11,11 @@
             <div class="space-y-1">
                 <span class="prism-pill prism-pill-neon">
                     <span class="prism-dot prism-dot-emerald"></span>
-                    Edit Show
+                    <span data-i18n="adm_show_edit_pill">Edit Show</span>
                 </span>
                 <h1 class="prism-headline text-xl">
-                    <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                    <span data-i18n="adm_show_edit_title"
+                          style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
                         تعديل العرض
                     </span>
                 </h1>
@@ -22,8 +23,8 @@
             </div>
 
             <a href="{{ route('admin.shows.index') }}" class="prism-btn-ghost text-xs">
-                <span aria-hidden="true">→</span>
-                رجوع
+                <span aria-hidden="true" class="pt-arrow-rtl">→</span>
+                <span data-i18n="adm_back">رجوع</span>
             </a>
         </div>
     </div>
@@ -49,12 +50,12 @@
         <div class="pt-form-section">
             <div class="pt-form-section-head">
                 <span class="pt-form-section-head-icon" aria-hidden="true">🎭</span>
-                <span class="pt-form-section-head-title">بيانات العرض</span>
+                <span class="pt-form-section-head-title" data-i18n="adm_show_basic">بيانات العرض</span>
             </div>
 
             <div class="pt-form-field">
                 <label class="pt-form-field-label">
-                    اسم العرض
+                    <span data-i18n="adm_show_title_label">اسم العرض</span>
                     <span class="pt-form-req" aria-hidden="true">*</span>
                 </label>
                 <input type="text" name="title"
@@ -63,7 +64,7 @@
             </div>
 
             <div class="pt-form-field">
-                <label class="pt-form-field-label">الوصف</label>
+                <label class="pt-form-field-label" data-i18n="adm_show_description">الوصف</label>
                 <textarea name="description" rows="4" class="prism-input text-sm">{{ old('description', $show->description) }}</textarea>
             </div>
         </div>
@@ -72,7 +73,7 @@
         <div class="pt-form-section">
             <div class="pt-form-section-head">
                 <span class="pt-form-section-head-icon" aria-hidden="true">🏛️</span>
-                <span class="pt-form-section-head-title">نوع المسرح والأسعار</span>
+                <span class="pt-form-section-head-title" data-i18n="adm_show_theater">نوع المسرح والأسعار</span>
             </div>
 
             <div class="pt-radio-group">
@@ -90,18 +91,18 @@
 
             <div data-anba-ruweis-fields
                  class="space-y-3 {{ old('theater_type', $show->theater_type) === \App\Models\Show::THEATER_ANBA_RUWEIS ? '' : 'hidden' }}">
-                <p class="pt-form-helper">
+                <p class="pt-form-helper" data-i18n="adm_show_anba_helper_short">
                     الأنبا رويس بيستخدم تسعير لكل فئة (بلكون / صالة).
                 </p>
                 <div class="pt-form-grid">
                     <div class="pt-form-field">
-                        <label class="pt-form-field-label">سعر تذكرة البلكون (EGP)</label>
+                        <label class="pt-form-field-label" data-i18n="adm_show_balcony_price">سعر تذكرة البلكون (EGP)</label>
                         <input type="number" min="0" name="balcony_price"
                                value="{{ old('balcony_price', $show->balcony_price) }}"
                                class="prism-input text-sm" inputmode="numeric">
                     </div>
                     <div class="pt-form-field">
-                        <label class="pt-form-field-label">سعر تذكرة الصالة (EGP)</label>
+                        <label class="pt-form-field-label" data-i18n="adm_show_hall_price">سعر تذكرة الصالة (EGP)</label>
                         <input type="number" min="0" name="hall_price"
                                value="{{ old('hall_price', $show->hall_price) }}"
                                class="prism-input text-sm" inputmode="numeric">
@@ -114,7 +115,7 @@
         <div class="pt-form-section">
             <div class="pt-form-section-head">
                 <span class="pt-form-section-head-icon" aria-hidden="true">🖼️</span>
-                <span class="pt-form-section-head-title">بوستر العرض</span>
+                <span class="pt-form-section-head-title" data-i18n="adm_show_poster">بوستر العرض</span>
             </div>
 
             @if($show->poster_path)
@@ -134,10 +135,10 @@
                 <span class="pt-file-zone-icon" aria-hidden="true">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
                 </span>
-                <span class="pt-file-zone-title">
+                <span class="pt-file-zone-title" data-i18n="{{ $show->poster_path ? 'adm_show_poster_replace' : 'adm_show_poster_pick' }}">
                     @if($show->poster_path) استبدال البوستر @else اضغط لاختيار صورة البوستر @endif
                 </span>
-                <span class="pt-file-zone-sub">PNG / JPG · ينصح بنسبة عمودية (2:3)</span>
+                <span class="pt-file-zone-sub" data-i18n="adm_show_poster_hint">PNG / JPG · ينصح بنسبة عمودية (2:3)</span>
                 <input type="file" name="poster" id="posterInput" accept="image/*">
             </label>
         </div>
@@ -146,17 +147,17 @@
         <div class="pt-form-section">
             <div class="pt-form-section-head">
                 <span class="pt-form-section-head-icon" aria-hidden="true">🎟️</span>
-                <span class="pt-form-section-head-title">تصميم التذكرة وموضع الـ QR</span>
+                <span class="pt-form-section-head-title" data-i18n="adm_show_ticket_design">تصميم التذكرة وموضع الـ QR</span>
             </div>
 
             <label class="pt-file-zone">
                 <span class="pt-file-zone-icon" aria-hidden="true">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
                 </span>
-                <span class="pt-file-zone-title">
+                <span class="pt-file-zone-title" data-i18n="{{ $show->ticket_template_path ? 'adm_show_ticket_template_replace' : 'adm_show_ticket_template_pick' }}">
                     @if($show->ticket_template_path) استبدال تصميم التذكرة @else اضغط لرفع تصميم التذكرة @endif
                 </span>
-                <span class="pt-file-zone-sub">بعد الرفع تقدر تحرك مربع الـ QR وتغيّر حجمه</span>
+                <span class="pt-file-zone-sub" data-i18n="adm_show_ticket_template_hint_short">بعد الرفع تقدر تحرك مربع الـ QR وتغيّر حجمه</span>
                 <input type="file" name="ticket_template" id="ticketInput" accept="image/*">
             </label>
 
@@ -191,19 +192,19 @@
 
                 <div class="pt-form-grid-3">
                     <div class="pt-form-field">
-                        <label class="pt-form-field-label">X (من الشمال)</label>
+                        <label class="pt-form-field-label" data-i18n="adm_show_qr_x">X (من الشمال)</label>
                         <input type="number" name="ticket_qr_x" id="ticket_qr_x_input"
                                value="{{ old('ticket_qr_x', $show->ticket_qr_x ?? 0) }}"
                                class="prism-input text-sm" inputmode="numeric">
                     </div>
                     <div class="pt-form-field">
-                        <label class="pt-form-field-label">Y (من فوق)</label>
+                        <label class="pt-form-field-label" data-i18n="adm_show_qr_y">Y (من فوق)</label>
                         <input type="number" name="ticket_qr_y" id="ticket_qr_y_input"
                                value="{{ old('ticket_qr_y', $show->ticket_qr_y ?? 0) }}"
                                class="prism-input text-sm" inputmode="numeric">
                     </div>
                     <div class="pt-form-field">
-                        <label class="pt-form-field-label">حجم الـ QR</label>
+                        <label class="pt-form-field-label" data-i18n="adm_show_qr_size">حجم الـ QR</label>
                         <input type="number" name="ticket_qr_size" id="ticket_qr_size_input"
                                value="{{ old('ticket_qr_size', $show->ticket_qr_size ?? 220) }}"
                                class="prism-input text-sm" inputmode="numeric">
@@ -216,16 +217,16 @@
         <div class="pt-form-section">
             <div class="pt-form-section-head">
                 <span class="pt-form-section-head-icon" aria-hidden="true">👁️</span>
-                <span class="pt-form-section-head-title">الظهور</span>
+                <span class="pt-form-section-head-title" data-i18n="adm_show_visibility">الظهور</span>
             </div>
 
             <label class="pt-switch-row cursor-pointer">
-                <span class="text-xs text-[color:var(--prism-text-2)]">عرض هذا العرض على الموقع</span>
+                <span class="text-xs text-[color:var(--prism-text-2)]" data-i18n="adm_show_visibility_label">عرض هذا العرض على الموقع</span>
                 <input type="checkbox" name="is_active" value="1" class="w-5 h-5"
                        {{ old('is_active', $show->is_active) ? 'checked' : '' }}
                        style="accent-color: #34d399;">
             </label>
-            <p class="pt-form-helper">
+            <p class="pt-form-helper" data-i18n="adm_show_visibility_helper">
                 لما تلغي التحديد، العرض هيختفي من صفحة العروض ومش هيقدر أي حد يحجزه.
             </p>
         </div>
@@ -234,12 +235,12 @@
         <div class="pt-form-actions-sticky">
             <a href="{{ route('admin.shows.index') }}"
                class="prism-btn-ghost text-sm flex items-center justify-center">
-                <span aria-hidden="true">→</span>
-                إلغاء
+                <span aria-hidden="true" class="pt-arrow-rtl">→</span>
+                <span data-i18n="common_cancel">إلغاء</span>
             </a>
             <button type="submit" class="prism-btn text-sm pt-form-actions-primary flex items-center justify-center">
-                حفظ التعديلات
-                <span aria-hidden="true">←</span>
+                <span data-i18n="adm_show_save_btn">حفظ التعديلات</span>
+                <span aria-hidden="true" class="pt-arrow-rtl">←</span>
             </button>
         </div>
     </form>

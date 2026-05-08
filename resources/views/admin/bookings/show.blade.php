@@ -27,18 +27,19 @@
             <div class="flex items-center justify-between gap-3">
                 <a href="{{ route('admin.bookings.index') }}"
                    class="pt-back-chevron"
+                   data-i18n-attr="aria-label:adm_back"
                    aria-label="رجوع">
-                    <span aria-hidden="true">→</span>
+                    <span aria-hidden="true" class="pt-arrow-rtl">→</span>
                 </a>
                 <span class="prism-pill prism-pill-neon">
                     <span class="prism-dot prism-dot-emerald"></span>
-                    حجز #{{ $booking->id }}
+                    <span data-i18n="adm_bk_pill_prefix">حجز</span> #{{ $booking->id }}
                 </span>
             </div>
 
             <div class="flex items-center justify-between gap-2 mt-1">
-                <span class="prism-section-title">🎟️ التذاكر</span>
-                <span class="prism-eyebrow">{{ $booking->tickets->count() }} TICKETS</span>
+                <span class="prism-section-title" data-i18n-html="adm_bk_tickets_title">🎟️ التذاكر</span>
+                <span class="prism-eyebrow">{{ $booking->tickets->count() }} <span data-i18n="adm_bk_tickets_word">TICKETS</span></span>
             </div>
 
             <div class="space-y-3 max-h-[500px] overflow-auto pr-1 mt-2">
@@ -58,6 +59,7 @@
                                              box-shadow: 0 0 8px {{ $ticket->whatsapp_sent ? 'rgba(52,211,153,0.7)' : 'rgba(251,113,133,0.7)' }};"></span>
 
                                 <span class="text-[10px]"
+                                      data-i18n="{{ $ticket->whatsapp_sent ? 'adm_bk_received' : 'adm_bk_not_received' }}"
                                       style="color: {{ $ticket->whatsapp_sent ? 'var(--prism-emerald)' : 'var(--prism-rose)' }};">
                                     {{ $ticket->whatsapp_sent ? 'تم الاستلام' : 'لم يستلم' }}
                                 </span>
@@ -69,14 +71,16 @@
 
                                 @if($ticket->qr_image_path)
                                     <a href="{{ $ticket->qr_image_path }}" target="_blank"
-                                       class="prism-btn-ghost text-[10px] px-3 py-1">
+                                       class="prism-btn-ghost text-[10px] px-3 py-1"
+                                       data-i18n-html="adm_bk_view_ticket">
                                         عرض 🎫
                                     </a>
                                 @endif
 
                                 <form action="{{ route('admin.resend.ticket', $ticket->id) }}" method="POST">
                                     @csrf
-                                    <button class="prism-btn-cyan text-[10px] px-3 py-1">
+                                    <button class="prism-btn-cyan text-[10px] px-3 py-1"
+                                            data-i18n="adm_bk_resend">
                                         إعادة إرسال
                                     </button>
                                 </form>
@@ -94,60 +98,60 @@
         <div class="prism-glass p-5 prism-fade-up">
 
             <div class="flex items-center justify-between gap-2 mb-4">
-                <span class="prism-section-title">📊 الحجز</span>
-                <span class="prism-eyebrow">SUMMARY</span>
+                <span class="prism-section-title" data-i18n-html="adm_bk_summary_title">📊 الحجز</span>
+                <span class="prism-eyebrow" data-i18n="adm_bk_summary_eyebrow">SUMMARY</span>
             </div>
 
             <div class="text-sm">
 
                 <div class="prism-data-row">
-                    <span class="prism-data-key">عدد التذاكر</span>
+                    <span class="prism-data-key" data-i18n="adm_bk_count">عدد التذاكر</span>
                     <span class="prism-data-val">{{ $booking->tickets_count }}</span>
                 </div>
 
                 <div class="prism-data-row">
-                    <span class="prism-data-key">السعر</span>
+                    <span class="prism-data-key" data-i18n="adm_bk_price">السعر</span>
                     <span class="prism-data-val prism-data-val-gold text-base">
-                        {{ $booking->total_price }} <span class="text-xs opacity-80">جنيه</span>
+                        {{ $booking->total_price }} <span class="text-xs opacity-80" data-i18n="common_currency">جنيه</span>
                     </span>
                 </div>
 
                 <div class="prism-data-row">
-                    <span class="prism-data-key">الحالة</span>
+                    <span class="prism-data-key" data-i18n="adm_bk_status">الحالة</span>
 
                     @if($booking->status === 'approved')
                         <span class="prism-pill prism-pill-emerald">
                             <span class="prism-dot prism-dot-emerald"></span>
-                            ✔ مقبول
+                            <span data-i18n-html="adm_bk_status_approved">✔ مقبول</span>
                         </span>
                     @elseif($booking->status === 'rejected')
                         <span class="prism-pill prism-pill-rose">
                             <span class="prism-dot prism-dot-rose"></span>
-                            ✖ مرفوض
+                            <span data-i18n-html="adm_bk_status_rejected">✖ مرفوض</span>
                         </span>
                     @else
                         <span class="prism-pill prism-pill-sky">
                             <span class="prism-dot prism-dot-sky"></span>
-                            ⏳ pending
+                            <span data-i18n-html="adm_bk_status_pending">⏳ pending</span>
                         </span>
                     @endif
                 </div>
 
                 @if($booking->reference_code)
                     <div class="prism-data-row">
-                        <span class="prism-data-key">كود الحجز</span>
+                        <span class="prism-data-key" data-i18n="adm_bk_ref">كود الحجز</span>
                         <span class="prism-data-val font-mono text-xs" style="color: var(--prism-text-2);">{{ $booking->reference_code }}</span>
                     </div>
                 @endif
 
                 <div class="prism-data-row">
-                    <span class="prism-data-key">الاسم</span>
+                    <span class="prism-data-key" data-i18n="adm_bk_name">الاسم</span>
                     <span class="prism-data-val">{{ $booking->full_name }}</span>
                 </div>
 
                 @if($booking->phone)
                     <div class="prism-data-row">
-                        <span class="prism-data-key">الموبايل</span>
+                        <span class="prism-data-key" data-i18n="adm_bk_phone">الموبايل</span>
                         <span class="prism-data-val font-mono text-xs" dir="ltr">{{ $booking->phone }}</span>
                     </div>
                 @endif
@@ -162,8 +166,8 @@
     @if($booking->transfer_screenshot_path)
         <div class="prism-glass p-3 prism-fade-up">
             <div class="flex items-center justify-between gap-2 mb-3 px-2 pt-1">
-                <span class="prism-section-title">إيصال التحويل</span>
-                <span class="prism-eyebrow">TRANSFER · PROOF</span>
+                <span class="prism-section-title" data-i18n="adm_bk_transfer_title">إيصال التحويل</span>
+                <span class="prism-eyebrow" data-i18n="adm_bk_transfer_eyebrow">TRANSFER · PROOF</span>
             </div>
             <img src="{{ $booking->transfer_screenshot_path }}"
                  class="w-full rounded-xl"
@@ -181,11 +185,12 @@
         <div class="text-center mt-6">
 
             <form action="{{ route('admin.booking.delete', $booking->id) }}" method="POST"
-                  data-pt-confirm='{"tone":"error","title":"حذف الحجز بالكامل؟","body":"هيمسح الحجز وكل التذاكر اللي طلعت منه. الإجراء ده مش بيتراجع فيه.","okLabel":"حذف نهائي","cancelLabel":"إلغاء","okVariant":"rose"}'>
+                  data-pt-confirm='{"tone":"error","title":"حذف الحجز بالكامل؟","body":"هيمسح الحجز وكل التذاكر اللي طلعت منه. الإجراء ده مش بيتراجع فيه.","okLabel":"حذف نهائي","cancelLabel":"إلغاء","okVariant":"rose","i18nKeys":{"title":"adm_bk_delete_title","body":"adm_bk_delete_body","okLabel":"adm_bk_delete_ok","cancelLabel":"common_cancel"}}'>
                 @csrf
                 @method('DELETE')
 
-                <button class="prism-btn-rose text-sm px-5 py-2">
+                <button class="prism-btn-rose text-sm px-5 py-2"
+                        data-i18n-html="adm_bk_delete_btn">
                     🗑️ حذف الحجز بالكامل
                 </button>
             </form>
@@ -234,17 +239,19 @@
         } catch (\Throwable $e) { /* tolerate bad data */ }
     @endphp
 
-    <div class="pt-action-bar is-on pt-bar-admin" id="ptAdminBar" role="region" aria-label="إجراءات الحجز">
+    <div class="pt-action-bar is-on pt-bar-admin" id="ptAdminBar" role="region"
+         data-i18n-attr="aria-label:adm_bk_actions_aria"
+         aria-label="إجراءات الحجز">
         <div class="pt-action-bar-inner">
             <div class="pt-bar-summary">
-                <span class="pt-bar-label">حجز قيد المراجعة · {{ $bkRef }}</span>
+                <span class="pt-bar-label"><span data-i18n="adm_bk_pending_label">حجز قيد المراجعة</span> · {{ $bkRef }}</span>
                 <span class="pt-bar-meta">
                     {{ $bkName }}
                     @if($bkPhone)<span class="pt-bar-sep" aria-hidden="true">·</span> <span dir="ltr">{{ $bkPhone }}</span>@endif
                 </span>
                 <span class="pt-bar-meta-row">
                     <span class="pt-bar-chip"><span aria-hidden="true">🎟</span> {{ $tCount }}</span>
-                    <span class="pt-bar-chip pt-bar-chip-gold">{{ $tTotal }} <span class="opacity-70">جنيه</span></span>
+                    <span class="pt-bar-chip pt-bar-chip-gold">{{ $tTotal }} <span class="opacity-70" data-i18n="common_currency">جنيه</span></span>
                     @if($whenLabel)
                         <span class="pt-bar-chip pt-bar-chip-muted"><span aria-hidden="true">⏰</span> {{ $whenLabel }}</span>
                     @endif
@@ -252,17 +259,17 @@
             </div>
             <div class="pt-bar-actions">
                 <form action="{{ route('admin.bookings.reject', $booking) }}" method="POST"
-                      data-pt-confirm='{"tone":"error","title":"رفض الحجز؟","body":"الحجز هيترفض، ومش هيوصل أي QR للعميل.","okLabel":"رفض","cancelLabel":"إلغاء","okVariant":"rose"}'>
+                      data-pt-confirm='{"tone":"error","title":"رفض الحجز؟","body":"الحجز هيترفض، ومش هيوصل أي QR للعميل.","okLabel":"رفض","cancelLabel":"إلغاء","okVariant":"rose","i18nKeys":{"title":"adm_bk_reject_title","body":"adm_bk_reject_body","okLabel":"adm_bk_reject_ok","cancelLabel":"common_cancel"}}'>
                     @csrf
                     <button class="prism-btn-rose pt-bar-btn">
-                        <span aria-hidden="true">✖</span> رفض
+                        <span aria-hidden="true">✖</span> <span data-i18n="adm_bk_reject_btn">رفض</span>
                     </button>
                 </form>
                 <form action="{{ route('admin.bookings.approve', $booking) }}" method="POST"
-                      data-pt-confirm='{"tone":"warn","title":"اعتماد الحجز؟","body":"هتأكد الحجز ويتبعت QR للعميل على واتساب.","okLabel":"اعتماد","cancelLabel":"إلغاء","okVariant":"emerald"}'>
+                      data-pt-confirm='{"tone":"warn","title":"اعتماد الحجز؟","body":"هتأكد الحجز ويتبعت QR للعميل على واتساب.","okLabel":"اعتماد","cancelLabel":"إلغاء","okVariant":"emerald","i18nKeys":{"title":"adm_bk_approve_title","body":"adm_bk_approve_body","okLabel":"adm_bk_approve_ok","cancelLabel":"common_cancel"}}'>
                     @csrf
                     <button class="prism-btn-emerald pt-bar-btn">
-                        <span aria-hidden="true">✔</span> اعتماد
+                        <span aria-hidden="true">✔</span> <span data-i18n="adm_bk_approve_btn">اعتماد</span>
                     </button>
                 </form>
             </div>
@@ -285,7 +292,7 @@
                 <path data-pt-toast-path d="M5 12.5 L10 17.5 L19 7"/>
             </svg>
         </div>
-        <div class="pt-toast-title" data-pt-toast-title>
+        <div class="pt-toast-title" data-pt-toast-title data-i18n="adm_bk_resend_ok">
             تمت إعادة إرسال التذكرة بنجاح
         </div>
         <div class="pt-toast-msg" data-pt-toast-msg></div>
@@ -310,8 +317,14 @@
 
         const PATH_OK   = 'M5 12.5 L10 17.5 L19 7';
         const PATH_FAIL = 'M6 6 L18 18 M18 6 L6 18';
-        const TITLE_OK   = 'تمت إعادة إرسال التذكرة بنجاح';
-        const TITLE_FAIL = 'تعذّر إعادة الإرسال';
+        function _t(key, fallback) {
+            try {
+                if (window.PT_T) return window.PT_T(key, fallback);
+            } catch (_) {}
+            return fallback;
+        }
+        function getOkTitle()   { return _t('adm_bk_resend_ok',   'تمت إعادة إرسال التذكرة بنجاح'); }
+        function getFailTitle() { return _t('adm_bk_resend_fail', 'تعذّر إعادة الإرسال'); }
 
         let timer    = null;
         let removeT  = null;
@@ -320,7 +333,7 @@
             const isError = !!(opts && opts.error);
             card.classList.toggle('is-error', isError);
             path.setAttribute('d', isError ? PATH_FAIL : PATH_OK);
-            title.textContent = (opts && opts.title) || (isError ? TITLE_FAIL : TITLE_OK);
+            title.textContent = (opts && opts.title) || (isError ? getFailTitle() : getOkTitle());
             msg.textContent = (opts && opts.body) || '';
             msg.style.display = msg.textContent ? '' : 'none';
 

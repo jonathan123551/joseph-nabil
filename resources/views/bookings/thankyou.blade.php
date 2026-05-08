@@ -22,19 +22,21 @@
         {{-- Title --}}
         <div>
             <h1 class="prism-headline text-2xl sm:text-3xl"
+                data-i18n="thx_title"
                 style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
                 تم إرسال طلب الحجز بنجاح
             </h1>
             <p class="text-xs sm:text-sm text-[color:var(--prism-text-2)] mt-2">
-                شكرًا يا <span class="font-semibold text-[color:var(--prism-text)]">{{ $booking->full_name }}</span>
+                <span data-i18n="thx_thanks_prefix">شكرًا يا</span>
+                <span class="font-semibold text-[color:var(--prism-text)]">{{ $booking->full_name }}</span>
             </p>
         </div>
 
         {{-- Booking Info --}}
-        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-2xl p-4 text-sm space-y-3 text-right">
+        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-2xl p-4 text-sm space-y-3 pt-rtl-text">
 
             <div class="flex justify-between items-center">
-                <span class="text-[color:var(--prism-text-3)] text-xs">رقم الحجز</span>
+                <span class="text-[color:var(--prism-text-3)] text-xs" data-i18n="thx_ref_label">رقم الحجز</span>
                 <span class="font-mono text-sm tracking-wide" style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
                     {{ $booking->reference_code }}
                 </span>
@@ -43,41 +45,44 @@
             <div class="h-px bg-[color:var(--prism-border)]"></div>
 
             <div class="flex justify-between items-center">
-                <span class="text-[color:var(--prism-text-3)] text-xs">إجمالي المبلغ</span>
+                <span class="text-[color:var(--prism-text-3)] text-xs" data-i18n="thx_total_label">إجمالي المبلغ</span>
                 <span class="font-bold text-[color:var(--prism-emerald)]">
-                    {{ $booking->total_price }} <span class="text-[10px] opacity-80">جنيه</span>
+                    {{ $booking->total_price }} <span class="text-[10px] opacity-80" data-i18n="common_egp">جنيه</span>
                 </span>
             </div>
         </div>
 
-        {{-- IMPORTANT NOTICE — content unchanged, only restyled --}}
-        <div class="bg-amber-500/[0.06] border border-amber-400/30 rounded-2xl p-4 text-right space-y-3">
+        {{-- IMPORTANT NOTICE --}}
+        <div class="bg-amber-500/[0.06] border border-amber-400/30 rounded-2xl p-4 pt-rtl-text space-y-3">
 
             <div class="flex items-center gap-2 text-[color:var(--prism-gold)] font-semibold text-sm">
-                <span>⏳</span>
-                الخطوة الجاية
+                <span aria-hidden="true">⏳</span>
+                <span data-i18n="thx_next_step">الخطوة الجاية</span>
             </div>
 
             <ul class="space-y-3 text-xs sm:text-sm text-[color:var(--prism-text-2)] leading-relaxed">
 
-                <li class="relative pr-5 before:content-[''] before:absolute before:right-0 before:top-[0.55em]
+                <li class="relative pt-rtl-bullet before:content-[''] before:absolute before:top-[0.55em]
                            before:w-2 before:h-2 before:rounded-full before:bg-amber-300
-                           before:shadow-[0_0_10px_rgba(251,191,36,0.7)]">
+                           before:shadow-[0_0_10px_rgba(251,191,36,0.7)]"
+                    data-i18n-html="thx_step1_html">
                     يتم <span class="text-[color:var(--prism-text)] font-semibold">مراجعة عملية الدفع</span>
                     والتأكد من التحويل.
                 </li>
 
-                <li class="relative pr-5 before:content-[''] before:absolute before:right-0 before:top-[0.55em]
+                <li class="relative pt-rtl-bullet before:content-[''] before:absolute before:top-[0.55em]
                            before:w-2 before:h-2 before:rounded-full before:bg-emerald-300
-                           before:shadow-[0_0_10px_rgba(110,231,183,0.7)]">
+                           before:shadow-[0_0_10px_rgba(110,231,183,0.7)]"
+                    data-i18n-html="thx_step2_html">
                     بعد <span class="text-[color:var(--prism-emerald)] font-semibold">تأكيد الحجز</span>،
                     سيتم إرسال <span class="text-[color:var(--prism-text)] font-semibold">التذكرة</span>
                     مباشرة على <span class="text-[color:var(--prism-text)] font-semibold">رقم الواتساب المسجل</span>.
                 </li>
 
-                <li class="relative pr-5 before:content-[''] before:absolute before:right-0 before:top-[0.55em]
+                <li class="relative pt-rtl-bullet before:content-[''] before:absolute before:top-[0.55em]
                            before:w-2 before:h-2 before:rounded-full before:bg-sky-300
-                           before:shadow-[0_0_10px_rgba(125,211,252,0.7)]">
+                           before:shadow-[0_0_10px_rgba(125,211,252,0.7)]"
+                    data-i18n-html="thx_step3_html">
                     عملية المراجعة قد تستغرق بحد أقصى
                     <span class="text-[color:var(--prism-text)] font-semibold">24 ساعة</span>.
                 </li>
@@ -87,7 +92,8 @@
         </div>
 
         {{-- Footer Note --}}
-        <p class="text-[11px] text-[color:var(--prism-text-3)] leading-relaxed">
+        <p class="text-[11px] text-[color:var(--prism-text-3)] leading-relaxed"
+           data-i18n-html="thx_footer_html">
             لو في أي مشكلة في التحويل أو البيانات، هنتواصل معاك قبل رفض الطلب.
             <br>
             متقلقش، طلبك محفوظ على السيستم ✨
@@ -96,8 +102,8 @@
         {{-- Action --}}
         <a href="{{ route('shows.index') }}"
            class="prism-btn-ghost prism-ripple inline-flex w-full sm:w-auto">
-            <span aria-hidden="true">→</span>
-            رجوع للصفحة الرئيسية
+            <span aria-hidden="true" class="pt-arrow-rtl">→</span>
+            <span data-i18n="thx_back_home">رجوع للصفحة الرئيسية</span>
         </a>
 
     </div>
