@@ -129,6 +129,27 @@
 {{-- =====================================================================
      3) Featured show (spotlight) — preserves all booking links & data
 ===================================================================== --}}
+@php
+    use App\Models\Show as ShowModel;
+    // Returns a string suitable for the small price chip on a showtime row.
+    // For section-priced shows we surface "بلكون / صالة" (with optional
+    // "from X" hint), for everything else we keep the legacy single price.
+    $priceChipFor = function ($show, $time) {
+        if (!$show || $show->theater_type !== ShowModel::THEATER_ANBA_RUWEIS) {
+            return ['label' => $time->ticket_price, 'unit' => 'EGP', 'sub' => null];
+        }
+        $prices = array_values(array_filter([
+            (int) ($show->hall_price    ?? 0),
+            (int) ($show->balcony_price ?? 0),
+        ]));
+        $startsFrom = !empty($prices) ? min($prices) : null;
+        return [
+            'label' => 'بلكون / صالة',
+            'unit'  => null,
+            'sub'   => $startsFrom !== null ? ('من ' . $startsFrom . ' ج') : null,
+        ];
+    };
+@endphp
 @if($featured)
 <section class="mt-10 prism-fade-up" aria-labelledby="pt-featured-title" style="animation-delay:.12s;">
     <div class="pt-section-head">
@@ -170,15 +191,37 @@
                                 {{ \Carbon\Carbon::parse($time->time)->format('g:i A') }}
                             </span>
                         </span>
-                        <span class="pt-show-time-price">{{ $time->ticket_price }} <span class="text-[10px] opacity-70">EGP</span></span>
+                        @php($chip = $priceChipFor($featured, $time))
+                        <span class="pt-show-time-price">
+                            {{ $chip['label'] }}
+                            @if (!empty($chip['unit']))
+                                <span class="text-[10px] opacity-70">{{ $chip['unit'] }}</span>
+                            @elseif (!empty($chip['sub']))
+                                <span class="text-[10px] opacity-70">· {{ $chip['sub'] }}</span>
+                            @endif
+                        </span>
                     </div>
                 @empty
                     <div class="text-xs" style="color: var(--prism-text-4);">لا توجد مواعيد متاحة حاليا.</div>
                 @endforelse
             </div>
 
+            @php
+                // Footer "من …" line: section-priced shows use min(hall, balcony)
+                // from the show itself; everything else uses the cheapest
+                // showtime ticket_price.
+                if ($featured->theater_type === ShowModel::THEATER_ANBA_RUWEIS) {
+                    $featuredFrom = array_values(array_filter([
+                        (int) ($featured->hall_price    ?? 0),
+                        (int) ($featured->balcony_price ?? 0),
+                    ]));
+                    $featuredFromLabel = !empty($featuredFrom) ? min($featuredFrom) : '—';
+                } else {
+                    $featuredFromLabel = $featured->showTimes->min('ticket_price') ?? '—';
+                }
+            @endphp
             <div class="pt-show-card-foot mt-2">
-                <span class="text-xs" style="color: var(--prism-text-3);">من <span class="prism-wordmark" style="font-size:11px;">EGP</span> {{ $featured->showTimes->min('ticket_price') ?? '—' }}</span>
+                <span class="text-xs" style="color: var(--prism-text-3);">من <span class="prism-wordmark" style="font-size:11px;">EGP</span> {{ $featuredFromLabel }}</span>
                 <a href="{{ route('shows.show', $featured) }}" class="prism-btn prism-ripple">
                     تفاصيل وحجز <span aria-hidden="true">←</span>
                 </a>
@@ -271,7 +314,15 @@
                                         ·
                                         {{ \Carbon\Carbon::parse($time->time)->format('g:i A') }}
                                     </span>
-                                    <span class="pt-show-time-price">{{ $time->ticket_price }} <span class="text-[10px] opacity-70">EGP</span></span>
+                                    @php($chip = $priceChipFor($show, $time))
+                                    <span class="pt-show-time-price">
+                                        {{ $chip['label'] }}
+                                        @if (!empty($chip['unit']))
+                                            <span class="text-[10px] opacity-70">{{ $chip['unit'] }}</span>
+                                        @elseif (!empty($chip['sub']))
+                                            <span class="text-[10px] opacity-70">· {{ $chip['sub'] }}</span>
+                                        @endif
+                                    </span>
                                 </div>
                             @empty
                                 <div class="text-xs" style="color: var(--prism-text-4);">لا توجد مواعيد متاحة حالياً.</div>
