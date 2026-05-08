@@ -4,7 +4,7 @@
 
 @php
     // Build calendar metadata once on the server. Show start = date + time;
-    // we estimate a 3h end. UTC ISO is required for Google Calendar / .ics.
+    // we estimate a 3h end. UTC ISO is required for the .ics VEVENT block.
     $showTime = $booking->showTime ?? null;
     $show     = $showTime ? ($showTime->show ?? null) : null;
     $startAt  = null;
@@ -23,19 +23,50 @@
             $endAt = null;
         }
     }
-    $calLabel = $showTitle !== '' ? $showTitle : 'Premium Tickets';
+    $calLabel   = $showTitle !== '' ? $showTitle : 'Premium Tickets';
     $calDetails = 'Reference: ' . $booking->reference_code;
-    $googleCalUrl = null;
+    // Build a real RFC-5545 .ics VEVENT body. We embed the bytes in a
+    // data URL on the link so iOS Safari opens it in Apple Calendar,
+    // Android opens it in the user's default calendar app, and desktop
+    // browsers download it. No backend route required — the link is
+    // self-contained and respects RFC line-folding limits.
+    $icsDataUrl = null;
     if ($startAt && $endAt) {
-        $googleCalUrl = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
-            . '&text=' . rawurlencode($calLabel)
-            . '&dates=' . $startAt->format('Ymd\\THis\\Z') . '/' . $endAt->format('Ymd\\THis\\Z')
-            . '&details=' . rawurlencode($calDetails);
+        $fmt = static fn (\Carbon\Carbon $d) => $d->format('Ymd\\THis\\Z');
+        $esc = static function (string $s): string {
+            // Escape per RFC 5545 §3.3.11.
+            $s = str_replace(['\\', "\n", "\r", ',', ';'], ['\\\\', '\\n', '', '\\,', '\\;'], $s);
+            return $s;
+        };
+        $uid = $booking->reference_code . '@el3abed-tickets';
+        $dtstamp = now()->utc()->format('Ymd\\THis\\Z');
+        $lines = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//Premium Tickets//AR//EN',
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH',
+            'BEGIN:VEVENT',
+            'UID:' . $uid,
+            'DTSTAMP:' . $dtstamp,
+            'DTSTART:' . $fmt($startAt),
+            'DTEND:'   . $fmt($endAt),
+            'SUMMARY:' . $esc($calLabel),
+            'DESCRIPTION:' . $esc($calDetails),
+            'END:VEVENT',
+            'END:VCALENDAR',
+        ];
+        // CRLF is required by spec; many parsers tolerate \n but iOS
+        // Calendar is strict, so we use \r\n.
+        $ics = implode("\r\n", $lines) . "\r\n";
+        $icsDataUrl = 'data:text/calendar;charset=utf-8;base64,' . base64_encode($ics);
     }
     $shareText = $showTitle !== ''
         ? ('حجزت تذكرتي لـ "' . $showTitle . '" 🎭')
         : 'حجزت تذكرتي 🎭';
     $shareUrl = url('/');
+    // Filename used by the download attribute on the link.
+    $icsFileName = 'premium-tickets-' . $booking->reference_code . '.ics';
 @endphp
 
 @section('content')
@@ -97,12 +128,14 @@
 
             @if($startAt)
                 {{-- QW#6: live countdown to show. Pure ms diff against ISO start;
-                     updated every minute by JS below. Server-render an initial
-                     placeholder so non-JS users still see something useful. --}}
+                     updated every 30s by JS below. The value is wrapped in a
+                     `whitespace-nowrap` span so the "X d · Y h · Z m" string
+                     never breaks mid-line on narrow phones. Stacks vertically
+                     under the label only when there really isn't enough room. --}}
                 <div class="h-px bg-[color:var(--prism-border)]"></div>
-                <div class="flex justify-between items-center">
-                    <span class="text-[color:var(--prism-text-3)] text-xs" data-i18n="thx_countdown_label">الوقت المتبقي</span>
-                    <span class="font-semibold text-sm text-[color:var(--prism-text)]"
+                <div class="flex justify-between items-center gap-3 flex-wrap">
+                    <span class="text-[color:var(--prism-text-3)] text-xs shrink-0" data-i18n="thx_countdown_label">الوقت المتبقي</span>
+                    <span class="font-semibold text-sm text-[color:var(--prism-text)] whitespace-nowrap tabular-nums"
                           data-pt-countdown
                           data-target-iso="{{ $startAt->toIso8601String() }}"
                           aria-live="polite">—</span>
@@ -159,9 +192,13 @@
 
         {{-- QW#5 + QW#6: actions row — calendar, WhatsApp share, browse more --}}
         <div class="flex flex-col sm:flex-row flex-wrap gap-2 justify-center items-stretch">
-            @if($googleCalUrl)
-                <a href="{{ $googleCalUrl }}"
-                   target="_blank" rel="noopener"
+            @if($icsDataUrl)
+                {{-- Native calendar handoff: serves a real .ics so iOS
+                     Safari opens Apple Calendar, Android opens the user's
+                     default calendar app, and desktop downloads. No
+                     Google login wall. --}}
+                <a href="{{ $icsDataUrl }}"
+                   download="{{ $icsFileName }}"
                    class="prism-btn prism-ripple inline-flex justify-center"
                    data-i18n-attr="aria-label:thx_add_calendar"
                    aria-label="أضف للتقويم">
