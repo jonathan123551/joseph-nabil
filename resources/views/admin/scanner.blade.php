@@ -19,10 +19,19 @@
             </h1>
         </div>
 
-        <a href="{{ route('admin.dashboard') }}" class="prism-btn-ghost text-xs">
-            <span aria-hidden="true">→</span>
-            رجوع
-        </a>
+        {{-- Back link: dashboard for authenticated admins, home for the
+             door staff using a shared device (the scanner is now public). --}}
+        @auth
+            <a href="{{ route('admin.dashboard') }}" class="prism-btn-ghost text-xs">
+                <span aria-hidden="true">→</span>
+                رجوع
+            </a>
+        @else
+            <a href="{{ url('/') }}" class="prism-btn-ghost text-xs">
+                <span aria-hidden="true">→</span>
+                رجوع
+            </a>
+        @endauth
     </div>
 
     {{-- RESULT --}}

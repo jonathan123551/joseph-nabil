@@ -171,13 +171,23 @@ Route::middleware('admin')
     Route::post('/show-times/{showTime}/seats/bulk-toggle', [SeatBlockController::class, 'bulkToggle'])
         ->name('show-times.seats.bulk-toggle');
 
-    // Scanner
-    Route::get('/scanner', [ScannerController::class, 'index'])->name('scanner');
-    Route::post('/scanner/check', [ScannerController::class, 'check'])->name('scanner.check');
-
     // Payments
     Route::get('/settings/payments', [SettingsController::class, 'editPayments'])
         ->name('settings.payments.edit');
     Route::post('/settings/payments', [SettingsController::class, 'updatePayments'])
         ->name('settings.payments.update');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Scanner (publicly reachable)
+|--------------------------------------------------------------------------
+| The QR scanner is intentionally exposed without admin auth so staff can
+| use it on shared devices at the door without logging in. The endpoint
+| only echoes the ticket holder's name/phone + show metadata for a single
+| validated code at a time — no listing, no booking management, no admin
+| data is exposed.
+|--------------------------------------------------------------------------
+*/
+Route::get('/admin/scanner', [ScannerController::class, 'index'])->name('admin.scanner');
+Route::post('/admin/scanner/check', [ScannerController::class, 'check'])->name('admin.scanner.check');
