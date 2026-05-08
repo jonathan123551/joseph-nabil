@@ -3634,6 +3634,343 @@
             .pt-cinema-orb { filter: blur(40px); opacity: 0.45; }
             .pt-cinema-step { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
         }
+
+        /* ============================================================
+           CINEMATIC HOMEPAGE LAYER v2 (motion upgrade)
+           Adds: hero spotlight cursor glow, scroll-parallax orbs,
+           staggered hero entrance reveal, pointer-tracked 3D tilt,
+           glass-reflection sheen sweep, magnetic CTAs, and rich
+           per-card storytelling mocks (poster shimmer, seat grid
+           pulse, upload arc, QR reveal sweep). All scoped behind
+           hover + reduced-motion + touch guards.
+        ============================================================ */
+
+        /* Hero scoped spotlight cursor glow — soft radial light tracks
+           the pointer across .pt-hero only. Fades when pointer leaves. */
+        .pt-cinema-spot {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 2;
+            opacity: 0;
+            transition: opacity .35s var(--prism-ease);
+            background:
+                radial-gradient(360px circle at var(--pt-spot-x, 50%) var(--pt-spot-y, 50%),
+                    rgba(34,211,238,0.16),
+                    rgba(129,140,248,0.10) 28%,
+                    transparent 60%);
+            mix-blend-mode: screen;
+        }
+        .pt-cinema-spot.is-on { opacity: 1; }
+        :root[data-pt-theme="light"] .pt-cinema-spot {
+            background:
+                radial-gradient(360px circle at var(--pt-spot-x, 50%) var(--pt-spot-y, 50%),
+                    rgba(14,165,233,0.20),
+                    rgba(99,102,241,0.12) 28%,
+                    transparent 60%);
+            mix-blend-mode: multiply;
+        }
+
+        /* Scroll parallax for hero orbs — JS writes --pt-parallax,
+           and we recompose the existing orb keyframe so the wandering
+           drift continues on top of the parallax offset. */
+        @keyframes ptCinemaOrb {
+            0%, 100% { transform: translate3d(0, var(--pt-parallax, 0px), 0) scale(1); }
+            33%      { transform: translate3d(28px, calc(var(--pt-parallax, 0px) - 18px), 0) scale(1.05); }
+            66%      { transform: translate3d(-22px, calc(var(--pt-parallax, 0px) + 24px), 0) scale(0.95); }
+        }
+
+        /* Staggered hero entrance — eyebrow, title, sub, CTAs, stats
+           cascade in with blur+scale. JS adds .is-in on first frame. */
+        .pt-cinema-stagger > * {
+            opacity: 0;
+            transform: translateY(14px) scale(0.97);
+            filter: blur(8px);
+            transition: opacity .9s var(--prism-ease),
+                        transform .9s var(--prism-ease),
+                        filter   .9s var(--prism-ease);
+            will-change: opacity, transform, filter;
+        }
+        .pt-cinema-stagger.is-in > * {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0);
+        }
+        .pt-cinema-stagger.is-in > *:nth-child(1) { transition-delay: .04s; }
+        .pt-cinema-stagger.is-in > *:nth-child(2) { transition-delay: .14s; }
+        .pt-cinema-stagger.is-in > *:nth-child(3) { transition-delay: .26s; }
+        .pt-cinema-stagger.is-in > *:nth-child(4) { transition-delay: .38s; }
+        .pt-cinema-stagger.is-in > *:nth-child(5) { transition-delay: .50s; }
+
+        /* 3D pointer-tracked tilt on storytelling cards. JS sets --pt-rx,
+           --pt-ry, --pt-ty; CSS composes the transform. Only when
+           .is-tilting is present, so it cleanly composes with reveals. */
+        @media (hover: hover) {
+            .pt-cinema-step.is-tilting {
+                transform:
+                    perspective(900px)
+                    rotateX(var(--pt-rx, 0deg))
+                    rotateY(var(--pt-ry, 0deg))
+                    translateY(var(--pt-ty, -4px));
+                transition: transform .12s linear,
+                            border-color .25s var(--prism-ease),
+                            box-shadow .5s var(--prism-ease);
+                border-color: rgba(129,140,248,0.45);
+                box-shadow:
+                    0 22px 70px -22px rgba(34,211,238,0.34),
+                    0 12px 32px -14px rgba(129,140,248,0.32);
+            }
+            .pt-cinema-step.is-tilting::before { opacity: 0.95; }
+            .pt-cinema-step.is-tilting::after  { opacity: 0.95; transform: scale(1.12); }
+            .pt-cinema-step.is-tilting .pt-cinema-step-emoji { transform: scale(1.10) rotate(-4deg); }
+        }
+
+        /* Glass sheen sweep — diagonal highlight bar travels across
+           the card once per hover. */
+        .pt-cinema-step-sheen {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+            border-radius: inherit;
+            z-index: 4;
+        }
+        .pt-cinema-step-sheen::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            inset-inline-start: -120%;
+            width: 60%;
+            height: 200%;
+            background: linear-gradient(115deg,
+                transparent 35%,
+                rgba(255,255,255,0.18) 50%,
+                transparent 65%);
+            transform: translate3d(0, 0, 0);
+            transition: transform 1s var(--prism-ease), opacity .25s var(--prism-ease);
+            opacity: 0;
+        }
+        @media (hover: hover) {
+            .pt-cinema-step:hover .pt-cinema-step-sheen::before {
+                transform: translate3d(280%, 0, 0);
+                opacity: 1;
+            }
+        }
+
+        /* Magnetic hover — subtle pull toward the cursor. JS writes
+           --pt-mx and --pt-my and toggles .is-magnet. We use the
+           standalone CSS `translate` property (composed AFTER any
+           `transform` from existing :hover rules) so the magnet
+           layers on top of the existing hover lift instead of
+           fighting it on specificity. */
+        .pt-cinema-magnet {
+            transition: translate .25s var(--prism-ease);
+            will-change: translate;
+        }
+        .pt-cinema-magnet.is-magnet {
+            translate: var(--pt-mx, 0px) var(--pt-my, 0px);
+        }
+
+        /* ====================================
+           Per-card storytelling mocks (Card 1..4)
+        ==================================== */
+
+        /* Card 1 — three poster panels floating up/down out of phase. */
+        .pt-cinema-mock-posters {
+            position: absolute;
+            inset: 0;
+        }
+        .pt-cinema-mock-poster {
+            position: absolute;
+            top: 12px; bottom: 12px;
+            width: 24%;
+            border-radius: 8px;
+            box-shadow: 0 0 22px -6px rgba(34,211,238,0.45);
+            animation: ptCinemaPosterFloat 4.6s ease-in-out infinite;
+            opacity: 0.9;
+        }
+        .pt-cinema-mock-poster::after {
+            content: "";
+            position: absolute;
+            inset: 22% 18% 18% 18%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.18), transparent 60%);
+            border-radius: 4px;
+        }
+        .pt-cinema-mock-poster.is-p1 {
+            inset-inline-start: 8%;
+            animation-delay: 0s;
+            background: linear-gradient(160deg, rgba(34,211,238,0.55), rgba(129,140,248,0.42));
+        }
+        .pt-cinema-mock-poster.is-p2 {
+            inset-inline-start: 38%;
+            animation-delay: -1.5s;
+            background: linear-gradient(160deg, rgba(129,140,248,0.55), rgba(192,132,252,0.42));
+        }
+        .pt-cinema-mock-poster.is-p3 {
+            inset-inline-start: 68%;
+            animation-delay: -3s;
+            background: linear-gradient(160deg, rgba(192,132,252,0.55), rgba(244,114,182,0.40));
+        }
+        @keyframes ptCinemaPosterFloat {
+            0%, 100% { transform: translate3d(0, 0, 0); }
+            50%      { transform: translate3d(0, -7px, 0); }
+        }
+
+        /* Card 2 — seat grid (10x4) with one row pulse-glowing as if
+           seats are being selected. */
+        .pt-cinema-mock-seats {
+            position: absolute;
+            inset: 14px 18px;
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 4px;
+        }
+        .pt-cinema-mock-seats span {
+            border-radius: 3px;
+            background: rgba(255,255,255,0.10);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+        }
+        :root[data-pt-theme="light"] .pt-cinema-mock-seats span {
+            background: rgba(15,23,42,0.10);
+            box-shadow: inset 0 0 0 1px rgba(15,23,42,0.06);
+        }
+        .pt-cinema-mock-seats span.is-pick {
+            background: rgba(34,211,238,0.55);
+            box-shadow: 0 0 10px rgba(34,211,238,0.55);
+            animation: ptCinemaSeatPulse 1.9s ease-in-out infinite;
+        }
+        .pt-cinema-mock-seats span.is-pick.is-late { animation-delay: -0.5s; }
+        @keyframes ptCinemaSeatPulse {
+            0%, 100% { background: rgba(34,211,238,0.55); box-shadow: 0 0 10px rgba(34,211,238,0.55); }
+            50%      { background: rgba(129,140,248,0.70); box-shadow: 0 0 18px rgba(129,140,248,0.70); }
+        }
+
+        /* Card 3 — animated upload bar + check pulse on completion. */
+        .pt-cinema-mock-upload {
+            position: absolute;
+            inset: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .pt-cinema-mock-upload-bar {
+            position: relative;
+            width: 70%; height: 6px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.10);
+            overflow: hidden;
+        }
+        :root[data-pt-theme="light"] .pt-cinema-mock-upload-bar { background: rgba(15,23,42,0.10); }
+        .pt-cinema-mock-upload-bar::after {
+            content: "";
+            position: absolute;
+            inset-inline-start: 0; top: 0;
+            width: 30%; height: 100%;
+            background: linear-gradient(90deg, rgba(192,132,252,0.75), rgba(244,114,182,0.70));
+            box-shadow: 0 0 14px rgba(192,132,252,0.6);
+            animation: ptCinemaUploadFill 3.6s ease-in-out infinite;
+            border-radius: 999px;
+        }
+        @keyframes ptCinemaUploadFill {
+            0%   { width: 4%;   opacity: 0.6; }
+            70%  { width: 96%;  opacity: 1;   }
+            85%  { width: 100%; opacity: 1;   }
+            100% { width: 100%; opacity: 0;   }
+        }
+        .pt-cinema-mock-upload-check {
+            position: absolute;
+            inset-inline-end: calc(15% - 12px);
+            top: 50%;
+            transform: translateY(-50%);
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            background: rgba(52,211,153,0.18);
+            border: 1px solid rgba(52,211,153,0.55);
+            display: flex; align-items: center; justify-content: center;
+            color: #6ee7b7;
+            opacity: 0;
+            animation: ptCinemaCheckPulse 3.6s ease-in-out infinite;
+        }
+        @keyframes ptCinemaCheckPulse {
+            0%, 80% { opacity: 0; transform: translateY(-50%) scale(0.7); }
+            85%     { opacity: 1; transform: translateY(-50%) scale(1.18); box-shadow: 0 0 18px rgba(52,211,153,0.55); }
+            95%     { opacity: 1; transform: translateY(-50%) scale(1); }
+            100%    { opacity: 0; transform: translateY(-50%) scale(1); }
+        }
+
+        /* Card 4 — QR module grid (8x4) that fills with stagger,
+           plus a horizontal light sweep across the grid. */
+        .pt-cinema-mock-qr {
+            position: absolute;
+            inset: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            background: rgba(15,23,42,0.18);
+        }
+        :root[data-pt-theme="light"] .pt-cinema-mock-qr { background: rgba(15,23,42,0.05); }
+        .pt-cinema-mock-qr-grid {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 2px;
+            padding: 4px;
+        }
+        .pt-cinema-mock-qr-grid span {
+            background: rgba(52,211,153,0.55);
+            border-radius: 1px;
+            opacity: 0;
+            animation: ptCinemaQrFill 4.4s ease-in-out infinite;
+        }
+        @keyframes ptCinemaQrFill {
+            0%, 100% { opacity: 0; transform: scale(0.65); }
+            10%      { opacity: 0.95; transform: scale(1); }
+            65%      { opacity: 0.95; transform: scale(1); }
+            80%      { opacity: 0.4; }
+        }
+        .pt-cinema-mock-qr-sweep {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(115deg,
+                transparent 30%, rgba(255,255,255,0.45) 50%, transparent 70%);
+            transform: translate3d(-100%, 0, 0);
+            animation: ptCinemaQrSweep 4.4s linear infinite;
+            mix-blend-mode: screen;
+            pointer-events: none;
+        }
+        @keyframes ptCinemaQrSweep {
+            0%, 60%  { transform: translate3d(-100%, 0, 0); }
+            80%      { transform: translate3d(120%, 0, 0); }
+            100%     { transform: translate3d(120%, 0, 0); }
+        }
+
+        /* Reduced motion v2 — freeze new motion classes too. */
+        @media (prefers-reduced-motion: reduce) {
+            .pt-cinema-spot { display: none; }
+            .pt-cinema-mock-poster,
+            .pt-cinema-mock-seats span.is-pick,
+            .pt-cinema-mock-upload-bar::after,
+            .pt-cinema-mock-upload-check,
+            .pt-cinema-mock-qr-grid span,
+            .pt-cinema-mock-qr-sweep,
+            .pt-cinema-step-sheen::before {
+                animation: none !important;
+                transition: none !important;
+            }
+            .pt-cinema-stagger > * {
+                opacity: 1 !important;
+                transform: none !important;
+                filter: none !important;
+                transition: none !important;
+            }
+            .pt-cinema-step.is-tilting {
+                transform: none !important;
+            }
+            .pt-cinema-magnet,
+            .pt-cinema-magnet.is-magnet {
+                transform: none !important;
+            }
+        }
     </style>
 </head>
 <body class="prism-stage min-h-screen">
@@ -5537,6 +5874,122 @@
         window.PT.lang = () => document.documentElement.getAttribute('data-pt-lang') || 'ar';
         window.PT.theme = () => document.documentElement.getAttribute('data-pt-theme') || 'dark';
         window.PT.setTheme = applyTheme;
+
+        // ---------- cinematic homepage v2 (homepage-only motion) ----------
+        // Wires up: hero spotlight cursor glow, scroll-parallax orbs,
+        // staggered hero entrance reveal, pointer-tracked 3D tilt on
+        // storytelling cards, and magnetic CTAs. All gated on hover +
+        // fine pointer + reduced-motion preference. Listeners attach
+        // only to homepage-scoped nodes; on other pages this block
+        // does nothing because the targets don't exist.
+        (function setupCinemaV2() {
+            const hero = document.querySelector('.pt-hero');
+            if (!hero) return; // homepage-only
+
+            const reduceMQ = matchMedia('(prefers-reduced-motion: reduce)');
+            const hoverMQ  = matchMedia('(hover: hover) and (pointer: fine)');
+
+            // Hero entrance: mark .pt-cinema-stagger as .is-in next frame.
+            // Always run this — even with reduced-motion the CSS already
+            // collapses the transition, so this is a no-op visually.
+            requestAnimationFrame(() => {
+                document.querySelectorAll('.pt-cinema-stagger').forEach(el => {
+                    el.classList.add('is-in');
+                });
+            });
+
+            if (reduceMQ.matches) return;
+
+            // Hero spotlight cursor glow
+            const spot = hero.querySelector('.pt-cinema-spot');
+            if (spot && hoverMQ.matches) {
+                hero.addEventListener('pointermove', (e) => {
+                    const r = hero.getBoundingClientRect();
+                    const x = ((e.clientX - r.left) / r.width)  * 100;
+                    const y = ((e.clientY - r.top)  / r.height) * 100;
+                    spot.style.setProperty('--pt-spot-x', x + '%');
+                    spot.style.setProperty('--pt-spot-y', y + '%');
+                }, { passive: true });
+                hero.addEventListener('pointerenter', () => spot.classList.add('is-on'));
+                hero.addEventListener('pointerleave', () => spot.classList.remove('is-on'));
+            }
+
+            // Scroll parallax for hero ambient orbs (rAF-throttled)
+            const orbs = hero.querySelectorAll('.pt-cinema-orb');
+            if (orbs.length) {
+                let ticking = false;
+                const FACTORS = [0.55, 0.9, 0.7];
+                const onScroll = () => {
+                    if (ticking) return;
+                    ticking = true;
+                    requestAnimationFrame(() => {
+                        const y = Math.min(120, Math.max(-30, window.scrollY * 0.18));
+                        orbs.forEach((orb, i) => {
+                            const f = FACTORS[i] != null ? FACTORS[i] : 0.7;
+                            orb.style.setProperty('--pt-parallax', (y * f).toFixed(1) + 'px');
+                        });
+                        ticking = false;
+                    });
+                };
+                window.addEventListener('scroll', onScroll, { passive: true });
+                onScroll();
+            }
+
+            // 3D pointer-tracked tilt on storytelling cards
+            if (hoverMQ.matches) {
+                document.querySelectorAll('.pt-cinema-step').forEach(step => {
+                    let raf = 0;
+                    const apply = (px, py) => {
+                        const rx = (0.5 - py) * 9;   // max ±4.5deg
+                        const ry = (px - 0.5) * 12;  // max ±6deg
+                        step.style.setProperty('--pt-rx', rx.toFixed(2) + 'deg');
+                        step.style.setProperty('--pt-ry', ry.toFixed(2) + 'deg');
+                        step.style.setProperty('--pt-ty', '-4px');
+                    };
+                    step.addEventListener('pointerenter', () => step.classList.add('is-tilting'));
+                    step.addEventListener('pointermove', (e) => {
+                        if (raf) return;
+                        raf = requestAnimationFrame(() => {
+                            const r = step.getBoundingClientRect();
+                            apply((e.clientX - r.left) / r.width,
+                                  (e.clientY - r.top)  / r.height);
+                            raf = 0;
+                        });
+                    }, { passive: true });
+                    step.addEventListener('pointerleave', () => {
+                        step.classList.remove('is-tilting');
+                        step.style.setProperty('--pt-rx', '0deg');
+                        step.style.setProperty('--pt-ry', '0deg');
+                        step.style.setProperty('--pt-ty', '0px');
+                    });
+                });
+            }
+
+            // Magnetic CTAs (homepage scope)
+            if (hoverMQ.matches) {
+                document.querySelectorAll('.pt-cinema-magnet').forEach(el => {
+                    const MAX = 9;
+                    let raf = 0;
+                    el.addEventListener('pointerenter', () => el.classList.add('is-magnet'));
+                    el.addEventListener('pointermove', (e) => {
+                        if (raf) return;
+                        raf = requestAnimationFrame(() => {
+                            const r = el.getBoundingClientRect();
+                            const x = ((e.clientX - r.left) / r.width  - 0.5) * 2;
+                            const y = ((e.clientY - r.top)  / r.height - 0.5) * 2;
+                            el.style.setProperty('--pt-mx', (x * MAX).toFixed(1) + 'px');
+                            el.style.setProperty('--pt-my', (y * MAX * 0.55).toFixed(1) + 'px');
+                            raf = 0;
+                        });
+                    }, { passive: true });
+                    el.addEventListener('pointerleave', () => {
+                        el.classList.remove('is-magnet');
+                        el.style.setProperty('--pt-mx', '0px');
+                        el.style.setProperty('--pt-my', '0px');
+                    });
+                });
+            }
+        })();
     })();
 
     // ---------- intercept forms with data-pt-confirm ----------

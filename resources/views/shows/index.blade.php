@@ -34,6 +34,8 @@
         <span></span><span></span><span></span><span></span><span></span>
         <span></span><span></span><span></span><span></span><span></span>
     </div>
+    {{-- Spotlight cursor glow (homepage only, gated to fine pointer + reduced-motion in JS) --}}
+    <div class="pt-cinema-spot" aria-hidden="true"></div>
 
     <div class="pt-hero-marquee" aria-hidden="true">
         <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
@@ -43,7 +45,7 @@
     <div class="pt-hero-curtain" aria-hidden="true"></div>
 
     <div class="pt-hero-inner" style="position: relative; z-index: 2;">
-        <div class="pt-cinema-float-slow">
+        <div class="pt-cinema-float-slow pt-cinema-stagger">
             <span class="pt-hero-eyebrow">
                 <span class="pt-live-dot"></span>
                 <span data-i18n="hero_eyebrow">حجز مباشر · المسرح المصري</span>
@@ -60,8 +62,8 @@
             </p>
 
             <div class="pt-hero-ctas">
-                <a href="#shows-grid" class="prism-btn prism-ripple" data-i18n="hero_cta_primary">تصفح العروض</a>
-                <a href="#how-it-works" class="prism-btn-ghost" data-i18n="hero_cta_secondary">كيف يعمل؟</a>
+                <a href="#shows-grid" class="prism-btn prism-ripple pt-cinema-magnet" data-i18n="hero_cta_primary">تصفح العروض</a>
+                <a href="#how-it-works" class="prism-btn-ghost pt-cinema-magnet" data-i18n="hero_cta_secondary">كيف يعمل؟</a>
             </div>
 
             <div class="pt-hero-stats" role="list">
@@ -285,13 +287,14 @@
             <h3 class="pt-cinema-step-title" data-i18n="cine_1_t">اختر عرضك</h3>
             <p class="pt-cinema-step-body" data-i18n="cine_1_b">تصفح العروض المباشرة واختر الموعد اللي يناسبك بلمسة واحدة.</p>
             <div class="pt-cinema-step-visual" aria-hidden="true">
-                <div class="pt-cinema-step-visual-row is-row-1">
-                    <span class="pt-cinema-step-visual-bar is-bar-a"></span>
-                </div>
-                <div class="pt-cinema-step-visual-row is-row-2">
-                    <span class="pt-cinema-step-visual-bar is-bar-b"></span>
+                {{-- Card 1 mock: three floating poster panels --}}
+                <div class="pt-cinema-mock-posters">
+                    <span class="pt-cinema-mock-poster is-p1"></span>
+                    <span class="pt-cinema-mock-poster is-p2"></span>
+                    <span class="pt-cinema-mock-poster is-p3"></span>
                 </div>
             </div>
+            <span class="pt-cinema-step-sheen" aria-hidden="true"></span>
         </article>
 
         <article class="pt-cinema-step pt-cinema-reveal pt-cinema-reveal-r pt-reveal">
@@ -302,13 +305,20 @@
             <h3 class="pt-cinema-step-title" data-i18n="cine_2_t">اختر مقعدك</h3>
             <p class="pt-cinema-step-body" data-i18n="cine_2_b">خريطة مباشرة للصالة توريلك المتاح لحظة بلحظة عشان تحجز مقعدك بثقة.</p>
             <div class="pt-cinema-step-visual" aria-hidden="true">
-                <div class="pt-cinema-step-visual-row is-row-1">
-                    <span class="pt-cinema-step-visual-bar is-bar-c"></span>
-                </div>
-                <div class="pt-cinema-step-visual-row is-row-2">
-                    <span class="pt-cinema-step-visual-bar is-bar-d"></span>
+                {{-- Card 2 mock: 10x4 seat grid with one row pulse-glowing --}}
+                <div class="pt-cinema-mock-seats">
+                    @for ($i = 0; $i < 40; $i++)
+                        @php
+                            // Highlight a center row of 5 seats (row index 2, cols 3..7)
+                            $row = intdiv($i, 10);
+                            $col = $i % 10;
+                            $isPick = ($row === 2 && $col >= 3 && $col <= 7);
+                        @endphp
+                        <span @if($isPick) class="is-pick" @endif></span>
+                    @endfor
                 </div>
             </div>
+            <span class="pt-cinema-step-sheen" aria-hidden="true"></span>
         </article>
 
         <article class="pt-cinema-step pt-cinema-reveal pt-cinema-reveal-l pt-reveal">
@@ -319,13 +329,15 @@
             <h3 class="pt-cinema-step-title" data-i18n="cine_3_t">ارفع التحويل</h3>
             <p class="pt-cinema-step-body" data-i18n="cine_3_b">حوّل على المحفظة أو InstaPay وارفع صورة التحويل بثواني داخل تدفق آمن وأنيق.</p>
             <div class="pt-cinema-step-visual" aria-hidden="true">
-                <div class="pt-cinema-step-visual-row is-row-1">
-                    <span class="pt-cinema-step-visual-bar is-bar-c"></span>
-                </div>
-                <div class="pt-cinema-step-visual-row is-row-2">
-                    <span class="pt-cinema-step-visual-bar is-bar-a"></span>
+                {{-- Card 3 mock: animated upload bar + pulsing checkmark --}}
+                <div class="pt-cinema-mock-upload">
+                    <div class="pt-cinema-mock-upload-bar"></div>
+                    <div class="pt-cinema-mock-upload-check">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12 L10 17 L19 7"/></svg>
+                    </div>
                 </div>
             </div>
+            <span class="pt-cinema-step-sheen" aria-hidden="true"></span>
         </article>
 
         <article class="pt-cinema-step pt-cinema-reveal pt-cinema-reveal-r pt-reveal">
@@ -336,13 +348,17 @@
             <h3 class="pt-cinema-step-title" data-i18n="cine_4_t">استلم تذكرتك</h3>
             <p class="pt-cinema-step-body" data-i18n="cine_4_b">تذكرة QR توصلك على واتساب فور الاعتماد · جاهزة للمسح عند البوابة.</p>
             <div class="pt-cinema-step-visual" aria-hidden="true">
-                <div class="pt-cinema-step-visual-row is-row-1">
-                    <span class="pt-cinema-step-visual-bar is-bar-a"></span>
-                </div>
-                <div class="pt-cinema-step-visual-row is-row-2">
-                    <span class="pt-cinema-step-visual-bar is-bar-c"></span>
+                {{-- Card 4 mock: 8x4 QR module grid + horizontal light sweep --}}
+                <div class="pt-cinema-mock-qr">
+                    <div class="pt-cinema-mock-qr-grid">
+                        @for ($i = 0; $i < 32; $i++)
+                            <span style="animation-delay: {{ ($i % 8) * 0.06 + (intdiv($i, 8)) * 0.12 }}s;"></span>
+                        @endfor
+                    </div>
+                    <span class="pt-cinema-mock-qr-sweep" aria-hidden="true"></span>
                 </div>
             </div>
+            <span class="pt-cinema-step-sheen" aria-hidden="true"></span>
         </article>
     </div>
 </section>
@@ -373,7 +389,7 @@
     @else
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 prism-stagger pt-reveal pt-reveal-stagger">
             @foreach($rest->count() ? $rest : $shows as $show)
-                <article class="pt-show-card pt-cinema-tilt group">
+                <article class="pt-show-card pt-cinema-tilt pt-cinema-magnet group">
                     <span class="pt-show-card-glow" aria-hidden="true"></span>
                     @if($show->poster_path)
                         <a href="{{ route('shows.show', $show) }}" class="pt-show-poster" aria-label="{{ $show->title }}">
