@@ -191,7 +191,7 @@
                                 {{ \Carbon\Carbon::parse($time->time)->format('g:i A') }}
                             </span>
                         </span>
-                        @php($chip = $priceChipFor($featured, $time))
+                        @php $chip = $priceChipFor($featured, $time); @endphp
                         <span class="pt-show-time-price">
                             {{ $chip['label'] }}
                             @if (!empty($chip['unit']))
@@ -314,7 +314,7 @@
                                         ·
                                         {{ \Carbon\Carbon::parse($time->time)->format('g:i A') }}
                                     </span>
-                                    @php($chip = $priceChipFor($show, $time))
+                                    @php $chip = $priceChipFor($show, $time); @endphp
                                     <span class="pt-show-time-price">
                                         {{ $chip['label'] }}
                                         @if (!empty($chip['unit']))
