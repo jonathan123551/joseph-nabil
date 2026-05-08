@@ -3,100 +3,119 @@
 @section('title', 'تعديل العرض - ' . $show->title)
 
 @section('content')
-<form action="{{ route('admin.shows.update', $show) }}" method="POST" enctype="multipart/form-data" class="space-y-5 prism-fade-up">
-    @csrf
-    @method('PUT')
+<section class="max-w-3xl mx-auto space-y-4 prism-fade-up">
 
-{{-- Header --}}
-<div class="prism-glass prism-glow-border p-5 flex items-center justify-between gap-3">
-    <div class="space-y-1">
-        <span class="prism-pill prism-pill-neon">
-            <span class="prism-dot prism-dot-emerald"></span>
-            Edit Show
-        </span>
-        <h1 class="prism-headline text-xl">
-            <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
-                تعديل العرض
-            </span>
-        </h1>
+    {{-- Header --}}
+    <div class="prism-glass prism-glow-border p-5">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div class="space-y-1">
+                <span class="prism-pill prism-pill-neon">
+                    <span class="prism-dot prism-dot-emerald"></span>
+                    Edit Show
+                </span>
+                <h1 class="prism-headline text-xl">
+                    <span style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
+                        تعديل العرض
+                    </span>
+                </h1>
+                <p class="text-xs text-[color:var(--prism-text-3)]">{{ $show->title }}</p>
+            </div>
+
+            <a href="{{ route('admin.shows.index') }}" class="prism-btn-ghost text-xs">
+                <span aria-hidden="true">→</span>
+                رجوع
+            </a>
+        </div>
     </div>
 
-    <a href="{{ route('admin.shows.index') }}" class="prism-btn-ghost text-xs">
-        <span aria-hidden="true">→</span>
-        رجوع
-    </a>
-</div>
+    {{-- Errors --}}
+    @if ($errors->any())
+        <div class="rounded-xl px-4 py-3 text-xs prism-fade-up"
+             style="background: rgba(244,63,94,0.10); border: 1px solid rgba(251,113,133,0.45); color: #fda4af;">
+            <ul class="list-disc pr-4 space-y-1">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
-{{-- Errors --}}
-@if ($errors->any())
-    <div class="rounded-xl px-4 py-3 text-xs prism-fade-up"
-         style="background: rgba(244,63,94,0.10); border: 1px solid rgba(251,113,133,0.45); color: #fda4af;">
-        <ul class="list-disc pr-4 space-y-1">
-            @foreach($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    </div>
-@endif
+    <form action="{{ route('admin.shows.update', $show) }}" method="POST" enctype="multipart/form-data"
+          class="space-y-4" autocomplete="off">
+        @csrf
+        @method('PUT')
 
-<div class="grid lg:grid-cols-2 gap-5">
+        {{-- Section: basic info --}}
+        <div class="pt-form-section">
+            <div class="pt-form-section-head">
+                <span class="pt-form-section-head-icon" aria-hidden="true">🎭</span>
+                <span class="pt-form-section-head-title">بيانات العرض</span>
+            </div>
 
-    {{-- LEFT --}}
-    <div class="prism-glass p-5 space-y-4">
+            <div class="pt-form-field">
+                <label class="pt-form-field-label">
+                    اسم العرض
+                    <span class="pt-form-req" aria-hidden="true">*</span>
+                </label>
+                <input type="text" name="title"
+                       value="{{ old('title', $show->title) }}"
+                       class="prism-input text-sm">
+            </div>
 
-        <div>
-            <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">اسم العرض</label>
-            <input type="text" name="title"
-                   value="{{ old('title', $show->title) }}"
-                   class="prism-input text-sm">
+            <div class="pt-form-field">
+                <label class="pt-form-field-label">الوصف</label>
+                <textarea name="description" rows="4" class="prism-input text-sm">{{ old('description', $show->description) }}</textarea>
+            </div>
         </div>
 
-        <div>
-            <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">الوصف</label>
-            <textarea name="description" rows="4" class="prism-input text-sm">{{ old('description', $show->description) }}</textarea>
-        </div>
+        {{-- Section: theater type + section pricing --}}
+        <div class="pt-form-section">
+            <div class="pt-form-section-head">
+                <span class="pt-form-section-head-icon" aria-hidden="true">🏛️</span>
+                <span class="pt-form-section-head-title">نوع المسرح والأسعار</span>
+            </div>
 
-        {{-- نوع المسرح --}}
-        <div>
-            <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">نوع المسرح</label>
-            <div class="flex flex-col sm:flex-row gap-2 text-xs">
+            <div class="pt-radio-group">
                 @foreach(\App\Models\Show::THEATER_TYPES as $value => $label)
-                    <label class="flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer transition"
-                           style="background: rgba(255,255,255,0.04); border: 1px solid var(--prism-border); color: var(--prism-text);"
-                           onmouseover="this.style.borderColor='var(--prism-border-strong)'; this.style.background='rgba(129,140,248,0.08)';"
-                           onmouseout="this.style.borderColor='var(--prism-border)'; this.style.background='rgba(255,255,255,0.04)';">
+                    <label class="pt-radio-card">
                         <input type="radio"
                                name="theater_type"
                                value="{{ $value }}"
                                data-theater-type
-                               class="w-4 h-4"
                                {{ old('theater_type', $show->theater_type ?? \App\Models\Show::THEATER_OTHER) === $value ? 'checked' : '' }}>
-                        <span>{{ $label }}</span>
+                        <span class="text-sm font-medium">{{ $label }}</span>
                     </label>
                 @endforeach
             </div>
+
+            <div data-anba-ruweis-fields
+                 class="space-y-3 {{ old('theater_type', $show->theater_type) === \App\Models\Show::THEATER_ANBA_RUWEIS ? '' : 'hidden' }}">
+                <p class="pt-form-helper">
+                    الأنبا رويس بيستخدم تسعير لكل فئة (بلكون / صالة).
+                </p>
+                <div class="pt-form-grid">
+                    <div class="pt-form-field">
+                        <label class="pt-form-field-label">سعر تذكرة البلكون (EGP)</label>
+                        <input type="number" min="0" name="balcony_price"
+                               value="{{ old('balcony_price', $show->balcony_price) }}"
+                               class="prism-input text-sm" inputmode="numeric">
+                    </div>
+                    <div class="pt-form-field">
+                        <label class="pt-form-field-label">سعر تذكرة الصالة (EGP)</label>
+                        <input type="number" min="0" name="hall_price"
+                               value="{{ old('hall_price', $show->hall_price) }}"
+                               class="prism-input text-sm" inputmode="numeric">
+                    </div>
+                </div>
+            </div>
         </div>
 
-        {{-- أسعار التذاكر --}}
-        <div data-anba-ruweis-fields
-             class="grid grid-cols-2 gap-3 {{ old('theater_type', $show->theater_type) === \App\Models\Show::THEATER_ANBA_RUWEIS ? '' : 'hidden' }}">
-            <div>
-                <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">سعر تذكرة البلكون (EGP)</label>
-                <input type="number" min="0" name="balcony_price"
-                       value="{{ old('balcony_price', $show->balcony_price) }}"
-                       class="prism-input text-sm">
+        {{-- Section: poster --}}
+        <div class="pt-form-section">
+            <div class="pt-form-section-head">
+                <span class="pt-form-section-head-icon" aria-hidden="true">🖼️</span>
+                <span class="pt-form-section-head-title">بوستر العرض</span>
             </div>
-            <div>
-                <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">سعر تذكرة الصالة (EGP)</label>
-                <input type="number" min="0" name="hall_price"
-                       value="{{ old('hall_price', $show->hall_price) }}"
-                       class="prism-input text-sm">
-            </div>
-        </div>
-
-        {{-- Poster --}}
-        <div>
-            <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]">البوستر</label>
 
             @if($show->poster_path)
                 @php
@@ -107,26 +126,41 @@
 
                 <img id="posterPreview"
                      src="{{ $posterUrl }}"
-                     class="w-full max-h-60 object-contain rounded-xl mb-2 p-2"
+                     class="w-full max-h-60 object-contain rounded-xl p-2"
                      style="background: rgba(8,10,20,0.5); border: 1px solid var(--prism-border);">
             @endif
 
-            <input type="file" name="poster" id="posterInput" class="text-xs text-[color:var(--prism-text-2)]">
+            <label class="pt-file-zone">
+                <span class="pt-file-zone-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                </span>
+                <span class="pt-file-zone-title">
+                    @if($show->poster_path) استبدال البوستر @else اضغط لاختيار صورة البوستر @endif
+                </span>
+                <span class="pt-file-zone-sub">PNG / JPG · ينصح بنسبة عمودية (2:3)</span>
+                <input type="file" name="poster" id="posterInput" accept="image/*">
+            </label>
         </div>
 
-    </div>
+        {{-- Section: ticket template + QR --}}
+        <div class="pt-form-section">
+            <div class="pt-form-section-head">
+                <span class="pt-form-section-head-icon" aria-hidden="true">🎟️</span>
+                <span class="pt-form-section-head-title">تصميم التذكرة وموضع الـ QR</span>
+            </div>
 
-    {{-- RIGHT --}}
-    <div class="space-y-4">
-
-        <div class="prism-glass p-5 space-y-3">
-
-            <h3 class="text-sm font-semibold text-[color:var(--prism-text)]">🎟️ تصميم التذكرة + QR</h3>
-
-            <input type="file" name="ticket_template" id="ticketInput" class="text-xs text-[color:var(--prism-text-2)]">
+            <label class="pt-file-zone">
+                <span class="pt-file-zone-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
+                </span>
+                <span class="pt-file-zone-title">
+                    @if($show->ticket_template_path) استبدال تصميم التذكرة @else اضغط لرفع تصميم التذكرة @endif
+                </span>
+                <span class="pt-file-zone-sub">بعد الرفع تقدر تحرك مربع الـ QR وتغيّر حجمه</span>
+                <input type="file" name="ticket_template" id="ticketInput" accept="image/*">
+            </label>
 
             @if($show->ticket_template_path)
-
                 @php
                     $ticketUrl = str_starts_with($show->ticket_template_path, 'http')
                         ? $show->ticket_template_path
@@ -155,37 +189,46 @@
 
                 </div>
 
-                <div class="grid grid-cols-3 gap-2 text-xs">
-                    <input type="number" name="ticket_qr_x" id="ticket_qr_x_input"
-                           value="{{ old('ticket_qr_x', $show->ticket_qr_x ?? 0) }}"
-                           class="prism-input text-xs px-2 py-1.5">
-
-                    <input type="number" name="ticket_qr_y" id="ticket_qr_y_input"
-                           value="{{ old('ticket_qr_y', $show->ticket_qr_y ?? 0) }}"
-                           class="prism-input text-xs px-2 py-1.5">
-
-                    <input type="number" name="ticket_qr_size" id="ticket_qr_size_input"
-                           value="{{ old('ticket_qr_size', $show->ticket_qr_size ?? 220) }}"
-                           class="prism-input text-xs px-2 py-1.5">
+                <div class="pt-form-grid-3">
+                    <div class="pt-form-field">
+                        <label class="pt-form-field-label">X (من الشمال)</label>
+                        <input type="number" name="ticket_qr_x" id="ticket_qr_x_input"
+                               value="{{ old('ticket_qr_x', $show->ticket_qr_x ?? 0) }}"
+                               class="prism-input text-sm" inputmode="numeric">
+                    </div>
+                    <div class="pt-form-field">
+                        <label class="pt-form-field-label">Y (من فوق)</label>
+                        <input type="number" name="ticket_qr_y" id="ticket_qr_y_input"
+                               value="{{ old('ticket_qr_y', $show->ticket_qr_y ?? 0) }}"
+                               class="prism-input text-sm" inputmode="numeric">
+                    </div>
+                    <div class="pt-form-field">
+                        <label class="pt-form-field-label">حجم الـ QR</label>
+                        <input type="number" name="ticket_qr_size" id="ticket_qr_size_input"
+                               value="{{ old('ticket_qr_size', $show->ticket_qr_size ?? 220) }}"
+                               class="prism-input text-sm" inputmode="numeric">
+                    </div>
                 </div>
-
             @endif
-
         </div>
 
-    </div>
+        {{-- Sticky action bar --}}
+        <div class="pt-form-actions-sticky">
+            <a href="{{ route('admin.shows.index') }}"
+               class="prism-btn-ghost text-sm flex items-center justify-center">
+                <span aria-hidden="true">→</span>
+                إلغاء
+            </a>
+            <button type="submit" class="prism-btn text-sm pt-form-actions-primary flex items-center justify-center">
+                حفظ التعديلات
+                <span aria-hidden="true">←</span>
+            </button>
+        </div>
+    </form>
+</section>
 
-</div>
 
-<button type="submit" class="prism-btn text-sm w-full sm:w-auto">
-    حفظ التعديلات
-    <span aria-hidden="true">←</span>
-</button>
-
-</form>
-
-
-{{-- 🔥 نفس السكربت بدون أي تغيير --}}
+{{-- QR editor + live previews — original behaviour preserved --}}
 
  <script>
         document.addEventListener('DOMContentLoaded', function () {
