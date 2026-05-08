@@ -754,6 +754,18 @@
                 </p>
             </div>
 
+            {{-- QW#7: auto-pick best seats — customer flow only.
+                 Asks for a count, then picks N contiguous available seats
+                 closest to the canvas centerline. --}}
+            @unless ($adminMode)
+                <button type="button"
+                        data-anba-auto-pick
+                        class="prism-auto-pick w-full">
+                    <span aria-hidden="true">✨</span>
+                    <span data-i18n="seat_auto_pick">اختر أفضل المقاعد</span>
+                </button>
+            @endunless
+
             {{-- legend --}}
             <div class="grid grid-cols-2 gap-2 text-[11px] text-[color:var(--p-text-2)]">
                 <div class="legend-pill"><span class="legend-swatch avail"></span> <span data-i18n="seat_legend_available">متاح</span></div>
@@ -1510,10 +1522,112 @@
                 selected.delete(s.id);
             } else {
                 selected.set(s.id, { row: s.row, n: s.n });
+                // QW#12: light haptic on seat selection (Android only).
+                if (navigator.vibrate) { try { navigator.vibrate(8); } catch (_) {} }
             }
             triggerPop(s.id);
             renderSidePanel();
             requestRedraw();
+        }
+
+        // ===== QW#7: auto-pick best N seats =====
+        // Strategy:
+        //   1. Group seats by row (in visual order, front rows first).
+        //   2. For each row, sort seats left→right by x.
+        //   3. Mark seats available iff getState(seat) === 'available'.
+        //   4. Slide a window of size N over each row's available seats and
+        //      keep only contiguous windows (no booked/admin gaps inside).
+        //   5. Score each candidate window by:
+        //         rowBonus  — earlier rows score higher (closer to stage)
+        //         centerPen — distance of window's mean-x from CX
+        //      Final score = rowBonus * 1000 - centerPen.
+        //   6. Pick the highest-scoring window.
+        function autoPickBestSeats(N) {
+            if (!isFinite(N) || N <= 0) return null;
+
+            // Group seats by row in insertion order (front→back since
+            // SEATS was built by iterating ROWS_ORDER in computeLayout).
+            const groups = new Map();
+            for (const s of SEATS) {
+                if (!groups.has(s.row)) groups.set(s.row, []);
+                groups.get(s.row).push(s);
+            }
+            const rowList = Array.from(groups.keys());
+
+            let best = null; // { score, ids:[] }
+            rowList.forEach((rowLetter, rowIdx) => {
+                const seatsInRow = groups.get(rowLetter).slice().sort((a, b) => a.x - b.x);
+                if (seatsInRow.length < N) return;
+
+                for (let i = 0; i + N <= seatsInRow.length; i++) {
+                    const window = seatsInRow.slice(i, i + N);
+
+                    // All must be available + adjacent on the canvas.
+                    let ok = true;
+                    let sumX = 0;
+                    for (let j = 0; j < window.length; j++) {
+                        if (getState(window[j]) !== 'available') { ok = false; break; }
+                        if (j > 0) {
+                            const dx = Math.abs(window[j].x - window[j - 1].x);
+                            // Allow up to 1.6× SEAT_PITCH for tolerated gap;
+                            // anything bigger is an aisle/section break.
+                            if (dx > SEAT_PITCH * 1.6) { ok = false; break; }
+                        }
+                        sumX += window[j].x;
+                    }
+                    if (!ok) continue;
+
+                    const meanX = sumX / window.length;
+                    const centerPen = Math.abs(meanX - CX);
+                    const rowBonus = rowList.length - rowIdx;
+                    const score = rowBonus * 1000 - centerPen;
+
+                    if (!best || score > best.score) {
+                        best = { score, seats: window };
+                    }
+                }
+            });
+            return best;
+        }
+
+        function applyAutoPickN(N) {
+            const t = window.PT_T || ((k) => k);
+            const result = autoPickBestSeats(N);
+            if (!result) {
+                if (window.PT && window.PT.toast) {
+                    window.PT.toast(t('seat_auto_pick_none'), 2200);
+                }
+                return false;
+            }
+            // Clear any prior selection then pick the chosen window.
+            selected.clear();
+            result.seats.forEach((s) => {
+                selected.set(s.id, { row: s.row, n: s.n });
+                triggerPop(s.id);
+            });
+            if (navigator.vibrate) { try { navigator.vibrate(12); } catch (_) {} }
+            renderSidePanel();
+            requestRedraw();
+            if (window.PT && window.PT.toast) {
+                window.PT.toast(t('seat_auto_pick_done'), 1800);
+            }
+            return true;
+        }
+
+        // Wire up the side-panel auto-pick button. The same N is used
+        // across re-clicks, but we re-prompt every time so the user can
+        // adjust without reaching for a separate input.
+        const autoPickBtn = root.querySelector('[data-anba-auto-pick]');
+        if (autoPickBtn) {
+            autoPickBtn.addEventListener('click', () => {
+                const t = window.PT_T || ((k) => k);
+                const promptStr = t('seat_auto_pick_prompt');
+                const raw = window.prompt(promptStr, '2');
+                if (raw === null) return;
+                const n = parseInt(String(raw).trim(), 10);
+                if (!isFinite(n) || n <= 0 || n > 12) return;
+                applyAutoPickN(n);
+            });
         }
 
         // Selection pop driver — schedules a single rAF loop that redraws

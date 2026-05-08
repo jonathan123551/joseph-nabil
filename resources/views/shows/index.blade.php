@@ -15,6 +15,31 @@
     $featured = $shows->first();
     $rest     = $shows->slice(1)->values();
 
+    // Compute aggregate "selling fast" / "last N seats" / "trending" hint
+    // per show using already-loaded showTimes. We sum total_tickets and
+    // available_tickets (which is maintained by the booking flow) — no
+    // extra queries fired since showTimes is eager-loaded above.
+    $showHint = function ($show) {
+        $total = (int) $show->showTimes->sum('total_tickets');
+        if ($total <= 0) return null;
+        $available = (int) $show->showTimes->sum(function ($t) {
+            $av = $t->available_tickets;
+            return $av === null ? (int) $t->total_tickets : (int) $av;
+        });
+        if ($available <= 0) return null;
+        $ratio = $available / max($total, 1);
+        if ($available <= 5) {
+            return ['kind' => 'last', 'n' => $available];
+        }
+        if ($ratio < 0.30) {
+            return ['kind' => 'fast'];
+        }
+        if ($total >= 200 && $ratio < 0.55) {
+            return ['kind' => 'trending'];
+        }
+        return null;
+    };
+
     // Bilingual price chip helpers — declared above the markup so partials
     // and JS can both reach them. Section-priced shows surface a generic
     // "Balcony / Hall" chip with a "from {min}" hint; everything else uses
@@ -99,6 +124,13 @@
             <span class="pt-cine-scroll-cue-line"></span>
         </span>
     </div>
+
+    {{-- Skip-to-shows pill — hidden by default, revealed when JS detects
+         this is a return visit (visit_count >= 2 in localStorage). --}}
+    <a href="#shows-grid"
+       class="prism-skip-pill"
+       data-pt-skip-shows
+       data-i18n="shows_skip_pill">تخطّي إلى العروض ↓</a>
 </section>
 
 {{-- =====================================================================
@@ -302,7 +334,11 @@
     </div>
 
     @if($featured)
-        <article class="pt-cine-featured pt-cine-stagger" aria-labelledby="pt-cine-featured-title">
+        @php $featuredHint = $showHint($featured); @endphp
+        <article class="pt-cine-featured pt-cine-stagger"
+                 aria-labelledby="pt-cine-featured-title"
+                 data-pt-show-card
+                 data-show-id="{{ $featured->id }}">
             <div class="pt-cine-featured-poster">
                 @if($featured->poster_path)
                     <img src="{{ $featured->poster_path }}" alt="{{ $featured->title }}" loading="lazy" decoding="async">
@@ -313,6 +349,26 @@
                     <span class="prism-dot prism-dot-amber"></span>
                     <span data-i18n="shows_eyebrow_featured">عرض مميز</span>
                 </span>
+                @if($featuredHint)
+                    <span class="prism-ribbon prism-ribbon-{{ $featuredHint['kind'] }} pt-show-ribbon">
+                        @if($featuredHint['kind'] === 'last')
+                            <span data-i18n="ribbon_last_n"
+                                  data-i18n-vars='{"n": {{ $featuredHint['n'] }} }'>آخر {{ $featuredHint['n'] }} مقاعد</span>
+                        @elseif($featuredHint['kind'] === 'fast')
+                            <span data-i18n="ribbon_selling_fast">يُحجز بسرعة</span>
+                        @else
+                            <span data-i18n="ribbon_trending">الأكثر طلبًا</span>
+                        @endif
+                    </span>
+                @endif
+                <button type="button"
+                        class="prism-heart-btn pt-show-heart"
+                        data-pt-fav="{{ $featured->id }}"
+                        data-i18n-attr="aria-label:fav_save_aria"
+                        aria-label="حفظ في المفضلة"
+                        aria-pressed="false">
+                    <span class="heart-glyph" aria-hidden="true"></span>
+                </button>
             </div>
             <div class="pt-cine-featured-body">
                 <h3 id="pt-cine-featured-title" class="pt-cine-featured-title">{{ $featured->title }}</h3>
@@ -361,7 +417,10 @@
     @elseif($rest->count())
         <div class="pt-cine-shows-grid pt-cine-stagger">
             @foreach($rest as $show)
-                <article class="pt-cine-show-card pt-cinema-magnet">
+                @php $hint = $showHint($show); @endphp
+                <article class="pt-cine-show-card pt-cinema-magnet"
+                         data-pt-show-card
+                         data-show-id="{{ $show->id }}">
                     @if($show->poster_path)
                         <a href="{{ route('shows.show', $show) }}" class="pt-cine-show-card-poster" aria-label="{{ $show->title }}">
                             <img src="{{ $show->poster_path }}" alt="{{ $show->title }}" loading="lazy" decoding="async">
@@ -370,6 +429,28 @@
                     @else
                         <div class="pt-cine-show-card-poster pt-cine-show-card-poster-empty" data-i18n="shows_no_poster">بدون بوستر</div>
                     @endif
+
+                    @if($hint)
+                        <span class="prism-ribbon prism-ribbon-{{ $hint['kind'] }} pt-show-ribbon">
+                            @if($hint['kind'] === 'last')
+                                <span data-i18n="ribbon_last_n"
+                                      data-i18n-vars='{"n": {{ $hint['n'] }} }'>آخر {{ $hint['n'] }} مقاعد</span>
+                            @elseif($hint['kind'] === 'fast')
+                                <span data-i18n="ribbon_selling_fast">يُحجز بسرعة</span>
+                            @else
+                                <span data-i18n="ribbon_trending">الأكثر طلبًا</span>
+                            @endif
+                        </span>
+                    @endif
+
+                    <button type="button"
+                            class="prism-heart-btn pt-show-heart"
+                            data-pt-fav="{{ $show->id }}"
+                            data-i18n-attr="aria-label:fav_save_aria"
+                            aria-label="حفظ في المفضلة"
+                            aria-pressed="false">
+                        <span class="heart-glyph" aria-hidden="true"></span>
+                    </button>
 
                     <div class="pt-cine-show-card-body">
                         <h3 class="pt-cine-show-card-title">{{ $show->title }}</h3>
@@ -395,3 +476,102 @@
 </div>{{-- /.pt-cine --}}
 
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    'use strict';
+
+    // ---------- Wave 1 — return-visit detection (QW#3) ----------
+    // Increment a per-browser visit counter and reveal the "Skip to shows"
+    // pill on visit 2+. Errors swallowed for incognito / disabled storage.
+    try {
+        var key = 'pt_visit_count';
+        var raw = window.localStorage.getItem(key);
+        var count = parseInt(raw, 10);
+        if (!isFinite(count) || count < 0) count = 0;
+        count += 1;
+        window.localStorage.setItem(key, String(count));
+        if (count >= 2) {
+            document.querySelectorAll('[data-pt-skip-shows]').forEach(function (el) {
+                el.classList.add('is-shown');
+            });
+        }
+    } catch (e) { /* ignore */ }
+
+    // Smooth scroll for the skip pill (anchor still works without JS).
+    document.addEventListener('click', function (e) {
+        var pill = e.target.closest('[data-pt-skip-shows]');
+        if (!pill) return;
+        var target = document.getElementById('shows-grid');
+        if (!target) return;
+        e.preventDefault();
+        var prefersReduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        target.scrollIntoView({ behavior: prefersReduce ? 'auto' : 'smooth', block: 'start' });
+    });
+
+    // ---------- Wave 1 — heart favorites (QW#4) ----------
+    var FAV_KEY = 'pt_fav_shows';
+    function readFavs() {
+        try {
+            var raw = window.localStorage.getItem(FAV_KEY);
+            var parsed = raw ? JSON.parse(raw) : [];
+            return Array.isArray(parsed) ? parsed.map(String) : [];
+        } catch (e) { return []; }
+    }
+    function writeFavs(list) {
+        try { window.localStorage.setItem(FAV_KEY, JSON.stringify(list)); } catch (e) { /* ignore */ }
+    }
+    function syncHeartButtons() {
+        var favs = readFavs();
+        document.querySelectorAll('[data-pt-fav]').forEach(function (btn) {
+            var id = btn.getAttribute('data-pt-fav');
+            var on = favs.indexOf(String(id)) !== -1;
+            btn.classList.toggle('is-fav', on);
+            btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            var i18nKey = on ? 'fav_unsave_aria' : 'fav_save_aria';
+            btn.setAttribute('data-i18n-attr', 'aria-label:' + i18nKey);
+            if (window.PT && typeof window.PT.t === 'function') {
+                btn.setAttribute('aria-label', window.PT.t(i18nKey));
+            }
+        });
+        updateFavPill(favs.length);
+    }
+    function updateFavPill(n) {
+        var pill = document.querySelector('[data-pt-fav-pill]');
+        if (!pill) return;
+        if (n > 0) {
+            pill.classList.add('is-shown');
+            var counter = pill.querySelector('[data-pt-fav-count]');
+            if (counter) counter.textContent = String(n);
+        } else {
+            pill.classList.remove('is-shown');
+        }
+    }
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-pt-fav]');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var id = String(btn.getAttribute('data-pt-fav') || '');
+        if (!id) return;
+        var favs = readFavs();
+        var idx = favs.indexOf(id);
+        var added;
+        if (idx === -1) { favs.push(id); added = true; }
+        else { favs.splice(idx, 1); added = false; }
+        writeFavs(favs);
+        syncHeartButtons();
+        var t = (window.PT && typeof window.PT.t === 'function')
+            ? window.PT.t(added ? 'fav_saved_toast' : 'fav_unsaved_toast')
+            : (added ? 'Saved' : 'Removed');
+        if (window.PT && typeof window.PT.toast === 'function') window.PT.toast(t, 1800);
+        if (added && navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} }
+    });
+
+    // Re-run on load + after i18n changes (so aria labels follow language).
+    syncHeartButtons();
+    document.addEventListener('pt:langchange', syncHeartButtons);
+})();
+</script>
+@endpush
