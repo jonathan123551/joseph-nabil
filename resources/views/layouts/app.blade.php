@@ -3237,6 +3237,403 @@
             right: auto;
             left: 0;
         }
+
+        /* ============================================================
+           CINEMATIC HOMEPAGE LAYER (.pt-cinema-*)
+           Scoped to homepage only — opt-in via classes on the
+           homepage view. Pure CSS, GPU-friendly transforms, with
+           prefers-reduced-motion fallback.
+        ============================================================ */
+
+        /* Ambient atmosphere wrapping the hero — large soft radial
+           orbs that drift slowly, plus a faint grid line. Does not
+           intercept pointer events. */
+        .pt-cinema-atmos {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+            border-radius: inherit;
+        }
+        .pt-cinema-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.55;
+            mix-blend-mode: screen;
+            will-change: transform, opacity;
+            animation: ptCinemaOrb 18s ease-in-out infinite;
+        }
+        :root[data-pt-theme="light"] .pt-cinema-orb {
+            opacity: 0.35;
+            mix-blend-mode: multiply;
+            filter: blur(70px);
+        }
+        .pt-cinema-orb-a {
+            width: 420px; height: 420px;
+            top: -120px; inset-inline-start: -100px;
+            background: radial-gradient(circle, rgba(34,211,238,0.55), rgba(34,211,238,0) 70%);
+            animation-duration: 22s;
+        }
+        .pt-cinema-orb-b {
+            width: 360px; height: 360px;
+            bottom: -120px; inset-inline-end: -80px;
+            background: radial-gradient(circle, rgba(192,132,252,0.50), rgba(192,132,252,0) 70%);
+            animation-duration: 26s;
+            animation-delay: -6s;
+        }
+        .pt-cinema-orb-c {
+            width: 280px; height: 280px;
+            top: 30%; inset-inline-start: 55%;
+            background: radial-gradient(circle, rgba(129,140,248,0.40), rgba(129,140,248,0) 70%);
+            animation-duration: 20s;
+            animation-delay: -12s;
+        }
+        @keyframes ptCinemaOrb {
+            0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+            33%      { transform: translate3d(28px, -18px, 0) scale(1.05); }
+            66%      { transform: translate3d(-22px, 24px, 0) scale(0.95); }
+        }
+
+        /* Subtle particle dust — tiny CSS-only specks that drift
+           upward. Cheap, GPU-only, no JS. */
+        .pt-cinema-particles {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .pt-cinema-particles span {
+            position: absolute;
+            width: 3px; height: 3px;
+            border-radius: 50%;
+            background: var(--prism-cyan);
+            opacity: 0;
+            box-shadow: 0 0 8px currentColor;
+            animation: ptCinemaParticle 12s linear infinite;
+        }
+        .pt-cinema-particles span:nth-child(1)  { left: 8%;  animation-delay: -1s;  background: rgba(34,211,238,0.7); }
+        .pt-cinema-particles span:nth-child(2)  { left: 18%; animation-delay: -3s;  background: rgba(129,140,248,0.7); }
+        .pt-cinema-particles span:nth-child(3)  { left: 28%; animation-delay: -5s;  background: rgba(192,132,252,0.65); }
+        .pt-cinema-particles span:nth-child(4)  { left: 42%; animation-delay: -7s;  background: rgba(34,211,238,0.55); }
+        .pt-cinema-particles span:nth-child(5)  { left: 55%; animation-delay: -9s;  background: rgba(129,140,248,0.7); }
+        .pt-cinema-particles span:nth-child(6)  { left: 65%; animation-delay: -2s;  background: rgba(192,132,252,0.65); }
+        .pt-cinema-particles span:nth-child(7)  { left: 75%; animation-delay: -4s;  background: rgba(34,211,238,0.7); }
+        .pt-cinema-particles span:nth-child(8)  { left: 85%; animation-delay: -6s;  background: rgba(129,140,248,0.6); }
+        .pt-cinema-particles span:nth-child(9)  { left: 92%; animation-delay: -8s;  background: rgba(192,132,252,0.6); }
+        .pt-cinema-particles span:nth-child(10) { left: 35%; animation-delay: -10s; background: rgba(34,211,238,0.5); }
+        @keyframes ptCinemaParticle {
+            0%   { transform: translateY(110%) scale(0.6); opacity: 0; }
+            10%  { opacity: 0.8; }
+            85%  { opacity: 0.5; }
+            100% { transform: translateY(-30%) scale(1); opacity: 0; }
+        }
+
+        /* Soft floating motion for hero copy/art — barely perceptible,
+           expensive-feel idle animation. */
+        .pt-cinema-float {
+            animation: ptCinemaFloat 7s ease-in-out infinite;
+            will-change: transform;
+        }
+        .pt-cinema-float-slow {
+            animation: ptCinemaFloat 11s ease-in-out infinite;
+            will-change: transform;
+        }
+        @keyframes ptCinemaFloat {
+            0%, 100% { transform: translate3d(0, 0, 0); }
+            50%      { transform: translate3d(0, -6px, 0); }
+        }
+
+        /* Scroll storytelling — 4 alternating glass cards with deep
+           glassmorphism, layered depth, and subtle hover lift. */
+        .pt-cinema-story {
+            position: relative;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+        }
+        @media (min-width: 720px) {
+            .pt-cinema-story { gap: 22px; }
+        }
+        .pt-cinema-story::before {
+            content: "";
+            position: absolute;
+            inset-inline-start: 50%;
+            top: 6%;
+            bottom: 6%;
+            width: 1px;
+            background: linear-gradient(180deg,
+                rgba(34,211,238,0) 0%,
+                rgba(34,211,238,0.30) 18%,
+                rgba(129,140,248,0.30) 50%,
+                rgba(192,132,252,0.30) 82%,
+                rgba(192,132,252,0) 100%);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(-50%);
+        }
+        @media (min-width: 880px) {
+            .pt-cinema-story::before { opacity: 0.65; }
+        }
+        :root[data-pt-theme="light"] .pt-cinema-story::before {
+            background: linear-gradient(180deg,
+                rgba(14,165,233,0) 0%,
+                rgba(14,165,233,0.25) 18%,
+                rgba(99,102,241,0.25) 50%,
+                rgba(168,85,247,0.25) 82%,
+                rgba(168,85,247,0) 100%);
+        }
+
+        .pt-cinema-step {
+            position: relative;
+            border-radius: 24px;
+            border: 1px solid var(--prism-border);
+            background:
+                linear-gradient(180deg, rgba(20,24,38,0.55), rgba(8,10,20,0.72));
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            padding: 22px 22px 24px;
+            overflow: hidden;
+            transition: transform .5s var(--prism-ease), border-color .35s var(--prism-ease), box-shadow .5s var(--prism-ease);
+            will-change: transform;
+        }
+        :root[data-pt-theme="light"] .pt-cinema-step {
+            background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.65));
+        }
+        @media (min-width: 880px) {
+            .pt-cinema-step { padding: 28px 28px 32px; width: min(540px, 92%); }
+            .pt-cinema-step:nth-child(odd)  { justify-self: start; }
+            .pt-cinema-step:nth-child(even) { justify-self: end; }
+        }
+
+        /* Soft neon edge that brightens on hover */
+        .pt-cinema-step::before {
+            content: "";
+            position: absolute;
+            inset: -1px;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(135deg,
+                rgba(34,211,238,0.55),
+                rgba(129,140,248,0.55),
+                rgba(192,132,252,0.55));
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+                    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+                    mask-composite: exclude;
+            opacity: 0.45;
+            pointer-events: none;
+            transition: opacity .4s var(--prism-ease);
+        }
+        /* Inner glow blob anchored to top-right (or top-left in LTR) */
+        .pt-cinema-step::after {
+            content: "";
+            position: absolute;
+            inset-inline-end: -60px;
+            top: -60px;
+            width: 220px; height: 220px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(34,211,238,0.25), rgba(34,211,238,0) 70%);
+            pointer-events: none;
+            opacity: 0.6;
+            transition: opacity .5s var(--prism-ease), transform .8s var(--prism-ease);
+        }
+        .pt-cinema-step:nth-child(2)::after { background: radial-gradient(circle, rgba(129,140,248,0.30), rgba(129,140,248,0) 70%); }
+        .pt-cinema-step:nth-child(3)::after { background: radial-gradient(circle, rgba(192,132,252,0.30), rgba(192,132,252,0) 70%); }
+        .pt-cinema-step:nth-child(4)::after { background: radial-gradient(circle, rgba(52,211,153,0.28), rgba(52,211,153,0) 70%); }
+
+        @media (hover: hover) {
+            .pt-cinema-step:hover {
+                transform: translateY(-4px);
+                border-color: rgba(129,140,248,0.40);
+                box-shadow:
+                    0 18px 60px -20px rgba(34,211,238,0.30),
+                    0 8px 24px -12px rgba(129,140,248,0.30);
+            }
+            .pt-cinema-step:hover::before { opacity: 0.85; }
+            .pt-cinema-step:hover::after  { opacity: 0.95; transform: scale(1.10); }
+        }
+
+        .pt-cinema-step-head {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 10px;
+        }
+        .pt-cinema-step-num {
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-weight: 800;
+            font-size: 13px;
+            letter-spacing: 0.22em;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(34,211,238,0.12);
+            color: var(--prism-cyan);
+            border: 1px solid rgba(34,211,238,0.35);
+        }
+        .pt-cinema-step:nth-child(2) .pt-cinema-step-num {
+            background: rgba(129,140,248,0.12);
+            color: var(--prism-text);
+            border-color: rgba(129,140,248,0.45);
+        }
+        .pt-cinema-step:nth-child(3) .pt-cinema-step-num {
+            background: rgba(192,132,252,0.12);
+            color: #e9d5ff;
+            border-color: rgba(192,132,252,0.45);
+        }
+        .pt-cinema-step:nth-child(4) .pt-cinema-step-num {
+            background: rgba(52,211,153,0.14);
+            color: #a7f3d0;
+            border-color: rgba(52,211,153,0.45);
+        }
+        :root[data-pt-theme="light"] .pt-cinema-step:nth-child(3) .pt-cinema-step-num { color: #7e22ce; }
+        :root[data-pt-theme="light"] .pt-cinema-step:nth-child(4) .pt-cinema-step-num { color: #047857; }
+
+        .pt-cinema-step-emoji {
+            font-size: 28px;
+            line-height: 1;
+            filter: drop-shadow(0 4px 14px rgba(34,211,238,0.35));
+            transition: transform .5s var(--prism-ease);
+        }
+        @media (hover: hover) {
+            .pt-cinema-step:hover .pt-cinema-step-emoji { transform: scale(1.10) rotate(-4deg); }
+        }
+        .pt-cinema-step-title {
+            font-family: "Space Grotesk", "IBM Plex Sans Arabic", system-ui, sans-serif;
+            font-weight: 800;
+            font-size: clamp(18px, 2.4vw, 22px);
+            letter-spacing: -0.01em;
+            color: var(--prism-text);
+            margin-top: 2px;
+        }
+        .pt-cinema-step-body {
+            margin-top: 8px;
+            font-size: 13.5px;
+            line-height: 1.65;
+            color: var(--prism-text-3);
+            max-width: 46ch;
+        }
+
+        /* Visual mock — small abstract mockups that hint at each step */
+        .pt-cinema-step-visual {
+            position: relative;
+            margin-top: 16px;
+            height: 88px;
+            border-radius: 14px;
+            border: 1px solid var(--prism-border);
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.0));
+            overflow: hidden;
+        }
+        :root[data-pt-theme="light"] .pt-cinema-step-visual {
+            background: linear-gradient(180deg, rgba(15,23,42,0.04), rgba(15,23,42,0));
+        }
+        .pt-cinema-step-visual::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                repeating-linear-gradient(90deg,
+                    rgba(255,255,255,0.04) 0 1px, transparent 1px 16px),
+                repeating-linear-gradient(0deg,
+                    rgba(255,255,255,0.04) 0 1px, transparent 1px 16px);
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        :root[data-pt-theme="light"] .pt-cinema-step-visual::before {
+            background:
+                repeating-linear-gradient(90deg,
+                    rgba(15,23,42,0.06) 0 1px, transparent 1px 16px),
+                repeating-linear-gradient(0deg,
+                    rgba(15,23,42,0.06) 0 1px, transparent 1px 16px);
+        }
+        .pt-cinema-step-visual-row {
+            position: absolute;
+            inset-inline-start: 14px;
+            inset-inline-end: 14px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .pt-cinema-step-visual-row.is-row-1 { top: 16px; }
+        .pt-cinema-step-visual-row.is-row-2 { top: 44px; }
+        .pt-cinema-step-visual-bar {
+            height: 8px; border-radius: 4px;
+            background: linear-gradient(90deg, rgba(34,211,238,0.55), rgba(129,140,248,0.55));
+            box-shadow: 0 0 14px rgba(34,211,238,0.35);
+            animation: ptCinemaScan 3.6s ease-in-out infinite;
+            transform-origin: left center;
+        }
+        .pt-cinema-step:nth-child(2) .pt-cinema-step-visual-bar { background: linear-gradient(90deg, rgba(129,140,248,0.6), rgba(192,132,252,0.6)); }
+        .pt-cinema-step:nth-child(3) .pt-cinema-step-visual-bar { background: linear-gradient(90deg, rgba(192,132,252,0.6), rgba(244,114,182,0.55)); }
+        .pt-cinema-step:nth-child(4) .pt-cinema-step-visual-bar { background: linear-gradient(90deg, rgba(52,211,153,0.6), rgba(34,211,238,0.6)); }
+        @keyframes ptCinemaScan {
+            0%, 100% { transform: scaleX(0.55); opacity: 0.6; }
+            50%      { transform: scaleX(1);    opacity: 1;   }
+        }
+        .pt-cinema-step-visual-bar.is-bar-a { width: 56%; }
+        .pt-cinema-step-visual-bar.is-bar-b { width: 30%; opacity: 0.65; }
+        .pt-cinema-step-visual-bar.is-bar-c { width: 70%; }
+        .pt-cinema-step-visual-bar.is-bar-d { width: 22%; opacity: 0.55; }
+
+        /* Layered tilt for the available shows cards. Adds gentle 3D
+           perspective on hover; ignored on touch. */
+        @media (hover: hover) {
+            .pt-show-card.pt-cinema-tilt {
+                transition:
+                    transform .5s var(--prism-ease),
+                    border-color .25s var(--prism-ease),
+                    box-shadow .5s var(--prism-ease);
+                will-change: transform;
+                transform-style: preserve-3d;
+            }
+            .pt-show-card.pt-cinema-tilt:hover {
+                transform: translateY(-6px) rotateX(2.5deg) rotateY(-2deg);
+                box-shadow:
+                    0 24px 60px -22px rgba(34,211,238,0.32),
+                    0 12px 28px -12px rgba(129,140,248,0.28);
+            }
+            .pt-show-card.pt-cinema-tilt:hover .pt-show-poster img {
+                transform: scale(1.06);
+            }
+        }
+
+        /* Premium reveal upgrade — slightly richer than .pt-reveal,
+           used for the cinematic hero/story sections. */
+        .pt-cinema-reveal {
+            opacity: 0;
+            transform: translateY(28px) scale(0.985);
+            transition: opacity .9s var(--prism-ease), transform .9s var(--prism-ease);
+            will-change: opacity, transform;
+        }
+        .pt-cinema-reveal.is-in {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        .pt-cinema-reveal-l { transform: translate3d(-32px, 18px, 0) scale(0.985); }
+        .pt-cinema-reveal-l.is-in { transform: translate3d(0, 0, 0) scale(1); }
+        .pt-cinema-reveal-r { transform: translate3d(32px, 18px, 0) scale(0.985); }
+        .pt-cinema-reveal-r.is-in { transform: translate3d(0, 0, 0) scale(1); }
+
+        /* Reduce / disable cinematic motion for users who prefer it
+           and on coarse-pointer devices that struggle with blur. */
+        @media (prefers-reduced-motion: reduce) {
+            .pt-cinema-orb,
+            .pt-cinema-particles span,
+            .pt-cinema-float,
+            .pt-cinema-float-slow,
+            .pt-cinema-step-visual-bar { animation: none !important; }
+            .pt-cinema-reveal,
+            .pt-cinema-reveal-l,
+            .pt-cinema-reveal-r {
+                opacity: 1 !important;
+                transform: none !important;
+                transition: none !important;
+            }
+        }
+        /* On low-end mobile, soften blurs to keep frame rate up. */
+        @media (max-width: 540px) {
+            .pt-cinema-orb { filter: blur(40px); opacity: 0.45; }
+            .pt-cinema-step { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+        }
     </style>
 </head>
 <body class="prism-stage min-h-screen">
@@ -3650,9 +4047,18 @@
                 trust_247: 'متاح 24/7', trust_seat: 'اختيار مقعد مباشر',
                 how_title: 'كيف تحجز تذكرتك',
                 how_sub: 'ثلاث خطوات بسيطة من الاختيار حتى الواتساب.',
+                how_sub_4: 'أربع خطوات سينمائية من الاختيار حتى الواتساب.',
                 how_1_t: 'اختر العرض', how_1_b: 'استعرض العروض المتاحة واختر الموعد المناسب.',
                 how_2_t: 'احجز مقعدك', how_2_b: 'اختر مقعدك من خريطة القاعة المباشرة وادفع بأمان.',
                 how_3_t: 'استقبل التذكرة', how_3_b: 'تذكرة QR تصلك على واتساب في أقل من دقيقة.',
+                cine_1_t: 'اختر عرضك',
+                cine_1_b: 'تصفح العروض المباشرة واختر الموعد اللي يناسبك بلمسة واحدة.',
+                cine_2_t: 'اختر مقعدك',
+                cine_2_b: 'خريطة مباشرة للصالة توريلك المتاح لحظة بلحظة عشان تحجز مقعدك بثقة.',
+                cine_3_t: 'ارفع التحويل',
+                cine_3_b: 'حوّل على المحفظة أو InstaPay وارفع صورة التحويل بثواني داخل تدفق آمن وأنيق.',
+                cine_4_t: 'استلم تذكرتك',
+                cine_4_b: 'تذكرة QR توصلك على واتساب فور الاعتماد · جاهزة للمسح عند البوابة.',
                 shows_title: 'العروض المتاحة', shows_sub: 'اختر عرضك وابدأ الحجز.',
                 shows_eyebrow_featured: 'عرض مميز',
                 shows_pill_times: 'موعد متاح',
@@ -4326,9 +4732,18 @@
                 trust_247: 'Available 24/7', trust_seat: 'Live seat picker',
                 how_title: 'How it works',
                 how_sub: 'Three simple steps from pick to WhatsApp.',
+                how_sub_4: 'Four cinematic steps from picking a show to your QR ticket.',
                 how_1_t: 'Pick a show', how_1_b: 'Browse available shows and choose your date.',
                 how_2_t: 'Choose seats', how_2_b: 'Pick your seats from a live theater map and pay securely.',
                 how_3_t: 'Receive ticket', how_3_b: 'A QR ticket arrives on WhatsApp in under a minute.',
+                cine_1_t: 'Choose your show',
+                cine_1_b: 'Browse the live lineup and pick a date that fits your night out — in one tap.',
+                cine_2_t: 'Pick your seats',
+                cine_2_b: 'A live theater map shows what\u2019s open in real time so you can lock in the perfect seats.',
+                cine_3_t: 'Upload your transfer',
+                cine_3_b: 'Transfer to wallet or InstaPay, drop the screenshot, and we take it from there — secure and elegant.',
+                cine_4_t: 'Receive your QR ticket',
+                cine_4_b: 'Your QR ticket lands on WhatsApp the moment we approve — ready to scan at the door.',
                 shows_title: 'Available shows', shows_sub: 'Pick a show and start booking.',
                 shows_eyebrow_featured: 'Featured show',
                 shows_pill_times: 'showtimes',
