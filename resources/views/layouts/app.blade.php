@@ -2725,6 +2725,363 @@
         .pt-drawer-cta { padding-top: 4px; }
 
         /* =====================================================================
+           Wave 2 — App-like chrome (hamburger-sheet, bottom nav, polish)
+           Customer-facing only. No backend / route / DB changes.
+           ====================================================================*/
+
+        /* Skip-to-content (a11y). Visible only when keyboard-focused. */
+        .skip-to-content {
+            position: fixed;
+            top: 8px;
+            inset-inline-start: 8px;
+            transform: translateY(-200%);
+            z-index: 200;
+            background: linear-gradient(135deg, #22d3ee, #818cf8);
+            color: #0b0e1c;
+            font-weight: 700;
+            font-size: 13px;
+            padding: 10px 16px;
+            border-radius: 12px;
+            text-decoration: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.45), 0 0 0 2px rgba(255,255,255,0.7);
+            transition: transform .25s var(--prism-ease);
+        }
+        .skip-to-content:focus,
+        .skip-to-content:focus-visible {
+            transform: translateY(0);
+            outline: none;
+        }
+
+        /* Topbar saved pill — wired in Wave 2 */
+        .prism-fav-counter-pill {
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+            transition: transform .2s var(--prism-ease), background .2s var(--prism-ease);
+        }
+        .prism-fav-counter-pill:hover { transform: translateY(-1px); }
+        .prism-fav-counter-pill .heart-mini {
+            width: 12px; height: 12px;
+            display: inline-block;
+            background: currentColor;
+            -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 21s-7-4.35-9.33-9.05C1.27 9.13 2.36 5.66 5.32 4.5 7.92 3.48 10.4 4.84 12 6.78 13.6 4.84 16.08 3.48 18.68 4.5c2.96 1.16 4.05 4.63 2.65 7.45C19 16.65 12 21 12 21z'/></svg>") center/contain no-repeat;
+                    mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 21s-7-4.35-9.33-9.05C1.27 9.13 2.36 5.66 5.32 4.5 7.92 3.48 10.4 4.84 12 6.78 13.6 4.84 16.08 3.48 18.68 4.5c2.96 1.16 4.05 4.63 2.65 7.45C19 16.65 12 21 12 21z'/></svg>") center/contain no-repeat;
+        }
+        :root[data-pt-theme="light"] .prism-fav-counter-pill {
+            color: #be123c;
+            background: rgba(244,63,94,0.10);
+            border-color: rgba(244,63,94,0.32);
+        }
+
+        /* Topbar back chevron (subpages) */
+        .pt-back-chev {
+            display: inline-flex;
+            width: 36px; height: 36px;
+            align-items: center; justify-content: center;
+            border-radius: 999px;
+            border: 1px solid var(--prism-border);
+            background: rgba(255,255,255,0.04);
+            color: var(--prism-text);
+            margin-inline-end: 4px;
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+            transition: background .2s var(--prism-ease), transform .2s var(--prism-ease);
+        }
+        .pt-back-chev:hover { background: rgba(255,255,255,0.08); transform: translateX(2px); }
+        html[dir="rtl"] .pt-back-chev:hover { transform: translateX(-2px); }
+        :root[data-pt-theme="light"] .pt-back-chev {
+            background: rgba(15,23,42,0.04);
+        }
+        :root[data-pt-theme="light"] .pt-back-chev:hover { background: rgba(15,23,42,0.08); }
+        .pt-back-chev svg { transform: scaleX(1); }
+        html[dir="rtl"] .pt-back-chev svg { transform: scaleX(-1); }
+
+        /* Drawer drag handle (visual affordance for sheet feel) */
+        .pt-drawer-handle {
+            position: absolute;
+            top: 8px;
+            inset-inline-start: 50%;
+            transform: translateX(-50%);
+            width: 38px; height: 4px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            pointer-events: none;
+        }
+        :root[data-pt-theme="light"] .pt-drawer-handle { background: rgba(15,23,42,0.18); }
+        @media (max-width: 880px) {
+            .pt-drawer-handle { top: calc(8px + var(--pt-safe-top)); }
+        }
+
+        /* Drawer sections (saved + recent) */
+        .pt-drawer-section {
+            padding: 4px 14px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .pt-drawer-section-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 4px 2px;
+        }
+        .pt-drawer-section-label {
+            font-size: 10.5px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--prism-text-4);
+            font-weight: 700;
+        }
+        .pt-drawer-section-count {
+            font-size: 10.5px; font-weight: 700;
+            color: var(--prism-text-3);
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--prism-border);
+            border-radius: 999px;
+            padding: 2px 8px;
+        }
+        :root[data-pt-theme="light"] .pt-drawer-section-count {
+            background: rgba(15,23,42,0.04);
+        }
+        .pt-saved-list,
+        .pt-recent-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .pt-saved-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 12px;
+            text-decoration: none;
+            color: var(--prism-text-2);
+            background: rgba(255,255,255,0.025);
+            border: 1px solid var(--prism-border);
+            transition: background .2s var(--prism-ease), border-color .2s var(--prism-ease);
+        }
+        .pt-saved-card:active { background: rgba(255,255,255,0.06); }
+        :root[data-pt-theme="light"] .pt-saved-card { background: rgba(15,23,42,0.02); }
+        :root[data-pt-theme="light"] .pt-saved-card:active { background: rgba(15,23,42,0.05); }
+        .pt-saved-thumb {
+            width: 36px; height: 50px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(192,132,252,0.18));
+            background-size: cover;
+            background-position: center;
+            flex: 0 0 auto;
+            border: 1px solid var(--prism-border);
+        }
+        .pt-saved-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
+        .pt-saved-title {
+            font-size: 13px; font-weight: 600;
+            color: var(--prism-text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .pt-saved-sub {
+            font-size: 11px;
+            color: var(--prism-text-3);
+        }
+        .pt-saved-remove {
+            width: 28px; height: 28px;
+            flex: 0 0 auto;
+            display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 999px;
+            border: 1px solid var(--prism-border);
+            background: rgba(255,255,255,0.04);
+            color: var(--prism-text-3);
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+        }
+        .pt-saved-remove:hover { color: var(--prism-rose); border-color: rgba(251,113,133,0.45); }
+        :root[data-pt-theme="light"] .pt-saved-remove { background: rgba(15,23,42,0.04); }
+
+        .pt-saved-empty {
+            font-size: 12px;
+            color: var(--prism-text-3);
+            padding: 10px 4px;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        /* Recent — horizontal scroller */
+        .pt-recent-row {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-snap-type: inline mandatory;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 4px;
+            margin: 0 -14px;
+            padding-inline: 14px;
+            scrollbar-width: none;
+        }
+        .pt-recent-row::-webkit-scrollbar { display: none; }
+        .pt-recent-card {
+            flex: 0 0 auto;
+            width: 96px;
+            display: flex; flex-direction: column;
+            gap: 6px;
+            text-decoration: none;
+            scroll-snap-align: start;
+        }
+        .pt-recent-thumb {
+            width: 96px; height: 132px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(192,132,252,0.18));
+            background-size: cover;
+            background-position: center;
+            border: 1px solid var(--prism-border);
+        }
+        .pt-recent-title {
+            font-size: 11.5px; font-weight: 600;
+            color: var(--prism-text-2);
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Bottom navigation bar — mobile only, app-like */
+        .pt-bottom-nav {
+            position: fixed;
+            inset-inline: 0;
+            bottom: 0;
+            z-index: 55;
+            display: none;
+            padding: 6px 8px calc(6px + var(--pt-safe-bottom));
+            background: linear-gradient(180deg, rgba(8,10,20,0.55), rgba(5,6,13,0.92));
+            backdrop-filter: blur(18px) saturate(150%);
+            -webkit-backdrop-filter: blur(18px) saturate(150%);
+            border-top: 1px solid var(--prism-border);
+            transform: translateY(0);
+            transition: transform .35s var(--prism-ease), opacity .25s var(--prism-ease);
+        }
+        :root[data-pt-theme="light"] .pt-bottom-nav {
+            background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(248,245,238,0.96));
+        }
+        @media (max-width: 880px) {
+            .pt-bottom-nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
+        }
+        body.pt-bottom-nav-hidden .pt-bottom-nav {
+            transform: translateY(110%);
+        }
+        body.pt-drawer-open .pt-bottom-nav {
+            transform: translateY(110%);
+        }
+        .pt-bottom-nav-item {
+            position: relative;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 2px;
+            padding: 6px 4px;
+            border-radius: 14px;
+            background: transparent;
+            border: 0;
+            color: var(--prism-text-3);
+            text-decoration: none;
+            font-size: 10.5px; font-weight: 600;
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+            min-height: 52px;
+            transition: color .2s var(--prism-ease), background .2s var(--prism-ease);
+        }
+        .pt-bottom-nav-item svg { color: currentColor; }
+        .pt-bottom-nav-item:active { background: rgba(255,255,255,0.06); }
+        :root[data-pt-theme="light"] .pt-bottom-nav-item:active { background: rgba(15,23,42,0.06); }
+        .pt-bottom-nav-item.is-active {
+            color: var(--prism-text);
+        }
+        .pt-bottom-nav-item.is-active::before {
+            content: "";
+            position: absolute;
+            top: 4px;
+            inset-inline: 18%;
+            height: 3px;
+            border-radius: 999px;
+            background: var(--prism-neon);
+            box-shadow: 0 0 12px rgba(129,140,248,0.55);
+        }
+        .pt-bottom-nav-badge {
+            position: absolute;
+            top: 4px;
+            inset-inline-end: calc(50% - 18px);
+            min-width: 16px; height: 16px;
+            border-radius: 999px;
+            background: var(--prism-rose);
+            color: #fff;
+            font-size: 9.5px;
+            font-weight: 700;
+            display: none;
+            align-items: center; justify-content: center;
+            padding: 0 4px;
+            border: 1px solid rgba(0,0,0,0.18);
+        }
+        .pt-bottom-nav-badge.is-shown { display: inline-flex; }
+
+        /* Spacer so content doesn't hide under bottom nav */
+        .pt-bottom-nav-spacer {
+            display: none;
+            height: calc(60px + var(--pt-safe-bottom));
+        }
+        @media (max-width: 880px) {
+            .pt-bottom-nav-spacer { display: block; }
+        }
+
+        /* Modal prompt — number stepper for auto-pick (Wave 2) */
+        .pt-modal-prompt {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin: 14px 0 4px;
+        }
+        .pt-modal-prompt-step {
+            width: 40px; height: 40px;
+            border-radius: 999px;
+            border: 1px solid var(--prism-border);
+            background: rgba(255,255,255,0.04);
+            color: var(--prism-text);
+            font-size: 18px; font-weight: 700;
+            display: inline-flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            transition: background .2s var(--prism-ease), transform .15s var(--prism-ease);
+        }
+        .pt-modal-prompt-step:hover { background: rgba(129,140,248,0.18); }
+        .pt-modal-prompt-step:active { transform: scale(0.92); }
+        .pt-modal-prompt-step:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+        :root[data-pt-theme="light"] .pt-modal-prompt-step { background: rgba(15,23,42,0.04); }
+        .pt-modal-prompt-value {
+            min-width: 56px;
+            font-size: 28px; font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            text-align: center;
+            color: var(--prism-text);
+            background: linear-gradient(135deg, var(--prism-cyan), var(--prism-violet));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* App-like page-leave fade — content fades out as user navigates */
+        @media (prefers-reduced-motion: no-preference) {
+            body.pt-page-leaving #pt-main {
+                opacity: 0;
+                transform: translateY(-6px);
+                transition: opacity .22s var(--prism-ease), transform .22s var(--prism-ease);
+            }
+        }
+
+        /* =====================================================================
            Homepage v2 — Cinematic hero, marquee, stats, how-it-works
            ====================================================================*/
 
@@ -4915,12 +5272,31 @@
 </head>
 <body class="prism-stage min-h-screen @yield('body_class')">
 
+    {{-- ============== Wave 2: Skip-to-content (a11y) ============== --}}
+    <a href="#pt-main" class="skip-to-content"
+       data-i18n="skip_to_content"
+       data-pt-skip-link>تجاوز إلى المحتوى</a>
+
     {{-- ============== Floating Cinematic Header ============== --}}
     <div class="pt-topbar-wrap" id="pt-topbar-wrap">
         {{-- Subtle aurora glow line under the bar when scrolled --}}
         <div class="pt-topbar-aurora" aria-hidden="true"></div>
 
         <header class="pt-topbar" id="pt-topbar" role="banner">
+            {{-- Wave 2: subpage back chevron — visible only on non-index routes via JS --}}
+            @if(!request()->routeIs('shows.index') && !request()->routeIs('home'))
+                <button type="button"
+                        class="pt-back-chev"
+                        id="pt-back-chev"
+                        data-pt-back
+                        data-i18n-attr="aria-label:back_aria"
+                        aria-label="رجوع">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M15 18 L9 12 L15 6"/>
+                    </svg>
+                </button>
+            @endif
+
             {{-- Brand block --}}
             <a href="{{ route('shows.index') }}" class="pt-brand group" aria-label="Premium Tickets">
                 <span class="pt-brand-logo" aria-hidden="true">
@@ -4985,6 +5361,17 @@
                     </span>
                 </button>
 
+                {{-- Wave 2: saved-shows counter pill (live count from localStorage) --}}
+                <button type="button"
+                        class="prism-fav-counter-pill"
+                        data-pt-fav-pill
+                        data-pt-open-saved
+                        data-i18n-attr="aria-label:fav_pill_aria"
+                        aria-label="عرض المحفوظات">
+                    <span class="heart-mini" aria-hidden="true"></span>
+                    <span data-pt-fav-count>0</span>
+                </button>
+
                 {{-- Lang toggle (desktop) --}}
                 <div class="pt-lang-toggle pt-lang-toggle-desktop" id="pt-lang-toggle" role="group" data-i18n-attr="aria-label:lang_label" aria-label="Language">
                     <span class="pt-lang-thumb" id="pt-lang-thumb"></span>
@@ -5009,6 +5396,8 @@
     {{-- ============== Mobile Drawer ============== --}}
     <div class="pt-drawer-backdrop" id="pt-drawer-backdrop" aria-hidden="true"></div>
     <aside class="pt-drawer" id="pt-drawer" role="dialog" aria-modal="true" aria-label="Menu" aria-hidden="true">
+        {{-- Wave 2: drag-handle (visual sheet affordance) --}}
+        <span class="pt-drawer-handle" aria-hidden="true"></span>
         <div class="pt-drawer-head">
             <div class="pt-drawer-brand">
                 <span class="pt-brand-logo" aria-hidden="true" style="width:36px;height:36px;">
@@ -5058,6 +5447,26 @@
             @endauth
         </nav>
 
+        {{-- Wave 2: Saved shows section --}}
+        <div class="pt-drawer-section" data-pt-saved-section>
+            <div class="pt-drawer-section-head">
+                <span class="pt-drawer-section-label" data-i18n="saved_section_label">المحفوظة</span>
+                <span class="pt-drawer-section-count" data-pt-saved-count>0</span>
+            </div>
+            <ul class="pt-saved-list" data-pt-saved-list aria-live="polite"></ul>
+            <p class="pt-saved-empty" data-pt-saved-empty data-i18n="saved_empty">
+                لسه ما حفظتش أي عرض. اضغط ♥ على بوستر العرض عشان تحفظه هنا.
+            </p>
+        </div>
+
+        {{-- Wave 2: Recently viewed --}}
+        <div class="pt-drawer-section" data-pt-recent-section hidden>
+            <div class="pt-drawer-section-head">
+                <span class="pt-drawer-section-label" data-i18n="recent_section_label">آخر اللي شفته</span>
+            </div>
+            <div class="pt-recent-row" data-pt-recent-list aria-live="polite"></div>
+        </div>
+
         <div class="pt-drawer-foot">
             <div class="pt-drawer-row">
                 <span class="pt-drawer-row-label" data-i18n="theme_label">الوضع</span>
@@ -5092,9 +5501,43 @@
     <div class="pt-topbar-spacer" aria-hidden="true"></div>
 
     {{-- ============== Main ============== --}}
-    <main class="pt-page max-w-5xl mx-auto px-4 py-6 md:py-10 prism-fade-in" id="pt-main">
+    <main class="pt-page max-w-5xl mx-auto px-4 py-6 md:py-10 prism-fade-in" id="pt-main" tabindex="-1">
         @yield('content')
     </main>
+
+    {{-- spacer keeps content above the bottom nav on mobile --}}
+    <div class="pt-bottom-nav-spacer" aria-hidden="true"></div>
+
+    {{-- ============== Wave 2: Bottom navigation (mobile) ============== --}}
+    <nav class="pt-bottom-nav" id="pt-bottom-nav" data-i18n-attr="aria-label:bn_aria" aria-label="Quick navigation">
+        <a href="{{ route('shows.index') }}"
+           class="pt-bottom-nav-item {{ (request()->routeIs('shows.index') || request()->routeIs('home')) ? 'is-active' : '' }}"
+           data-bn="home">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12 L12 3 L21 12"/><path d="M5 10v10h14V10"/></svg>
+            <span data-i18n="bn_home">الرئيسية</span>
+        </a>
+        <a href="{{ route('shows.index') }}#shows-grid"
+           class="pt-bottom-nav-item"
+           data-bn="shows">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 12h18"/></svg>
+            <span data-i18n="bn_shows">العروض</span>
+        </a>
+        <button type="button"
+                class="pt-bottom-nav-item"
+                data-bn="saved"
+                data-pt-open-saved>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-4.35-9.33-9.05C1.27 9.13 2.36 5.66 5.32 4.5 7.92 3.48 10.4 4.84 12 6.78 13.6 4.84 16.08 3.48 18.68 4.5c2.96 1.16 4.05 4.63 2.65 7.45C19 16.65 12 21 12 21z"/></svg>
+            <span data-i18n="bn_saved">محفوظ</span>
+            <span class="pt-bottom-nav-badge" data-pt-fav-badge>0</span>
+        </button>
+        <button type="button"
+                class="pt-bottom-nav-item"
+                data-bn="menu"
+                id="pt-bottom-nav-menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            <span data-i18n="bn_menu">القائمة</span>
+        </button>
+    </nav>
 
     {{-- ============== Footer (v2) ============== --}}
     <footer class="prism-footer" style="padding-bottom: calc(24px + var(--pt-safe-bottom));">
@@ -6016,7 +6459,26 @@
                 auth_verify_check_email: 'افحص بريدك للحصول على رابط التفعيل.',
                 auth_verify_resent: 'تم إرسال رابط جديد لبريدك.',
                 auth_verify_didnt_receive: 'لم يصلك الرابط؟',
-                auth_verify_resend_link: 'إرسال رابط جديد'
+                auth_verify_resend_link: 'إرسال رابط جديد',
+
+                /* ===== Wave 2 — app-like chrome ===== */
+                skip_to_content: 'تجاوز إلى المحتوى',
+                back_aria: 'رجوع',
+                fav_pill_aria: 'عرض المحفوظات',
+                saved_section_label: 'العروض المحفوظة',
+                saved_card_sub: 'افتح للحجز',
+                saved_remove_aria: 'إزالة من المحفوظات',
+                saved_empty: 'لسه ما حفظتش أي عرض. اضغط ♥ على بوستر العرض عشان تحفظه هنا.',
+                recent_section_label: 'آخر اللي شفته',
+                bn_aria: 'تنقل سريع',
+                bn_home: 'الرئيسية',
+                bn_shows: 'العروض',
+                bn_saved: 'محفوظ',
+                bn_menu: 'القائمة',
+                auto_pick_modal_title: 'اختيار تلقائي للمقاعد',
+                auto_pick_modal_label: 'كم مقعد عايز نحجز جنب بعض؟',
+                auto_pick_confirm: 'اختر تلقائي',
+                auto_pick_cancel: 'إلغاء'
             },
             en: {
                 /* ===== brand / nav / footer / theme / lang chrome ===== */
@@ -6748,7 +7210,26 @@
                 auth_verify_check_email: 'Check your inbox for the activation link.',
                 auth_verify_resent: 'A new link was sent to your email.',
                 auth_verify_didnt_receive: 'Didn\u2019t get the link?',
-                auth_verify_resend_link: 'Resend link'
+                auth_verify_resend_link: 'Resend link',
+
+                /* ===== Wave 2 — app-like chrome ===== */
+                skip_to_content: 'Skip to content',
+                back_aria: 'Back',
+                fav_pill_aria: 'View saved shows',
+                saved_section_label: 'Saved shows',
+                saved_card_sub: 'Open to book',
+                saved_remove_aria: 'Remove from saved',
+                saved_empty: 'No saved shows yet. Tap \u2665 on any show to keep it here.',
+                recent_section_label: 'Recently viewed',
+                bn_aria: 'Quick navigation',
+                bn_home: 'Home',
+                bn_shows: 'Shows',
+                bn_saved: 'Saved',
+                bn_menu: 'Menu',
+                auto_pick_modal_title: 'Auto-pick seats',
+                auto_pick_modal_label: 'How many seats do you want next to each other?',
+                auto_pick_confirm: 'Pick for me',
+                auto_pick_cancel: 'Cancel'
             }
         };
         // Match all lang toggle button groups (desktop + mobile drawer)
@@ -7191,6 +7672,470 @@
                     } }
                 ]
             });
+        });
+    })();
+
+    /* =====================================================================
+       Wave 2 — App-like chrome (PT.fav, PT.recent, PT.modal.prompt,
+       drawer polish, bottom nav, theme-color sync, back button, page fade)
+       ===================================================================== */
+    (function () {
+        'use strict';
+
+        const FAV_KEY     = 'pt_fav_shows';
+        const FAV_META    = 'pt_fav_meta';
+        const RECENT_KEY  = 'pt_recent_shows';
+        const RECENT_MAX  = 8;
+
+        function safeRead(k) {
+            try { return window.localStorage.getItem(k); } catch (_) { return null; }
+        }
+        function safeWrite(k, v) {
+            try { window.localStorage.setItem(k, v); } catch (_) {}
+        }
+        function readJSON(k, fallback) {
+            const raw = safeRead(k);
+            if (!raw) return fallback;
+            try { const p = JSON.parse(raw); return p == null ? fallback : p; }
+            catch (_) { return fallback; }
+        }
+
+        // ---------- PT.fav (favorites store, single source of truth) ----------
+        function favList() {
+            const arr = readJSON(FAV_KEY, []);
+            return Array.isArray(arr) ? arr.map(String) : [];
+        }
+        function favMeta() {
+            const obj = readJSON(FAV_META, {});
+            return (obj && typeof obj === 'object' && !Array.isArray(obj)) ? obj : {};
+        }
+        function favHas(id) { return favList().indexOf(String(id)) !== -1; }
+        function favCount() { return favList().length; }
+        function favBroadcast() {
+            document.dispatchEvent(new CustomEvent('pt:fav-change', {
+                detail: { count: favCount(), list: favList() }
+            }));
+        }
+        function favAdd(id, meta) {
+            id = String(id);
+            const list = favList();
+            if (list.indexOf(id) === -1) list.push(id);
+            safeWrite(FAV_KEY, JSON.stringify(list));
+            if (meta && typeof meta === 'object') {
+                const m = favMeta();
+                m[id] = {
+                    title: String(meta.title || '').slice(0, 120),
+                    poster: String(meta.poster || '').slice(0, 500),
+                    href: String(meta.href || '').slice(0, 500),
+                };
+                safeWrite(FAV_META, JSON.stringify(m));
+            }
+            favBroadcast();
+        }
+        function favRemove(id) {
+            id = String(id);
+            const list = favList().filter(x => x !== id);
+            safeWrite(FAV_KEY, JSON.stringify(list));
+            const m = favMeta();
+            if (m[id]) { delete m[id]; safeWrite(FAV_META, JSON.stringify(m)); }
+            favBroadcast();
+        }
+        function favToggle(id, meta) {
+            if (favHas(id)) { favRemove(id); return false; }
+            favAdd(id, meta); return true;
+        }
+
+        // ---------- PT.recent (recently viewed shows, capped) ----------
+        function recentList() {
+            const arr = readJSON(RECENT_KEY, []);
+            return Array.isArray(arr) ? arr.filter(x => x && x.id != null) : [];
+        }
+        function recentPush(id, meta) {
+            if (id == null) return;
+            id = String(id);
+            const cur = recentList().filter(x => String(x.id) !== id);
+            cur.unshift({
+                id,
+                title:  String((meta && meta.title)  || '').slice(0, 120),
+                poster: String((meta && meta.poster) || '').slice(0, 500),
+                href:   String((meta && meta.href)   || '').slice(0, 500),
+                t: Date.now()
+            });
+            while (cur.length > RECENT_MAX) cur.pop();
+            safeWrite(RECENT_KEY, JSON.stringify(cur));
+            document.dispatchEvent(new CustomEvent('pt:recent-change', { detail: { list: cur } }));
+        }
+
+        // ---------- PT.modal.prompt — number stepper for auto-pick etc. ----------
+        function modalPrompt(opts) {
+            return new Promise((resolve) => {
+                opts = opts || {};
+                const min   = isFinite(opts.min) ? opts.min : 1;
+                const max   = isFinite(opts.max) ? opts.max : 12;
+                const start = Math.max(min, Math.min(max, isFinite(opts.value) ? opts.value : 2));
+
+                const wrap = document.createElement('div');
+                const lbl  = document.createElement('div');
+                lbl.style.fontSize = '12.5px';
+                lbl.style.color = 'var(--prism-text-3)';
+                lbl.style.textAlign = 'center';
+                lbl.textContent = opts.label || '';
+
+                const row = document.createElement('div');
+                row.className = 'pt-modal-prompt';
+                const minus = document.createElement('button');
+                minus.type = 'button';
+                minus.className = 'pt-modal-prompt-step';
+                minus.textContent = '−';
+                minus.setAttribute('aria-label', '−');
+                const val = document.createElement('div');
+                val.className = 'pt-modal-prompt-value';
+                val.setAttribute('aria-live', 'polite');
+                val.textContent = String(start);
+                const plus = document.createElement('button');
+                plus.type = 'button';
+                plus.className = 'pt-modal-prompt-step';
+                plus.textContent = '+';
+                plus.setAttribute('aria-label', '+');
+                row.appendChild(minus); row.appendChild(val); row.appendChild(plus);
+
+                let n = start;
+                function clampUI() {
+                    val.textContent = String(n);
+                    minus.disabled = n <= min;
+                    plus.disabled  = n >= max;
+                }
+                clampUI();
+                minus.addEventListener('click', () => { if (n > min) { n--; clampUI(); } });
+                plus.addEventListener('click',  () => { if (n < max) { n++; clampUI(); } });
+
+                wrap.appendChild(lbl);
+                wrap.appendChild(row);
+
+                let resolved = false;
+                window.PT.modal.open({
+                    tone: 'info',
+                    title: opts.title || '',
+                    body: wrap,
+                    actions: [
+                        { label: opts.cancelLabel || (window.PT.t('btn_cancel') || 'إلغاء'),
+                          variant: 'ghost',
+                          onClick: () => { if (!resolved) { resolved = true; resolve(null); } } },
+                        { label: opts.okLabel || (window.PT.t('btn_continue') || 'متابعة'),
+                          variant: 'emerald',
+                          onClick: () => { if (!resolved) { resolved = true; resolve(n); } } }
+                    ]
+                });
+            });
+        }
+
+        // Expose API
+        window.PT = window.PT || {};
+        window.PT.fav    = { list: favList, has: favHas, count: favCount,
+                             add: favAdd, remove: favRemove, toggle: favToggle, meta: favMeta };
+        window.PT.recent = { list: recentList, push: recentPush };
+        window.PT.modal.prompt = modalPrompt;
+
+        // ---------- Topbar saved-pill rendering (count) ----------
+        function renderFavPill() {
+            const count = favCount();
+            document.querySelectorAll('[data-pt-fav-pill]').forEach(pill => {
+                pill.setAttribute('data-count', String(count));
+                pill.classList.toggle('is-shown', count > 0);
+                const c = pill.querySelector('[data-pt-fav-count]');
+                if (c) c.textContent = String(count);
+            });
+            document.querySelectorAll('[data-pt-fav-badge]').forEach(badge => {
+                badge.textContent = String(count);
+                badge.classList.toggle('is-shown', count > 0);
+            });
+        }
+
+        // ---------- Drawer saved/recent rendering ----------
+        function renderSavedSection() {
+            const listEl  = document.querySelector('[data-pt-saved-list]');
+            const emptyEl = document.querySelector('[data-pt-saved-empty]');
+            const countEl = document.querySelector('[data-pt-saved-count]');
+            if (!listEl) return;
+            const ids = favList();
+            const meta = favMeta();
+            if (countEl) countEl.textContent = String(ids.length);
+            listEl.innerHTML = '';
+            if (ids.length === 0) {
+                if (emptyEl) emptyEl.hidden = false;
+                return;
+            }
+            if (emptyEl) emptyEl.hidden = true;
+            // Render newest first
+            const ordered = ids.slice().reverse();
+            const removeAria = (window.PT.t('saved_remove_aria') || 'إزالة');
+            ordered.forEach(id => {
+                const m = meta[id] || {};
+                const li = document.createElement('li');
+                const a  = document.createElement('a');
+                a.className = 'pt-saved-card';
+                a.href = m.href || '#';
+                const thumb = document.createElement('span');
+                thumb.className = 'pt-saved-thumb';
+                if (m.poster) thumb.style.backgroundImage = 'url(' + JSON.stringify(m.poster).slice(1, -1) + ')';
+                const metaWrap = document.createElement('span');
+                metaWrap.className = 'pt-saved-meta';
+                const title = document.createElement('span');
+                title.className = 'pt-saved-title';
+                title.textContent = m.title || ('#' + id);
+                const sub = document.createElement('span');
+                sub.className = 'pt-saved-sub';
+                sub.setAttribute('data-i18n', 'saved_card_sub');
+                sub.textContent = window.PT.t('saved_card_sub') || 'افتح للحجز';
+                metaWrap.appendChild(title);
+                metaWrap.appendChild(sub);
+                a.appendChild(thumb);
+                a.appendChild(metaWrap);
+                const rm = document.createElement('button');
+                rm.type = 'button';
+                rm.className = 'pt-saved-remove';
+                rm.setAttribute('aria-label', removeAria);
+                rm.setAttribute('data-pt-saved-remove', id);
+                rm.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>';
+                li.appendChild(a);
+                li.appendChild(rm);
+                li.style.display = 'flex';
+                li.style.alignItems = 'center';
+                li.style.gap = '8px';
+                listEl.appendChild(li);
+            });
+        }
+        function renderRecentSection() {
+            const section = document.querySelector('[data-pt-recent-section]');
+            const listEl  = document.querySelector('[data-pt-recent-list]');
+            if (!section || !listEl) return;
+            const items = recentList();
+            if (items.length === 0) { section.hidden = true; return; }
+            section.hidden = false;
+            listEl.innerHTML = '';
+            items.forEach(it => {
+                const a = document.createElement('a');
+                a.className = 'pt-recent-card';
+                a.href = it.href || '#';
+                const thumb = document.createElement('span');
+                thumb.className = 'pt-recent-thumb';
+                if (it.poster) thumb.style.backgroundImage = 'url(' + JSON.stringify(it.poster).slice(1, -1) + ')';
+                const t = document.createElement('span');
+                t.className = 'pt-recent-title';
+                t.textContent = it.title || ('#' + it.id);
+                a.appendChild(thumb);
+                a.appendChild(t);
+                listEl.appendChild(a);
+            });
+        }
+
+        // Saved-remove (delegated)
+        document.addEventListener('click', (e) => {
+            const rm = e.target.closest('[data-pt-saved-remove]');
+            if (!rm) return;
+            e.preventDefault();
+            e.stopPropagation();
+            favRemove(rm.getAttribute('data-pt-saved-remove'));
+        });
+
+        // "Open Saved" buttons (topbar pill, bottom-nav saved tab) → open drawer
+        document.addEventListener('click', (e) => {
+            const t = e.target.closest('[data-pt-open-saved]');
+            if (!t) return;
+            e.preventDefault();
+            const burger = document.getElementById('pt-burger');
+            if (burger) burger.click();
+            // After opening, scroll the drawer to the saved section
+            setTimeout(() => {
+                const drawer = document.getElementById('pt-drawer');
+                const section = document.querySelector('[data-pt-saved-section]');
+                if (drawer && section && typeof section.scrollIntoView === 'function') {
+                    section.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            }, 80);
+        });
+
+        // ---------- Bottom-nav: open drawer ----------
+        const bnMenu = document.getElementById('pt-bottom-nav-menu');
+        if (bnMenu) {
+            bnMenu.addEventListener('click', () => {
+                const burger = document.getElementById('pt-burger');
+                if (burger) burger.click();
+            });
+        }
+
+        // ---------- Bottom-nav: hide on scroll-down, reveal on scroll-up ----------
+        (function setupBottomNavHide() {
+            let lastY = window.scrollY;
+            let ticking = false;
+            const TH = 8;
+            const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (reduce) return;
+            window.addEventListener('scroll', () => {
+                if (ticking) return;
+                ticking = true;
+                requestAnimationFrame(() => {
+                    const y = window.scrollY;
+                    const dy = y - lastY;
+                    if (Math.abs(dy) > TH && y > 64) {
+                        document.body.classList.toggle('pt-bottom-nav-hidden', dy > 0);
+                    } else if (y <= 24) {
+                        document.body.classList.remove('pt-bottom-nav-hidden');
+                    }
+                    lastY = y;
+                    ticking = false;
+                });
+            }, { passive: true });
+        })();
+
+        // Sync bottom-nav active state with scroll position (homepage shows-grid hash)
+        (function syncBottomNav() {
+            const items = document.querySelectorAll('.pt-bottom-nav-item[data-bn]');
+            if (!items.length) return;
+            // On the homepage, swap "home" to inactive and "shows" to active when
+            // we cross the shows section. Cheap heuristic: section with id shows-grid.
+            const showsGrid = document.getElementById('shows-grid');
+            if (!showsGrid) return;
+            const home = document.querySelector('.pt-bottom-nav-item[data-bn="home"]');
+            const shows = document.querySelector('.pt-bottom-nav-item[data-bn="shows"]');
+            if (!home || !shows) return;
+            const io = ('IntersectionObserver' in window) ? new IntersectionObserver((entries) => {
+                entries.forEach(en => {
+                    if (en.isIntersecting) {
+                        home.classList.remove('is-active');
+                        shows.classList.add('is-active');
+                    } else {
+                        shows.classList.remove('is-active');
+                        if (location.pathname === '/' || home.getAttribute('href') === location.pathname) {
+                            home.classList.add('is-active');
+                        }
+                    }
+                });
+            }, { threshold: 0.18 }) : null;
+            if (io) io.observe(showsGrid);
+        })();
+
+        // ---------- Theme-color meta sync (app-like chrome) ----------
+        (function syncThemeColor() {
+            const meta = document.getElementById('pt-theme-color')
+                       || document.querySelector('meta[name="theme-color"]');
+            if (!meta) return;
+            const update = () => {
+                const t = (window.PT.theme && window.PT.theme()) || 'dark';
+                meta.setAttribute('content', t === 'light' ? '#f4f1ea' : '#05060d');
+            };
+            update();
+            document.addEventListener('pt:themechange', update);
+        })();
+
+        // ---------- Subpage back chevron ----------
+        document.addEventListener('click', (e) => {
+            const t = e.target.closest('[data-pt-back]');
+            if (!t) return;
+            e.preventDefault();
+            // Prefer same-origin history; otherwise fall back to homepage.
+            try {
+                const ref = document.referrer;
+                if (history.length > 1 && ref && new URL(ref).origin === location.origin) {
+                    history.back();
+                    return;
+                }
+            } catch (_) { /* ignore */ }
+            const fallback = t.getAttribute('data-pt-back-href') || '/';
+            location.href = fallback;
+        });
+
+        // ---------- Drawer polish: focus trap + body scroll lock ----------
+        (function drawerPolish() {
+            const drawer = document.getElementById('pt-drawer');
+            const burger = document.getElementById('pt-burger');
+            if (!drawer) return;
+
+            // Restore-focus tracking
+            let lastFocused = null;
+
+            function getFocusable() {
+                return Array.from(drawer.querySelectorAll(
+                    'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"]), input, select, textarea'
+                )).filter(el => !el.hasAttribute('hidden') && el.offsetParent !== null);
+            }
+
+            // Wrap-around focus trap on Tab
+            drawer.addEventListener('keydown', (e) => {
+                if (e.key !== 'Tab') return;
+                if (!document.body.classList.contains('pt-drawer-open')) return;
+                const f = getFocusable();
+                if (!f.length) return;
+                const first = f[0], last = f[f.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            });
+
+            // Track open/close to manage focus + scroll lock
+            const obs = new MutationObserver(() => {
+                const isOpen = document.body.classList.contains('pt-drawer-open');
+                if (isOpen) {
+                    lastFocused = document.activeElement;
+                    document.documentElement.style.overflow = 'hidden';
+                    // Move focus to the close button after the slide-in starts
+                    setTimeout(() => {
+                        const close = document.getElementById('pt-drawer-close');
+                        if (close) close.focus();
+                    }, 80);
+                } else {
+                    document.documentElement.style.overflow = '';
+                    if (lastFocused && typeof lastFocused.focus === 'function') {
+                        lastFocused.focus();
+                        lastFocused = null;
+                    }
+                }
+            });
+            obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        })();
+
+        // ---------- Page-leave fade on internal nav (app-like) ----------
+        (function pageLeaveFade() {
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            document.addEventListener('click', (e) => {
+                if (e.defaultPrevented) return;
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                const a = e.target.closest('a[href]');
+                if (!a) return;
+                if (a.target && a.target !== '_self') return;
+                if (a.hasAttribute('download')) return;
+                if (a.matches('[data-pt-fav], [data-pt-skip-shows], [data-pt-skip-link], [data-pt-open-saved], [data-pt-saved-remove], [data-pt-modal-close]')) return;
+                let url;
+                try { url = new URL(a.href, location.href); } catch (_) { return; }
+                if (url.origin !== location.origin) return;
+                if (url.pathname === location.pathname && url.hash) return; // same-page anchor
+                document.body.classList.add('pt-page-leaving');
+                // Safety: remove the class after 400ms in case the navigation
+                // is intercepted (back button, prevented, etc.) so the page
+                // doesn't get stuck mid-fade.
+                setTimeout(() => document.body.classList.remove('pt-page-leaving'), 400);
+            });
+            window.addEventListener('pageshow', () => {
+                document.body.classList.remove('pt-page-leaving');
+            });
+        })();
+
+        // ---------- Render + listeners ----------
+        renderFavPill();
+        renderSavedSection();
+        renderRecentSection();
+        document.addEventListener('pt:fav-change', () => {
+            renderFavPill();
+            renderSavedSection();
+        });
+        document.addEventListener('pt:recent-change', renderRecentSection);
+        document.addEventListener('pt:langchange', () => {
+            renderSavedSection();
+            renderRecentSection();
         });
     })();
     </script>
