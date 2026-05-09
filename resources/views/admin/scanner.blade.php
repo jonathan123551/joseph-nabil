@@ -161,17 +161,6 @@
             <span class="scan-sheet-row-text" data-scan-when>—</span>
         </div>
 
-        {{-- Other seats from the same booking — kept as small chips so
-             the operator still sees the group context, but visually
-             secondary to the BIG seat badge above. --}}
-        <div class="scan-sheet-seats" data-scan-seats-row hidden>
-            <span class="scan-sheet-seats-label">
-                <span data-i18n="adm_scanner_other_seats">باقي مقاعد الحجز</span>
-                <span data-scan-seat-count></span>
-            </span>
-            <div class="scan-sheet-seats-list" data-scan-seats-list></div>
-        </div>
-
         {{-- Already-scanned note --}}
         <div class="scan-sheet-used-note" data-scan-used-note hidden>
             <span aria-hidden="true">⚠️</span>
@@ -760,9 +749,6 @@
     const $sheetHero     = $sheet.querySelector('[data-scan-seat-hero]');
     const $sheetHeroSec  = $sheet.querySelector('[data-scan-seat-hero-section]');
     const $sheetHeroLbl  = $sheet.querySelector('[data-scan-seat-hero-label]');
-    const $sheetSeatRow  = $sheet.querySelector('[data-scan-seats-row]');
-    const $sheetSeatList = $sheet.querySelector('[data-scan-seats-list]');
-    const $sheetSeatCnt  = $sheet.querySelector('[data-scan-seat-count]');
     const $sheetUsedNote = $sheet.querySelector('[data-scan-used-note]');
     const $sheetUsedTime = $sheet.querySelector('[data-scan-used-time]');
     const $sheetDismiss  = $sheet.querySelector('[data-scan-dismiss]');
@@ -818,30 +804,10 @@
             $sheetHero.hidden = true;
         }
 
-        // Other seats from the same booking — small chips below the
-        // big badge so the operator still has booking-group context.
-        // We exclude the headline seat to avoid duplicating it.
-        const allSeats = Array.isArray(p.seats) ? p.seats : [];
-        const heroLabel = heroSeat ? (heroSeat.label
-            || ((heroSeat.row_letter || '') + (heroSeat.seat_number || ''))) : null;
-        const otherSeats = allSeats.filter((s) => {
-            const lbl = s.label || ((s.row_letter || '') + (s.seat_number || ''));
-            return lbl !== heroLabel;
-        });
-        if (otherSeats.length) {
-            $sheetSeatList.innerHTML = '';
-            otherSeats.forEach((s) => {
-                const chip = document.createElement('span');
-                chip.className = 'scan-seat-chip';
-                chip.textContent = s.label || (s.row_letter + s.seat_number);
-                $sheetSeatList.appendChild(chip);
-            });
-            $sheetSeatCnt.textContent = ' · ' + otherSeats.length;
-            $sheetSeatRow.hidden = false;
-        } else {
-            $sheetSeatCnt.textContent = '';
-            $sheetSeatRow.hidden = true;
-        }
+        // PR #71: the popup now stays focused on the SCANNED attendee
+        // only. The "other seats from the booking" group context that
+        // existed in PR #70 has been removed per operator feedback —
+        // the gate operator only needs to verify this one ticket.
 
         // Used note
         if (result === 'used' && p.scanned_at) {
@@ -928,73 +894,17 @@
     }
 
     /* ============================================================
-       html5-qrcode bootstrap with reliability tuning
+       Shared scan-success funnel
        ============================================================ */
-    // BarcodeDetector — when supported (iOS 17+, Android Chrome) — runs
-    // QR decoding off the main thread and is dramatically faster than
-    // the jsQR fallback. html5-qrcode picks it up via the experimental
-    // flag; everything else degrades to jsQR with no code changes.
-    const qr = new Html5Qrcode('qr-reader', {
-        verbose: false,
-        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-        formatsToSupport: (window.Html5QrcodeSupportedFormats && [
-            Html5QrcodeSupportedFormats.QR_CODE,
-        ]) || undefined,
-    });
-
-    // Dynamic qrbox: PR #70 reliability v2. We push it close to full-
-    // bleed (92% of the shorter camera frame side) so a tilted, off-
-    // center, or partially-framed QR is still inside the decode region.
-    // BarcodeDetector handles the larger area cheaply when supported;
-    // jsQR is only the fallback for older browsers, and even then we
-    // cap the box at 560px so we don't burn battery on huge frames.
-    const qrbox = (vw, vh) => {
-        const side = Math.floor(Math.min(vw, vh) * 0.92);
-        return {
-            width:  Math.max(240, Math.min(side, 560)),
-            height: Math.max(240, Math.min(side, 560)),
-        };
-    };
-
-    const config = {
-        // 30fps is the practical ceiling for real-time decoding without
-        // overheating phones. Combined with BarcodeDetector this gets us
-        // close to native iPhone Camera responsiveness.
-        fps: 30,
-        qrbox: qrbox,
-        aspectRatio: 1.0,
-        disableFlip: false,
-        rememberLastUsedCamera: true,
-        videoConstraints: {
-            facingMode: { ideal: 'environment' },
-            // High resolution helps small / far QR codes resolve. The
-            // browser will downscale if the device can't deliver.
-            width:  { ideal: 1920 },
-            height: { ideal: 1080 },
-            frameRate: { ideal: 30 },
-            // Continuous focus / exposure / white-balance tracks the QR
-            // as the operator moves and adapts to dim entrances. Some
-            // Android devices honor the top-level keys, others use the
-            // advanced array; we set both for max coverage.
-            focusMode:        'continuous',
-            exposureMode:     'continuous',
-            whiteBalanceMode: 'continuous',
-            advanced: [
-                { focusMode: 'continuous' },
-                { focusMode: 'continuous-picture' },
-                { focusDistance: { ideal: 0.05 } },
-                { exposureMode: 'continuous' },
-                { whiteBalanceMode: 'continuous' },
-            ],
-        },
-    };
-
-    function onScanSuccess(text /*, decodedResult */) {
+    function onScanSuccess(text) {
         // Drop frames while a sheet is already open — the operator
         // is reviewing the previous result. The scanner resumes
-        // automatically when they tap Done.
+        // automatically when they tap Done / outside / Esc.
         if (sheetOpen) return;
         const now = Date.now();
+        // Same-code guard so a slowly-moving QR isn't pinged twice
+        // in quick succession. Cleared on hideSheet() so re-scanning
+        // the same ticket for a second look isn't swallowed.
         if (text === lastCode && now - lastScanTime < COOLDOWN_MS) return;
         if (busy) return;
         busy = true;
@@ -1003,26 +913,225 @@
         setStatus(tt('adm_scanner_processing', '⏳ جارٍ التحقق'), 'scanning');
         check(text);
     }
-    function onScanFailure(/* err */) { /* silent — we run continuously */ }
 
-    qr.start({ facingMode: 'environment' }, config, onScanSuccess, onScanFailure)
-        .then(() => {
+    /* ============================================================
+       Path A — Direct BarcodeDetector (Google-Lens-tier reliability)
+
+       When the browser exposes the native BarcodeDetector API
+       (Android Chrome + Edge, some Chromium-based mobile browsers,
+       and recent iOS Safari builds), we bypass html5-qrcode entirely
+       and run a tight requestVideoFrameCallback loop straight on the
+       <video> element. This:
+         - avoids html5-qrcode's canvas roundtrip per frame,
+         - lets the platform-native scanner (VisionKit / ML Kit) handle
+           tilt, scale, partial framing, and low-light far better than
+           jsQR ever could,
+         - frees us to ask for a much higher capture resolution and
+           frame rate without burning the main thread.
+
+       If anything in the native path fails (no BarcodeDetector, no
+       getUserMedia, the camera rejects our constraints, etc.), we
+       fall back transparently to Path B (html5-qrcode + jsQR).
+       ============================================================ */
+    let activeTrack = null;       // MediaStreamTrack for the live camera
+
+    async function startNativeBarcodeDetector() {
+        if (!('BarcodeDetector' in window)) return null;
+        let supported;
+        try { supported = await BarcodeDetector.getSupportedFormats(); }
+        catch (_) { return null; }
+        if (!supported || !supported.includes('qr_code')) return null;
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return null;
+
+        let stream;
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: { ideal: 'environment' },
+                    // Push capture resolution high — a small / distant QR
+                    // is the most common failure mode and resolution is
+                    // what fixes it. The browser downscales for us if
+                    // the sensor can't deliver.
+                    width:  { ideal: 1920 },
+                    height: { ideal: 1080 },
+                    // 60fps gives us double the chances per second to lock
+                    // on while the operator is moving the phone.
+                    frameRate: { ideal: 60 },
+                    focusMode:        'continuous',
+                    exposureMode:     'continuous',
+                    whiteBalanceMode: 'continuous',
+                },
+                audio: false,
+            });
+        } catch (_) { return null; }
+
+        const track = stream.getVideoTracks()[0];
+        if (!track) return null;
+        activeTrack = track;
+
+        // Mount the live video into the existing #qr-reader slot.
+        const reader = document.getElementById('qr-reader');
+        reader.innerHTML = '';
+        const video = document.createElement('video');
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('webkit-playsinline', 'true');
+        video.muted = true;
+        video.autoplay = true;
+        video.srcObject = stream;
+        Object.assign(video.style, {
+            width:     '100%',
+            height:    '100%',
+            objectFit: 'cover',
+            display:   'block',
+        });
+        reader.appendChild(video);
+        try { await video.play(); } catch (_) {}
+
+        // Apply continuous-focus / exposure / white-balance once the
+        // track is live (some Android builds only honor these after
+        // the stream is active, not in the initial getUserMedia call).
+        try {
+            await track.applyConstraints({
+                advanced: [
+                    { focusMode: 'continuous' },
+                    { focusMode: 'continuous-picture' },
+                    { focusDistance: { ideal: 0.05 } },
+                    { exposureMode: 'continuous' },
+                    { whiteBalanceMode: 'continuous' },
+                ],
+            });
+        } catch (_) {}
+
+        const detector = new BarcodeDetector({ formats: ['qr_code'] });
+
+        let stopped = false;
+        let paused  = false;
+
+        const schedule = (fn) => {
+            if (typeof video.requestVideoFrameCallback === 'function') {
+                video.requestVideoFrameCallback(() => fn());
+            } else {
+                requestAnimationFrame(fn);
+            }
+        };
+
+        const tick = async () => {
+            if (stopped) return;
+            if (paused || sheetOpen || video.readyState < 2) {
+                schedule(tick);
+                return;
+            }
+            try {
+                const codes = await detector.detect(video);
+                if (codes && codes.length) {
+                    // BarcodeDetector returns the highest-confidence code
+                    // first. We pick the largest by bounding-box so we
+                    // prefer the QR closest to the camera if there are
+                    // accidentally multiple in frame.
+                    let best = codes[0];
+                    if (codes.length > 1) {
+                        const area = (b) => (b && b.width && b.height) ? b.width * b.height : 0;
+                        for (const c of codes) {
+                            if (area(c.boundingBox) > area(best.boundingBox)) best = c;
+                        }
+                    }
+                    if (best && best.rawValue) {
+                        onScanSuccess(best.rawValue);
+                    }
+                }
+            } catch (_) { /* keep looping — most errors are transient */ }
+            schedule(tick);
+        };
+        schedule(tick);
+
+        return {
+            // Match the html5-qrcode shape so showSheet/hideSheet can
+            // call pause/resume transparently.
+            pause:  ()  => { paused = true; },
+            resume: ()  => { paused = false; },
+            stop:   ()  => {
+                stopped = true;
+                try { track.stop(); } catch (_) {}
+                try { stream.getTracks().forEach((t) => t.stop()); } catch (_) {}
+            },
+            track,
+        };
+    }
+
+    /* ============================================================
+       Path B — html5-qrcode fallback (jsQR)
+
+       Used when BarcodeDetector / getUserMedia isn't usable. Tuned
+       in PR #70 (reliability v2): full-bleed qrbox, 30fps, continuous
+       focus / exposure / white-balance.
+       ============================================================ */
+    function startHtml5QrcodeFallback() {
+        const qr = new Html5Qrcode('qr-reader', {
+            verbose: false,
+            experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+            formatsToSupport: (window.Html5QrcodeSupportedFormats && [
+                Html5QrcodeSupportedFormats.QR_CODE,
+            ]) || undefined,
+        });
+
+        const qrbox = (vw, vh) => {
+            // Push the box out to ~95% of the shorter side so tilted /
+            // partially-framed QRs stay inside the decode region.
+            const side = Math.floor(Math.min(vw, vh) * 0.95);
+            return {
+                width:  Math.max(240, Math.min(side, 600)),
+                height: Math.max(240, Math.min(side, 600)),
+            };
+        };
+
+        const config = {
+            fps: 30,
+            qrbox: qrbox,
+            aspectRatio: 1.0,
+            disableFlip: false,
+            rememberLastUsedCamera: true,
+            videoConstraints: {
+                facingMode: { ideal: 'environment' },
+                width:      { ideal: 1920 },
+                height:     { ideal: 1080 },
+                frameRate:  { ideal: 30 },
+                focusMode:        'continuous',
+                exposureMode:     'continuous',
+                whiteBalanceMode: 'continuous',
+                advanced: [
+                    { focusMode: 'continuous' },
+                    { focusMode: 'continuous-picture' },
+                    { focusDistance: { ideal: 0.05 } },
+                    { exposureMode: 'continuous' },
+                    { whiteBalanceMode: 'continuous' },
+                ],
+            },
+        };
+
+        return qr.start(
+            { facingMode: 'environment' },
+            config,
+            onScanSuccess,
+            /* onScanFailure */ () => {}
+        ).then(() => {
             qrInstance = qr;
             $loading.classList.add('is-hidden');
-            // iOS Safari needs `playsInline` on the <video> to avoid
-            // forcing fullscreen mode. html5-qrcode sets this on most
-            // builds, but we re-apply defensively.
             try {
                 const v = document.querySelector('#qr-reader video');
                 if (v) {
                     v.setAttribute('playsinline', 'true');
                     v.setAttribute('webkit-playsinline', 'true');
                     v.muted = true;
+                    // Expose the live track for the flash button.
+                    try {
+                        const s = v.srcObject;
+                        if (s && s.getVideoTracks) {
+                            activeTrack = s.getVideoTracks()[0] || null;
+                        }
+                    } catch (_) {}
                 }
             } catch (_) {}
-            // Try to upgrade autofocus once the stream is live; some
-            // Android browsers only honor `applyConstraints` after the
-            // track is active, not in `videoConstraints`.
             try {
                 qr.applyVideoConstraints({
                     advanced: [
@@ -1033,11 +1142,28 @@
                     ],
                 }).catch(() => {});
             } catch (_) {}
-        })
-        .catch(() => {
+            return qr;
+        });
+    }
+
+    /* ============================================================
+       Bootstrap — try native first, fall back to html5-qrcode
+       ============================================================ */
+    (async () => {
+        const native = await startNativeBarcodeDetector();
+        if (native) {
+            qrInstance = native;
+            $loading.classList.add('is-hidden');
+            setStatus(tt('adm_scanner_ready', 'جاهز للفحص'), 'ready');
+            return;
+        }
+        try {
+            await startHtml5QrcodeFallback();
+        } catch (_) {
             $loading.classList.add('is-hidden');
             setStatus(tt('adm_scanner_camera_err', '⚠️ تعذّر تشغيل الكاميرا'), 'error');
-        });
+        }
+    })();
 
     /* ============================================================
        Flash / restart controls
@@ -1046,8 +1172,19 @@
     const $flashBtn = document.getElementById('flashBtn');
     $flashBtn.addEventListener('click', async () => {
         try {
+            // The flash control sits on the live MediaStreamTrack —
+            // the same track in both the native and html5-qrcode paths.
+            if (!activeTrack || !activeTrack.applyConstraints) {
+                alert(tt('adm_scanner_no_torch', 'الفلاش غير مدعوم'));
+                return;
+            }
+            const caps = activeTrack.getCapabilities ? activeTrack.getCapabilities() : {};
+            if (!('torch' in caps)) {
+                alert(tt('adm_scanner_no_torch', 'الفلاش غير مدعوم'));
+                return;
+            }
             flashOn = !flashOn;
-            await qr.applyVideoConstraints({ advanced: [{ torch: flashOn }] });
+            await activeTrack.applyConstraints({ advanced: [{ torch: flashOn }] });
             $flashBtn.classList.toggle('is-on', flashOn);
         } catch (_) {
             alert(tt('adm_scanner_no_torch', 'الفلاش غير مدعوم'));
