@@ -169,9 +169,11 @@ class AnbaRuweisTheaterSeeder extends Seeder
                 'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8],
                 'right'  => [10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]],
 
+            // Row Q — back row, no center block (the 9 historical
+            // admin-only center seats were retired; the wings anchor to
+            // row P's center via `noCenterAnchors` in the picker preset).
             ['row' => 'Q',
                 'left'   => [31, 29, 27, 25, 23, 21, 19, 17, 15, 13, 11],
-                'center' => [9, 7, 5, 3, 1, 2, 4, 6, 8],
                 'right'  => [10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]],
 
             // Row R — curved last row, no center block
