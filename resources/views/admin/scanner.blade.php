@@ -187,6 +187,24 @@
     </div>
 </div>
 
+{{-- Detection engines, in priority order:
+
+      1. The browser's NATIVE BarcodeDetector API
+         (Android Chrome / Edge — uses platform VisionKit / ML Kit
+          for hardware-accelerated decoding). Wired in PR #71.
+
+      2. ZXing-js — same engine many professional event-entry
+         scanners use, dramatically more tolerant of tilt /
+         distance / partial framing / low-light than jsQR.
+         Loaded as a global `ZXing` from the UMD bundle. Used as
+         the iPhone-Safari path (and any other browser without
+         a native BarcodeDetector). Pinned to the same major
+         version everywhere.
+
+      3. html5-qrcode (jsQR) — last-resort fallback if neither of
+         the above is available. Kept for safety only.
+--}}
+<script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
@@ -931,7 +949,8 @@
 
        If anything in the native path fails (no BarcodeDetector, no
        getUserMedia, the camera rejects our constraints, etc.), we
-       fall back transparently to Path B (html5-qrcode + jsQR).
+       fall back transparently to Path B (ZXing-js) and finally to
+       Path C (html5-qrcode + jsQR).
        ============================================================ */
     let activeTrack = null;       // MediaStreamTrack for the live camera
 
@@ -1060,9 +1079,156 @@
     }
 
     /* ============================================================
-       Path B — html5-qrcode fallback (jsQR)
+       Path B — ZXing-js (the iPhone-Safari path)
 
-       Used when BarcodeDetector / getUserMedia isn't usable. Tuned
+       iOS Safari does not expose BarcodeDetector by default, so on
+       iPhones we previously fell all the way through to html5-qrcode
+       + jsQR. ZXing-js is the same engine many professional event-
+       entry scanners use and is dramatically more tolerant of tilt /
+       distance / partial framing / low-light than jsQR.
+
+       We do our own getUserMedia + <video> mount (matching Path A's
+       capture setup) and then hand the live <video> element to
+       ZXing.BrowserMultiFormatReader, with TRY_HARDER + ALSO_INVERTED
+       hints and a tight scan interval. ZXing manages the decode loop
+       internally; we just gate results on sheetOpen / lastCode in
+       the shared onScanSuccess() funnel.
+
+       If anything fails (no ZXing global, no getUserMedia, no
+       camera, etc.) we fall through to Path C (html5-qrcode).
+       ============================================================ */
+    async function startZXing() {
+        if (typeof ZXing === 'undefined' || !ZXing.BrowserMultiFormatReader) return null;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return null;
+
+        let stream;
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: { ideal: 'environment' },
+                    // High capture resolution helps small / distant QRs
+                    // resolve. The browser downscales for us if the
+                    // sensor can't deliver.
+                    width:  { ideal: 1920 },
+                    height: { ideal: 1080 },
+                    // 30fps is plenty for the ZXing decode loop and
+                    // keeps thermal load reasonable on iPhones.
+                    frameRate: { ideal: 30 },
+                    focusMode:        'continuous',
+                    exposureMode:     'continuous',
+                    whiteBalanceMode: 'continuous',
+                },
+                audio: false,
+            });
+        } catch (_) { return null; }
+
+        const track = stream.getVideoTracks()[0];
+        if (!track) return null;
+        activeTrack = track;
+
+        const reader = document.getElementById('qr-reader');
+        reader.innerHTML = '';
+        const video = document.createElement('video');
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('webkit-playsinline', 'true');
+        video.muted = true;
+        video.autoplay = true;
+        video.srcObject = stream;
+        Object.assign(video.style, {
+            width:     '100%',
+            height:    '100%',
+            objectFit: 'cover',
+            display:   'block',
+        });
+        reader.appendChild(video);
+        try { await video.play(); } catch (_) {}
+
+        // Apply continuous-focus advanced constraints once live —
+        // some Android builds only honor these post-start, and on
+        // iOS this is a no-op which is fine.
+        try {
+            await track.applyConstraints({
+                advanced: [
+                    { focusMode: 'continuous' },
+                    { focusMode: 'continuous-picture' },
+                    { focusDistance: { ideal: 0.05 } },
+                    { exposureMode: 'continuous' },
+                    { whiteBalanceMode: 'continuous' },
+                ],
+            });
+        } catch (_) {}
+
+        // ZXing hints — QR-only + TRY_HARDER + ALSO_INVERTED. These
+        // are exactly the knobs that make ZXing tolerate tilted,
+        // skewed, low-contrast, or inverted-color QRs that jsQR
+        // gives up on.
+        let hints = null;
+        try {
+            hints = new Map();
+            if (ZXing.DecodeHintType && ZXing.BarcodeFormat) {
+                hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
+                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+                if ('ALSO_INVERTED' in ZXing.DecodeHintType) {
+                    hints.set(ZXing.DecodeHintType.ALSO_INVERTED, true);
+                }
+            }
+        } catch (_) { hints = null; }
+
+        // Tight scan interval (50ms = ~20 attempts/sec on the same
+        // frame) so lock-on feels closer to iPhone Camera. The
+        // constructor signature has changed across ZXing versions;
+        // we set both old and new property names defensively.
+        let codeReader;
+        try {
+            codeReader = new ZXing.BrowserMultiFormatReader(hints, 50);
+        } catch (_) {
+            try { codeReader = new ZXing.BrowserMultiFormatReader(hints); }
+            catch (__) { return null; }
+        }
+        try { codeReader.timeBetweenScansMillis        = 50; } catch (_) {}
+        try { codeReader.timeBetweenDecodingAttempts   = 50; } catch (_) {}
+
+        let stopped = false;
+        let paused  = false;
+        let controls = null;
+
+        try {
+            controls = await codeReader.decodeFromVideoElement(video, (result, err) => {
+                if (stopped || paused || sheetOpen) return;
+                if (result) {
+                    let text = '';
+                    try { text = (typeof result.getText === 'function') ? result.getText() : (result.text || ''); }
+                    catch (_) { text = ''; }
+                    if (text) onScanSuccess(text);
+                }
+                // Per-frame errors mean "no QR in this frame" — ignore.
+            });
+        } catch (_) {
+            try { stream.getTracks().forEach((t) => t.stop()); } catch (__) {}
+            return null;
+        }
+
+        return {
+            // Match the html5-qrcode / native shape so showSheet /
+            // hideSheet can pause/resume transparently.
+            pause:  () => { paused = true; },
+            resume: () => { paused = false; },
+            stop:   () => {
+                stopped = true;
+                try {
+                    if (controls && typeof controls.stop === 'function') controls.stop();
+                    else if (typeof codeReader.reset === 'function') codeReader.reset();
+                } catch (_) {}
+                try { stream.getTracks().forEach((t) => t.stop()); } catch (_) {}
+            },
+            track,
+        };
+    }
+
+    /* ============================================================
+       Path C — html5-qrcode last-resort fallback (jsQR)
+
+       Used when neither BarcodeDetector nor ZXing is usable. Tuned
        in PR #70 (reliability v2): full-bleed qrbox, 30fps, continuous
        focus / exposure / white-balance.
        ============================================================ */
@@ -1147,16 +1313,39 @@
     }
 
     /* ============================================================
-       Bootstrap — try native first, fall back to html5-qrcode
+       Bootstrap — Path A (native BarcodeDetector)
+                -> Path B (ZXing-js, the iPhone-Safari path)
+                -> Path C (html5-qrcode + jsQR last resort)
        ============================================================ */
     (async () => {
-        const native = await startNativeBarcodeDetector();
-        if (native) {
-            qrInstance = native;
-            $loading.classList.add('is-hidden');
-            setStatus(tt('adm_scanner_ready', 'جاهز للفحص'), 'ready');
-            return;
-        }
+        // Path A — native BarcodeDetector (Android Chrome / Edge).
+        try {
+            const native = await startNativeBarcodeDetector();
+            if (native) {
+                qrInstance = native;
+                $loading.classList.add('is-hidden');
+                setStatus(tt('adm_scanner_ready', 'جاهز للفحص'), 'ready');
+                return;
+            }
+        } catch (_) { /* fall through */ }
+
+        // Path B — ZXing-js (iOS Safari + everything else without
+        // BarcodeDetector). Same engine professional event scanners
+        // use; far better than jsQR at tilt / distance / partial /
+        // low-light.
+        try {
+            const zx = await startZXing();
+            if (zx) {
+                qrInstance = zx;
+                $loading.classList.add('is-hidden');
+                setStatus(tt('adm_scanner_ready', 'جاهز للفحص'), 'ready');
+                return;
+            }
+        } catch (_) { /* fall through */ }
+
+        // Path C — html5-qrcode last resort. Only reached if both of
+        // the above fail (e.g. ZXing CDN didn't load and the browser
+        // also has no BarcodeDetector).
         try {
             await startHtml5QrcodeFallback();
         } catch (_) {
