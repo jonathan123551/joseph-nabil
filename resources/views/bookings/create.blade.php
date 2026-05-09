@@ -12,65 +12,192 @@
 ===================================================================== --}}
 <section class="max-w-3xl mx-auto prism-fade-up">
 
-    {{-- Local tweaks (kept scoped to step 1 — picks up the global PRISM tokens). --}}
+    {{-- Local tweaks (kept scoped to step 1 — picks up the global PRISM tokens).
+         Premium card design: two-row internal layout (name+eyebrow row at top,
+         price+CTA row at bottom) so the price is unmistakable and the call-to-
+         action cue is always visible. Decorative gradient orb in the top-right
+         adds cinematic depth without adding markup noise. */ --}}
     <style>
         .anba-step1 .section-btn {
-            display: block;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
             width: 100%;
-            padding: 18px 20px;
-            border-radius: 18px;
+            padding: 22px 22px;
+            border-radius: 22px;
             text-align: right;
             background:
-                linear-gradient(135deg, rgba(34,211,238,0.10), rgba(192,132,252,0.10)),
-                linear-gradient(180deg, rgba(20,24,38,0.55), rgba(8,10,20,0.65));
-            border: 1px solid rgba(129,140,248,0.35);
+                radial-gradient(120% 80% at 0% 0%, rgba(34,211,238,0.10) 0%, rgba(34,211,238,0) 55%),
+                radial-gradient(120% 80% at 100% 100%, rgba(192,132,252,0.10) 0%, rgba(192,132,252,0) 55%),
+                linear-gradient(180deg, rgba(20,24,38,0.62), rgba(8,10,20,0.72));
+            border: 1px solid rgba(129,140,248,0.30);
             color: #f1f5fb;
             font-weight: 600;
-            box-shadow: 0 10px 32px -14px rgba(129,140,248,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
-            transition: transform .2s var(--prism-ease), box-shadow .2s var(--prism-ease), border-color .2s var(--prism-ease);
+            box-shadow:
+                0 10px 32px -14px rgba(129,140,248,0.45),
+                inset 0 1px 0 rgba(255,255,255,0.06);
+            transition: transform .25s var(--prism-ease),
+                        box-shadow .25s var(--prism-ease),
+                        border-color .25s var(--prism-ease);
             position: relative;
             overflow: hidden;
-            min-height: 64px;
+            min-height: 132px;
         }
+        @media (min-width: 640px) {
+            .anba-step1 .section-btn { padding: 26px 28px; min-height: 144px; }
+        }
+        /* Decorative gradient orb — adds cinematic premium depth. */
         .anba-step1 .section-btn::before {
             content: "";
             position: absolute;
+            top: -40%;
+            right: -20%;
+            width: 260px;
+            height: 260px;
+            border-radius: 999px;
+            background: radial-gradient(closest-side, rgba(192,132,252,0.18), rgba(192,132,252,0) 70%);
+            filter: blur(2px);
+            transition: transform .5s var(--prism-ease), opacity .5s var(--prism-ease);
+            pointer-events: none;
+        }
+        .anba-step1 .section-btn::after {
+            content: "";
+            position: absolute;
             inset: 0;
-            background: linear-gradient(135deg, rgba(34,211,238,0.0), rgba(192,132,252,0.18) 50%, rgba(34,211,238,0.0));
-            background-size: 200% 100%;
+            background: linear-gradient(135deg, rgba(34,211,238,0) 0%, rgba(192,132,252,0.10) 50%, rgba(34,211,238,0) 100%);
+            background-size: 240% 100%;
             background-position: 0% 0%;
-            transition: background-position .6s var(--prism-ease);
+            opacity: 0;
+            transition: background-position .7s var(--prism-ease), opacity .25s var(--prism-ease);
             pointer-events: none;
         }
         .anba-step1 .section-btn:hover {
             transform: translateY(-2px);
-            border-color: rgba(129,140,248,0.6);
-            box-shadow: 0 18px 40px -14px rgba(129,140,248,0.6), 0 0 22px rgba(34,211,238,0.18), inset 0 1px 0 rgba(255,255,255,0.08);
+            border-color: rgba(129,140,248,0.55);
+            box-shadow:
+                0 22px 44px -16px rgba(129,140,248,0.55),
+                0 0 26px rgba(34,211,238,0.18),
+                inset 0 1px 0 rgba(255,255,255,0.08);
         }
-        .anba-step1 .section-btn:hover::before { background-position: 100% 0%; }
-        .anba-step1 .section-btn .section-label {
+        .anba-step1 .section-btn:hover::before { transform: translate(-15px, 15px) scale(1.12); }
+        .anba-step1 .section-btn:hover::after  { opacity: 1; background-position: 100% 0%; }
+        .anba-step1 .section-btn:focus-visible {
+            outline: 2px solid rgba(192,132,252,0.65);
+            outline-offset: 3px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .anba-step1 .section-btn,
+            .anba-step1 .section-btn::before,
+            .anba-step1 .section-btn::after { transition: none; }
+            .anba-step1 .section-btn:hover { transform: none; }
+            .anba-step1 .section-btn:hover::before { transform: none; }
+        }
+
+        .anba-step1 .section-btn .section-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            position: relative;
+            z-index: 1;
+        }
+        .anba-step1 .section-btn .section-name {
             display: block;
-            font-size: 18px;
+            font-size: 22px;
+            line-height: 1.15;
             background: var(--prism-neon);
             -webkit-background-clip: text;
                     background-clip: text;
             color: transparent;
-            font-weight: 700;
+            font-weight: 800;
+            letter-spacing: -0.01em;
         }
+        @media (min-width: 640px) {
+            .anba-step1 .section-btn .section-name { font-size: 26px; }
+        }
+        .anba-step1 .section-btn .section-eyebrow {
+            display: block;
+            font-size: 10px;
+            margin-top: 4px;
+            color: rgba(229, 231, 235, 0.55);
+            font-weight: 500;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+        .anba-step1 .section-btn .section-tag {
+            flex-shrink: 0;
+            font-size: 10px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(129,140,248,0.14);
+            border: 1px solid rgba(129,140,248,0.38);
+            color: #c7d2fe;
+            font-weight: 700;
+            letter-spacing: .04em;
+            white-space: nowrap;
+        }
+
+        .anba-step1 .section-btn .section-foot {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 12px;
+            position: relative;
+            z-index: 1;
+        }
+        .anba-step1 .section-btn .section-price-block { line-height: 1.1; }
         .anba-step1 .section-btn .section-price {
             display: block;
-            margin-top: 6px;
-            font-size: 14px;
+            font-size: 28px;
             color: var(--prism-gold);
-            font-weight: 600;
+            font-weight: 800;
+            letter-spacing: -0.01em;
         }
-        .anba-step1 .section-btn .section-meta {
+        @media (min-width: 640px) {
+            .anba-step1 .section-btn .section-price { font-size: 32px; }
+        }
+        .anba-step1 .section-btn .section-price-unit {
             display: block;
-            margin-top: 4px;
+            margin-top: 2px;
             font-size: 11px;
             color: rgba(229, 231, 235, 0.6);
-            font-weight: 400;
+            font-weight: 500;
         }
+        .anba-step1 .section-btn .section-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 14px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(192,132,252,0.22));
+            border: 1px solid rgba(129,140,248,0.45);
+            color: #e0e7ff;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .02em;
+            white-space: nowrap;
+            transition: transform .25s var(--prism-ease), background .25s var(--prism-ease);
+        }
+        .anba-step1 .section-btn:hover .section-cta {
+            background: linear-gradient(135deg, rgba(34,211,238,0.30), rgba(192,132,252,0.34));
+            transform: translateX(-3px); /* RTL: slide left toward CTA */
+        }
+        .anba-step1 .section-btn .section-cta-arrow {
+            font-size: 13px;
+            line-height: 1;
+            transition: transform .25s var(--prism-ease);
+        }
+        .anba-step1 .section-btn:hover .section-cta-arrow {
+            transform: translateX(-2px); /* RTL */
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .anba-step1 .section-btn .section-cta,
+            .anba-step1 .section-btn .section-cta-arrow { transition: none; }
+            .anba-step1 .section-btn:hover .section-cta,
+            .anba-step1 .section-btn:hover .section-cta-arrow { transform: none; }
+        }
+
+        /* Disabled / "soon" state — fully calm, no shimmer, no orb. */
         .anba-step1 .section-btn[disabled],
         .anba-step1 .section-btn.disabled {
             opacity: .55;
@@ -79,18 +206,24 @@
             border-color: rgba(156,163,175,0.25);
             box-shadow: none;
         }
+        .anba-step1 .section-btn[disabled]::before,
+        .anba-step1 .section-btn.disabled::before,
+        .anba-step1 .section-btn[disabled]::after,
+        .anba-step1 .section-btn.disabled::after { display: none; }
         .anba-step1 .section-btn[disabled]:hover,
-        .anba-step1 .section-btn.disabled:hover { transform: none; }
+        .anba-step1 .section-btn.disabled:hover { transform: none; box-shadow: none; }
         .anba-step1 .section-btn .badge-soon {
-            display: inline-block;
-            margin-top: 6px;
-            padding: 2px 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
             font-size: 10px;
             font-weight: 700;
             border-radius: 999px;
             background: rgba(99,102,241,0.18);
             border: 1px solid rgba(99,102,241,0.45);
             color: #c7d2fe;
+            letter-spacing: .04em;
         }
 
         /* Step indicator */
@@ -114,6 +247,71 @@
             background: rgba(255,255,255,0.04);
             border-color: var(--prism-border);
             color: var(--prism-text-4);
+        }
+
+        /* "Payment instructions" accordion — collapsed by default so the
+           wallet/InstaPay numbers don't dominate the page. <details> works
+           without JS and is a11y-friendly. Same visual language as the
+           Anba step-3 form so the booking flow feels consistent. */
+        .pay-details {
+            background: rgba(255,255,255,0.025);
+            border: 1px solid var(--prism-border);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: border-color .2s var(--prism-ease), background .2s var(--prism-ease);
+        }
+        .pay-details[open] {
+            border-color: rgba(129,140,248,0.32);
+            background: rgba(255,255,255,0.04);
+        }
+        .pay-details > summary {
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            min-height: 56px;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .pay-details > summary::-webkit-details-marker { display: none; }
+        .pay-details .pay-icon {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(192,132,252,0.18));
+            border: 1px solid rgba(129,140,248,0.4);
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .pay-details .pay-meta { flex: 1 1 auto; min-width: 0; line-height: 1.3; }
+        .pay-details .pay-title {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--prism-text);
+        }
+        .pay-details .pay-sub {
+            display: block;
+            margin-top: 2px;
+            font-size: 11px;
+            color: var(--prism-text-3);
+        }
+        .pay-details .pay-chev {
+            font-size: 12px;
+            color: var(--prism-text-3);
+            transition: transform .25s var(--prism-ease);
+        }
+        .pay-details[open] .pay-chev { transform: rotate(180deg); }
+        .pay-details .pay-body {
+            padding: 0 16px 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .pay-details .pay-chev { transition: none; }
         }
     </style>
 
@@ -151,32 +349,50 @@
                 </p>
             </div>
 
-            <div class="grid grid-cols-1 gap-3">
+            <div class="grid grid-cols-1 gap-4">
                 <a href="{{ route('bookings.seats', $showTime) }}?section=hall"
                    class="section-btn prism-ripple"
                    data-section="hall">
-                    <span class="section-label">
-                        <span data-i18n="section_hall">الصالة</span>
-                        <span class="opacity-70">(<span data-i18n="section_hall_en">Hall</span>)</span>
+                    <span class="section-head">
+                        <span>
+                            <span class="section-name" data-i18n="section_hall">الصالة</span>
+                            <span class="section-eyebrow" data-i18n="section_hall_en">HALL</span>
+                        </span>
+                        <span class="section-tag" data-i18n="section_tag_main">القسم الرئيسي</span>
                     </span>
-                    <span class="section-price">
-                        {{ $hallPrice }} <span data-i18n="shows_per_seat">جنيه / مقعد</span>
+                    <span class="section-foot">
+                        <span class="section-price-block">
+                            <span class="section-price">{{ $hallPrice }} <span class="text-[14px] sm:text-[16px] font-semibold opacity-80" data-i18n="shows_egp">جنيه</span></span>
+                            <span class="section-price-unit" data-i18n="shows_per_seat">للمقعد الواحد</span>
+                        </span>
+                        <span class="section-cta">
+                            <span data-i18n="section_pick_seats">اختار المقعد</span>
+                            <span class="section-cta-arrow" aria-hidden="true">←</span>
+                        </span>
                     </span>
-                    <span class="section-meta" data-i18n="section_hall_meta">اختار مقعدك من خريطة الصالة</span>
                 </a>
 
                 @if ($balconyPrice > 0)
                     <a href="{{ route('bookings.seats', $showTime) }}?section=balcony"
                        class="section-btn prism-ripple"
                        data-section="balcony">
-                        <span class="section-label">
-                            <span data-i18n="section_balcony">البلكون</span>
-                            <span class="opacity-70">(<span data-i18n="section_balcony_en">Balcony</span>)</span>
+                        <span class="section-head">
+                            <span>
+                                <span class="section-name" data-i18n="section_balcony">البلكون</span>
+                                <span class="section-eyebrow" data-i18n="section_balcony_en">BALCONY</span>
+                            </span>
+                            <span class="section-tag" data-i18n="section_tag_premium">مشاهدة بانورامية</span>
                         </span>
-                        <span class="section-price">
-                            {{ $balconyPrice }} <span data-i18n="shows_per_seat">جنيه / مقعد</span>
+                        <span class="section-foot">
+                            <span class="section-price-block">
+                                <span class="section-price">{{ $balconyPrice }} <span class="text-[14px] sm:text-[16px] font-semibold opacity-80" data-i18n="shows_egp">جنيه</span></span>
+                                <span class="section-price-unit" data-i18n="shows_per_seat">للمقعد الواحد</span>
+                            </span>
+                            <span class="section-cta">
+                                <span data-i18n="section_pick_seats">اختار المقعد</span>
+                                <span class="section-cta-arrow" aria-hidden="true">←</span>
+                            </span>
                         </span>
-                        <span class="section-meta" data-i18n="section_balcony_meta">اختار مقعدك من خريطة البلكون</span>
                     </a>
                 @else
                     <button type="button"
@@ -184,40 +400,23 @@
                             disabled
                             aria-disabled="true"
                             data-section="balcony">
-                        <span class="section-label">
-                            <span data-i18n="section_balcony">البلكون</span>
-                            <span class="opacity-70">(<span data-i18n="section_balcony_en">Balcony</span>)</span>
+                        <span class="section-head">
+                            <span>
+                                <span class="section-name" data-i18n="section_balcony">البلكون</span>
+                                <span class="section-eyebrow" data-i18n="section_balcony_en">BALCONY</span>
+                            </span>
+                            <span class="badge-soon" data-i18n="section_soon">قريبًا</span>
                         </span>
-                        <span class="section-price">—</span>
-                        <span class="badge-soon" data-i18n="section_soon">قريبًا</span>
+                        <span class="section-foot">
+                            <span class="section-price-block">
+                                <span class="section-price">—</span>
+                                <span class="section-price-unit" data-i18n="section_unavailable">غير متاح حاليًا</span>
+                            </span>
+                        </span>
                     </button>
                 @endif
             </div>
         </div>
-
-        {{-- transfer info (kept here so the user sees the price + payment
-             instructions before clicking through to seat selection) --}}
-        @if (!empty($transferWallet) || !empty($transferInsta))
-            <div class="prism-glass p-5 sm:p-6 space-y-2 prism-fade-up" style="animation-delay:.15s;">
-                <h3 class="text-[12px] font-semibold flex items-center gap-2"
-                    style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;"
-                    data-i18n="pay_eyebrow">
-                    💸 ادفع قيمة التذكرة على
-                </h3>
-                @if (!empty($transferWallet))
-                    <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
-                        <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_wallet">📱 محفظة</p>
-                        <p class="text-sm font-bold text-[color:var(--prism-text)] tracking-wide" dir="ltr">{{ $transferWallet }}</p>
-                    </div>
-                @endif
-                @if (!empty($transferInsta))
-                    <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
-                        <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_insta">⚡ InstaPay</p>
-                        <p class="text-sm font-bold text-[color:var(--prism-text)] tracking-wide" dir="ltr">{{ $transferInsta }}</p>
-                    </div>
-                @endif
-            </div>
-        @endif
     </div>
 
 </section>
@@ -266,32 +465,36 @@
                 </p>
             </div>
 
-            {{-- خطوة 1 --}}
-            <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-2xl p-4 space-y-2">
-
-                <h3 class="text-xs font-semibold"
-                    style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;"
-                    data-i18n="book_step1_pay_title">
-                    خطوة 1: حوّل قيمة التذكرة
-                </h3>
-
-                <p class="text-[11px] text-[color:var(--prism-text-3)]">
-                    <span data-i18n="book_step1_pay_desc_a">حوّل</span>
-                    {{ $showTime->ticket_price }}
-                    <span data-i18n="book_step1_pay_desc_b">جنيه على أحد الأرقام التالية:</span>
-                </p>
-
-                <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl p-2.5">
-                    <p class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="pay_wallet">📱 محفظة</p>
-                    <p class="text-sm font-bold text-[color:var(--prism-text)]" dir="ltr">{{ $transferWallet }}</p>
+            {{-- payment instructions — collapsed accordion. Customer
+                 expands to view wallet / InstaPay numbers. --}}
+            <details class="pay-details">
+                <summary>
+                    <span class="pay-icon" aria-hidden="true">💳</span>
+                    <span class="pay-meta">
+                        <span class="pay-title" data-i18n="form_pay_title">تعليمات الدفع</span>
+                        <span class="pay-sub">
+                            <span data-i18n="form_pay_sub_a">حوّل</span>
+                            <span class="text-[color:var(--prism-gold)] font-bold">{{ $showTime->ticket_price }} <span data-i18n="shows_egp">جنيه</span></span>
+                            <span data-i18n="form_pay_sub_b">واضغط للعرض</span>
+                        </span>
+                    </span>
+                    <span class="pay-chev" aria-hidden="true">▾</span>
+                </summary>
+                <div class="pay-body">
+                    @if (!empty($transferWallet))
+                        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl p-2.5">
+                            <p class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="pay_wallet">📱 محفظة</p>
+                            <p class="text-sm font-bold text-[color:var(--prism-text)]" dir="ltr">{{ $transferWallet }}</p>
+                        </div>
+                    @endif
+                    @if (!empty($transferInsta))
+                        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl p-2.5">
+                            <p class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="pay_insta">⚡ InstaPay</p>
+                            <p class="text-sm font-bold text-[color:var(--prism-text)]" dir="ltr">{{ $transferInsta }}</p>
+                        </div>
+                    @endif
                 </div>
-
-                <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl p-2.5">
-                    <p class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="pay_insta">⚡ InstaPay</p>
-                    <p class="text-sm font-bold text-[color:var(--prism-text)]" dir="ltr">{{ $transferInsta }}</p>
-                </div>
-
-            </div>
+            </details>
 
         </div>
 
