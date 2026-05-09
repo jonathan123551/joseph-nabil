@@ -210,69 +210,60 @@
             background: rgba(254,243,199,0.4);
         }
 
-        /* "Payment instructions" accordion. Uses native <details> so it
-           works without JS and is a11y-friendly out of the box. The
-           summary row shows the price + an expand cue; the body holds
-           the existing copy buttons unchanged. */
-        [data-anba-form] .pay-details {
+        /* Visible payment-instructions block — simple, lightweight, always
+           expanded. Single glass shell with a one-line heading and the
+           wallet / InstaPay copy rows underneath. No toggle, no accordion. */
+        [data-anba-form] .pay-block {
             background: rgba(255,255,255,0.025);
             border: 1px solid var(--prism-border);
             border-radius: 16px;
-            overflow: hidden;
-            transition: border-color .2s var(--prism-ease), background .2s var(--prism-ease);
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
-        [data-anba-form] .pay-details[open] {
-            border-color: rgba(129,140,248,0.32);
-            background: rgba(255,255,255,0.04);
-        }
-        [data-anba-form] .pay-details > summary {
-            cursor: pointer;
-            list-style: none;
+        [data-anba-form] .pay-block .pay-head {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 14px 16px;
-            min-height: 56px;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
+            gap: 10px;
+            min-width: 0;
         }
-        [data-anba-form] .pay-details > summary::-webkit-details-marker { display: none; }
-        [data-anba-form] .pay-details .pay-icon {
+        [data-anba-form] .pay-block .pay-icon {
             display: inline-flex; align-items: center; justify-content: center;
-            width: 32px; height: 32px;
-            border-radius: 10px;
+            width: 28px; height: 28px;
+            border-radius: 9px;
             background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(192,132,252,0.18));
             border: 1px solid rgba(129,140,248,0.4);
-            font-size: 16px;
+            font-size: 14px;
             flex-shrink: 0;
         }
-        [data-anba-form] .pay-details .pay-meta { flex: 1 1 auto; min-width: 0; line-height: 1.3; }
-        [data-anba-form] .pay-details .pay-title {
+        [data-anba-form] .pay-block .pay-title {
             display: block;
             font-size: 13px;
             font-weight: 700;
             color: var(--prism-text);
+            line-height: 1.3;
         }
-        [data-anba-form] .pay-details .pay-sub {
-            display: block;
-            margin-top: 2px;
-            font-size: 11px;
-            color: var(--prism-text-3);
+        [data-anba-form] .pay-block .pay-amount {
+            color: var(--prism-gold);
+            font-weight: 800;
         }
-        [data-anba-form] .pay-details .pay-chev {
-            font-size: 12px;
-            color: var(--prism-text-3);
-            transition: transform .25s var(--prism-ease);
-        }
-        [data-anba-form] .pay-details[open] .pay-chev { transform: rotate(180deg); }
-        [data-anba-form] .pay-details .pay-body {
-            padding: 0 16px 14px 16px;
+        [data-anba-form] .pay-block .pay-rows {
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
-        @media (prefers-reduced-motion: reduce) {
-            [data-anba-form] .pay-details .pay-chev { transition: none; }
+        [data-anba-form] .pay-block .pay-row {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--prism-border);
+            border-radius: 12px;
+            padding: 10px 12px;
+        }
+        [data-anba-form] .pay-block .pay-row-label {
+            display: block;
+            font-size: 10px;
+            color: var(--prism-text-3);
+            margin-bottom: 4px;
         }
 
         /* Single-shell attendee container — Stripe-checkout simplicity:
@@ -503,26 +494,22 @@
             </div>
         </div>
 
-        {{-- payment info — collapsed accordion (mobile) / expanded (desktop)
-             with the existing prism-copyable buttons inside, unchanged. --}}
+        {{-- payment info — visible, simple, always-expanded block. One
+             clear instruction line + the wallet / InstaPay copy rows. --}}
         @if (!empty($transferWallet) || !empty($transferInsta))
-            <details class="pay-details" data-pay-details>
-                <summary>
+            <div class="pay-block">
+                <div class="pay-head">
                     <span class="pay-icon" aria-hidden="true">💳</span>
-                    <span class="pay-meta">
-                        <span class="pay-title" data-i18n="form_pay_title">تعليمات الدفع</span>
-                        <span class="pay-sub">
-                            <span data-i18n="form_pay_sub_a">حوّل</span>
-                            <span class="text-[color:var(--prism-gold)] font-bold"><span data-form-total-inline>0</span> <span data-i18n="shows_egp">جنيه</span></span>
-                            <span data-i18n="form_pay_sub_b">واضغط للعرض</span>
-                        </span>
+                    <span class="pay-title">
+                        <span data-i18n="form_pay_instruction_a">حوّل</span>
+                        <span class="pay-amount"><span data-form-total-inline>0</span> <span data-i18n="shows_egp">جنيه</span></span>
+                        <span data-i18n="form_pay_instruction_b">على InstaPay أو المحفظة</span>
                     </span>
-                    <span class="pay-chev" aria-hidden="true">▾</span>
-                </summary>
-                <div class="pay-body">
+                </div>
+                <div class="pay-rows">
                     @if (!empty($transferWallet))
-                        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
-                            <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_wallet">📱 محفظة</p>
+                        <div class="pay-row">
+                            <span class="pay-row-label" data-i18n="pay_wallet">📱 محفظة</span>
                             <button type="button"
                                     class="prism-copyable w-full justify-between text-sm tracking-wide"
                                     data-pt-copy="{{ $transferWallet }}"
@@ -534,8 +521,8 @@
                         </div>
                     @endif
                     @if (!empty($transferInsta))
-                        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
-                            <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_insta">⚡ InstaPay</p>
+                        <div class="pay-row">
+                            <span class="pay-row-label" data-i18n="pay_insta">⚡ InstaPay</span>
                             <button type="button"
                                     class="prism-copyable w-full justify-between text-sm tracking-wide"
                                     data-pt-copy="{{ $transferInsta }}"
@@ -547,7 +534,7 @@
                         </div>
                     @endif
                 </div>
-            </details>
+            </div>
         @endif
 
         {{-- the actual form --}}
