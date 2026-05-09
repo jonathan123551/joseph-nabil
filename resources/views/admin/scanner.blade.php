@@ -954,6 +954,24 @@
        ============================================================ */
     let activeTrack = null;       // MediaStreamTrack for the live camera
 
+    /**
+     * Stop every track on a stream and null out activeTrack if it
+     * matches. Used by every null-return path below so we never leak
+     * a live camera handle into the next bootstrap path. Without
+     * this, on iPhones especially, a half-failed Path A would leave
+     * the camera held open and Paths B/C would either hang or fail
+     * with NotReadableError — i.e. "camera doesn't start at all".
+     */
+    function releaseStream(stream) {
+        if (!stream) return;
+        try {
+            stream.getTracks().forEach((t) => {
+                try { t.stop(); } catch (_) {}
+                if (activeTrack === t) activeTrack = null;
+            });
+        } catch (_) {}
+    }
+
     async function startNativeBarcodeDetector() {
         if (!('BarcodeDetector' in window)) return null;
         let supported;
@@ -963,119 +981,128 @@
 
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return null;
 
-        let stream;
+        let stream = null;
         try {
+            // Initial constraints are STANDARD ones only. Non-standard
+            // hints (focusMode / exposureMode / whiteBalanceMode) used
+            // to live here, but iOS Safari / some Android builds will
+            // reject the whole getUserMedia call if they don't
+            // recognize a constraint name — exactly the "camera
+            // doesn't start at all" symptom we hit. We nudge those
+            // post-start via track.applyConstraints({ advanced: ... })
+            // where rejection is harmless.
             stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: { ideal: 'environment' },
-                    // Push capture resolution high — a small / distant QR
-                    // is the most common failure mode and resolution is
-                    // what fixes it. The browser downscales for us if
-                    // the sensor can't deliver.
-                    width:  { ideal: 1920 },
-                    height: { ideal: 1080 },
-                    // 60fps gives us double the chances per second to lock
-                    // on while the operator is moving the phone.
+                    width:     { ideal: 1920 },
+                    height:    { ideal: 1080 },
                     frameRate: { ideal: 60 },
-                    focusMode:        'continuous',
-                    exposureMode:     'continuous',
-                    whiteBalanceMode: 'continuous',
                 },
                 audio: false,
             });
-        } catch (_) { return null; }
 
-        const track = stream.getVideoTracks()[0];
-        if (!track) return null;
-        activeTrack = track;
+            const track = stream.getVideoTracks()[0];
+            if (!track) {
+                releaseStream(stream);
+                return null;
+            }
+            activeTrack = track;
 
-        // Mount the live video into the existing #qr-reader slot.
-        const reader = document.getElementById('qr-reader');
-        reader.innerHTML = '';
-        const video = document.createElement('video');
-        video.setAttribute('playsinline', 'true');
-        video.setAttribute('webkit-playsinline', 'true');
-        video.muted = true;
-        video.autoplay = true;
-        video.srcObject = stream;
-        Object.assign(video.style, {
-            width:     '100%',
-            height:    '100%',
-            objectFit: 'cover',
-            display:   'block',
-        });
-        reader.appendChild(video);
-        try { await video.play(); } catch (_) {}
-
-        // Apply continuous-focus / exposure / white-balance once the
-        // track is live (some Android builds only honor these after
-        // the stream is active, not in the initial getUserMedia call).
-        try {
-            await track.applyConstraints({
-                advanced: [
-                    { focusMode: 'continuous' },
-                    { focusMode: 'continuous-picture' },
-                    { focusDistance: { ideal: 0.05 } },
-                    { exposureMode: 'continuous' },
-                    { whiteBalanceMode: 'continuous' },
-                ],
+            // Mount the live video into the existing #qr-reader slot.
+            const reader = document.getElementById('qr-reader');
+            reader.innerHTML = '';
+            const video = document.createElement('video');
+            video.setAttribute('playsinline', 'true');
+            video.setAttribute('webkit-playsinline', 'true');
+            video.muted    = true;
+            video.autoplay = true;
+            video.srcObject = stream;
+            Object.assign(video.style, {
+                width:     '100%',
+                height:    '100%',
+                objectFit: 'cover',
+                display:   'block',
             });
-        } catch (_) {}
+            reader.appendChild(video);
+            try { await video.play(); } catch (_) {}
 
-        const detector = new BarcodeDetector({ formats: ['qr_code'] });
-
-        let stopped = false;
-        let paused  = false;
-
-        const schedule = (fn) => {
-            if (typeof video.requestVideoFrameCallback === 'function') {
-                video.requestVideoFrameCallback(() => fn());
-            } else {
-                requestAnimationFrame(fn);
-            }
-        };
-
-        const tick = async () => {
-            if (stopped) return;
-            if (paused || sheetOpen || video.readyState < 2) {
-                schedule(tick);
-                return;
-            }
+            // Post-start: nudge continuous focus / exposure / white-
+            // balance + close focus distance. Failure is harmless —
+            // we just degrade to whatever the camera ships with.
             try {
-                const codes = await detector.detect(video);
-                if (codes && codes.length) {
-                    // BarcodeDetector returns the highest-confidence code
-                    // first. We pick the largest by bounding-box so we
-                    // prefer the QR closest to the camera if there are
-                    // accidentally multiple in frame.
-                    let best = codes[0];
-                    if (codes.length > 1) {
-                        const area = (b) => (b && b.width && b.height) ? b.width * b.height : 0;
-                        for (const c of codes) {
-                            if (area(c.boundingBox) > area(best.boundingBox)) best = c;
-                        }
-                    }
-                    if (best && best.rawValue) {
-                        onScanSuccess(best.rawValue);
-                    }
-                }
-            } catch (_) { /* keep looping — most errors are transient */ }
-            schedule(tick);
-        };
-        schedule(tick);
+                await track.applyConstraints({
+                    advanced: [
+                        { focusMode: 'continuous' },
+                        { focusMode: 'continuous-picture' },
+                        { focusDistance: { ideal: 0.05 } },
+                        { exposureMode: 'continuous' },
+                        { whiteBalanceMode: 'continuous' },
+                    ],
+                });
+            } catch (_) {}
 
-        return {
-            // Match the html5-qrcode shape so showSheet/hideSheet can
-            // call pause/resume transparently.
-            pause:  ()  => { paused = true; },
-            resume: ()  => { paused = false; },
-            stop:   ()  => {
-                stopped = true;
-                try { track.stop(); } catch (_) {}
-                try { stream.getTracks().forEach((t) => t.stop()); } catch (_) {}
-            },
-            track,
-        };
+            let detector;
+            try {
+                detector = new BarcodeDetector({ formats: ['qr_code'] });
+            } catch (_) {
+                // Some browsers expose `BarcodeDetector` as a property
+                // but throw on construction. Bail cleanly.
+                releaseStream(stream);
+                return null;
+            }
+
+            let stopped = false;
+            let paused  = false;
+
+            const schedule = (fn) => {
+                if (typeof video.requestVideoFrameCallback === 'function') {
+                    video.requestVideoFrameCallback(() => fn());
+                } else {
+                    requestAnimationFrame(fn);
+                }
+            };
+
+            const tick = async () => {
+                if (stopped) return;
+                if (paused || sheetOpen || video.readyState < 2) {
+                    schedule(tick);
+                    return;
+                }
+                try {
+                    const codes = await detector.detect(video);
+                    if (codes && codes.length) {
+                        // Prefer the largest QR by bounding-box (closest
+                        // to the camera if there are accidentally
+                        // multiple in frame).
+                        let best = codes[0];
+                        if (codes.length > 1) {
+                            const area = (b) => (b && b.width && b.height) ? b.width * b.height : 0;
+                            for (const c of codes) {
+                                if (area(c.boundingBox) > area(best.boundingBox)) best = c;
+                            }
+                        }
+                        if (best && best.rawValue) onScanSuccess(best.rawValue);
+                    }
+                } catch (_) { /* per-frame errors are transient */ }
+                schedule(tick);
+            };
+            schedule(tick);
+
+            return {
+                pause:  () => { paused  = true; },
+                resume: () => { paused  = false; },
+                stop:   () => {
+                    stopped = true;
+                    releaseStream(stream);
+                },
+                track,
+            };
+        } catch (_) {
+            // Anything we didn't anticipate — release and let the next
+            // bootstrap path try a clean getUserMedia.
+            releaseStream(stream);
+            return null;
+        }
     }
 
     /* ============================================================
@@ -1098,102 +1125,113 @@
        camera, etc.) we fall through to Path C (html5-qrcode).
        ============================================================ */
     async function startZXing() {
+        // Cheap pre-checks before we ever touch the camera. The
+        // installed @zxing/library UMD must expose BrowserMultiFormatReader
+        // — if not (older / partial bundle), bail to Path C without
+        // grabbing the camera at all.
         if (typeof ZXing === 'undefined' || !ZXing.BrowserMultiFormatReader) return null;
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return null;
 
-        let stream;
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: { ideal: 'environment' },
-                    // High capture resolution helps small / distant QRs
-                    // resolve. The browser downscales for us if the
-                    // sensor can't deliver.
-                    width:  { ideal: 1920 },
-                    height: { ideal: 1080 },
-                    // 30fps is plenty for the ZXing decode loop and
-                    // keeps thermal load reasonable on iPhones.
-                    frameRate: { ideal: 30 },
-                    focusMode:        'continuous',
-                    exposureMode:     'continuous',
-                    whiteBalanceMode: 'continuous',
-                },
-                audio: false,
-            });
-        } catch (_) { return null; }
-
-        const track = stream.getVideoTracks()[0];
-        if (!track) return null;
-        activeTrack = track;
-
-        const reader = document.getElementById('qr-reader');
-        reader.innerHTML = '';
-        const video = document.createElement('video');
-        video.setAttribute('playsinline', 'true');
-        video.setAttribute('webkit-playsinline', 'true');
-        video.muted = true;
-        video.autoplay = true;
-        video.srcObject = stream;
-        Object.assign(video.style, {
-            width:     '100%',
-            height:    '100%',
-            objectFit: 'cover',
-            display:   'block',
-        });
-        reader.appendChild(video);
-        try { await video.play(); } catch (_) {}
-
-        // Apply continuous-focus advanced constraints once live —
-        // some Android builds only honor these post-start, and on
-        // iOS this is a no-op which is fine.
-        try {
-            await track.applyConstraints({
-                advanced: [
-                    { focusMode: 'continuous' },
-                    { focusMode: 'continuous-picture' },
-                    { focusDistance: { ideal: 0.05 } },
-                    { exposureMode: 'continuous' },
-                    { whiteBalanceMode: 'continuous' },
-                ],
-            });
-        } catch (_) {}
-
-        // ZXing hints — QR-only + TRY_HARDER + ALSO_INVERTED. These
-        // are exactly the knobs that make ZXing tolerate tilted,
-        // skewed, low-contrast, or inverted-color QRs that jsQR
-        // gives up on.
-        let hints = null;
-        try {
-            hints = new Map();
-            if (ZXing.DecodeHintType && ZXing.BarcodeFormat) {
-                hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
-                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-                if ('ALSO_INVERTED' in ZXing.DecodeHintType) {
-                    hints.set(ZXing.DecodeHintType.ALSO_INVERTED, true);
-                }
-            }
-        } catch (_) { hints = null; }
-
-        // Tight scan interval (50ms = ~20 attempts/sec on the same
-        // frame) so lock-on feels closer to iPhone Camera. The
-        // constructor signature has changed across ZXing versions;
-        // we set both old and new property names defensively.
-        let codeReader;
-        try {
-            codeReader = new ZXing.BrowserMultiFormatReader(hints, 50);
-        } catch (_) {
-            try { codeReader = new ZXing.BrowserMultiFormatReader(hints); }
-            catch (__) { return null; }
-        }
-        try { codeReader.timeBetweenScansMillis        = 50; } catch (_) {}
-        try { codeReader.timeBetweenDecodingAttempts   = 50; } catch (_) {}
-
-        let stopped = false;
-        let paused  = false;
+        let stream = null;
+        let codeReader = null;
         let controls = null;
 
         try {
-            controls = await codeReader.decodeFromVideoElement(video, (result, err) => {
+            // STANDARD constraints only at getUserMedia time. See the
+            // long comment in startNativeBarcodeDetector — non-standard
+            // mode hints used to live here and were the prime suspect
+            // for the iOS Safari "camera doesn't start at all"
+            // regression. Post-start applyConstraints handles them.
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: { ideal: 'environment' },
+                    width:     { ideal: 1920 },
+                    height:    { ideal: 1080 },
+                    // 30fps is plenty for the ZXing decode loop and
+                    // keeps thermal load reasonable on iPhones.
+                    frameRate: { ideal: 30 },
+                },
+                audio: false,
+            });
+
+            const track = stream.getVideoTracks()[0];
+            if (!track) {
+                releaseStream(stream);
+                return null;
+            }
+            activeTrack = track;
+
+            const reader = document.getElementById('qr-reader');
+            reader.innerHTML = '';
+            const video = document.createElement('video');
+            video.setAttribute('playsinline', 'true');
+            video.setAttribute('webkit-playsinline', 'true');
+            video.muted    = true;
+            video.autoplay = true;
+            video.srcObject = stream;
+            Object.assign(video.style, {
+                width:     '100%',
+                height:    '100%',
+                objectFit: 'cover',
+                display:   'block',
+            });
+            reader.appendChild(video);
+            try { await video.play(); } catch (_) {}
+
+            // Post-start advanced constraints. Failure is harmless.
+            try {
+                await track.applyConstraints({
+                    advanced: [
+                        { focusMode: 'continuous' },
+                        { focusMode: 'continuous-picture' },
+                        { focusDistance: { ideal: 0.05 } },
+                        { exposureMode: 'continuous' },
+                        { whiteBalanceMode: 'continuous' },
+                    ],
+                });
+            } catch (_) {}
+
+            // ZXing hints — QR-only + TRY_HARDER + ALSO_INVERTED.
+            let hints = null;
+            try {
+                hints = new Map();
+                if (ZXing.DecodeHintType && ZXing.BarcodeFormat) {
+                    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
+                    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+                    if ('ALSO_INVERTED' in ZXing.DecodeHintType) {
+                        hints.set(ZXing.DecodeHintType.ALSO_INVERTED, true);
+                    }
+                }
+            } catch (_) { hints = null; }
+
+            // Constructor signature has shifted across ZXing versions
+            // (and sometimes the `new X(hints, ms)` form throws on the
+            // very first run). Try a few defensively.
+            try {
+                codeReader = new ZXing.BrowserMultiFormatReader(hints, 50);
+            } catch (_) {
+                try { codeReader = new ZXing.BrowserMultiFormatReader(hints); }
+                catch (__) {
+                    try { codeReader = new ZXing.BrowserMultiFormatReader(); }
+                    catch (___) {
+                        releaseStream(stream);
+                        return null;
+                    }
+                }
+            }
+            try { codeReader.timeBetweenScansMillis      = 50; } catch (_) {}
+            try { codeReader.timeBetweenDecodingAttempts = 50; } catch (_) {}
+
+            let stopped = false;
+            let paused  = false;
+
+            // decodeFromVideoElement may not exist on older builds.
+            if (typeof codeReader.decodeFromVideoElement !== 'function') {
+                releaseStream(stream);
+                return null;
+            }
+
+            controls = await codeReader.decodeFromVideoElement(video, (result /*, err */) => {
                 if (stopped || paused || sheetOpen) return;
                 if (result) {
                     let text = '';
@@ -1203,26 +1241,33 @@
                 }
                 // Per-frame errors mean "no QR in this frame" — ignore.
             });
+
+            return {
+                // Same shape as Path A so showSheet/hideSheet can
+                // pause/resume transparently across paths.
+                pause:  () => { paused = true; },
+                resume: () => { paused = false; },
+                stop:   () => {
+                    stopped = true;
+                    try {
+                        if (controls && typeof controls.stop === 'function') controls.stop();
+                        else if (codeReader && typeof codeReader.reset === 'function') codeReader.reset();
+                    } catch (_) {}
+                    releaseStream(stream);
+                },
+                track,
+            };
         } catch (_) {
-            try { stream.getTracks().forEach((t) => t.stop()); } catch (__) {}
+            // Anything we didn't anticipate (decodeFromVideoElement
+            // threw, applyConstraints rejected synchronously, etc.) —
+            // tear down everything and let Path C try a clean start.
+            try {
+                if (controls && typeof controls.stop === 'function') controls.stop();
+                else if (codeReader && typeof codeReader.reset === 'function') codeReader.reset();
+            } catch (__) {}
+            releaseStream(stream);
             return null;
         }
-
-        return {
-            // Match the html5-qrcode / native shape so showSheet /
-            // hideSheet can pause/resume transparently.
-            pause:  () => { paused = true; },
-            resume: () => { paused = false; },
-            stop:   () => {
-                stopped = true;
-                try {
-                    if (controls && typeof controls.stop === 'function') controls.stop();
-                    else if (typeof codeReader.reset === 'function') codeReader.reset();
-                } catch (_) {}
-                try { stream.getTracks().forEach((t) => t.stop()); } catch (_) {}
-            },
-            track,
-        };
     }
 
     /* ============================================================
