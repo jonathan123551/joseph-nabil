@@ -186,24 +186,142 @@
             [data-anba-form] .field-input.is-invalid,
             [data-anba-form] .file-zone.is-invalid { animation: none; }
         }
-        [data-anba-form] .total-bar {
-            display: flex; align-items: center; justify-content: space-between;
+        /* compact gold summary chip — replaces the old heavier total-bar.
+           Sits inline next to the section heading so the customer sees
+           "X seats · Y EGP" at a glance without a dedicated band. */
+        [data-anba-form] .summary-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(251,191,36,0.12), rgba(251,191,36,0.04));
+            border: 1px solid rgba(251,191,36,0.30);
+            color: #fef3c7;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .01em;
+            white-space: nowrap;
+        }
+        [data-anba-form] .summary-pill .seats-count { color: var(--prism-text); font-weight: 800; }
+        [data-anba-form] .summary-pill .amount { color: var(--prism-gold); font-weight: 800; }
+        [data-anba-form] .summary-pill .dot {
+            width: 3px; height: 3px; border-radius: 999px;
+            background: rgba(254,243,199,0.4);
+        }
+
+        /* "Payment instructions" accordion. Uses native <details> so it
+           works without JS and is a11y-friendly out of the box. The
+           summary row shows the price + an expand cue; the body holds
+           the existing copy buttons unchanged. */
+        [data-anba-form] .pay-details {
+            background: rgba(255,255,255,0.025);
+            border: 1px solid var(--prism-border);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: border-color .2s var(--prism-ease), background .2s var(--prism-ease);
+        }
+        [data-anba-form] .pay-details[open] {
+            border-color: rgba(129,140,248,0.32);
+            background: rgba(255,255,255,0.04);
+        }
+        [data-anba-form] .pay-details > summary {
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            min-height: 56px;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        [data-anba-form] .pay-details > summary::-webkit-details-marker { display: none; }
+        [data-anba-form] .pay-details .pay-icon {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(192,132,252,0.18));
+            border: 1px solid rgba(129,140,248,0.4);
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        [data-anba-form] .pay-details .pay-meta { flex: 1 1 auto; min-width: 0; line-height: 1.3; }
+        [data-anba-form] .pay-details .pay-title {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--prism-text);
+        }
+        [data-anba-form] .pay-details .pay-sub {
+            display: block;
+            margin-top: 2px;
+            font-size: 11px;
+            color: var(--prism-text-3);
+        }
+        [data-anba-form] .pay-details .pay-chev {
+            font-size: 12px;
+            color: var(--prism-text-3);
+            transition: transform .25s var(--prism-ease);
+        }
+        [data-anba-form] .pay-details[open] .pay-chev { transform: rotate(180deg); }
+        [data-anba-form] .pay-details .pay-body {
+            padding: 0 16px 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            [data-anba-form] .pay-details .pay-chev { transition: none; }
+        }
+
+        /* Single-shell attendee container — Stripe-checkout simplicity:
+           cards stack inside one glass shell with a thin divider between
+           them, instead of repeating per-card outlines that add noise. */
+        [data-anba-form] .attendee-stack {
+            display: flex;
+            flex-direction: column;
+            background: rgba(255,255,255,0.025);
+            border: 1px solid var(--prism-border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        [data-anba-form] .attendee-stack .attendee-card {
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        [data-anba-form] .attendee-stack .attendee-card:last-child { border-bottom: 0; }
+        [data-anba-form] .attendee-stack .attendee-card:focus-within {
+            background: rgba(129,140,248,0.06);
+            box-shadow: none;
+        }
+
+        /* Quiet "we'll send the ticket within 24h" reassurance line —
+           replaces the heavy ordered list that used to dominate the page. */
+        [data-anba-form] .reassurance {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
             padding: 12px 14px;
             border-radius: 14px;
-            background: linear-gradient(135deg, rgba(251,191,36,0.10), rgba(251,191,36,0.04));
-            border: 1px solid rgba(251,191,36,0.32);
-            color: #fef3c7;
+            background: rgba(255,255,255,0.025);
+            border: 1px solid var(--prism-border);
+            font-size: 12px;
+            line-height: 1.55;
+            color: var(--prism-text-2);
         }
-        [data-anba-form] .total-bar .label {
+        [data-anba-form] .reassurance .reassurance-icon {
+            flex-shrink: 0;
+            width: 22px; height: 22px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(192,132,252,0.18));
+            border: 1px solid rgba(129,140,248,0.4);
+            display: inline-flex; align-items: center; justify-content: center;
             font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: .18em;
-            color: rgba(254,243,199,0.75);
         }
-        [data-anba-form] .total-bar .amount {
-            font-size: 18px; font-weight: 800;
-            color: var(--prism-gold);
-        }
+        [data-anba-form] .reassurance b { color: var(--prism-text); font-weight: 700; }
 
         /* ===== Sticky checkout dock (mobile + desktop) =====
            Native CSS sticky pins to viewport bottom while the booking flow
@@ -351,99 +469,85 @@
             </div>
         </div>
 
-        {{-- selected seats summary --}}
+        {{-- selected seats summary — compact pill at top, chips inline,
+             "edit seats" demoted to a tertiary link. --}}
         <div class="prism-glass p-5 sm:p-6 space-y-3">
-            <div class="flex items-center justify-between gap-2 flex-wrap">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
                 <h2 class="prism-headline text-sm sm:text-base"
                     style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;"
                     data-i18n="seat_selected_label">
                     المقاعد المختارة
                 </h2>
-                <a href="{{ route('bookings.seats', $showTime) }}?section={{ $sectionParam }}"
-                   class="add-seats-btn prism-ripple">
-                    <span>＋</span>
-                    <span data-i18n="form_add_edit_seats">إضافة / تعديل المقاعد</span>
-                </a>
+                <span class="summary-pill" aria-live="polite">
+                    <span class="seats-count" data-form-summary-count>0</span>
+                    <span data-i18n="seat_chip_seat">مقعد</span>
+                    <span class="dot" aria-hidden="true"></span>
+                    <span class="amount" data-form-total>0</span>
+                    <span>EGP</span>
+                </span>
             </div>
-
-            <p class="text-[11px] text-[color:var(--prism-text-3)] leading-relaxed" data-i18n="form_chips_hint">
-                اضغط × على أي مقعد لإلغاء اختياره، أو اضغط "إضافة / تعديل المقاعد" للرجوع لخريطة المقاعد.
-            </p>
 
             <div data-form-chips class="flex flex-wrap gap-1.5 min-h-[44px] p-2 rounded-xl bg-black/40 border border-[color:var(--prism-border)]">
                 <span class="text-[11px] text-[color:var(--prism-text-4)]" data-empty-msg data-i18n="form_loading_seats">جارٍ تحميل المقاعد المختارة...</span>
             </div>
 
-            <div class="total-bar">
-                <span class="label" data-i18n="seat_total">الإجمالي</span>
-                <span><span class="amount" data-form-total>0</span> <span class="text-[10px] text-[color:var(--prism-text-3)]">EGP</span></span>
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+                <p class="text-[11px] text-[color:var(--prism-text-3)] leading-relaxed flex-1 min-w-0" data-i18n="form_chips_hint_short">
+                    اضغط × لإلغاء اختيار مقعد
+                </p>
+                <a href="{{ route('bookings.seats', $showTime) }}?section={{ $sectionParam }}"
+                   class="text-[11px] font-semibold text-[color:var(--prism-text-2)] hover:text-[color:var(--prism-text)] underline-offset-2 hover:underline transition"
+                   data-i18n="form_add_edit_seats_short">
+                    إضافة / تعديل المقاعد ←
+                </a>
             </div>
         </div>
 
-        {{-- booking instructions --}}
-        <div class="prism-glass p-5 sm:p-6 space-y-3">
-            <h3 class="prism-headline text-sm flex items-center gap-2"
-                style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;"
-                data-i18n="form_steps_title">
-                📌 خطوات إكمال الحجز
-            </h3>
-            <ol class="step-list">
-                <li>
-                    <span data-i18n="form_step1_a">حوّل قيمة الحجز</span>
-                    (<span class="text-[color:var(--prism-gold)] font-bold"><span data-form-total-inline>0</span> <span data-i18n="shows_egp">جنيه</span></span>)
-                    <span data-i18n="form_step1_b">على المحفظة أو InstaPay الموضحة بالأسفل.</span>
-                </li>
-                <li data-i18n="form_step2">
-                    التقط صورة (Screenshot) لإيصال التحويل وارفعها في الخانة المخصصة.
-                </li>
-                <li data-i18n="form_step3">
-                    اكتب اسم ورقم واتساب لكل شخص بترتيب المقاعد المحجوزة.
-                </li>
-                <li>
-                    <span data-i18n="form_step4_a">اضغط</span>
-                    <span class="text-[color:var(--prism-text)] font-bold">"<span data-i18n="form_confirm_btn">تأكيد الحجز</span>"</span> —
-                    <span data-i18n="form_step4_b">هنراجع الطلب ونرسل التذاكر على رقم الواتساب خلال</span>
-                    <span class="text-[color:var(--prism-text)] font-semibold" data-i18n="form_step4_24h">24 ساعة</span>
-                    <span data-i18n="form_step4_max">كحد أقصى.</span>
-                </li>
-            </ol>
-        </div>
-
-        {{-- transfer info --}}
+        {{-- payment info — collapsed accordion (mobile) / expanded (desktop)
+             with the existing prism-copyable buttons inside, unchanged. --}}
         @if (!empty($transferWallet) || !empty($transferInsta))
-            <div class="prism-glass p-5 sm:p-6 space-y-2">
-                <h3 class="text-[12px] font-semibold flex items-center gap-2"
-                    style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;"
-                    data-i18n="pay_eyebrow">
-                    💸 ادفع قيمة الحجز على
-                </h3>
-                @if (!empty($transferWallet))
-                    <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
-                        <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_wallet">📱 محفظة</p>
-                        <button type="button"
-                                class="prism-copyable w-full justify-between text-sm tracking-wide"
-                                data-pt-copy="{{ $transferWallet }}"
-                                data-i18n-attr="aria-label:copy_aria"
-                                aria-label="نسخ">
-                            <span dir="ltr">{{ $transferWallet }}</span>
-                            <span class="copy-icon" aria-hidden="true">⧉</span>
-                        </button>
-                    </div>
-                @endif
-                @if (!empty($transferInsta))
-                    <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
-                        <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_insta">⚡ InstaPay</p>
-                        <button type="button"
-                                class="prism-copyable w-full justify-between text-sm tracking-wide"
-                                data-pt-copy="{{ $transferInsta }}"
-                                data-i18n-attr="aria-label:copy_aria"
-                                aria-label="نسخ">
-                            <span dir="ltr">{{ $transferInsta }}</span>
-                            <span class="copy-icon" aria-hidden="true">⧉</span>
-                        </button>
-                    </div>
-                @endif
-            </div>
+            <details class="pay-details" data-pay-details>
+                <summary>
+                    <span class="pay-icon" aria-hidden="true">💳</span>
+                    <span class="pay-meta">
+                        <span class="pay-title" data-i18n="form_pay_title">تعليمات الدفع</span>
+                        <span class="pay-sub">
+                            <span data-i18n="form_pay_sub_a">حوّل</span>
+                            <span class="text-[color:var(--prism-gold)] font-bold"><span data-form-total-inline>0</span> <span data-i18n="shows_egp">جنيه</span></span>
+                            <span data-i18n="form_pay_sub_b">واضغط للعرض</span>
+                        </span>
+                    </span>
+                    <span class="pay-chev" aria-hidden="true">▾</span>
+                </summary>
+                <div class="pay-body">
+                    @if (!empty($transferWallet))
+                        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
+                            <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_wallet">📱 محفظة</p>
+                            <button type="button"
+                                    class="prism-copyable w-full justify-between text-sm tracking-wide"
+                                    data-pt-copy="{{ $transferWallet }}"
+                                    data-i18n-attr="aria-label:copy_aria"
+                                    aria-label="نسخ">
+                                <span dir="ltr">{{ $transferWallet }}</span>
+                                <span class="copy-icon" aria-hidden="true">⧉</span>
+                            </button>
+                        </div>
+                    @endif
+                    @if (!empty($transferInsta))
+                        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
+                            <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_insta">⚡ InstaPay</p>
+                            <button type="button"
+                                    class="prism-copyable w-full justify-between text-sm tracking-wide"
+                                    data-pt-copy="{{ $transferInsta }}"
+                                    data-i18n-attr="aria-label:copy_aria"
+                                    aria-label="نسخ">
+                                <span dir="ltr">{{ $transferInsta }}</span>
+                                <span class="copy-icon" aria-hidden="true">⧉</span>
+                            </button>
+                        </div>
+                    @endif
+                </div>
+            </details>
         @endif
 
         {{-- the actual form --}}
@@ -478,8 +582,9 @@
                         <span class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="form_attendees_hint">اكتب اسم ورقم واتساب لكل مقعد</span>
                     </div>
 
-                    {{-- attendee cards rendered into here from localStorage --}}
-                    <div data-form-attendees class="space-y-3"></div>
+                    {{-- attendee cards rendered into here from localStorage —
+                         single shell + dividers (Stripe-checkout simplicity) --}}
+                    <div data-form-attendees class="attendee-stack"></div>
                 </div>
 
                 <div class="space-y-2">
@@ -503,6 +608,17 @@
                     </div>
                 </div>
             </form>
+        </div>
+
+        {{-- single muted reassurance line — replaces the heavy 4-step
+             ordered list. Tells the customer what to expect after submit. --}}
+        <div class="reassurance">
+            <span class="reassurance-icon" aria-hidden="true">⏱</span>
+            <span>
+                <span data-i18n="form_reassurance_a">هنراجع طلبك ونرسل التذكرة على واتساب خلال</span>
+                <b data-i18n="form_step4_24h">24 ساعة</b>
+                <span data-i18n="form_reassurance_b">كحد أقصى.</span>
+            </span>
         </div>
 
         <div class="form-spacer-dock" data-anba-dock-anchor></div>
@@ -546,6 +662,7 @@
 
     const chipsBox    = root.querySelector('[data-form-chips]');
     const totalEl     = root.querySelector('[data-form-total]');
+    const summaryCnt  = root.querySelector('[data-form-summary-count]');
     const attendees   = root.querySelector('[data-form-attendees]');
     const screenshot  = root.querySelector('#anbaScreenshotFinal');
     const screenshotZone = root.querySelector('[data-screenshot-zone]');
@@ -714,8 +831,9 @@
         const t = totals();
         const totalStr = t.total.toLocaleString('en-US');
         totalEl.textContent       = totalStr;
-        if (mobileCount) mobileCount.textContent = t.count;
-        if (mobileTotal) mobileTotal.textContent = totalStr;
+        if (summaryCnt)   summaryCnt.textContent   = t.count;
+        if (mobileCount)  mobileCount.textContent  = t.count;
+        if (mobileTotal)  mobileTotal.textContent  = totalStr;
         if (totalInlineEl) totalInlineEl.textContent = totalStr;
     }
 

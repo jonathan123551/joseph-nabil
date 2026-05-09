@@ -115,6 +115,71 @@
             border-color: var(--prism-border);
             color: var(--prism-text-4);
         }
+
+        /* "Payment instructions" accordion — collapsed by default so the
+           wallet/InstaPay numbers don't dominate the page. <details> works
+           without JS and is a11y-friendly. Same visual language as the
+           Anba step-3 form so the booking flow feels consistent. */
+        .pay-details {
+            background: rgba(255,255,255,0.025);
+            border: 1px solid var(--prism-border);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: border-color .2s var(--prism-ease), background .2s var(--prism-ease);
+        }
+        .pay-details[open] {
+            border-color: rgba(129,140,248,0.32);
+            background: rgba(255,255,255,0.04);
+        }
+        .pay-details > summary {
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            min-height: 56px;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .pay-details > summary::-webkit-details-marker { display: none; }
+        .pay-details .pay-icon {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(192,132,252,0.18));
+            border: 1px solid rgba(129,140,248,0.4);
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .pay-details .pay-meta { flex: 1 1 auto; min-width: 0; line-height: 1.3; }
+        .pay-details .pay-title {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--prism-text);
+        }
+        .pay-details .pay-sub {
+            display: block;
+            margin-top: 2px;
+            font-size: 11px;
+            color: var(--prism-text-3);
+        }
+        .pay-details .pay-chev {
+            font-size: 12px;
+            color: var(--prism-text-3);
+            transition: transform .25s var(--prism-ease);
+        }
+        .pay-details[open] .pay-chev { transform: rotate(180deg); }
+        .pay-details .pay-body {
+            padding: 0 16px 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .pay-details .pay-chev { transition: none; }
+        }
     </style>
 
     <div class="anba-step1 space-y-5">
@@ -195,28 +260,33 @@
             </div>
         </div>
 
-        {{-- transfer info (kept here so the user sees the price + payment
-             instructions before clicking through to seat selection) --}}
+        {{-- transfer info — collapsed accordion so it doesn't dominate
+             the page. Customer expands it on demand to copy the numbers. --}}
         @if (!empty($transferWallet) || !empty($transferInsta))
-            <div class="prism-glass p-5 sm:p-6 space-y-2 prism-fade-up" style="animation-delay:.15s;">
-                <h3 class="text-[12px] font-semibold flex items-center gap-2"
-                    style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;"
-                    data-i18n="pay_eyebrow">
-                    💸 ادفع قيمة التذكرة على
-                </h3>
-                @if (!empty($transferWallet))
-                    <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
-                        <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_wallet">📱 محفظة</p>
-                        <p class="text-sm font-bold text-[color:var(--prism-text)] tracking-wide" dir="ltr">{{ $transferWallet }}</p>
-                    </div>
-                @endif
-                @if (!empty($transferInsta))
-                    <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
-                        <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_insta">⚡ InstaPay</p>
-                        <p class="text-sm font-bold text-[color:var(--prism-text)] tracking-wide" dir="ltr">{{ $transferInsta }}</p>
-                    </div>
-                @endif
-            </div>
+            <details class="pay-details prism-fade-up" style="animation-delay:.15s;">
+                <summary>
+                    <span class="pay-icon" aria-hidden="true">💳</span>
+                    <span class="pay-meta">
+                        <span class="pay-title" data-i18n="form_pay_title">تعليمات الدفع</span>
+                        <span class="pay-sub" data-i18n="form_pay_sub_short">اضغط لعرض أرقام المحفظة و InstaPay</span>
+                    </span>
+                    <span class="pay-chev" aria-hidden="true">▾</span>
+                </summary>
+                <div class="pay-body">
+                    @if (!empty($transferWallet))
+                        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
+                            <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_wallet">📱 محفظة</p>
+                            <p class="text-sm font-bold text-[color:var(--prism-text)] tracking-wide" dir="ltr">{{ $transferWallet }}</p>
+                        </div>
+                    @endif
+                    @if (!empty($transferInsta))
+                        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl px-3 py-2.5">
+                            <p class="text-[10px] text-[color:var(--prism-text-3)] mb-0.5" data-i18n="pay_insta">⚡ InstaPay</p>
+                            <p class="text-sm font-bold text-[color:var(--prism-text)] tracking-wide" dir="ltr">{{ $transferInsta }}</p>
+                        </div>
+                    @endif
+                </div>
+            </details>
         @endif
     </div>
 
@@ -266,32 +336,36 @@
                 </p>
             </div>
 
-            {{-- خطوة 1 --}}
-            <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-2xl p-4 space-y-2">
-
-                <h3 class="text-xs font-semibold"
-                    style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;"
-                    data-i18n="book_step1_pay_title">
-                    خطوة 1: حوّل قيمة التذكرة
-                </h3>
-
-                <p class="text-[11px] text-[color:var(--prism-text-3)]">
-                    <span data-i18n="book_step1_pay_desc_a">حوّل</span>
-                    {{ $showTime->ticket_price }}
-                    <span data-i18n="book_step1_pay_desc_b">جنيه على أحد الأرقام التالية:</span>
-                </p>
-
-                <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl p-2.5">
-                    <p class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="pay_wallet">📱 محفظة</p>
-                    <p class="text-sm font-bold text-[color:var(--prism-text)]" dir="ltr">{{ $transferWallet }}</p>
+            {{-- payment instructions — collapsed accordion. Customer
+                 expands to view wallet / InstaPay numbers. --}}
+            <details class="pay-details">
+                <summary>
+                    <span class="pay-icon" aria-hidden="true">💳</span>
+                    <span class="pay-meta">
+                        <span class="pay-title" data-i18n="form_pay_title">تعليمات الدفع</span>
+                        <span class="pay-sub">
+                            <span data-i18n="form_pay_sub_a">حوّل</span>
+                            <span class="text-[color:var(--prism-gold)] font-bold">{{ $showTime->ticket_price }} <span data-i18n="shows_egp">جنيه</span></span>
+                            <span data-i18n="form_pay_sub_b">واضغط للعرض</span>
+                        </span>
+                    </span>
+                    <span class="pay-chev" aria-hidden="true">▾</span>
+                </summary>
+                <div class="pay-body">
+                    @if (!empty($transferWallet))
+                        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl p-2.5">
+                            <p class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="pay_wallet">📱 محفظة</p>
+                            <p class="text-sm font-bold text-[color:var(--prism-text)]" dir="ltr">{{ $transferWallet }}</p>
+                        </div>
+                    @endif
+                    @if (!empty($transferInsta))
+                        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl p-2.5">
+                            <p class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="pay_insta">⚡ InstaPay</p>
+                            <p class="text-sm font-bold text-[color:var(--prism-text)]" dir="ltr">{{ $transferInsta }}</p>
+                        </div>
+                    @endif
                 </div>
-
-                <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl p-2.5">
-                    <p class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="pay_insta">⚡ InstaPay</p>
-                    <p class="text-sm font-bold text-[color:var(--prism-text)]" dir="ltr">{{ $transferInsta }}</p>
-                </div>
-
-            </div>
+            </details>
 
         </div>
 
