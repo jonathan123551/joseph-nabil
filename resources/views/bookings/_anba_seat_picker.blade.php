@@ -15,7 +15,6 @@
     $balconyPriceInt = (int) ($balconyPrice ?? 0);
     $sectionParam    = $section ?? 'hall';
     $unitPrice       = $sectionParam === 'balcony' ? $balconyPriceInt : $hallPriceInt;
-    $hallSeats       = $seatsByRow['hall'] ?? [];
     $isFullscreen    = (bool) ($fullscreen ?? false);
     // Admin variant: same picker, same gestures, but the click semantics
     // toggle SeatBlock rows via a bulk endpoint instead of redirecting to
@@ -23,8 +22,67 @@
     $adminMode       = (bool) ($adminMode ?? false);
     $bulkToggleUrl   = $bulkToggleUrl ?? '';
     $adminBackUrl    = $adminBackUrl ?? '';
-    // Produce a stable A→R order so the script doesn't have to sort.
-    ksort($hallSeats);
+
+    // ===== THEATER LAYOUT PRESETS =====
+    //
+    // Reusable layout registry. Each preset describes the ROW geometry of
+    // one section; the seat-picker engine (rendering, gestures, animations,
+    // admin flow) is shared across every preset. Adding a new theater
+    // layout = adding a new preset entry — no JS engine changes needed.
+    //
+    //   rowsOrder       : visual top→bottom row sequence. The literal
+    //                     'GAP' inserts a 1.5×ROW_PITCH walkway/gap in
+    //                     the geometry (NOT a CSS margin) — this is how
+    //                     the balcony walkway between C and D is drawn.
+    //   rightShiftSteps : per-row outermost wing offset, in HALF-SEAT
+    //                     units. 0 = wings flush with center column;
+    //                     larger = wings pushed outward (cinematic fan).
+    //   noCenterAnchors : for rows that have no center column, the row
+    //                     letter to ANCHOR each wing's inner edge to.
+    //                     Object cast forces JSON object (not array).
+    //   adminOnlyCenter : rows whose center seats are admin-only and
+    //                     therefore skipped during render (Q in hall).
+    $presets = [
+        'hall' => [
+            'rowsOrder'        => ['A','B','C','D','E','F','G','H','GAP','I','J','K','L','M','N','O','P','Q','R'],
+            'rightShiftSteps'  => (object) [
+                'Q' => 0,    'P' => 1,    'O' => 2,    'N' => 3,
+                'M' => 3.0,  'L' => 3.2,  'K' => 3.4,  'J' => 3.6, 'I' => 4,
+                'H' => 5,    'G' => 6,    'F' => 7,    'E' => 8,   'D' => 9, 'C' => 10,
+                'B' => 10.2, 'A' => 11.2,
+                'R' => 1,
+            ],
+            'noCenterAnchors'  => (object) ['A' => 'B', 'Q' => 'P', 'R' => 'Q'],
+            'adminOnlyCenter'  => ['Q'],
+        ],
+        // anba_ruweis_ballacon — 8-row premium balcony tier.
+        // Rows A/B/C carry the central premium block (left + center + right);
+        // rows D–H span the rest of the balcony as left + right only.
+        // The 'GAP' between C and D produces a real walkway (geometry, not CSS).
+        'balcony' => [
+            'rowsOrder'        => ['A','B','C','GAP','D','E','F','G','H'],
+            'rightShiftSteps'  => (object) [
+                // Front group with center column — flush, no outward fan.
+                'A' => 0,    'B' => 0,    'C' => 0,
+                // Mid (no center) — gentle progressive widening front→back.
+                'D' => 0.5,  'E' => 1.0,  'F' => 1.5,
+                // Back (no center, 16-seat wings) — widest fan.
+                'G' => 2.5,  'H' => 3.0,
+            ],
+            // D–H have no center column; anchor each wing's inner edge to
+            // row C's center column so the layout stays vertically aligned.
+            'noCenterAnchors'  => (object) ['D' => 'C', 'E' => 'C', 'F' => 'C', 'G' => 'C', 'H' => 'C'],
+            'adminOnlyCenter'  => [],
+        ],
+    ];
+    $preset       = $presets[$sectionParam] ?? $presets['hall'];
+
+    // Seats for THIS preset only. Hall seats remain reachable under the
+    // 'hall' key; balcony seats live under 'balcony' (added by the
+    // 2026_05_08 seeder migration). The view renders only the section
+    // requested via $sectionParam.
+    $sectionSeats = $seatsByRow[$sectionParam] ?? [];
+    ksort($sectionSeats);
 @endphp
 
 <div data-anba-root
@@ -921,16 +979,23 @@
 
     <script type="application/json" data-seat-data>
         @php
-            $payload = ['hall' => []];
-            foreach ($hallSeats as $row => $sides) {
-                $payload['hall'][$row] = [
-                    'left'   => array_map(fn($s) => ['id' => $s->id, 'n' => $s->seat_number], $sides['left']),
-                    'center' => array_map(fn($s) => ['id' => $s->id, 'n' => $s->seat_number], $sides['center']),
-                    'right'  => array_map(fn($s) => ['id' => $s->id, 'n' => $s->seat_number], $sides['right']),
+            $payload = [$sectionParam => []];
+            foreach ($sectionSeats as $row => $sides) {
+                $payload[$sectionParam][$row] = [
+                    'left'   => array_map(fn($s) => ['id' => $s->id, 'n' => $s->seat_number], $sides['left']   ?? []),
+                    'center' => array_map(fn($s) => ['id' => $s->id, 'n' => $s->seat_number], $sides['center'] ?? []),
+                    'right'  => array_map(fn($s) => ['id' => $s->id, 'n' => $s->seat_number], $sides['right']  ?? []),
                 ];
             }
         @endphp
         {!! json_encode($payload, JSON_UNESCAPED_UNICODE) !!}
+    </script>
+
+    {{-- Per-preset geometry config (ROWS_ORDER, RIGHT_SHIFT_STEPS,
+         NO_CENTER_ANCHORS, admin-only rows). Read once by the JS engine
+         to drive computeLayout() so the same engine renders every preset. --}}
+    <script type="application/json" data-seat-preset>
+        {!! json_encode($preset, JSON_UNESCAPED_UNICODE) !!}
     </script>
 </div>
 
@@ -945,6 +1010,19 @@
         // form page (step 3) which posts to bookings.store with the same
         // contract (seat_ids[], names[], phones[], section, screenshot).
         const seatData     = JSON.parse(root.querySelector('[data-seat-data]').textContent);
+        // Per-preset geometry (rowsOrder, rightShiftSteps, noCenterAnchors,
+        // adminOnlyCenter). The JS engine is identical across presets — only
+        // these values change per layout. Falls back to a hall-shaped default
+        // if the preset script is missing for any reason.
+        const presetEl     = root.querySelector('[data-seat-preset]');
+        const PRESET       = presetEl
+            ? JSON.parse(presetEl.textContent)
+            : {
+                rowsOrder: ['A','B','C','D','E','F','G','H','GAP','I','J','K','L','M','N','O','P','Q','R'],
+                rightShiftSteps: {},
+                noCenterAnchors: {},
+                adminOnlyCenter: [],
+            };
         const unavailable  = new Set((JSON.parse(root.dataset.unavailable || '[]') || []).map(Number));
         const blocked      = new Set((JSON.parse(root.dataset.blocked     || '[]') || []).map(Number));
         const hallPrice    = parseInt(root.dataset.hallPrice || '0', 10);
@@ -1008,7 +1086,12 @@
         // To find where the math runs, search the file for:
         //   ===== WING OFFSET (LEFT)  =====
         //   ===== WING OFFSET (RIGHT) =====
-        const ROWS_ORDER       = ['A','B','C','D','E','F','G','H','GAP','I','J','K','L','M','N','O','P','Q','R'];
+        // ROWS_ORDER + RIGHT_SHIFT_STEPS come from the active preset
+        // (PHP-side $presets registry → data-seat-preset script). This is
+        // the ONLY thing that changes per theater layout — the rest of
+        // the engine (computeLayout, drawing, gestures, hit-testing,
+        // auto-pick, admin flow) is identical across every preset.
+        const ROWS_ORDER       = Array.isArray(PRESET.rowsOrder) ? PRESET.rowsOrder : [];
         const SEAT_W           = 22;     // seat box width  (px)
         const SEAT_H           = 20;     // seat box height (px)
         const SEAT_GAP         = 5;      // horizontal gap between adjacent seats
@@ -1027,26 +1110,28 @@
 
         // ===== WING OFFSET STEPS =====
         // Per-row offset at the OUTERMOST seat of each wing (in HALF-SEAT
-        // widths). The same value is used for both left and right wings
-        // so the layout is symmetric. Inner-edge seats keep their natural
-        // SEAT_PITCH spacing; only the spread of the wing grows.
-        //
-        // Tweak any single row here without touching layout math:
-        const RIGHT_SHIFT_STEPS = {
-            // Back section — Q is the anchor (0 offset).
-            Q: 0,    P: 1,    O: 2,    N: 3,
-            // Mid-back — micro 0.2-step progression so rows don't look
-            // perfectly stacked.
-            M: 3.0,  L: 3.2,  K: 3.4,  J: 3.6,  I: 4,
-            // Front section — full integer steps up to C.
-            H: 5,    G: 6,    F: 7,    E: 8,    D: 9, C: 10,
-            // Front-most rows — micro adjustment to keep B/A distinct.
-            B: 10.2, A: 11.2,
-            // Row R — no center column; falls through to the default
-            // anchoring (centerStartX = CX, centerWidth = 0). +1 step
-            // matches P's outward offset.
-            R: 1,
-        };
+        // widths), supplied by the active preset. The same value is used
+        // for both left and right wings so the layout stays symmetric.
+        // Inner-edge seats keep their natural SEAT_PITCH spacing; only
+        // the spread of the wing grows.
+        const RIGHT_SHIFT_STEPS = (PRESET.rightShiftSteps && typeof PRESET.rightShiftSteps === 'object')
+            ? PRESET.rightShiftSteps
+            : {};
+
+        // ===== NO-CENTER ANCHORS =====
+        // Per-preset map: row letter (without center column) → row letter
+        // to anchor each wing's inner edge to. The anchor row's center
+        // column position is reused so the layout stays vertically
+        // aligned across the gap. Empty for presets where every row has
+        // a center column.
+        const NO_CENTER_ANCHORS = (PRESET.noCenterAnchors && typeof PRESET.noCenterAnchors === 'object')
+            ? PRESET.noCenterAnchors
+            : {};
+
+        // ===== ADMIN-ONLY CENTER =====
+        // Rows whose center seats are reserved for admin use only and
+        // therefore skipped during render (e.g. row Q in hall).
+        const ADMIN_ONLY_CENTER = new Set(Array.isArray(PRESET.adminOnlyCenter) ? PRESET.adminOnlyCenter : []);
 
         const STAGE_H          = 70;
         const TOP_PAD          = 28;
@@ -1074,22 +1159,23 @@
             seatMeta.clear();
             ROW_META.clear();
 
-            const rows = seatData.hall || {};
+            const rows = seatData[sectionParam] || {};
 
             let visualRow = 0;
 
             ROWS_ORDER.forEach((letter, idx) => {
                 if (letter === 'GAP') {
-                    visualRow += 1.5; // مسافة زيادة
+                    visualRow += 1.5; // walkway / section break (geometry, not CSS)
                     return;
                 }
                 const data = rows[letter];
                 if (!data) return;
 
                 const cL = (data.left   || []).length;
-                // Row Q's center seats are admin-only management block;
-                // skip rendering them so Q is two wings only (similar to A).
-                const cC = (letter === 'Q') ? 0 : (data.center || []).length;
+                // Some rows have admin-only management blocks in the center
+                // (e.g. row Q in hall). Skip rendering those so the row is
+                // two wings only.
+                const cC = ADMIN_ONLY_CENTER.has(letter) ? 0 : (data.center || []).length;
                 const cR = (data.right  || []).length;
 
                 // Per-row outermost offset (px). Inner edge gets 0,
@@ -1106,13 +1192,11 @@
                 const centerStartX  = CX - centerWidth / 2;
 
                 // Pick the gap between the two wings:
-                //   - row A → anchor to row B (its toward-stage neighbor)
-                //   - row Q → anchor to row P (toward-stage neighbor)
-                //   - row R → anchor to row Q (toward-stage neighbor; Q's
-                //             raw data still has 9 center seats, so the
-                //             effective anchor matches P's wing position)
+                //   - rows w/ no center → anchor to the preset's
+                //     NO_CENTER_ANCHORS[letter] row (e.g. hall row A
+                //     anchors to row B's center column; balcony rows
+                //     D–H anchor to row C's center column)
                 //   - rows w/ center → 2 × AISLE_GAP around centerStartX
-                const NO_CENTER_ANCHORS = { A: 'B', Q: 'P', R: 'Q' };
                 let leftEndX;
                 let rightStartX;
                 if (NO_CENTER_ANCHORS[letter]) {
