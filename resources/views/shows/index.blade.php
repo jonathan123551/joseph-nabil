@@ -341,7 +341,10 @@
                  data-show-id="{{ $featured->id }}">
             <div class="pt-cine-featured-poster">
                 @if($featured->poster_path)
-                    <img src="{{ $featured->poster_path }}" alt="{{ $featured->title }}" loading="lazy" decoding="async">
+                    {{-- W3#6: featured poster is above the fold — eager + high
+                         priority so the cinematic hero paints fast on mobile.
+                         Grid posters below stay lazy. --}}
+                    <img src="{{ $featured->poster_path }}" alt="{{ $featured->title }}" loading="eager" decoding="async" fetchpriority="high">
                 @else
                     <div class="pt-cine-featured-poster-empty" data-i18n="shows_no_poster">بدون بوستر</div>
                 @endif

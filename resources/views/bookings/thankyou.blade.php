@@ -72,10 +72,18 @@
 @section('content')
 <section class="max-w-lg mx-auto prism-fade-up">
 
-    <div class="prism-glass prism-glow-border p-6 sm:p-8 text-center space-y-5">
+    <div class="prism-glass prism-glow-border p-6 sm:p-8 text-center space-y-5"
+         style="position: relative; overflow: hidden;">
+
+        {{-- W3#8: cinematic close — soft particle field above the success orb.
+             Reduced-motion guard lives in app.blade.php. Pointer-events none
+             so the layer never intercepts taps on the buttons below. --}}
+        <div class="pt-thx-particles" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+        </div>
 
         {{-- Animated success orb --}}
-        <div class="mx-auto w-20 h-20 relative">
+        <div class="mx-auto w-20 h-20 relative" style="z-index: 1;">
             <div class="absolute inset-0 rounded-full"
                  style="background: radial-gradient(circle, rgba(16,185,129,0.55), transparent 70%);
                         filter: blur(14px);
@@ -87,8 +95,9 @@
         </div>
 
         {{-- Title --}}
-        <div>
-            <h1 class="prism-headline text-2xl sm:text-3xl"
+        <div style="position: relative; z-index: 1;">
+            <span class="pt-thx-eyebrow" data-i18n="thx_hero_eyebrow">حجزك مؤكد</span>
+            <h1 class="prism-headline text-2xl sm:text-3xl mt-2"
                 data-i18n="thx_title"
                 style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
                 تم إرسال طلب الحجز بنجاح

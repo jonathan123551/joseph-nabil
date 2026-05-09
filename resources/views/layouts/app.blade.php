@@ -4911,6 +4911,686 @@
                 transform: none;
             }
         }
+
+        /* =====================================================================
+           WAVE 3 — Cinematic premium polish (show detail, showtimes,
+           sticky CTA, transitions, mobile Safari)
+
+           Pure CSS, GPU-friendly, prefers-reduced-motion guarded.
+           Customer-flow only — no app-shell or drawer-heavy patterns.
+           ===================================================================== */
+
+        /* ---- W3#1: Cinematic show-detail hero ---- */
+        .pt-show-hero {
+            position: relative;
+            border-radius: 28px;
+            overflow: hidden;
+            border: 1px solid var(--prism-border);
+            background: linear-gradient(180deg, rgba(8,10,20,0.92), rgba(5,6,13,0.96));
+            isolation: isolate;
+        }
+        :root[data-pt-theme="light"] .pt-show-hero {
+            background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(244,241,234,0.9));
+        }
+        .pt-show-hero-poster {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background-size: cover;
+            background-position: center;
+            background-color: rgba(8,10,20,0.6);
+        }
+        @media (max-width: 640px) {
+            .pt-show-hero-poster { aspect-ratio: 4 / 5; }
+        }
+        .pt-show-hero-poster img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scale(1.02);
+            transition: transform 1.2s var(--prism-ease);
+            will-change: transform;
+        }
+        .pt-show-hero:hover .pt-show-hero-poster img {
+            transform: scale(1.06);
+        }
+        .pt-show-hero-veil {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(180deg, rgba(5,6,13,0) 0%, rgba(5,6,13,0.55) 60%, rgba(5,6,13,0.92) 100%),
+                radial-gradient(circle at 75% 0%, rgba(34,211,238,0.18), transparent 55%),
+                radial-gradient(circle at 15% 100%, rgba(192,132,252,0.18), transparent 55%);
+        }
+        :root[data-pt-theme="light"] .pt-show-hero-veil {
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 60%, rgba(244,241,234,0.92) 100%),
+                radial-gradient(circle at 75% 0%, rgba(14,165,233,0.18), transparent 55%),
+                radial-gradient(circle at 15% 100%, rgba(168,85,247,0.16), transparent 55%);
+        }
+        .pt-show-hero-grain {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.35;
+            mix-blend-mode: overlay;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.7'/></svg>");
+        }
+        :root[data-pt-theme="light"] .pt-show-hero-grain { opacity: 0.18; }
+
+        .pt-show-hero-content {
+            position: relative;
+            z-index: 2;
+            padding: 22px 22px 26px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        @media (min-width: 720px) {
+            .pt-show-hero-content { padding: 32px 36px 38px; gap: 14px; }
+        }
+        .pt-show-hero-content::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            top: -80px;
+            background: linear-gradient(180deg, rgba(5,6,13,0) 0%, rgba(5,6,13,0.7) 35%, rgba(5,6,13,0.95) 100%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        :root[data-pt-theme="light"] .pt-show-hero-content::before {
+            background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(244,241,234,0.7) 35%, rgba(244,241,234,0.95) 100%);
+        }
+        .pt-show-hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            align-self: flex-start;
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            padding: 5px 11px;
+            border-radius: 999px;
+            background: rgba(34,211,238,0.10);
+            color: var(--prism-cyan);
+            border: 1px solid rgba(34,211,238,0.35);
+        }
+        :root[data-pt-theme="light"] .pt-show-hero-eyebrow {
+            background: rgba(14,165,233,0.10);
+            color: #0369a1;
+            border-color: rgba(14,165,233,0.35);
+        }
+        .pt-show-hero-eyebrow::before {
+            content: "";
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 10px currentColor;
+            animation: ptShowEyebrowPulse 2.4s ease-in-out infinite;
+        }
+        @keyframes ptShowEyebrowPulse {
+            0%, 100% { opacity: 0.6; transform: scale(0.9); }
+            50%      { opacity: 1;   transform: scale(1.15); }
+        }
+        .pt-show-hero-title {
+            font-family: "Space Grotesk", "Cairo", system-ui, sans-serif;
+            font-weight: 800;
+            font-size: clamp(26px, 5.5vw, 44px);
+            line-height: 1.1;
+            letter-spacing: -0.01em;
+            background: linear-gradient(180deg, var(--prism-text) 0%, color-mix(in oklab, var(--prism-text) 78%, var(--prism-cyan) 22%) 100%);
+            -webkit-background-clip: text;
+                    background-clip: text;
+            color: transparent;
+            margin: 0;
+        }
+        :root[data-pt-theme="light"] .pt-show-hero-title {
+            background: linear-gradient(180deg, #0b1020 0%, #312e81 100%);
+            -webkit-background-clip: text;
+                    background-clip: text;
+            color: transparent;
+        }
+        .pt-show-hero-desc {
+            color: var(--prism-text-2);
+            font-size: 14px;
+            line-height: 1.7;
+            white-space: pre-line;
+            max-width: 62ch;
+        }
+        @media (min-width: 720px) {
+            .pt-show-hero-desc { font-size: 15px; }
+        }
+        .pt-show-hero-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-top: 4px;
+        }
+
+        /* ---- W3#2: Premium showtime cards ---- */
+        .pt-time-section-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .pt-time-section-eyebrow {
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+            color: var(--prism-text-3);
+        }
+        .pt-time-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+        @media (min-width: 720px) {
+            .pt-time-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+        }
+        .pt-time-card {
+            position: relative;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 18px 16px 22px;
+            border-radius: 22px;
+            border: 1px solid var(--prism-border);
+            background: linear-gradient(180deg, rgba(20,24,38,0.60), rgba(8,10,20,0.78));
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            overflow: hidden;
+            isolation: isolate;
+            transition: transform .35s var(--prism-ease),
+                        border-color .35s var(--prism-ease),
+                        box-shadow .45s var(--prism-ease);
+        }
+        :root[data-pt-theme="light"] .pt-time-card {
+            background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.66));
+        }
+        @media (max-width: 640px) {
+            .pt-time-card { grid-template-columns: auto 1fr; row-gap: 14px; padding: 14px 16px 14px 20px; }
+            .pt-time-card .pt-time-cta-cell { grid-column: 1 / -1; }
+        }
+        .pt-time-card::before {
+            /* leading-edge status rail */
+            content: "";
+            position: absolute;
+            inset-inline-start: 0;
+            top: 0; bottom: 0;
+            width: 4px;
+            background: var(--pt-time-rail, var(--prism-cyan));
+            box-shadow: 0 0 14px var(--pt-time-rail, var(--prism-cyan));
+            border-end-start-radius: 22px;
+            border-start-start-radius: 22px;
+        }
+        .pt-time-card[data-status="few"]   { --pt-time-rail: #fbbf24; }
+        .pt-time-card[data-status="sold"]  { --pt-time-rail: #fb7185; }
+        .pt-time-card[data-status="open"]  { --pt-time-rail: #34d399; }
+
+        @media (hover: hover) {
+            .pt-time-card:not([data-status="sold"]):hover {
+                transform: translateY(-3px);
+                border-color: rgba(129,140,248,0.42);
+                box-shadow: 0 18px 60px -22px rgba(34,211,238,0.30),
+                            0 8px 24px -12px rgba(129,140,248,0.30);
+            }
+        }
+        .pt-time-card[data-status="sold"] {
+            opacity: 0.65;
+            filter: grayscale(0.35);
+        }
+
+        .pt-time-day {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 64px;
+            padding: 10px 6px;
+            border-radius: 14px;
+            background: linear-gradient(180deg, rgba(34,211,238,0.10), rgba(129,140,248,0.10));
+            border: 1px solid rgba(129,140,248,0.30);
+        }
+        :root[data-pt-theme="light"] .pt-time-day {
+            background: linear-gradient(180deg, rgba(14,165,233,0.10), rgba(99,102,241,0.10));
+            border-color: rgba(99,102,241,0.30);
+        }
+        .pt-time-day-num {
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-weight: 800;
+            font-size: 26px;
+            line-height: 1;
+            color: var(--prism-text);
+            letter-spacing: -0.02em;
+        }
+        .pt-time-day-mon {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--prism-cyan);
+            margin-top: 2px;
+        }
+        :root[data-pt-theme="light"] .pt-time-day-mon { color: #0369a1; }
+        .pt-time-day-dow {
+            font-size: 10px;
+            color: var(--prism-text-3);
+            margin-top: 4px;
+            letter-spacing: 0.06em;
+        }
+
+        .pt-time-info {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
+        .pt-time-time {
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--prism-text);
+            letter-spacing: 0.01em;
+        }
+        .pt-time-time-meridian {
+            font-size: 11px;
+            color: var(--prism-text-3);
+            margin-inline-start: 4px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .pt-time-eta {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11.5px;
+            color: var(--prism-text-3);
+            padding: 3px 9px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--prism-border);
+            align-self: flex-start;
+        }
+        :root[data-pt-theme="light"] .pt-time-eta {
+            background: rgba(0,0,0,0.04);
+        }
+        .pt-time-eta::before {
+            content: "";
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: var(--prism-cyan);
+            box-shadow: 0 0 8px currentColor;
+        }
+        .pt-time-price-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: baseline;
+            font-size: 12.5px;
+            color: var(--prism-text-3);
+        }
+        .pt-time-price-row .pt-time-price-from {
+            font-size: 11px;
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+            color: var(--prism-text-3);
+        }
+        .pt-time-price-row .pt-time-price-amount {
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-weight: 800;
+            color: var(--prism-gold);
+            font-size: 16px;
+        }
+        .pt-time-price-row .pt-time-price-currency {
+            font-size: 10.5px;
+            color: var(--prism-text-3);
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+            margin-inline-start: -2px;
+        }
+        .pt-time-price-row .pt-time-price-sections {
+            color: var(--prism-gold);
+            font-weight: 600;
+        }
+        .pt-time-cta-cell {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        @media (max-width: 640px) {
+            .pt-time-cta-cell { justify-content: stretch; }
+            .pt-time-cta-cell > * { width: 100%; justify-content: center; }
+        }
+
+        /* Premium status badges (W3#4) */
+        .pt-time-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid currentColor;
+            background: color-mix(in oklab, currentColor 10%, transparent);
+        }
+        .pt-time-status[data-status="open"]  { color: #34d399; }
+        .pt-time-status[data-status="few"]   { color: #fbbf24; }
+        .pt-time-status[data-status="sold"]  { color: #fb7185; }
+        .pt-time-status[data-status="few"]::before,
+        .pt-time-status[data-status="open"]::before {
+            content: "";
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 8px currentColor;
+        }
+        .pt-time-status[data-status="few"]::before { animation: ptTimeFewPulse 1.6s ease-in-out infinite; }
+        @keyframes ptTimeFewPulse {
+            0%, 100% { opacity: 0.5; transform: scale(0.85); }
+            50%      { opacity: 1;   transform: scale(1.20); }
+        }
+
+        /* ---- W3#3: Sticky cinematic price/CTA bar (mobile, show detail) ---- */
+        .pt-show-stickybar {
+            position: fixed;
+            inset-inline: 12px;
+            bottom: max(12px, env(safe-area-inset-bottom));
+            z-index: 38;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 12px 10px 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(212,175,55,0.40);
+            background: linear-gradient(180deg, rgba(20,24,38,0.92), rgba(8,10,20,0.96));
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 18px 60px -22px rgba(212,175,55,0.40),
+                        0 8px 24px -12px rgba(0,0,0,0.50);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity .3s var(--prism-ease), transform .35s var(--prism-ease);
+            pointer-events: none;
+        }
+        :root[data-pt-theme="light"] .pt-show-stickybar {
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,241,234,0.96));
+        }
+        .pt-show-stickybar.is-shown {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        @media (max-width: 880px) {
+            .pt-show-stickybar { display: flex; }
+        }
+        .pt-show-stickybar-info {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            min-width: 0;
+        }
+        .pt-show-stickybar-from {
+            font-size: 10.5px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--prism-text-3);
+        }
+        .pt-show-stickybar-amount {
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-weight: 800;
+            font-size: 16px;
+            color: var(--prism-gold);
+            line-height: 1;
+        }
+        .pt-show-stickybar-amount-currency {
+            font-size: 11px;
+            color: var(--prism-text-3);
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+            margin-inline-start: 4px;
+        }
+
+        /* ---- W3#5: Premium page entry transition (lightweight) ---- */
+        .pt-w3-pageenter {
+            animation: ptW3PageEnter .55s var(--prism-ease) both;
+        }
+        @keyframes ptW3PageEnter {
+            from { opacity: 0; transform: translateY(14px) scale(0.992); filter: blur(2px); }
+            to   { opacity: 1; transform: translateY(0)    scale(1);     filter: blur(0); }
+        }
+
+        /* ---- W3#6: Image polish (skeleton, no CLS) ---- */
+        .pt-img-frame {
+            position: relative;
+            overflow: hidden;
+            background:
+                linear-gradient(110deg, rgba(255,255,255,0.04) 8%, rgba(255,255,255,0.10) 18%, rgba(255,255,255,0.04) 33%);
+            background-size: 200% 100%;
+            animation: ptImgShimmer 1.6s linear infinite;
+        }
+        :root[data-pt-theme="light"] .pt-img-frame {
+            background:
+                linear-gradient(110deg, rgba(0,0,0,0.04) 8%, rgba(0,0,0,0.08) 18%, rgba(0,0,0,0.04) 33%);
+            background-size: 200% 100%;
+        }
+        .pt-img-frame.is-loaded {
+            background: transparent;
+            animation: none;
+        }
+        @keyframes ptImgShimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .pt-img-frame > img {
+            opacity: 0;
+            transition: opacity .45s var(--prism-ease);
+        }
+        .pt-img-frame.is-loaded > img {
+            opacity: 1;
+        }
+        .pt-img-frame > img,
+        .pt-show-hero-poster img {
+            -webkit-touch-callout: none;
+        }
+
+        /* ---- W3#7: Booking-form premium polish (step meter, focus rings) ---- */
+        .pt-step-meter {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+            font-family: "Space Grotesk", system-ui, sans-serif;
+        }
+        .pt-step-meter-step {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--prism-text-3);
+        }
+        .pt-step-meter-step .pt-step-meter-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px; height: 22px;
+            border-radius: 999px;
+            border: 1px solid var(--prism-border);
+            background: rgba(255,255,255,0.04);
+            font-size: 11px;
+        }
+        .pt-step-meter-step.is-active .pt-step-meter-num {
+            background: rgba(34,211,238,0.18);
+            border-color: rgba(34,211,238,0.55);
+            color: var(--prism-cyan);
+            box-shadow: 0 0 12px rgba(34,211,238,0.35);
+        }
+        .pt-step-meter-step.is-active { color: var(--prism-text); }
+        .pt-step-meter-step.is-done .pt-step-meter-num {
+            background: rgba(52,211,153,0.16);
+            border-color: rgba(52,211,153,0.50);
+            color: #34d399;
+        }
+        .pt-step-meter-divider {
+            flex: 0 0 24px;
+            height: 1px;
+            background: var(--prism-border);
+        }
+
+        /* Premium :focus-visible rings on customer-flow inputs/buttons */
+        .pt-page input:focus-visible,
+        .pt-page select:focus-visible,
+        .pt-page textarea:focus-visible {
+            outline: none;
+            border-color: rgba(212,175,55,0.55);
+            box-shadow: 0 0 0 3px rgba(212,175,55,0.18),
+                        0 0 18px rgba(212,175,55,0.18);
+        }
+        .pt-page a:focus-visible,
+        .pt-page button:focus-visible {
+            outline: 2px solid rgba(34,211,238,0.55);
+            outline-offset: 2px;
+            border-radius: 12px;
+        }
+        /* Suppress the focus ring on touch (no keyboard) — iOS Safari quirk */
+        @media (hover: none) {
+            .pt-page a:focus:not(:focus-visible),
+            .pt-page button:focus:not(:focus-visible) { outline: none; }
+        }
+
+        /* ---- W3#8: Thank-you cinematic close ---- */
+        .pt-thx-hero {
+            position: relative;
+            border-radius: 28px;
+            overflow: hidden;
+            border: 1px solid var(--prism-border);
+            background: linear-gradient(180deg, rgba(20,24,38,0.85), rgba(5,6,13,0.95));
+            padding: 28px 22px 30px;
+            text-align: center;
+            isolation: isolate;
+        }
+        :root[data-pt-theme="light"] .pt-thx-hero {
+            background: linear-gradient(180deg, rgba(255,255,255,0.90), rgba(244,241,234,0.96));
+        }
+        .pt-thx-hero::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 50% 0%, rgba(212,175,55,0.18), transparent 55%),
+                radial-gradient(circle at 100% 100%, rgba(34,211,238,0.16), transparent 55%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        .pt-thx-particles {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .pt-thx-particles span {
+            position: absolute;
+            width: 4px; height: 4px;
+            border-radius: 50%;
+            background: rgba(212,175,55,0.55);
+            box-shadow: 0 0 12px currentColor;
+            opacity: 0;
+            animation: ptThxParticle 9s linear infinite;
+        }
+        .pt-thx-particles span:nth-child(1) { left: 12%; animation-delay: -0.4s; background: rgba(212,175,55,0.7); }
+        .pt-thx-particles span:nth-child(2) { left: 28%; animation-delay: -2.1s; background: rgba(34,211,238,0.6); }
+        .pt-thx-particles span:nth-child(3) { left: 46%; animation-delay: -3.8s; background: rgba(192,132,252,0.6); }
+        .pt-thx-particles span:nth-child(4) { left: 64%; animation-delay: -5.6s; background: rgba(212,175,55,0.6); }
+        .pt-thx-particles span:nth-child(5) { left: 82%; animation-delay: -7.3s; background: rgba(129,140,248,0.6); }
+        @keyframes ptThxParticle {
+            0%   { transform: translateY(110%) scale(0.5); opacity: 0; }
+            10%  { opacity: 0.85; }
+            85%  { opacity: 0.5; }
+            100% { transform: translateY(-30%) scale(1); opacity: 0; }
+        }
+        .pt-thx-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+            color: var(--prism-gold);
+            position: relative;
+            z-index: 1;
+        }
+        .pt-thx-ref {
+            position: relative;
+            z-index: 1;
+            font-family: "Space Grotesk", monospace;
+            font-weight: 800;
+            font-size: clamp(22px, 5vw, 32px);
+            letter-spacing: 0.10em;
+            color: var(--prism-text);
+            margin-top: 10px;
+            display: inline-block;
+            padding-bottom: 6px;
+            background-image: linear-gradient(90deg, transparent, rgba(212,175,55,0.85), transparent);
+            background-repeat: no-repeat;
+            background-size: 60% 2px;
+            background-position: 50% 100%;
+        }
+
+        /* ---- W3#9: Seat picker entry polish (no flash before canvas) ---- */
+        .pt-seatpick-frame {
+            animation: ptW3PageEnter .55s var(--prism-ease) both;
+            animation-delay: .04s;
+        }
+
+        /* ---- W3#10: Mobile Safari polish — safe-area + smooth-scroll ---- */
+        html {
+            scroll-behavior: smooth;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+        }
+        .pt-page {
+            padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right));
+        }
+        @media (max-width: 880px) {
+            /* Add bottom padding only when the show-detail sticky bar is
+               rendered, to avoid the page CTA being covered by the bar.
+               The .pt-route-show body class is set by shows/show.blade.php
+               via @section('body_class', ...). */
+            body.pt-route-show .pt-page { padding-bottom: 96px; }
+        }
+
+        /* Reduced-motion master guard for everything Wave 3 added */
+        @media (prefers-reduced-motion: reduce) {
+            .pt-show-hero-poster img { transform: none !important; transition: none !important; }
+            .pt-show-hero-eyebrow::before,
+            .pt-time-status[data-status="few"]::before,
+            .pt-thx-particles span,
+            .pt-img-frame { animation: none !important; }
+            .pt-w3-pageenter,
+            .pt-seatpick-frame { animation: none !important; }
+            .pt-show-stickybar { transition: none !important; }
+        }
     </style>
 </head>
 <body class="prism-stage min-h-screen @yield('body_class')">
@@ -5379,10 +6059,17 @@
                 show_pill_kind: 'عرض مسرحي',
                 show_pill_online: 'حجز إلكتروني',
                 show_pill_qr: 'تذكرة QR',
+                show_hero_eyebrow: 'عرض حصري',
                 show_times_title: 'المواعيد المتاحة',
+                show_times_eyebrow: 'احجز موعدك',
                 show_prices_label: 'الأسعار:',
                 show_price_label: 'سعر التذكرة:',
                 show_no_times: 'لا توجد مواعيد متاحة حاليًا لهذا العرض.',
+                show_eta_started: 'العرض بدأ',
+                show_eta_in_days: 'يبدأ خلال {n} أيام',
+                show_eta_in_hours: 'يبدأ خلال {n} ساعات',
+                show_eta_in_mins: 'يبدأ خلال {n} دقيقة',
+                show_eta_soon: 'يبدأ قريبًا',
 
                 /* ===== booking step 1 (anba section pick) ===== */
                 step_section: 'القسم', step_seat: 'المقعد', step_confirm: 'التأكيد',
@@ -5502,6 +6189,7 @@
                 form_confirm_cancel: 'إلغاء',
 
                 /* ===== bookings/thankyou ===== */
+                thx_hero_eyebrow: 'حجزك مؤكد',
                 thx_title: 'تم إرسال طلب الحجز بنجاح',
                 thx_thanks_prefix: 'شكرًا يا',
                 thx_ref_label: 'رقم الحجز',
@@ -6111,10 +6799,17 @@
                 show_pill_kind: 'Theater show',
                 show_pill_online: 'Online booking',
                 show_pill_qr: 'QR ticket',
+                show_hero_eyebrow: 'Featured show',
                 show_times_title: 'Available showtimes',
+                show_times_eyebrow: 'Pick your slot',
                 show_prices_label: 'Prices:',
                 show_price_label: 'Ticket price:',
                 show_no_times: 'No showtimes available for this show right now.',
+                show_eta_started: 'Show has started',
+                show_eta_in_days: 'Starts in {n}d',
+                show_eta_in_hours: 'Starts in {n}h',
+                show_eta_in_mins: 'Starts in {n}m',
+                show_eta_soon: 'Starts soon',
 
                 /* ===== booking step 1 (anba section pick) ===== */
                 step_section: 'Section', step_seat: 'Seat', step_confirm: 'Confirm',
@@ -6234,6 +6929,7 @@
                 form_confirm_cancel: 'Cancel',
 
                 /* ===== bookings/thankyou ===== */
+                thx_hero_eyebrow: 'Booking confirmed',
                 thx_title: 'Your booking request was sent successfully',
                 thx_thanks_prefix: 'Thank you,',
                 thx_ref_label: 'Booking reference',
