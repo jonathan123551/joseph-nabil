@@ -6687,6 +6687,19 @@
                 adm_scanner_invalid: '❌ غير صالح',
                 adm_scanner_entered: 'دخل',
                 adm_scanner_no_torch: 'الفلاش غير مدعوم',
+                /* premium scan-result sheet */
+                adm_scanner_loading: 'جاري تشغيل الكاميرا…',
+                adm_scanner_processing: '⏳ جارٍ التحقق',
+                adm_scanner_section_label: 'القاعة',
+                adm_scanner_seats_label: 'المقاعد',
+                adm_scanner_used_note: 'هذه التذكرة تم استخدامها سابقًا',
+                adm_scanner_close: 'إغلاق',
+                adm_scanner_next_in: 'التالية خلال',
+                adm_scanner_network_err: '⚠️ تعذّر الاتصال',
+                adm_scanner_camera_err: '⚠️ تعذّر تشغيل الكاميرا',
+                adm_scanner_unknown_name: 'بدون اسم',
+                section_hall: 'الصالة',
+                section_balcony: 'البلكون',
 
                 /* ===== auth ===== */
                 auth_admin_pill: 'تسجيل الدخول',
@@ -7433,6 +7446,19 @@
                 adm_scanner_invalid: '❌ Invalid',
                 adm_scanner_entered: 'Entered',
                 adm_scanner_no_torch: 'Flash is not supported',
+                /* premium scan-result sheet */
+                adm_scanner_loading: 'Starting camera…',
+                adm_scanner_processing: '⏳ Verifying',
+                adm_scanner_section_label: 'Section',
+                adm_scanner_seats_label: 'Seats',
+                adm_scanner_used_note: 'This ticket was already scanned',
+                adm_scanner_close: 'Close',
+                adm_scanner_next_in: 'Next in',
+                adm_scanner_network_err: '⚠️ Network error',
+                adm_scanner_camera_err: '⚠️ Camera failed to start',
+                adm_scanner_unknown_name: 'Unknown',
+                section_hall: 'Hall',
+                section_balcony: 'Balcony',
 
                 /* ===== auth ===== */
                 auth_admin_pill: 'Sign in',
