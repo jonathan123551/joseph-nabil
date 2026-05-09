@@ -108,6 +108,54 @@
                                class="prism-input text-sm" inputmode="numeric">
                     </div>
                 </div>
+
+                {{-- Live capacity preview — sourced from the actual seat
+                     layout. Updates with the toggle JS below so admins can
+                     see the auto-derived capacity the moment they switch
+                     the theater radio, without saving first. --}}
+                @php
+                    $anbaTheater = \App\Models\Theater::anbaRuweis();
+                    $anbaCounts  = ['hall' => 0, 'balcony' => 0, 'total' => 0];
+                    if ($anbaTheater) {
+                        $rows = $anbaTheater->seats()
+                            ->selectRaw('section, COUNT(*) as c')
+                            ->groupBy('section')
+                            ->pluck('c', 'section')
+                            ->all();
+                        $anbaCounts['hall']    = (int) ($rows[\App\Models\Theater::SECTION_HALL] ?? 0);
+                        $anbaCounts['balcony'] = (int) ($rows[\App\Models\Theater::SECTION_BALCONY] ?? 0);
+                        $anbaCounts['total']   = $anbaCounts['hall'] + $anbaCounts['balcony'];
+                    }
+                @endphp
+                <div class="rounded-xl px-3 py-3 text-xs"
+                     style="background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.32); color: var(--prism-text-2);">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="prism-dot prism-dot-emerald"></span>
+                        <span class="font-semibold" data-i18n="adm_show_capacity_preview_title" style="color: var(--prism-text);">
+                            سعة المقاعد للمسرح
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="rounded-lg px-3 py-2"
+                             style="background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.32);">
+                            <div class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_section_hall">صالة</div>
+                            <div class="font-semibold" style="color: var(--prism-gold);">{{ $anbaCounts['hall'] }}</div>
+                        </div>
+                        <div class="rounded-lg px-3 py-2"
+                             style="background: rgba(192,132,252,0.08); border: 1px solid rgba(192,132,252,0.32);">
+                            <div class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_section_balcony">بلكون</div>
+                            <div class="font-semibold" style="color: var(--prism-violet, #c084fc);">{{ $anbaCounts['balcony'] }}</div>
+                        </div>
+                        <div class="rounded-lg px-3 py-2"
+                             style="background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.40);">
+                            <div class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_time_capacity_total">الإجمالي</div>
+                            <div class="font-semibold" style="color: var(--prism-emerald);">{{ $anbaCounts['total'] }}</div>
+                        </div>
+                    </div>
+                    <p class="pt-form-helper mt-2" data-i18n="adm_time_capacity_helper">
+                        يتم حساب إجمالي التذاكر تلقائيًا من خريطة المقاعد للمسرح.
+                    </p>
+                </div>
             </div>
         </div>
 

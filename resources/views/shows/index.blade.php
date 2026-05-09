@@ -17,14 +17,16 @@
 
     // Compute aggregate "selling fast" / "last N seats" / "trending" hint
     // per show using already-loaded showTimes. We sum total_tickets and
-    // available_tickets (which is maintained by the booking flow) — no
-    // extra queries fired since showTimes is eager-loaded above.
+    // ShowTime::effectiveRemainingTickets() (which deducts both customer
+    // bookings and, for seatmap-backed shows, admin-blocked seats) — that
+    // way ribbons reflect the same supply the seat picker would actually
+    // sell. Each call hits 1-2 small relations on an already-loaded
+    // showTimes collection; no N+1 across shows.
     $showHint = function ($show) {
         $total = (int) $show->showTimes->sum('total_tickets');
         if ($total <= 0) return null;
         $available = (int) $show->showTimes->sum(function ($t) {
-            $av = $t->available_tickets;
-            return $av === null ? (int) $t->total_tickets : (int) $av;
+            return $t->effectiveRemainingTickets();
         });
         if ($available <= 0) return null;
         $ratio = $available / max($total, 1);

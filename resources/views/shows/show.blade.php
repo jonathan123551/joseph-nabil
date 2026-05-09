@@ -16,12 +16,11 @@
     $sectionStartsFrom = !empty($sectionPrices) ? min($sectionPrices) : null;
 
     // Wave 3: pre-compute card data so the template stays clean.
+    // effectiveRemainingTickets() also subtracts admin-blocked seats for
+    // seatmap-backed shows, so the storefront never advertises capacity
+    // that the seat picker would refuse.
     $cards = $show->showTimes->map(function ($time) {
-        $totalTickets = $time->total_tickets;
-        $reserved = \App\Models\Booking::where('show_time_id', $time->id)
-            ->whereIn('status', ['approved','pending'])
-            ->sum('tickets_count');
-        $remaining  = $totalTickets - $reserved;
+        $remaining  = $time->effectiveRemainingTickets();
         $isSoldOut  = $time->is_sold_out || $remaining <= 0;
         $fewTickets = $remaining > 0 && $remaining <= 10;
         $startsAt   = \Carbon\Carbon::parse($time->date->format('Y-m-d') . ' ' . $time->time);
