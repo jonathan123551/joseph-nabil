@@ -165,24 +165,33 @@
                     <span class="section-meta" data-i18n="section_hall_meta">اختار مقعدك من خريطة الصالة</span>
                 </a>
 
-                <button type="button"
-                        class="section-btn disabled"
-                        disabled
-                        aria-disabled="true"
-                        data-section="balcony">
-                    <span class="section-label">
-                        <span data-i18n="section_balcony">البلكون</span>
-                        <span class="opacity-70">(<span data-i18n="section_balcony_en">Balcony</span>)</span>
-                    </span>
-                    <span class="section-price">
-                        @if ($balconyPrice > 0)
-                            {{ $balconyPrice }} <span data-i18n="shows_per_ticket">جنيه / تذكرة</span>
-                        @else
-                            —
-                        @endif
-                    </span>
-                    <span class="badge-soon" data-i18n="section_soon">قريبًا</span>
-                </button>
+                @if ($balconyPrice > 0)
+                    <a href="{{ route('bookings.seats', $showTime) }}?section=balcony"
+                       class="section-btn prism-ripple"
+                       data-section="balcony">
+                        <span class="section-label">
+                            <span data-i18n="section_balcony">البلكون</span>
+                            <span class="opacity-70">(<span data-i18n="section_balcony_en">Balcony</span>)</span>
+                        </span>
+                        <span class="section-price">
+                            {{ $balconyPrice }} <span data-i18n="shows_per_seat">جنيه / مقعد</span>
+                        </span>
+                        <span class="section-meta" data-i18n="section_balcony_meta">اختار مقعدك من خريطة البلكون</span>
+                    </a>
+                @else
+                    <button type="button"
+                            class="section-btn disabled"
+                            disabled
+                            aria-disabled="true"
+                            data-section="balcony">
+                        <span class="section-label">
+                            <span data-i18n="section_balcony">البلكون</span>
+                            <span class="opacity-70">(<span data-i18n="section_balcony_en">Balcony</span>)</span>
+                        </span>
+                        <span class="section-price">—</span>
+                        <span class="badge-soon" data-i18n="section_soon">قريبًا</span>
+                    </button>
+                @endif
             </div>
         </div>
 
