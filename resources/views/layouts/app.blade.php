@@ -5576,7 +5576,7 @@
             /* Add bottom padding only when the show-detail sticky bar is
                rendered, to avoid the page CTA being covered by the bar.
                The .pt-route-show body class is set by shows/show.blade.php
-               via @section('body_class', ...). */
+               through the body_class section yielded into <body> above. */
             body.pt-route-show .pt-page { padding-bottom: 96px; }
         }
 
