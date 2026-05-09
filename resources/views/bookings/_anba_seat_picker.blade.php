@@ -41,7 +41,10 @@
     //                     letter to ANCHOR each wing's inner edge to.
     //                     Object cast forces JSON object (not array).
     //   adminOnlyCenter : rows whose center seats are admin-only and
-    //                     therefore skipped during render (Q in hall).
+    //                     therefore skipped during render. Currently empty
+    //                     for the hall preset — row Q's historical 9-seat
+    //                     center block was retired (see the
+    //                     2026-05-09 drop_anba_ruweis_q_center migration).
     $presets = [
         'hall' => [
             'rowsOrder'        => ['A','B','C','D','E','F','G','H','GAP','I','J','K','L','M','N','O','P','Q','R'],
@@ -53,7 +56,7 @@
                 'R' => 1,
             ],
             'noCenterAnchors'  => (object) ['A' => 'B', 'Q' => 'P', 'R' => 'Q'],
-            'adminOnlyCenter'  => ['Q'],
+            'adminOnlyCenter'  => [],
         ],
         // anba_ruweis_ballacon — 8-row premium balcony tier.
         // Rows A/B/C carry the central premium block (left + center + right);
