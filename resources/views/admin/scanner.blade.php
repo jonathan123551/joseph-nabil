@@ -1009,21 +1009,28 @@
             activeTrack = track;
 
             // Mount the live video into the existing #qr-reader slot.
+            // Order is intentional: the <video> element MUST be in the
+            // DOM (and have its inline-attributes set) BEFORE we assign
+            // srcObject. Some Safari versions silently drop srcObject
+            // assignments on detached <video> nodes — that was the
+            // suspected cause of "camera area stays black" on iPhone.
             const reader = document.getElementById('qr-reader');
             reader.innerHTML = '';
             const video = document.createElement('video');
             video.setAttribute('playsinline', 'true');
             video.setAttribute('webkit-playsinline', 'true');
+            video.setAttribute('autoplay', 'true');
+            video.setAttribute('muted', 'true');
             video.muted    = true;
             video.autoplay = true;
-            video.srcObject = stream;
             Object.assign(video.style, {
                 width:     '100%',
                 height:    '100%',
                 objectFit: 'cover',
                 display:   'block',
             });
-            reader.appendChild(video);
+            reader.appendChild(video);     // attach FIRST
+            video.srcObject = stream;      // then bind stream
             try { await video.play(); } catch (_) {}
 
             // Post-start: nudge continuous focus / exposure / white-
@@ -1161,14 +1168,17 @@
             }
             activeTrack = track;
 
+            // Same DOM-attach-before-srcObject ordering as Path A —
+            // Safari can drop srcObject on detached <video> nodes.
             const reader = document.getElementById('qr-reader');
             reader.innerHTML = '';
             const video = document.createElement('video');
             video.setAttribute('playsinline', 'true');
             video.setAttribute('webkit-playsinline', 'true');
+            video.setAttribute('autoplay', 'true');
+            video.setAttribute('muted', 'true');
             video.muted    = true;
             video.autoplay = true;
-            video.srcObject = stream;
             Object.assign(video.style, {
                 width:     '100%',
                 height:    '100%',
@@ -1176,6 +1186,7 @@
                 display:   'block',
             });
             reader.appendChild(video);
+            video.srcObject = stream;
             try { await video.play(); } catch (_) {}
 
             // Post-start advanced constraints. Failure is harmless.
@@ -1358,44 +1369,82 @@
     }
 
     /* ============================================================
-       Bootstrap — Path A (native BarcodeDetector)
-                -> Path B (ZXing-js, the iPhone-Safari path)
-                -> Path C (html5-qrcode + jsQR last resort)
+       Bootstrap — Path A (native BarcodeDetector) -> Path C (html5-qrcode)
+
+       Path B (ZXing-js) is intentionally DISABLED here. After PR #72
+       it caused a hang on iPhone Safari: ZXing's
+       BrowserMultiFormatReader.decodeFromVideoElement awaits a
+       'playing' / 'loadeddata' event-state that iPhone Safari does
+       not always fire. The result was the loading spinner staying
+       up forever even though the camera itself was streaming. The
+       startZXing() function is left in place above so this is a
+       single-line re-enable once we have a way to verify it on a
+       real iPhone.
+
+       Until then we fall back through the proven Path A -> Path C
+       flow we had before PR #72.
+
+       SAFETY NET: a 6s timeout that force-dismisses the loading
+       overlay and shows a clear error if NO path called us back.
+       Combined with the global error handlers further down, this
+       guarantees the operator never sees a stuck spinner.
        ============================================================ */
+    let scannerStarted = false;
+
+    function markScannerReady() {
+        scannerStarted = true;
+        $loading.classList.add('is-hidden');
+        setStatus(tt('adm_scanner_ready', 'جاهز للفحص'), 'ready');
+    }
+
+    function markScannerFailed() {
+        if (scannerStarted) return;
+        scannerStarted = true;
+        $loading.classList.add('is-hidden');
+        setStatus(tt('adm_scanner_camera_err', '⚠️ تعذّر تشغيل الكاميرا'), 'error');
+    }
+
+    // Hard ceiling — even if every promise hangs, we WILL release the
+    // UI back to the operator after this many ms. 6s is generous
+    // enough to cover slow camera startup on older phones but short
+    // enough that a stuck spinner is never the operator's experience.
+    const BOOTSTRAP_TIMEOUT_MS = 6000;
+    const bootstrapTimeoutId = setTimeout(markScannerFailed, BOOTSTRAP_TIMEOUT_MS);
+
+    // Last-line-of-defense: if anything throws from inside an async
+    // path that we forgot to wrap, dismiss the loading state so the
+    // page is at least usable. The errors themselves are already
+    // surfaced in DevTools — we only intervene in the visible UI.
+    window.addEventListener('error', markScannerFailed);
+    window.addEventListener('unhandledrejection', markScannerFailed);
+
     (async () => {
-        // Path A — native BarcodeDetector (Android Chrome / Edge).
+        // Path A — native BarcodeDetector (Android Chrome / Edge,
+        // and iOS 17+ Safari with the experimental flag enabled).
         try {
             const native = await startNativeBarcodeDetector();
             if (native) {
                 qrInstance = native;
-                $loading.classList.add('is-hidden');
-                setStatus(tt('adm_scanner_ready', 'جاهز للفحص'), 'ready');
+                clearTimeout(bootstrapTimeoutId);
+                markScannerReady();
                 return;
             }
         } catch (_) { /* fall through */ }
 
-        // Path B — ZXing-js (iOS Safari + everything else without
-        // BarcodeDetector). Same engine professional event scanners
-        // use; far better than jsQR at tilt / distance / partial /
-        // low-light.
-        try {
-            const zx = await startZXing();
-            if (zx) {
-                qrInstance = zx;
-                $loading.classList.add('is-hidden');
-                setStatus(tt('adm_scanner_ready', 'جاهز للفحص'), 'ready');
-                return;
-            }
-        } catch (_) { /* fall through */ }
-
-        // Path C — html5-qrcode last resort. Only reached if both of
-        // the above fail (e.g. ZXing CDN didn't load and the browser
-        // also has no BarcodeDetector).
+        // Path C — html5-qrcode (jsQR). Proven flow: this is what
+        // we shipped from PR #69 through PR #71 and what iPhone
+        // Safari actually used in production. Used now for
+        // everything Path A can't handle.
         try {
             await startHtml5QrcodeFallback();
+            clearTimeout(bootstrapTimeoutId);
+            // startHtml5QrcodeFallback hides the loading overlay
+            // itself in its .then() handler. Just sync our state
+            // flag so the safety timeout doesn't re-fire.
+            scannerStarted = true;
         } catch (_) {
-            $loading.classList.add('is-hidden');
-            setStatus(tt('adm_scanner_camera_err', '⚠️ تعذّر تشغيل الكاميرا'), 'error');
+            clearTimeout(bootstrapTimeoutId);
+            markScannerFailed();
         }
     })();
 
