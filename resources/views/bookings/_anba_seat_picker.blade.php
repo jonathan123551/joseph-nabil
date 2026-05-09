@@ -1777,12 +1777,28 @@
         // N for both. We re-prompt every click so the user can adjust
         // without reaching for a separate input.
         root.querySelectorAll('[data-anba-auto-pick]').forEach((btn) => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', async () => {
                 const t = window.PT_T || ((k) => k);
-                const promptStr = t('seat_auto_pick_prompt');
-                const raw = window.prompt(promptStr, '2');
-                if (raw === null) return;
-                const n = parseInt(String(raw).trim(), 10);
+                // Prefer the new PT modal stepper (Wave 2). Fall back to the
+                // browser prompt only if the modal API is unavailable for any
+                // reason (older bundle, JS failure earlier on the page, etc).
+                let n = null;
+                if (window.PT && window.PT.modal && typeof window.PT.modal.prompt === 'function') {
+                    try {
+                        n = await window.PT.modal.prompt({
+                            title: t('auto_pick_modal_title') || t('seat_auto_pick_prompt') || '',
+                            label: t('auto_pick_modal_label') || '',
+                            value: 2, min: 1, max: 12,
+                            okLabel: t('auto_pick_confirm'),
+                            cancelLabel: t('auto_pick_cancel'),
+                        });
+                    } catch (_) { n = null; }
+                } else {
+                    const raw = window.prompt(t('seat_auto_pick_prompt'), '2');
+                    if (raw === null) return;
+                    n = parseInt(String(raw).trim(), 10);
+                }
+                if (n == null) return;
                 if (!isFinite(n) || n <= 0 || n > 12) return;
                 applyAutoPickN(n);
             });
