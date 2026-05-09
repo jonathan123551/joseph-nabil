@@ -365,12 +365,26 @@ class BookingController extends Controller
                 // unique(show_time_id, seat_id) at the DB enforces no double-booking
                 BookingSeat::insert($rows);
 
+                // Re-load the freshly-inserted booking_seats in the same
+                // order they were sent in the request so each ticket can
+                // be wired 1:1 to its specific seat. We keep the legacy
+                // tickets fields (name/phone) untouched — only the new
+                // booking_seat_id link is added (PR #70).
+                $createdSeats = BookingSeat::where('booking_id', $booking->id)
+                    ->orderBy('id')
+                    ->get();
+                $seatBySeatId = $createdSeats->keyBy('seat_id');
+
                 foreach ($request->names as $i => $name) {
+                    $sid = $seatIds[$i] ?? null;
+                    $bookingSeat = $sid !== null ? ($seatBySeatId[$sid] ?? null) : null;
+
                     \App\Models\Ticket::create([
-                        'booking_id' => $booking->id,
-                        'name'       => $name,
-                        'phone'      => $this->normalizeEgyptPhone($request->phones[$i]),
-                        'ticket_code'=> 'TIC-' . strtoupper(Str::random(6)),
+                        'booking_id'      => $booking->id,
+                        'booking_seat_id' => optional($bookingSeat)->id,
+                        'name'            => $name,
+                        'phone'           => $this->normalizeEgyptPhone($request->phones[$i]),
+                        'ticket_code'     => 'TIC-' . strtoupper(Str::random(6)),
                     ]);
                 }
 

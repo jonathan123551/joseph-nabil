@@ -137,9 +137,19 @@
             </span>
         </div>
 
-        {{-- Attendee --}}
+        {{-- Attendee — large, prominent. PR #70: per-ticket identity
+             so this name is the holder of THIS specific QR, not the
+             booking owner. --}}
         <div class="scan-sheet-name" id="scan-sheet-title" data-scan-name>—</div>
         <div class="scan-sheet-ref" data-scan-ref></div>
+
+        {{-- BIG SEAT BADGE — readable across an event entrance.
+             Hidden on tickets that don't have a specific seat (manual
+             / "Other" venue bookings). --}}
+        <div class="scan-seat-hero" data-scan-seat-hero hidden>
+            <span class="scan-seat-hero-section" data-scan-seat-hero-section>—</span>
+            <span class="scan-seat-hero-label"   data-scan-seat-hero-label>—</span>
+        </div>
 
         {{-- Show / showtime --}}
         <div class="scan-sheet-row">
@@ -151,17 +161,12 @@
             <span class="scan-sheet-row-text" data-scan-when>—</span>
         </div>
 
-        {{-- Section + seat chips --}}
-        <div class="scan-sheet-section" data-scan-section-row hidden>
-            <span class="scan-sheet-section-label" data-i18n="adm_scanner_section_label">
-                القاعة
-            </span>
-            <span class="scan-sheet-section-chips" data-scan-section-chips></span>
-        </div>
-
+        {{-- Other seats from the same booking — kept as small chips so
+             the operator still sees the group context, but visually
+             secondary to the BIG seat badge above. --}}
         <div class="scan-sheet-seats" data-scan-seats-row hidden>
             <span class="scan-sheet-seats-label">
-                <span data-i18n="adm_scanner_seats_label">المقاعد</span>
+                <span data-i18n="adm_scanner_other_seats">باقي مقاعد الحجز</span>
                 <span data-scan-seat-count></span>
             </span>
             <div class="scan-sheet-seats-list" data-scan-seats-list></div>
@@ -176,15 +181,19 @@
             <strong data-scan-used-time></strong>
         </div>
 
-        {{-- Footer --}}
+        {{-- Footer — operator dismisses manually now. The scanner
+             stays paused while the sheet is open and resumes the
+             instant the operator taps Done / outside / Esc. --}}
         <div class="scan-sheet-foot">
             <button type="button"
-                    class="prism-btn-ghost text-xs"
+                    class="prism-btn-gold text-sm scan-sheet-done"
                     data-scan-dismiss
-                    data-i18n="adm_scanner_close">
-                إغلاق
+                    data-i18n="adm_scanner_done">
+                تم — التالي
             </button>
-            <span class="scan-sheet-cooldown" data-scan-cooldown></span>
+            <span class="scan-sheet-hint" data-i18n="adm_scanner_dismiss_hint">
+                اضغط للإغلاق ومتابعة المسح
+            </span>
         </div>
     </div>
 </div>
@@ -509,7 +518,6 @@
 .scan-sheet-row-icon { font-size: 14px; opacity: .9; }
 .scan-sheet-row-text { font-weight: 600; }
 
-.scan-sheet-section,
 .scan-sheet-seats {
     display: grid;
     gap: 6px;
@@ -518,7 +526,6 @@
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--prism-border);
 }
-.scan-sheet-section-label,
 .scan-sheet-seats-label {
     font-size: 11px;
     letter-spacing: .14em;
@@ -527,27 +534,84 @@
     display: inline-flex;
     gap: 6px;
 }
-.scan-sheet-section-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-.scan-section-chip {
-    display: inline-flex;
-    align-items: center;
+
+/* =========================================================
+   BIG SEAT BADGE — the headline seat for THIS QR.
+   Designed to be readable across a venue entrance: the
+   section label sits above the seat label, both centered.
+   ========================================================= */
+.scan-seat-hero {
+    display: grid;
+    justify-items: center;
+    align-content: center;
     gap: 4px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: .04em;
-    background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(192,132,252,0.18));
+    padding: 16px 18px;
+    border-radius: 22px;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,0.06), transparent 60%),
+        linear-gradient(180deg, rgba(20,24,38,0.96), rgba(8,10,20,0.96));
     border: 1px solid rgba(129,140,248,0.45);
-    color: var(--prism-text);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.06),
+        0 18px 40px -22px rgba(0,0,0,0.85),
+        0 0 28px rgba(34,211,238,0.18);
+    text-align: center;
 }
-.scan-section-chip[data-section="balcony"] {
-    background: linear-gradient(135deg, rgba(192,132,252,0.20), rgba(251,191,36,0.10));
-    border-color: rgba(192,132,252,0.50);
+.scan-seat-hero[hidden] { display: none; }
+.scan-seat-hero-section {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .26em;
+    text-transform: uppercase;
+    color: var(--prism-text-3);
+}
+.scan-seat-hero-label {
+    font-size: 56px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: .03em;
+    background: linear-gradient(135deg, #f9fafb 10%, #fde68a 60%, #fbbf24 95%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 18px rgba(251,191,36,0.20);
+}
+@media (max-width: 360px) {
+    .scan-seat-hero-label { font-size: 44px; }
+}
+
+/* Per-state hero color — matches the rest of the sheet. */
+.scan-sheet[data-result="ok"]    .scan-seat-hero {
+    border-color: rgba(110,231,183,0.55);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.06),
+        0 18px 40px -22px rgba(0,0,0,0.85),
+        0 0 32px rgba(52,211,153,0.30);
+}
+.scan-sheet[data-result="ok"]    .scan-seat-hero-label {
+    background: linear-gradient(135deg, #ecfdf5 10%, #6ee7b7 60%, #10b981 95%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 18px rgba(52,211,153,0.30);
+}
+.scan-sheet[data-result="used"]  .scan-seat-hero {
+    border-color: rgba(254,240,138,0.55);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.06),
+        0 18px 40px -22px rgba(0,0,0,0.85),
+        0 0 32px rgba(251,191,36,0.30);
+}
+.scan-sheet[data-result="used"]  .scan-seat-hero-label {
+    background: linear-gradient(135deg, #fffbeb 10%, #fde68a 60%, #f59e0b 95%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 18px rgba(251,191,36,0.30);
+}
+.scan-sheet[data-result="error"] .scan-seat-hero {
+    border-color: rgba(253,164,175,0.55);
+}
+.scan-sheet[data-result="error"] .scan-seat-hero-label {
+    background: linear-gradient(135deg, #fff1f2 10%, #fda4af 60%, #f43f5e 95%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 18px rgba(251,113,133,0.30);
 }
 .scan-sheet-seats-list {
     display: flex;
@@ -581,36 +645,28 @@
 
 .scan-sheet-foot {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
     padding-top: 4px;
 }
-.scan-sheet-cooldown {
+.scan-sheet-done {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: .04em;
+}
+.scan-sheet-hint {
     font-size: 11px;
     color: var(--prism-text-3);
     letter-spacing: .12em;
     text-transform: uppercase;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-.scan-sheet-cooldown::before {
-    content: "";
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--prism-text-3);
-    animation: dotPulse 1.2s ease-in-out infinite;
-}
-@keyframes dotPulse {
-    0%, 100% { opacity: .35; transform: scale(1);   }
-    50%      { opacity: 1;   transform: scale(1.2); }
+    text-align: center;
 }
 
 @media (prefers-reduced-motion: reduce) {
     .reticle-line,
-    .scan-sheet-cooldown::before,
     .scan-sheet-card,
     .scanner-status { animation: none !important; transition: none !important; }
     .scanner-stage[data-state="error"] { animation: none !important; }
@@ -634,17 +690,18 @@
     /* ============================================================
        Scanner config
        ============================================================ */
-    // Cooldown = how long before the SAME code can be re-scanned. The
-    // result sheet auto-dismisses on this same window so the operator
-    // can immediately scan the next ticket without tapping anything.
-    const COOLDOWN_MS = 2400;
-    const SHEET_DISMISS_MS = 2400;
+    // Cooldown = how long before the SAME code can be re-scanned
+    // (a small guard so a slowly-moving QR isn't pinged twice in a
+    // row). PR #70: the result sheet no longer auto-dismisses — the
+    // operator manually closes it, and the scanner is paused while
+    // it's open and resumes the moment it closes.
+    const COOLDOWN_MS = 1500;
 
-    let busy = false;
+    let busy = false;          // mid-flight backend round-trip
     let lastCode = null;
     let lastScanTime = 0;
-    let dismissTimer = null;
-    let cooldownTimer = null;
+    let sheetOpen = false;     // pause scans while showing a result
+    let qrInstance = null;     // assigned once html5-qrcode boots
 
     /* ============================================================
        Audio + haptic feedback
@@ -700,14 +757,14 @@
     const $sheetRef      = $sheet.querySelector('[data-scan-ref]');
     const $sheetShow     = $sheet.querySelector('[data-scan-show]');
     const $sheetWhen     = $sheet.querySelector('[data-scan-when]');
-    const $sheetSecRow   = $sheet.querySelector('[data-scan-section-row]');
-    const $sheetSecChips = $sheet.querySelector('[data-scan-section-chips]');
+    const $sheetHero     = $sheet.querySelector('[data-scan-seat-hero]');
+    const $sheetHeroSec  = $sheet.querySelector('[data-scan-seat-hero-section]');
+    const $sheetHeroLbl  = $sheet.querySelector('[data-scan-seat-hero-label]');
     const $sheetSeatRow  = $sheet.querySelector('[data-scan-seats-row]');
     const $sheetSeatList = $sheet.querySelector('[data-scan-seats-list]');
     const $sheetSeatCnt  = $sheet.querySelector('[data-scan-seat-count]');
     const $sheetUsedNote = $sheet.querySelector('[data-scan-used-note]');
     const $sheetUsedTime = $sheet.querySelector('[data-scan-used-time]');
-    const $sheetCooldown = $sheet.querySelector('[data-scan-cooldown]');
     const $sheetDismiss  = $sheet.querySelector('[data-scan-dismiss]');
 
     function sectionLabel(s) {
@@ -719,13 +776,12 @@
     }
 
     function showSheet(result, payload) {
-        clearTimeout(dismissTimer);
-        clearInterval(cooldownTimer);
-
         $sheet.dataset.result = result; // ok | used | error
         $sheet.dataset.state  = 'visible';
+        sheetOpen = true;
 
-        // Badge text + icon
+        // Badge text + icon — strip any leading emoji so the badge
+        // box (which already has an icon slot) doesn't double-stamp it.
         const badgeText =
             result === 'ok'   ? tt('adm_scanner_ok',     '✅ دخول مسموح') :
             result === 'used' ? tt('adm_scanner_used',   '⚠️ مستخدمة')   :
@@ -735,7 +791,8 @@
 
         const p = payload || {};
 
-        // Attendee
+        // Attendee — PR #70: this is the per-ticket name, not the
+        // booking owner's name.
         $sheetName.textContent = p.name || tt('adm_scanner_unknown_name', '—');
         $sheetRef.textContent  = p.reference ? '#' + p.reference : '';
 
@@ -745,33 +802,41 @@
         const timeStr = p.time || '';
         $sheetWhen.textContent = [dateStr, timeStr].filter(Boolean).join(' · ') || '—';
 
-        // Sections
-        const sections = Array.isArray(p.sections) ? p.sections : [];
-        if (sections.length) {
-            $sheetSecChips.innerHTML = '';
-            sections.forEach((sec) => {
-                const chip = document.createElement('span');
-                chip.className = 'scan-section-chip';
-                chip.dataset.section = ('' + sec).toLowerCase();
-                chip.textContent = sectionLabel(sec);
-                $sheetSecChips.appendChild(chip);
-            });
-            $sheetSecRow.hidden = false;
+        // BIG SEAT BADGE — the headline seat for THIS QR. Falls back
+        // gracefully for tickets without a specific seat (manual /
+        // "Other" venue bookings, or pre-PR-70 legacy rows the
+        // back-fill missed).
+        const heroSeat = (p.seat && (p.seat.label || p.seat.row_letter))
+            ? p.seat
+            : null;
+        if (heroSeat) {
+            $sheetHeroSec.textContent = sectionLabel(heroSeat.section);
+            $sheetHeroLbl.textContent = heroSeat.label
+                || ((heroSeat.row_letter || '') + (heroSeat.seat_number || ''));
+            $sheetHero.hidden = false;
         } else {
-            $sheetSecRow.hidden = true;
+            $sheetHero.hidden = true;
         }
 
-        // Seats
-        const seats = Array.isArray(p.seats) ? p.seats : [];
-        if (seats.length) {
+        // Other seats from the same booking — small chips below the
+        // big badge so the operator still has booking-group context.
+        // We exclude the headline seat to avoid duplicating it.
+        const allSeats = Array.isArray(p.seats) ? p.seats : [];
+        const heroLabel = heroSeat ? (heroSeat.label
+            || ((heroSeat.row_letter || '') + (heroSeat.seat_number || ''))) : null;
+        const otherSeats = allSeats.filter((s) => {
+            const lbl = s.label || ((s.row_letter || '') + (s.seat_number || ''));
+            return lbl !== heroLabel;
+        });
+        if (otherSeats.length) {
             $sheetSeatList.innerHTML = '';
-            seats.forEach((s) => {
+            otherSeats.forEach((s) => {
                 const chip = document.createElement('span');
                 chip.className = 'scan-seat-chip';
                 chip.textContent = s.label || (s.row_letter + s.seat_number);
                 $sheetSeatList.appendChild(chip);
             });
-            $sheetSeatCnt.textContent = ' · ' + seats.length;
+            $sheetSeatCnt.textContent = ' · ' + otherSeats.length;
             $sheetSeatRow.hidden = false;
         } else {
             $sheetSeatCnt.textContent = '';
@@ -787,33 +852,38 @@
             $sheetUsedTime.textContent = '';
         }
 
-        // Cooldown countdown — visible signal that the next scan
-        // will be unlocked, so the operator knows when to move on.
-        const start = Date.now();
-        const updateCooldown = () => {
-            const remaining = Math.max(0, SHEET_DISMISS_MS - (Date.now() - start));
-            const secs = (remaining / 1000).toFixed(1);
-            $sheetCooldown.textContent = tt('adm_scanner_next_in', 'التالية خلال') + ' ' + secs + 's';
-            if (remaining <= 0) clearInterval(cooldownTimer);
-        };
-        updateCooldown();
-        cooldownTimer = setInterval(updateCooldown, 100);
-
-        dismissTimer = setTimeout(hideSheet, SHEET_DISMISS_MS);
+        // Pause scanning while the sheet is up so we don't waste
+        // CPU re-decoding the same QR the operator is reviewing.
+        if (qrInstance) {
+            try { qrInstance.pause(true); } catch (_) {}
+        }
     }
 
     function hideSheet() {
-        clearTimeout(dismissTimer);
-        clearInterval(cooldownTimer);
         $sheet.dataset.state = 'hidden';
+        sheetOpen = false;
         // Reset stage glow back to ready when the sheet leaves.
         delete $stage.dataset.state;
         setStatus(tt('adm_scanner_ready', 'جاهز للفحص'), 'ready');
+        // Clear the lastCode lock so scanning the same QR again
+        // (e.g. an already-used ticket the operator wants to re-check)
+        // doesn't get silently swallowed by the cooldown.
+        lastCode = null;
+        lastScanTime = 0;
+        // Resume the scanner instantly so the operator can move on.
+        if (qrInstance) {
+            try { qrInstance.resume(); } catch (_) {}
+        }
     }
     $sheetDismiss.addEventListener('click', hideSheet);
     // Tap outside the card to dismiss.
     $sheet.addEventListener('click', (e) => {
         if (e.target === $sheet) hideSheet();
+    });
+    // Escape closes the sheet too — useful when the device has a
+    // physical keyboard or external scanner attached.
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && sheetOpen) hideSheet();
     });
 
     /* ============================================================
@@ -872,17 +942,25 @@
         ]) || undefined,
     });
 
-    // Dynamic qrbox: ~70% of the shorter camera frame side, capped so
-    // the decoder doesn't process more pixels than it has to. Larger
-    // box = more tolerance for tilted/partial QRs. The function form
-    // is re-evaluated on every frame, so the box scales with viewport.
+    // Dynamic qrbox: PR #70 reliability v2. We push it close to full-
+    // bleed (92% of the shorter camera frame side) so a tilted, off-
+    // center, or partially-framed QR is still inside the decode region.
+    // BarcodeDetector handles the larger area cheaply when supported;
+    // jsQR is only the fallback for older browsers, and even then we
+    // cap the box at 560px so we don't burn battery on huge frames.
     const qrbox = (vw, vh) => {
-        const side = Math.floor(Math.min(vw, vh) * 0.70);
-        return { width: Math.max(220, Math.min(side, 480)), height: Math.max(220, Math.min(side, 480)) };
+        const side = Math.floor(Math.min(vw, vh) * 0.92);
+        return {
+            width:  Math.max(240, Math.min(side, 560)),
+            height: Math.max(240, Math.min(side, 560)),
+        };
     };
 
     const config = {
-        fps: 24,
+        // 30fps is the practical ceiling for real-time decoding without
+        // overheating phones. Combined with BarcodeDetector this gets us
+        // close to native iPhone Camera responsiveness.
+        fps: 30,
         qrbox: qrbox,
         aspectRatio: 1.0,
         disableFlip: false,
@@ -893,19 +971,29 @@
             // browser will downscale if the device can't deliver.
             width:  { ideal: 1920 },
             height: { ideal: 1080 },
-            // Continuous focus tracks the QR as the operator moves.
-            // Some Android devices honor `focusMode`, others use the
+            frameRate: { ideal: 30 },
+            // Continuous focus / exposure / white-balance tracks the QR
+            // as the operator moves and adapts to dim entrances. Some
+            // Android devices honor the top-level keys, others use the
             // advanced array; we set both for max coverage.
-            focusMode: 'continuous',
+            focusMode:        'continuous',
+            exposureMode:     'continuous',
+            whiteBalanceMode: 'continuous',
             advanced: [
                 { focusMode: 'continuous' },
                 { focusMode: 'continuous-picture' },
                 { focusDistance: { ideal: 0.05 } },
+                { exposureMode: 'continuous' },
+                { whiteBalanceMode: 'continuous' },
             ],
         },
     };
 
     function onScanSuccess(text /*, decodedResult */) {
+        // Drop frames while a sheet is already open — the operator
+        // is reviewing the previous result. The scanner resumes
+        // automatically when they tap Done.
+        if (sheetOpen) return;
         const now = Date.now();
         if (text === lastCode && now - lastScanTime < COOLDOWN_MS) return;
         if (busy) return;
@@ -919,7 +1007,19 @@
 
     qr.start({ facingMode: 'environment' }, config, onScanSuccess, onScanFailure)
         .then(() => {
+            qrInstance = qr;
             $loading.classList.add('is-hidden');
+            // iOS Safari needs `playsInline` on the <video> to avoid
+            // forcing fullscreen mode. html5-qrcode sets this on most
+            // builds, but we re-apply defensively.
+            try {
+                const v = document.querySelector('#qr-reader video');
+                if (v) {
+                    v.setAttribute('playsinline', 'true');
+                    v.setAttribute('webkit-playsinline', 'true');
+                    v.muted = true;
+                }
+            } catch (_) {}
             // Try to upgrade autofocus once the stream is live; some
             // Android browsers only honor `applyConstraints` after the
             // track is active, not in `videoConstraints`.
@@ -928,6 +1028,8 @@
                     advanced: [
                         { focusMode: 'continuous' },
                         { focusMode: 'continuous-picture' },
+                        { exposureMode: 'continuous' },
+                        { whiteBalanceMode: 'continuous' },
                     ],
                 }).catch(() => {});
             } catch (_) {}
