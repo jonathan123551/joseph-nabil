@@ -113,7 +113,12 @@
     $adminSection = in_array($adminSection, ['hall', 'balcony'], true) ? $adminSection : 'hall';
     $hasBalconySeats = isset($seatsByRow['balcony']) && !empty($seatsByRow['balcony']);
     $sectionToggleUrl = function ($s) use ($showTime) {
-        return route('admin.show-times.seats', $showTime) . '?section=' . $s;
+        // Route is registered as `admin.show-times.seats.index` in routes/web.php.
+        // The dotted-`.index` suffix is required because the route lives inside
+        // the `admin.` group and uses the `show-times.seats.index` resource
+        // naming convention. Calling `admin.show-times.seats` (without
+        // `.index`) throws "Route [admin.show-times.seats] not defined."
+        return route('admin.show-times.seats.index', $showTime) . '?section=' . $s;
     };
 @endphp
 
