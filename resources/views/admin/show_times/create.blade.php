@@ -9,6 +9,11 @@
     // applies, the standalone showtime ticket_price input is hidden — its
     // value is irrelevant to the booking flow and only causes confusion.
     $usesSectionPricing = $show->theater_type === Show::THEATER_ANBA_RUWEIS;
+    // Seatmap-backed shows derive total capacity from the actual seat
+    // table — admin no longer types a number. Manual ("Other") shows keep
+    // the existing free-form input.
+    $usesSeatMap = $show->usesSeatMap();
+    $seatCap     = $show->seatMapCapacity();
 @endphp
 
 @section('content')
@@ -124,16 +129,6 @@
                             هذا العرض يستخدم تسعير حسب القسم. عدّل الأسعار من صفحة تعديل العرض.
                         </p>
                     </div>
-
-                    <div class="pt-form-field">
-                        <label class="pt-form-field-label">
-                            <span data-i18n="adm_time_total">إجمالي التذاكر</span>
-                            <span class="pt-form-req" aria-hidden="true">*</span>
-                        </label>
-                        <input type="number" min="1" name="total_tickets"
-                               value="{{ old('total_tickets', 50) }}"
-                               class="prism-input text-sm" inputmode="numeric">
-                    </div>
                 @else
                     <div class="pt-form-grid">
                         <div class="pt-form-field">
@@ -145,29 +140,73 @@
                                    value="{{ old('ticket_price') }}"
                                    class="prism-input text-sm" inputmode="decimal">
                         </div>
-                        <div class="pt-form-field">
-                            <label class="pt-form-field-label">
-                                <span data-i18n="adm_time_total">إجمالي التذاكر</span>
-                                <span class="pt-form-req" aria-hidden="true">*</span>
-                            </label>
-                            <input type="number" min="1" name="total_tickets"
-                                   value="{{ old('total_tickets', 50) }}"
-                                   class="prism-input text-sm" inputmode="numeric">
-                        </div>
                     </div>
                 @endif
 
-                <div class="pt-form-field">
-                    <label class="pt-form-field-label" data-i18n="adm_time_available_now">التذاكر المتاحة الآن (اختياري)</label>
-                    <input type="number" min="0" name="available_tickets"
-                           value="{{ old('available_tickets') }}"
-                           placeholder="فاضي = نفس إجمالي التذاكر"
-                           data-i18n-attr="placeholder:adm_time_available_placeholder"
-                           class="prism-input text-sm" inputmode="numeric">
-                    <p class="pt-form-helper" data-i18n="adm_time_available_helper">
-                        لو سيبت الحقل فاضي، النظام هيبدأ بكامل العدد متاح للحجز.
-                    </p>
-                </div>
+                @if ($usesSeatMap)
+                    {{-- Seatmap-backed shows derive their total ticket count
+                         from the actual seat layout. The admin can still see
+                         the breakdown here, but cannot type a value — the
+                         controller re-syncs total_tickets from the seats
+                         table on every save (see ShowTimeController). --}}
+                    <div class="rounded-xl px-3 py-3 text-xs"
+                         style="background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.32); color: var(--prism-text-2);">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="prism-dot prism-dot-emerald"></span>
+                            <span class="font-semibold" data-i18n="adm_time_capacity_card_title" style="color: var(--prism-text);">
+                                سعة المسرح (تلقائي)
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="rounded-lg px-3 py-2"
+                                 style="background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.32);">
+                                <div class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_section_hall">صالة</div>
+                                <div class="font-semibold" style="color: var(--prism-gold);">
+                                    {{ (int) ($seatCap['hall'] ?? 0) }}
+                                </div>
+                            </div>
+                            <div class="rounded-lg px-3 py-2"
+                                 style="background: rgba(192,132,252,0.08); border: 1px solid rgba(192,132,252,0.32);">
+                                <div class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_section_balcony">بلكون</div>
+                                <div class="font-semibold" style="color: var(--prism-violet, #c084fc);">
+                                    {{ (int) ($seatCap['balcony'] ?? 0) }}
+                                </div>
+                            </div>
+                            <div class="rounded-lg px-3 py-2"
+                                 style="background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.40);">
+                                <div class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_time_capacity_total">الإجمالي</div>
+                                <div class="font-semibold" style="color: var(--prism-emerald);">
+                                    {{ (int) ($seatCap['total'] ?? 0) }}
+                                </div>
+                            </div>
+                        </div>
+                        <p class="pt-form-helper mt-2" data-i18n="adm_time_capacity_helper">
+                            يتم حساب إجمالي التذاكر تلقائيًا من خريطة المقاعد للمسرح.
+                        </p>
+                    </div>
+                @else
+                    <div class="pt-form-field">
+                        <label class="pt-form-field-label">
+                            <span data-i18n="adm_time_total">إجمالي التذاكر</span>
+                            <span class="pt-form-req" aria-hidden="true">*</span>
+                        </label>
+                        <input type="number" min="1" name="total_tickets"
+                               value="{{ old('total_tickets', 50) }}"
+                               class="prism-input text-sm" inputmode="numeric">
+                    </div>
+
+                    <div class="pt-form-field">
+                        <label class="pt-form-field-label" data-i18n="adm_time_available_now">التذاكر المتاحة الآن (اختياري)</label>
+                        <input type="number" min="0" name="available_tickets"
+                               value="{{ old('available_tickets') }}"
+                               placeholder="فاضي = نفس إجمالي التذاكر"
+                               data-i18n-attr="placeholder:adm_time_available_placeholder"
+                               class="prism-input text-sm" inputmode="numeric">
+                        <p class="pt-form-helper" data-i18n="adm_time_available_helper">
+                            لو سيبت الحقل فاضي، النظام هيبدأ بكامل العدد متاح للحجز.
+                        </p>
+                    </div>
+                @endif
             </div>
 
             {{-- Section: status --}}

@@ -62,4 +62,29 @@ class ShowTime extends Model
 
         return $bookedActive->merge($blocked)->unique()->values()->all();
     }
+
+    /**
+     * Customer-facing remaining-ticket count.
+     *
+     * Subtracts both customer bookings (pending + approved) and, for
+     * seatmap-backed shows, admin-blocked seats — so the storefront never
+     * advertises capacity that the seat picker would refuse to actually
+     * sell. For "Other" / manual-capacity shows this falls back to the
+     * existing `total_tickets - reserved` calculation, since those shows
+     * have no seat layout to block against.
+     */
+    public function effectiveRemainingTickets(): int
+    {
+        $reserved = (int) $this->bookings()
+            ->whereIn('status', ['approved', 'pending'])
+            ->sum('tickets_count');
+
+        $blocked = 0;
+        $this->loadMissing('show');
+        if ($this->show && $this->show->usesSeatMap()) {
+            $blocked = (int) $this->seatBlocks()->count();
+        }
+
+        return max(0, (int) $this->total_tickets - $reserved - $blocked);
+    }
 }

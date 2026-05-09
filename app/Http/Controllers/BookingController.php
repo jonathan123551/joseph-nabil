@@ -100,11 +100,10 @@ class BookingController extends Controller
      */
     private function baseBookingPayload(ShowTime $showTime): ?array
     {
-        $reserved = $showTime->bookings()
-            ->whereIn('status', ['approved','pending'])
-            ->sum('tickets_count');
-
-        $remaining = max(0, $showTime->total_tickets - $reserved);
+        // For seatmap-backed shows this also subtracts admin-blocked seats —
+        // see ShowTime::effectiveRemainingTickets() — so the storefront
+        // never advertises capacity that the seat picker would refuse.
+        $remaining = $showTime->effectiveRemainingTickets();
         if ($remaining <= 0 || $showTime->is_sold_out) return null;
 
         $showTime->loadMissing('show');

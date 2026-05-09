@@ -5,6 +5,11 @@
 @php
     use App\Models\Show;
     $usesSectionPricing = $show->theater_type === Show::THEATER_ANBA_RUWEIS;
+    // Seatmap-backed shows derive total capacity from the actual seat
+    // table — admin no longer types a number. Manual ("Other") shows keep
+    // the existing free-form input.
+    $usesSeatMap = $show->usesSeatMap();
+    $seatCap     = $show->seatMapCapacity();
 @endphp
 
 @section('content')
@@ -120,16 +125,6 @@
                         هذا العرض يستخدم تسعير حسب القسم. عدّل الأسعار من صفحة تعديل العرض.
                     </p>
                 </div>
-
-                <div class="pt-form-field">
-                    <label class="pt-form-field-label">
-                        <span data-i18n="adm_time_total">إجمالي التذاكر</span>
-                        <span class="pt-form-req" aria-hidden="true">*</span>
-                    </label>
-                    <input type="number" min="1" name="total_tickets"
-                           value="{{ old('total_tickets', $showTime->total_tickets) }}"
-                           class="prism-input text-sm" inputmode="numeric">
-                </div>
             @else
                 <div class="pt-form-grid">
                     <div class="pt-form-field">
@@ -142,16 +137,63 @@
                                class="prism-input text-sm" inputmode="decimal"
                                style="color: var(--prism-gold); font-weight: 700;">
                     </div>
+                </div>
+            @endif
 
-                    <div class="pt-form-field">
-                        <label class="pt-form-field-label">
-                            <span data-i18n="adm_time_total">إجمالي التذاكر</span>
-                            <span class="pt-form-req" aria-hidden="true">*</span>
-                        </label>
-                        <input type="number" min="1" name="total_tickets"
-                               value="{{ old('total_tickets', $showTime->total_tickets) }}"
-                               class="prism-input text-sm" inputmode="numeric">
+            @if ($usesSeatMap)
+                {{-- Seatmap-backed shows derive their total ticket count from
+                     the live seat layout — admin gets a read-only breakdown
+                     here. The controller re-syncs total_tickets on save so
+                     the saved value always matches the seat table. --}}
+                <div class="rounded-xl px-3 py-3 text-xs"
+                     style="background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.32); color: var(--prism-text-2);">
+                    <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                        <div class="flex items-center gap-2">
+                            <span class="prism-dot prism-dot-emerald"></span>
+                            <span class="font-semibold" data-i18n="adm_time_capacity_card_title" style="color: var(--prism-text);">
+                                سعة المسرح (تلقائي)
+                            </span>
+                        </div>
+                        <span class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_time_capacity_saved_label">
+                            المحفوظ حاليًا: {{ (int) $showTime->total_tickets }}
+                        </span>
                     </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="rounded-lg px-3 py-2"
+                             style="background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.32);">
+                            <div class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_section_hall">صالة</div>
+                            <div class="font-semibold" style="color: var(--prism-gold);">
+                                {{ (int) ($seatCap['hall'] ?? 0) }}
+                            </div>
+                        </div>
+                        <div class="rounded-lg px-3 py-2"
+                             style="background: rgba(192,132,252,0.08); border: 1px solid rgba(192,132,252,0.32);">
+                            <div class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_section_balcony">بلكون</div>
+                            <div class="font-semibold" style="color: var(--prism-violet, #c084fc);">
+                                {{ (int) ($seatCap['balcony'] ?? 0) }}
+                            </div>
+                        </div>
+                        <div class="rounded-lg px-3 py-2"
+                             style="background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.40);">
+                            <div class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_time_capacity_total">الإجمالي</div>
+                            <div class="font-semibold" style="color: var(--prism-emerald);">
+                                {{ (int) ($seatCap['total'] ?? 0) }}
+                            </div>
+                        </div>
+                    </div>
+                    <p class="pt-form-helper mt-2" data-i18n="adm_time_capacity_helper">
+                        يتم حساب إجمالي التذاكر تلقائيًا من خريطة المقاعد للمسرح.
+                    </p>
+                </div>
+            @else
+                <div class="pt-form-field">
+                    <label class="pt-form-field-label">
+                        <span data-i18n="adm_time_total">إجمالي التذاكر</span>
+                        <span class="pt-form-req" aria-hidden="true">*</span>
+                    </label>
+                    <input type="number" min="1" name="total_tickets"
+                           value="{{ old('total_tickets', $showTime->total_tickets) }}"
+                           class="prism-input text-sm" inputmode="numeric">
                 </div>
             @endif
         </div>
