@@ -106,69 +106,9 @@
     }
 </style>
 
-@php
-    // Admin can manage either section using the same engine.
-    // Default = 'hall' to preserve existing admin URLs and flow.
-    $adminSection = request('section', 'hall');
-    $adminSection = in_array($adminSection, ['hall', 'balcony'], true) ? $adminSection : 'hall';
-    $hasBalconySeats = isset($seatsByRow['balcony']) && !empty($seatsByRow['balcony']);
-    $sectionToggleUrl = function ($s) use ($showTime) {
-        return route('admin.show-times.seats', $showTime) . '?section=' . $s;
-    };
-@endphp
-
-{{-- Compact admin section switcher (only when both sections exist).
-     Sticks to the top-inline-end of the canvas chrome so it never
-     overlaps the seat picker controls. --}}
-@if ($hasBalconySeats)
-    <style>
-        .anba-admin-section-switch {
-            position: fixed;
-            top: 14px;
-            inset-inline-start: 50%;
-            transform: translateX(-50%);
-            z-index: 60;
-            display: inline-flex;
-            border: 1px solid rgba(129,140,248,0.32);
-            border-radius: 999px;
-            overflow: hidden;
-            background: rgba(8,10,20,0.78);
-            backdrop-filter: blur(14px) saturate(140%);
-            -webkit-backdrop-filter: blur(14px) saturate(140%);
-            box-shadow: 0 8px 24px -10px rgba(0,0,0,0.6);
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: .08em;
-        }
-        html[dir="rtl"] .anba-admin-section-switch { transform: translateX(50%); }
-        .anba-admin-section-switch a {
-            padding: 8px 16px;
-            color: #c2cad8;
-            transition: background .15s ease, color .15s ease;
-        }
-        .anba-admin-section-switch a:hover { color: #fff; background: rgba(129,140,248,0.10); }
-        .anba-admin-section-switch a.is-active {
-            color: #fff;
-            background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(192,132,252,0.18));
-        }
-    </style>
-    <div class="anba-admin-section-switch" role="tablist" aria-label="Section switcher">
-        <a href="{{ $sectionToggleUrl('hall') }}"
-           class="{{ $adminSection === 'hall' ? 'is-active' : '' }}"
-           role="tab"
-           aria-selected="{{ $adminSection === 'hall' ? 'true' : 'false' }}"
-           data-i18n="section_hall">الصالة</a>
-        <a href="{{ $sectionToggleUrl('balcony') }}"
-           class="{{ $adminSection === 'balcony' ? 'is-active' : '' }}"
-           role="tab"
-           aria-selected="{{ $adminSection === 'balcony' ? 'true' : 'false' }}"
-           data-i18n="section_balcony">البلكون</a>
-    </div>
-@endif
-
 @include('bookings._anba_seat_picker', [
     'showTime'         => $showTime,
-    'section'          => $adminSection,
+    'section'          => 'hall',
     'seatsByRow'       => $seatsByRow ?? [],
     'unavailableSeats' => $bookedSeatIds  ?? [],
     'blockedSeats'     => $blockedSeatIds ?? [],
