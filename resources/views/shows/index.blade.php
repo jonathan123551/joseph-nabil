@@ -364,9 +364,6 @@
                 <button type="button"
                         class="prism-heart-btn pt-show-heart"
                         data-pt-fav="{{ $featured->id }}"
-                        data-pt-fav-title="{{ $featured->title }}"
-                        data-pt-fav-poster="{{ $featured->poster_path ?? '' }}"
-                        data-pt-fav-href="{{ route('shows.show', $featured) }}"
                         data-i18n-attr="aria-label:fav_save_aria"
                         aria-label="حفظ في المفضلة"
                         aria-pressed="false">
@@ -449,9 +446,6 @@
                     <button type="button"
                             class="prism-heart-btn pt-show-heart"
                             data-pt-fav="{{ $show->id }}"
-                            data-pt-fav-title="{{ $show->title }}"
-                            data-pt-fav-poster="{{ $show->poster_path ?? '' }}"
-                            data-pt-fav-href="{{ route('shows.show', $show) }}"
                             data-i18n-attr="aria-label:fav_save_aria"
                             aria-label="حفظ في المفضلة"
                             aria-pressed="false">
@@ -517,17 +511,16 @@
     });
 
     // ---------- Wave 1 — heart favorites (QW#4) ----------
-    // Wave 2: delegates to window.PT.fav (single source of truth) so the
-    // topbar pill and drawer “Saved shows” section stay in sync.
+    var FAV_KEY = 'pt_fav_shows';
     function readFavs() {
-        if (window.PT && window.PT.fav && typeof window.PT.fav.list === 'function') {
-            return window.PT.fav.list();
-        }
         try {
-            var raw = window.localStorage.getItem('pt_fav_shows');
+            var raw = window.localStorage.getItem(FAV_KEY);
             var parsed = raw ? JSON.parse(raw) : [];
             return Array.isArray(parsed) ? parsed.map(String) : [];
         } catch (e) { return []; }
+    }
+    function writeFavs(list) {
+        try { window.localStorage.setItem(FAV_KEY, JSON.stringify(list)); } catch (e) { /* ignore */ }
     }
     function syncHeartButtons() {
         var favs = readFavs();
@@ -542,6 +535,18 @@
                 btn.setAttribute('aria-label', window.PT.t(i18nKey));
             }
         });
+        updateFavPill(favs.length);
+    }
+    function updateFavPill(n) {
+        var pill = document.querySelector('[data-pt-fav-pill]');
+        if (!pill) return;
+        if (n > 0) {
+            pill.classList.add('is-shown');
+            var counter = pill.querySelector('[data-pt-fav-count]');
+            if (counter) counter.textContent = String(n);
+        } else {
+            pill.classList.remove('is-shown');
+        }
     }
     document.addEventListener('click', function (e) {
         var btn = e.target.closest('[data-pt-fav]');
@@ -550,25 +555,12 @@
         e.stopPropagation();
         var id = String(btn.getAttribute('data-pt-fav') || '');
         if (!id) return;
-        var meta = {
-            title:  btn.getAttribute('data-pt-fav-title')  || '',
-            poster: btn.getAttribute('data-pt-fav-poster') || '',
-            href:   btn.getAttribute('data-pt-fav-href')   || ''
-        };
+        var favs = readFavs();
+        var idx = favs.indexOf(id);
         var added;
-        if (window.PT && window.PT.fav && typeof window.PT.fav.toggle === 'function') {
-            added = window.PT.fav.toggle(id, meta);
-        } else {
-            // Fallback: direct localStorage (older bundle)
-            try {
-                var raw = window.localStorage.getItem('pt_fav_shows');
-                var favs = raw ? JSON.parse(raw) : [];
-                if (!Array.isArray(favs)) favs = [];
-                var idx = favs.map(String).indexOf(id);
-                if (idx === -1) { favs.push(id); added = true; } else { favs.splice(idx, 1); added = false; }
-                window.localStorage.setItem('pt_fav_shows', JSON.stringify(favs));
-            } catch (e) { return; }
-        }
+        if (idx === -1) { favs.push(id); added = true; }
+        else { favs.splice(idx, 1); added = false; }
+        writeFavs(favs);
         syncHeartButtons();
         var t = (window.PT && typeof window.PT.t === 'function')
             ? window.PT.t(added ? 'fav_saved_toast' : 'fav_unsaved_toast')
@@ -577,10 +569,9 @@
         if (added && navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} }
     });
 
-    // Re-run on load + after i18n changes + after fav-change (drawer remove).
+    // Re-run on load + after i18n changes (so aria labels follow language).
     syncHeartButtons();
     document.addEventListener('pt:langchange', syncHeartButtons);
-    document.addEventListener('pt:fav-change', syncHeartButtons);
 })();
 </script>
 @endpush

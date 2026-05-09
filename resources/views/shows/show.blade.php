@@ -184,30 +184,3 @@
     </section>
 
 @endsection
-
-@push('scripts')
-<script>
-{{-- Wave 2: track this show in "Recently viewed" + cache fav metadata so the
-     drawer can render saved/recent entries with poster + title even when the
-     user navigates back from a detail page. --}}
-(function () {
-    'use strict';
-    var meta = {
-        title:  @json($show->title),
-        poster: @json($show->poster_path ?? ''),
-        href:   @json(route('shows.show', $show))
-    };
-    var id = @json((string) $show->id);
-    function push() {
-        if (window.PT && window.PT.recent && typeof window.PT.recent.push === 'function') {
-            try { window.PT.recent.push(id, meta); } catch (e) { /* ignore */ }
-        }
-    }
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', push, { once: true });
-    } else {
-        push();
-    }
-})();
-</script>
-@endpush
