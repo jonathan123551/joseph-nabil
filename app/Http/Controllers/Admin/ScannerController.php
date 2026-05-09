@@ -23,11 +23,18 @@ class ScannerController extends Controller
 
         $code = trim($data['code']);
 
-        // Eager-load the booking's seats so the scanner UI can show seat
-        // labels + section without a follow-up round trip. Bookings made
-        // through the manual ("Other") flow won't have any rows in
-        // booking_seats — that's expected and the UI hides the seat block.
-        $ticket = Ticket::with(['booking.showTime.show', 'booking.seats'])
+        // Eager-load:
+        //   - bookingSeat: this ticket's specific seat (PR #70). Lets the
+        //     scanner resolve a QR straight to one attendee + one seat.
+        //   - booking.seats: full booking seat list, used as a fallback
+        //     when the ticket has no booking_seat_id yet (e.g. a manual /
+        //     "Other" booking, or a legacy ticket the back-fill missed).
+        //   - booking.showTime.show: title / date / time on the result card.
+        $ticket = Ticket::with([
+                'bookingSeat',
+                'booking.showTime.show',
+                'booking.seats',
+            ])
             ->where('ticket_code', $code)
             ->first();
 
@@ -48,8 +55,22 @@ class ScannerController extends Controller
         $time    = $ticket->booking->showTime;
         $booking = $ticket->booking;
 
-        $seats       = $booking->seats ?? collect();
-        $sectionList = $seats->pluck('section')
+        // ---- Per-ticket seat identity (PR #70) ----
+        // Prefer the ticket's own bookingSeat (each QR -> one attendee +
+        // one seat). Fall back to the booking's first seat for legacy
+        // tickets that pre-date PR #70's back-fill, or to nothing for
+        // manual / "Other" venue bookings.
+        $bookingSeats = $booking->seats ?? collect();
+        $ticketSeat   = $ticket->bookingSeat ?? $bookingSeats->first();
+
+        $seatPayload = $ticketSeat ? [
+            'section'     => $ticketSeat->section,
+            'row_letter'  => $ticketSeat->row_letter,
+            'seat_number' => (int) $ticketSeat->seat_number,
+            'label'       => trim((string) $ticketSeat->row_letter) . (int) $ticketSeat->seat_number,
+        ] : null;
+
+        $sectionList = $bookingSeats->pluck('section')
             ->filter()
             ->unique()
             ->values()
@@ -63,11 +84,13 @@ class ScannerController extends Controller
             'time'          => $time->time
                 ? Carbon::parse($time->time)->format('g:i A')
                 : '',
-            'tickets_count' => (int) ($booking->tickets_count ?? $seats->count()),
+            'tickets_count' => (int) ($booking->tickets_count ?? $bookingSeats->count()),
             'reference'     => $booking->reference_code ?? '',
-            // Premium UX (PR #69): seat labels + sections so the scan-result
-            // card can show "Hall · A12 · A14" instead of just a name.
-            'seats'         => $seats->map(fn ($s) => [
+            // The seat THIS QR represents — used for the big seat badge.
+            'seat'          => $seatPayload,
+            // Full booking seat list, kept for backward compatibility and
+            // shown as small chips alongside the primary seat.
+            'seats'         => $bookingSeats->map(fn ($s) => [
                 'section'     => $s->section,
                 'row_letter'  => $s->row_letter,
                 'seat_number' => (int) $s->seat_number,
