@@ -1,17 +1,15 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 /*
 |--------------------------------------------------------------------------
 | Controllers (Site)
 |--------------------------------------------------------------------------
 */
-use App\Http\Controllers\SiteController;
-use App\Http\Controllers\ShowController;
-use App\Http\Controllers\BookingController;
-use App\Http\Controllers\AuthController;
-
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ScannerController;
+use App\Http\Controllers\Admin\SeatBlockController;
+use App\Http\Controllers\Admin\SettingsController;
 /*
 |--------------------------------------------------------------------------
 | Controllers (Admin)
@@ -19,19 +17,18 @@ use App\Http\Controllers\AuthController;
 */
 use App\Http\Controllers\Admin\ShowController as AdminShowController;
 use App\Http\Controllers\Admin\ShowTimeController as AdminShowTimeController;
-use App\Http\Controllers\Admin\BookingController as AdminBookingController;
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\ScannerController;
-use App\Http\Controllers\Admin\SettingsController;
-use App\Http\Controllers\Admin\SeatBlockController;
 use App\Http\Controllers\Admin\TeamApplicationController as AdminTeamApplicationController;
-
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BookingController;
+use App\Http\Controllers\ShowController;
+use App\Http\Controllers\SiteController;
+use App\Http\Controllers\WhatsAppWebhookController;
 /*
 |--------------------------------------------------------------------------
 | Controllers (WhatsApp)
 |--------------------------------------------------------------------------
 */
-use App\Http\Controllers\WhatsAppWebhookController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -58,7 +55,32 @@ Route::get('/book/{showTime}/form', [BookingController::class, 'form'])
 Route::post('/book/{showTime}', [BookingController::class, 'store'])
     ->name('bookings.store');
 
-Route::get('/ticket/{reference}', [App\Http\Controllers\Admin\BookingController::class, 'sendTicketsByReference']);
+// POST-redirect-GET landing for booking confirmations. The store() handlers
+// 303-redirect here instead of rendering thankyou directly so refresh +
+// back-button no longer trigger Safari's "Resubmit form?" prompt and there's
+// no risk of an accidental double booking. The URL uses reference_code (the
+// same opaque string the customer already sees), so it's shareable but never
+// leaks a sequential booking ID.
+Route::get('/book/thankyou/{reference}', [BookingController::class, 'thankyou'])
+    ->name('bookings.thankyou');
+
+/*
+|--------------------------------------------------------------------------
+| Public ticket lookup
+|--------------------------------------------------------------------------
+| Customer-facing "look up my booking by reference" page. Reachable
+| without auth so a link from a WhatsApp template / email keeps working.
+| The page itself only renders public-safe info (status, show metadata,
+| masked phone) and offers a "Resend tickets to WhatsApp" action that
+| sends only to the phone already on file, rate-limited to 1/60s.
+|--------------------------------------------------------------------------
+*/
+Route::get('/ticket/{reference}', [AdminBookingController::class, 'sendTicketsByReference'])
+    ->name('tickets.show');
+
+Route::post('/ticket/{reference}/resend', [AdminBookingController::class, 'resendByReference'])
+    ->middleware('throttle:30,1')
+    ->name('tickets.resend');
 
 /*
 |--------------------------------------------------------------------------
@@ -72,7 +94,6 @@ Route::get('/webhook/whatsapp', [WhatsAppWebhookController::class, 'verify']);
 // Incoming messages (POST)
 Route::post('/webhook/whatsapp', [WhatsAppWebhookController::class, 'handle']);
 
-
 /*
 |--------------------------------------------------------------------------
 | Chatwoot Webhook (Chatwoot → Laravel)
@@ -82,9 +103,9 @@ Route::post('/webhook/whatsapp', [WhatsAppWebhookController::class, 'handle']);
 */
 Route::post('/chatwoot-webhook', function () {
     \Log::info('Chatwoot Webhook Hit');
+
     return response()->json(['ok' => true]);
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -94,7 +115,6 @@ Route::post('/chatwoot-webhook', function () {
 Route::get('/login', [AuthController::class, 'show'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
 
 /*
 |--------------------------------------------------------------------------
@@ -106,77 +126,77 @@ Route::middleware('admin')
     ->name('admin.')
     ->group(function () {
 
-    // Dashboard
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+        // Dashboard
+        Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-    // 🎭 Team Applications
-    Route::get('/team-applications',
-        [AdminTeamApplicationController::class, 'index']
-    )->name('team_applications.index');
+        // 🎭 Team Applications
+        Route::get('/team-applications',
+            [AdminTeamApplicationController::class, 'index']
+        )->name('team_applications.index');
 
-    Route::get('/team-applications/export',
-        [AdminTeamApplicationController::class, 'export']
-    )->name('team_applications.export');
+        Route::get('/team-applications/export',
+            [AdminTeamApplicationController::class, 'export']
+        )->name('team_applications.export');
 
-    // Shows
-    Route::get('/shows', [AdminShowController::class, 'index'])->name('shows.index');
-    Route::get('/shows/create', [AdminShowController::class, 'create'])->name('shows.create');
-    Route::post('/shows', [AdminShowController::class, 'store'])->name('shows.store');
-    Route::get('/shows/{show}/edit', [AdminShowController::class, 'edit'])->name('shows.edit');
-    Route::put('/shows/{show}', [AdminShowController::class, 'update'])->name('shows.update');
-    Route::delete('/shows/{show}', [AdminShowController::class, 'destroy'])->name('shows.destroy');
-    Route::post('/shows/{show}/toggle', [AdminShowController::class, 'toggleActive'])
-        ->name('shows.toggle');
+        // Shows
+        Route::get('/shows', [AdminShowController::class, 'index'])->name('shows.index');
+        Route::get('/shows/create', [AdminShowController::class, 'create'])->name('shows.create');
+        Route::post('/shows', [AdminShowController::class, 'store'])->name('shows.store');
+        Route::get('/shows/{show}/edit', [AdminShowController::class, 'edit'])->name('shows.edit');
+        Route::put('/shows/{show}', [AdminShowController::class, 'update'])->name('shows.update');
+        Route::delete('/shows/{show}', [AdminShowController::class, 'destroy'])->name('shows.destroy');
+        Route::post('/shows/{show}/toggle', [AdminShowController::class, 'toggleActive'])
+            ->name('shows.toggle');
 
-    // Show Times
-    Route::get('/shows/{show}/times', [AdminShowTimeController::class, 'index'])
-        ->name('shows.times.index');
-    Route::get('/shows/{show}/times/create', [AdminShowTimeController::class, 'create'])
-        ->name('shows.times.create');
-    Route::post('/shows/{show}/times', [AdminShowTimeController::class, 'store'])
-        ->name('shows.times.store');
-    Route::get('/shows/{show}/times/{showTime}/edit', [AdminShowTimeController::class, 'edit'])
-        ->name('shows.times.edit');
-    Route::put('/shows/{show}/times/{showTime}', [AdminShowTimeController::class, 'update'])
-        ->name('shows.times.update');
-    Route::delete('/shows/{show}/times/{showTime}', [AdminShowTimeController::class, 'destroy'])
-        ->name('shows.times.destroy');
+        // Show Times
+        Route::get('/shows/{show}/times', [AdminShowTimeController::class, 'index'])
+            ->name('shows.times.index');
+        Route::get('/shows/{show}/times/create', [AdminShowTimeController::class, 'create'])
+            ->name('shows.times.create');
+        Route::post('/shows/{show}/times', [AdminShowTimeController::class, 'store'])
+            ->name('shows.times.store');
+        Route::get('/shows/{show}/times/{showTime}/edit', [AdminShowTimeController::class, 'edit'])
+            ->name('shows.times.edit');
+        Route::put('/shows/{show}/times/{showTime}', [AdminShowTimeController::class, 'update'])
+            ->name('shows.times.update');
+        Route::delete('/shows/{show}/times/{showTime}', [AdminShowTimeController::class, 'destroy'])
+            ->name('shows.times.destroy');
 
-    Route::patch(
-        '/show-times/{showTime}/update-tickets',
-        [AdminShowTimeController::class, 'updateTickets']
-    )->name('show-times.update-tickets');
-    Route::patch(
-    '/shows/{show}/times/{showTime}/toggle',
-    [AdminShowTimeController::class, 'toggle']
-    )->name('shows.times.toggle');
-    // Bookings
-    Route::prefix('bookings')->name('bookings.')->group(function () {
-        Route::get('/', [AdminBookingController::class, 'index'])->name('index');
-        Route::post('/{booking}/approve', [AdminBookingController::class, 'approve'])->name('approve');
-        Route::post('/{booking}/reject', [AdminBookingController::class, 'reject'])->name('reject');
-        Route::get('/{booking}', [AdminBookingController::class, 'show'])->name('show');
+        Route::patch(
+            '/show-times/{showTime}/update-tickets',
+            [AdminShowTimeController::class, 'updateTickets']
+        )->name('show-times.update-tickets');
+        Route::patch(
+            '/shows/{show}/times/{showTime}/toggle',
+            [AdminShowTimeController::class, 'toggle']
+        )->name('shows.times.toggle');
+        // Bookings
+        Route::prefix('bookings')->name('bookings.')->group(function () {
+            Route::get('/', [AdminBookingController::class, 'index'])->name('index');
+            Route::post('/{booking}/approve', [AdminBookingController::class, 'approve'])->name('approve');
+            Route::post('/{booking}/reject', [AdminBookingController::class, 'reject'])->name('reject');
+            Route::get('/{booking}', [AdminBookingController::class, 'show'])->name('show');
+        });
+
+        Route::post('/resend-ticket/{id}', [AdminBookingController::class, 'resendTicket'])
+            ->name('resend.ticket');
+
+        Route::delete('/admin/booking/{id}', [AdminBookingController::class, 'delete'])
+            ->name('booking.delete');
+        // 🎭 Anba Ruweis seat management (per show time)
+        Route::get('/show-times/{showTime}/seats', [SeatBlockController::class, 'index'])
+            ->name('show-times.seats.index');
+        Route::post('/show-times/{showTime}/seats/{seat}/toggle', [SeatBlockController::class, 'toggle'])
+            ->name('show-times.seats.toggle');
+        Route::post('/show-times/{showTime}/seats/bulk-toggle', [SeatBlockController::class, 'bulkToggle'])
+            ->name('show-times.seats.bulk-toggle');
+
+        // Payments
+        Route::get('/settings/payments', [SettingsController::class, 'editPayments'])
+            ->name('settings.payments.edit');
+        Route::post('/settings/payments', [SettingsController::class, 'updatePayments'])
+            ->name('settings.payments.update');
     });
-
-    Route::post('/resend-ticket/{id}', [AdminBookingController::class, 'resendTicket'])
-    ->name('resend.ticket');
-
-    Route::delete('/admin/booking/{id}', [AdminBookingController::class, 'delete'])
-    ->name('booking.delete');
-    // 🎭 Anba Ruweis seat management (per show time)
-    Route::get('/show-times/{showTime}/seats', [SeatBlockController::class, 'index'])
-        ->name('show-times.seats.index');
-    Route::post('/show-times/{showTime}/seats/{seat}/toggle', [SeatBlockController::class, 'toggle'])
-        ->name('show-times.seats.toggle');
-    Route::post('/show-times/{showTime}/seats/bulk-toggle', [SeatBlockController::class, 'bulkToggle'])
-        ->name('show-times.seats.bulk-toggle');
-
-    // Payments
-    Route::get('/settings/payments', [SettingsController::class, 'editPayments'])
-        ->name('settings.payments.edit');
-    Route::post('/settings/payments', [SettingsController::class, 'updatePayments'])
-        ->name('settings.payments.update');
-});
 
 /*
 |--------------------------------------------------------------------------

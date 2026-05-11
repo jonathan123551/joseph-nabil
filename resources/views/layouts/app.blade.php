@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>@yield('title', 'Premium Tickets')</title>
+    {{-- Pages can opt into JS-driven title localization by declaring
+         @section('headMeta') with a <meta name="pt-title-i18n"
+         content="my_key" data-suffix="optional dynamic suffix">. The
+         layout's applyLang() reads this tag and updates document.title
+         on initial load and on every language toggle. --}}
+    @yield('headMeta')
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#05060d" id="pt-theme-color">
 
@@ -501,6 +507,21 @@
         @media (prefers-reduced-motion: reduce) {
             .prism-share-wa:hover { transform: none; }
         }
+        /* Light: dark green pill stays visually green but bumps to a
+           "WhatsApp brand" emerald with proper contrast on cream. */
+        :root[data-pt-theme="light"] .prism-share-wa {
+            color: #064e3b;
+            background: linear-gradient(135deg, rgba(4,120,87,0.16), rgba(5,150,105,0.10));
+            border-color: rgba(4,120,87,0.45);
+            box-shadow: 0 4px 14px -4px rgba(4,120,87,0.32);
+        }
+        :root[data-pt-theme="light"] .prism-share-wa:hover {
+            background: linear-gradient(135deg, rgba(4,120,87,0.24), rgba(5,150,105,0.16));
+            border-color: rgba(4,120,87,0.65);
+        }
+        :root[data-pt-theme="light"] .prism-share-wa .share-wa-icon {
+            color: #047857;
+        }
 
         /* Auto-pick best-seats button (seat picker side panel) */
         .prism-auto-pick {
@@ -747,6 +768,13 @@
             z-index: 50;
             pointer-events: none;
             transition: top .35s var(--prism-ease);
+            /* CSS containment — tells the browser that no layout / paint
+               changes inside the topbar can affect anything outside. Cuts
+               first-paint CLS to zero for the floating bar (the wrap is
+               already `position: fixed`, so the body below cannot shift,
+               but inner reflows still trigger paint elsewhere without
+               containment). */
+            contain: layout paint;
         }
         .pt-topbar {
             pointer-events: auto;
@@ -1323,6 +1351,84 @@
         }
         @keyframes ptSpin { to { transform: rotate(360deg); } }
 
+        /* ---- Light-mode overrides: premium confirmation modal ----
+           The singleton .pt-modal-root fires on customer booking confirm
+           AND on every admin approve / reject / delete-booking. The dark
+           navy card looks pasted-in on cream; we swap to a white-cream
+           card with neutral border and dampened tonal glow so it integrates
+           with the rest of the light theme. Backdrop scrim opacity matches
+           the mobile drawer for consistency. */
+        :root[data-pt-theme="light"] .pt-modal-backdrop {
+            background: radial-gradient(ellipse 70% 60% at 50% 30%, rgba(99,102,241,0.06), transparent 60%),
+                        rgba(15,23,42,0.28);
+        }
+        :root[data-pt-theme="light"] .pt-modal-card {
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.98));
+            border-color: rgba(15,23,42,0.12);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.7),
+                0 36px 70px -20px rgba(15,23,42,0.32),
+                0 0 40px rgba(99,102,241,0.10);
+        }
+        :root[data-pt-theme="light"] .pt-modal-icon {
+            background: rgba(99,102,241,0.10);
+            border-color: rgba(99,102,241,0.45);
+            color: var(--prism-indigo);
+            box-shadow: 0 0 24px rgba(99,102,241,0.18);
+        }
+        :root[data-pt-theme="light"] .pt-modal-icon.tone-success {
+            background: rgba(16,185,129,0.10);
+            border-color: rgba(16,185,129,0.50);
+            color: var(--prism-emerald);
+            box-shadow: 0 0 24px rgba(16,185,129,0.20);
+        }
+        :root[data-pt-theme="light"] .pt-modal-icon.tone-error {
+            background: rgba(244,63,94,0.10);
+            border-color: rgba(244,63,94,0.50);
+            color: var(--prism-rose);
+            box-shadow: 0 0 24px rgba(244,63,94,0.20);
+        }
+        :root[data-pt-theme="light"] .pt-modal-icon.tone-warn {
+            background: rgba(245,158,11,0.12);
+            border-color: rgba(245,158,11,0.50);
+            color: var(--prism-gold);
+            box-shadow: 0 0 24px rgba(245,158,11,0.18);
+        }
+        :root[data-pt-theme="light"] .pt-modal-spinner {
+            border-color: rgba(99,102,241,0.18);
+            border-top-color: var(--prism-indigo);
+        }
+
+        /* Generic in-button loading state. Add `.is-loading` to ANY button
+           and an inline 14px spinner will appear before its text via a
+           ::before pseudo-element. Cursor turns wait, pointer events are
+           blocked so a frantic user can't trigger a double-submit even if
+           something forgets to set [disabled]. Inherits currentColor so it
+           tints itself correctly inside gold / indigo / rose buttons.
+           Respects prefers-reduced-motion (replaces spin with a static
+           dot so the state is still visually distinct). */
+        .is-loading {
+            position: relative;
+            cursor: wait !important;
+            pointer-events: none;
+        }
+        .is-loading::before {
+            content: "";
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            margin-inline-end: 8px;
+            vertical-align: -2px;
+            border-radius: 999px;
+            border: 2px solid currentColor;
+            border-top-color: transparent;
+            opacity: 0.85;
+            animation: ptSpin .8s linear infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .is-loading::before { animation: none; border-top-color: currentColor; opacity: 0.5; }
+        }
+
         /* ------------- Toast ------------- */
         .pt-toast {
             position: fixed;
@@ -1344,6 +1450,38 @@
         .pt-toast.is-on {
             opacity: 1;
             transform: translate(-50%, 0);
+        }
+        /* ---- Light-mode override: small flash pill ----
+           Used by PT.toast() — favorites, etc. Swap dark navy pill for a
+           white-cream surface with neutral border and soft shadow so it
+           reads as a "subtle confirmation" rather than a dark intrusion. */
+        :root[data-pt-theme="light"] .pt-toast {
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.98));
+            border-color: rgba(99,102,241,0.32);
+            color: var(--prism-text);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.7),
+                0 12px 32px -10px rgba(15,23,42,0.22),
+                0 0 22px rgba(99,102,241,0.10);
+        }
+
+        /* ---- Light-mode override: /ticket/{ref} flash banner ----
+           The inline banner in tickets/show.blade.php uses hardcoded
+           Tailwind `*-200` text on `*-500/0.10` bg — emerald-200 / amber-200
+           are light text colors meant for dark backgrounds, so they wash
+           out on cream. We swap to deeper tones via the existing tokens.
+           Targets the stable data attributes already set on the element
+           so the view markup stays unchanged. Specificity (0,3,0) beats
+           the Tailwind utility class (0,1,0) without needing !important. */
+        :root[data-pt-theme="light"] [data-tkt-flash-success] {
+            background: rgba(16,185,129,0.10);
+            border-color: rgba(16,185,129,0.40);
+            color: var(--prism-emerald);
+        }
+        :root[data-pt-theme="light"] [data-tkt-flash-warn] {
+            background: rgba(245,158,11,0.10);
+            border-color: rgba(245,158,11,0.40);
+            color: var(--prism-gold);
         }
 
         /* ------------- Page transition -------------
@@ -2203,6 +2341,31 @@
             .prism-input { font-size: 14px; }
         }
 
+        /* Cap backdrop-blur cost on small viewports. Multiple stacked
+           blurs at 18–22px stutter iOS Safari's compositor on older
+           iPhones; 12px gives the same "glass" perception at a fraction
+           of the GPU cost. Applies only to the global chrome surfaces
+           that always paint on top of the page (topbar, action bar,
+           modals, drawers, the seat picker bottom CTA, the booking
+           dock, the scanner sheet) — page-specific decorative blurs
+           are untouched. Desktop sizes unchanged. */
+        @media (max-width: 880px) {
+            .pt-topbar,
+            .pt-action-bar,
+            .pt-modal-root,
+            .pt-drawer,
+            .pt-toast-overlay,
+            .anba-dock,
+            .anba-dock-inner,
+            [data-anba-root] .mobile-cta,
+            [data-anba-root] .anba-modal-backdrop,
+            [data-anba-root] .canvas-fab,
+            .scan-sheet {
+                backdrop-filter: blur(12px) saturate(140%) !important;
+                -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+            }
+        }
+
         /* ---------- LIGHT THEME ---------- */
         :root[data-pt-theme="light"] {
             --prism-bg-0: #f4f1ea;
@@ -2213,14 +2376,14 @@
             --prism-surface-strong: rgba(255, 255, 255, 0.88);
             --prism-surface-soft: rgba(15, 23, 42, 0.04);
 
-            --prism-border: rgba(15, 23, 42, 0.10);
-            --prism-border-strong: rgba(15, 23, 42, 0.18);
+            --prism-border: rgba(15, 23, 42, 0.13);
+            --prism-border-strong: rgba(15, 23, 42, 0.22);
             --prism-border-neon: rgba(99, 102, 241, 0.34);
 
             --prism-text:   #0f172a;
             --prism-text-2: #334155;
             --prism-text-3: #475569;
-            --prism-text-4: #64748b;
+            --prism-text-4: #576779;
 
             --prism-cyan:    #0891b2;
             --prism-indigo:  #4f46e5;
@@ -2252,19 +2415,177 @@
 
         /* Light: glass surfaces */
         :root[data-pt-theme="light"] .prism-glass {
-            background: linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.58));
+            background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.64));
             box-shadow:
-                inset 0 1px 0 rgba(255,255,255,0.85),
-                0 18px 38px -22px rgba(15, 23, 42, 0.18),
-                0 1px 2px rgba(15, 23, 42, 0.04);
+                inset 0 1px 0 rgba(255,255,255,0.90),
+                0 20px 40px -18px rgba(15, 23, 42, 0.26),
+                0 4px 8px -4px rgba(15, 23, 42, 0.10);
         }
         :root[data-pt-theme="light"] .prism-glass-strong {
-            background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(252,250,245,0.88));
+            background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(252,250,245,0.90));
             box-shadow:
-                inset 0 1px 0 rgba(255,255,255,0.95),
-                0 22px 50px -22px rgba(15,23,42,0.22);
+                inset 0 1px 0 rgba(255,255,255,0.97),
+                0 24px 52px -20px rgba(15,23,42,0.28),
+                0 4px 10px -4px rgba(15,23,42,0.10);
         }
         :root[data-pt-theme="light"] .prism-glow-border::before { opacity: 0.7; }
+
+        /* Light: KPI / stat cards. Dark slate gradient is invisible on cream;
+           switch to light glass with proper drop shadow so the admin
+           dashboard reads cleanly. is-primary / is-positive / is-attention
+           accent colours are preserved via border tints. */
+        :root[data-pt-theme="light"] .prism-stat {
+            background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(252,250,245,0.88));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                0 22px 44px -22px rgba(15,23,42,0.20),
+                0 4px 10px -4px rgba(15,23,42,0.10);
+        }
+        :root[data-pt-theme="light"] .prism-stat:hover {
+            border-color: rgba(79,70,229,0.42);
+        }
+        :root[data-pt-theme="light"] .prism-stat.is-primary {
+            border-color: rgba(180,83,9,0.45);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                0 28px 56px -22px rgba(180,83,9,0.30),
+                0 0 28px rgba(245,158,11,0.18);
+        }
+        :root[data-pt-theme="light"] .prism-stat.is-primary .prism-stat-label {
+            color: #92400e;
+        }
+        :root[data-pt-theme="light"] .prism-stat.is-positive {
+            border-color: rgba(4,120,87,0.42);
+        }
+        :root[data-pt-theme="light"] .prism-stat.is-positive .prism-stat-value {
+            color: #047857;
+        }
+        :root[data-pt-theme="light"] .prism-stat.is-attention {
+            border-color: rgba(8,145,178,0.45);
+        }
+        :root[data-pt-theme="light"] .prism-stat.is-attention .prism-stat-value {
+            color: #0e7490;
+        }
+
+        /* Light: quick-action card (admin dashboard "Manage shows / showtimes
+           / bookings" tiles). */
+        :root[data-pt-theme="light"] .prism-quick-action {
+            background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(252,250,245,0.86));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                0 22px 44px -22px rgba(15,23,42,0.22),
+                0 4px 10px -4px rgba(15,23,42,0.10);
+        }
+        :root[data-pt-theme="light"] .prism-quick-action:hover {
+            border-color: rgba(79,70,229,0.45);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                0 30px 60px -22px rgba(79,70,229,0.36),
+                0 0 28px rgba(8,145,178,0.18);
+        }
+        :root[data-pt-theme="light"] .prism-quick-action-arrow {
+            background: rgba(15,23,42,0.05);
+            border-color: rgba(15,23,42,0.16);
+            color: var(--prism-text-2);
+        }
+        :root[data-pt-theme="light"] .prism-quick-action:hover .prism-quick-action-arrow {
+            background: rgba(79,70,229,0.14);
+            border-color: rgba(79,70,229,0.45);
+            color: var(--prism-text);
+        }
+
+        /* Light: clean tables (admin bookings list, shows list, etc).
+           Dark-mode thead bg `rgba(13,16,28,0.92)` and indigo-tinted row
+           hover are jarring on cream. */
+        :root[data-pt-theme="light"] .prism-table-clean thead {
+            background: rgba(252,250,245,0.95);
+        }
+        :root[data-pt-theme="light"] .prism-table-clean thead th {
+            color: var(--prism-text-3);
+            border-bottom-color: rgba(15,23,42,0.18);
+        }
+        :root[data-pt-theme="light"] .prism-table-clean tbody td {
+            border-bottom-color: rgba(15,23,42,0.10);
+        }
+        :root[data-pt-theme="light"] .prism-table-clean tbody tr:hover td {
+            background: rgba(79,70,229,0.06);
+        }
+
+        /* Light: floating action bar (admin booking approve/reject, anba
+           seat picker mobile, etc). Dark slate gradient + transparent
+           white chip backgrounds break on cream. */
+        :root[data-pt-theme="light"] .pt-action-bar-inner {
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(252,250,245,0.92));
+            border-color: rgba(79,70,229,0.32);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                0 -16px 60px -22px rgba(15,23,42,0.22),
+                0 0 36px rgba(79,70,229,0.14);
+        }
+        :root[data-pt-theme="light"] .pt-action-bar .pt-bar-chip {
+            background: rgba(15,23,42,0.05);
+            border-color: rgba(79,70,229,0.22);
+            color: var(--prism-text-2);
+        }
+        :root[data-pt-theme="light"] .pt-action-bar .pt-bar-chip-gold {
+            background: linear-gradient(135deg, rgba(245,158,11,0.16), rgba(245,158,11,0.06));
+            border-color: rgba(180,83,9,0.45);
+            color: #92400e;
+        }
+        :root[data-pt-theme="light"] .pt-action-bar .pt-bar-chip-muted {
+            color: var(--prism-text-3);
+            border-color: rgba(15,23,42,0.14);
+        }
+
+        /* Light: back chevron + ticket row (admin booking detail). */
+        :root[data-pt-theme="light"] .pt-back-chevron {
+            background: rgba(15,23,42,0.05);
+            border-color: rgba(15,23,42,0.14);
+            color: var(--prism-text-2);
+        }
+        :root[data-pt-theme="light"] .pt-back-chevron:hover {
+            background: rgba(79,70,229,0.10);
+            border-color: rgba(79,70,229,0.45);
+            color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] .pt-ticket-row {
+            background: rgba(15,23,42,0.03);
+            border-color: rgba(15,23,42,0.10);
+        }
+        :root[data-pt-theme="light"] .pt-ticket-row:hover {
+            background: rgba(79,70,229,0.06);
+            border-color: rgba(79,70,229,0.32);
+        }
+
+        /* Light: ghost button — the dark-mode 0.04 white bg is invisible on cream */
+        :root[data-pt-theme="light"] .prism-btn-ghost {
+            background: rgba(15,23,42,0.04);
+            border-color: rgba(15,23,42,0.14);
+            color: var(--prism-text-2);
+        }
+        :root[data-pt-theme="light"] .prism-btn-ghost:hover {
+            background: rgba(15,23,42,0.07);
+            border-color: rgba(15,23,42,0.22);
+            color: var(--prism-text);
+        }
+
+        /* Light: primary button — pastel gradient stays, but the indigo
+           drop shadow is too pale on cream; bump it for proper lift. */
+        :root[data-pt-theme="light"] .prism-btn {
+            border-color: rgba(255,255,255,0.85);
+            box-shadow:
+                0 10px 24px -8px rgba(79,70,229,0.42),
+                0 2px 4px -2px rgba(15,23,42,0.12),
+                inset 0 1px 0 rgba(255,255,255,0.85);
+        }
+        :root[data-pt-theme="light"] .prism-btn:hover:not(:disabled) {
+            box-shadow:
+                0 16px 34px -8px rgba(79,70,229,0.58),
+                0 0 22px rgba(8,145,178,0.22),
+                inset 0 1px 0 rgba(255,255,255,0.85);
+        }
 
         /* Light: scrollbar */
         :root[data-pt-theme="light"] ::-webkit-scrollbar-thumb {
@@ -2332,11 +2653,12 @@
                 0 0 22px rgba(129,140,248,0.10);
         }
         :root[data-pt-theme="light"] .pt-topbar {
-            background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.72));
+            background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.76));
+            border-color: rgba(15,23,42,0.10);
             box-shadow:
                 inset 0 1px 0 rgba(255,255,255,0.95),
-                0 18px 38px -22px rgba(15,23,42,0.18),
-                0 1px 2px rgba(15,23,42,0.04);
+                0 18px 38px -22px rgba(15,23,42,0.22),
+                0 2px 4px rgba(15,23,42,0.08);
         }
         .pt-topbar.is-scrolled {
             border-color: rgba(129,140,248,0.32);
@@ -2467,6 +2789,12 @@
             color: var(--prism-text-2);
             text-decoration: none;
             min-height: 36px;
+            /* Reserve enough width to fit the wider of AR/EN labels so the
+               topbar doesn't reflow when applyLang() swaps the text on
+               first paint. الرئيسية / Shows / لوحة التحكم all fit in 7ch
+               comfortably; the gap is absorbed inside the pill. Reduces
+               first-paint CLS on the topbar to zero. */
+            min-width: 7ch;
             transition: color .2s var(--prism-ease), background .2s var(--prism-ease), transform .2s var(--prism-ease);
         }
         @media (hover: hover) {
@@ -2898,7 +3226,7 @@
             background: rgba(255,255,255,0.04);
             border: 1px solid var(--prism-border);
         }
-        :root[data-pt-theme="light"] .pt-hero-eyebrow { background: rgba(15,23,42,0.05); }
+        :root[data-pt-theme="light"] .pt-hero-eyebrow { background: rgba(15,23,42,0.08); border-color: rgba(15,23,42,0.14); }
         .pt-hero-eyebrow .pt-live-dot {
             width: 7px; height: 7px;
             border-radius: 999px;
@@ -2969,7 +3297,7 @@
             background: rgba(255,255,255,0.03);
             border: 1px solid var(--prism-border);
         }
-        :root[data-pt-theme="light"] .pt-hero-stat { background: rgba(15,23,42,0.03); }
+        :root[data-pt-theme="light"] .pt-hero-stat { background: rgba(15,23,42,0.06); border-color: rgba(15,23,42,0.12); }
         .pt-hero-stat-num {
             font-family: "Space Grotesk", system-ui, sans-serif;
             font-weight: 800;
@@ -3211,7 +3539,7 @@
             display: inline-flex; align-items: center; justify-content: center;
             color: var(--prism-text-2);
         }
-        :root[data-pt-theme="light"] .pt-how-step-icon { background: rgba(15,23,42,0.04); }
+        :root[data-pt-theme="light"] .pt-how-step-icon { background: rgba(15,23,42,0.08); border-color: rgba(15,23,42,0.14); }
 
         /* Section heading */
         .pt-section-head {
@@ -3250,8 +3578,17 @@
             min-height: 320px;
         }
         :root[data-pt-theme="light"] .pt-show-card {
-            background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.70));
-            box-shadow: 0 18px 38px -22px rgba(15,23,42,0.18);
+            background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.76));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                0 22px 46px -22px rgba(15,23,42,0.26),
+                0 4px 10px -4px rgba(15,23,42,0.10);
+        }
+        :root[data-pt-theme="light"] .pt-show-card:hover {
+            border-color: rgba(79,70,229,0.34);
+            box-shadow:
+                0 32px 70px -28px rgba(15,23,42,0.30),
+                0 0 24px rgba(79,70,229,0.16);
         }
         @media (hover: hover) {
             .pt-show-card:hover {
@@ -3335,7 +3672,7 @@
             font-size: 12px;
             color: var(--prism-text-2);
         }
-        :root[data-pt-theme="light"] .pt-show-time { background: rgba(15,23,42,0.04); }
+        :root[data-pt-theme="light"] .pt-show-time { background: rgba(15,23,42,0.06); border-color: rgba(15,23,42,0.12); }
         .pt-show-time-price {
             color: var(--prism-gold);
             font-weight: 700;
@@ -3370,7 +3707,10 @@
                 radial-gradient(ellipse 60% 60% at 0% 100%, rgba(8,145,178,0.10), transparent 60%),
                 radial-gradient(ellipse 60% 60% at 100% 0%, rgba(124,58,237,0.10), transparent 60%),
                 linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.78));
-            box-shadow: 0 22px 50px -24px rgba(15,23,42,0.18);
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                0 24px 52px -22px rgba(15,23,42,0.26),
+                0 4px 10px -4px rgba(15,23,42,0.10);
         }
         @media (min-width: 880px) {
             .pt-featured { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.25fr); padding: 22px; }
@@ -3637,7 +3977,11 @@
             will-change: transform;
         }
         :root[data-pt-theme="light"] .pt-cinema-step {
-            background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.65));
+            background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.72));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                0 26px 56px -22px rgba(15,23,42,0.26),
+                0 4px 10px -4px rgba(15,23,42,0.10);
         }
         @media (min-width: 880px) {
             .pt-cinema-step { padding: 28px 28px 32px; width: min(540px, 92%); }
@@ -4450,6 +4794,10 @@
             background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.6), transparent);
             animation: ptCineCue 2s ease-in-out infinite;
         }
+        :root[data-pt-theme="light"] .pt-cine-scroll-cue { color: var(--prism-text-2); }
+        :root[data-pt-theme="light"] .pt-cine-scroll-cue-line {
+            background: linear-gradient(to bottom, transparent, rgba(15,23,42,0.55), transparent);
+        }
         @keyframes ptCineCue {
             0%, 100% { transform: scaleY(0.5); opacity: 0.4; }
             50%      { transform: scaleY(1);   opacity: 1; }
@@ -4471,6 +4819,14 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
+        }
+        :root[data-pt-theme="light"] .pt-cine-prologue-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(255,255,255,0.62));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                0 30px 80px -28px rgba(15,23,42,0.30),
+                0 6px 14px -6px rgba(15,23,42,0.12),
+                inset 0 1px 0 rgba(255,255,255,0.85);
         }
         @media (min-width: 768px) {
             .pt-cine-prologue-card { padding: 48px 44px; }
@@ -5150,7 +5506,11 @@
                         box-shadow .45s var(--prism-ease);
         }
         :root[data-pt-theme="light"] .pt-time-card {
-            background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.66));
+            background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.72));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                0 20px 40px -22px rgba(15,23,42,0.22),
+                0 4px 8px -4px rgba(15,23,42,0.10);
         }
         @media (max-width: 640px) {
             .pt-time-card { grid-template-columns: auto 1fr; row-gap: 14px; padding: 14px 16px 14px 20px; }
@@ -6210,6 +6570,9 @@
                 form_attendees_title: '👥 بيانات الحضور',
                 form_attendees_hint: 'اكتب اسم ورقم واتساب لكل مقعد',
                 form_screenshot: 'إيصال التحويل',
+                form_screenshot_tap_upload: 'اضغط لرفع صورة إيصال التحويل',
+                form_screenshot_hint: 'JPG / PNG · حد أقصى 20MB',
+                form_screenshot_replace: 'تغيير',
                 form_required: 'مطلوب',
                 form_name_label: 'الاسم',
                 form_phone_label: 'رقم واتساب',
@@ -6263,6 +6626,16 @@
                 seat_auto_pick_done: 'تم اختيار أفضل المقاعد',
                 seat_auto_pick_none: 'لا توجد مقاعد متجاورة كافية',
                 seat_auto_pick_prompt: 'كم مقعد تريد؟',
+                seat_auto_pick_eyebrow: 'اختيار سريع',
+                seat_auto_pick_cancel: 'إلغاء',
+
+                /* ===== page <title>s — used by the meta[name="pt-title-i18n"] hook ===== */
+                page_title_shows: 'العروض المتاحة · Premium Tickets',
+                page_title_book_seats: 'اختار مقعدك',
+                page_title_book_form: 'إكمال الحجز',
+                page_title_book_create: 'حجز تذاكر',
+                page_title_thankyou: 'تم إرسال طلب الحجز · Premium Tickets',
+                page_title_ticket_lookup: 'تذكرتك · Premium Tickets',
 
                 /* ===== auth pages ===== */
                 auth_admin_pill: 'دخول الأدمن',
@@ -6292,6 +6665,37 @@
                 thx_title: 'تم استلام طلبك',
                 thx_sub: 'هنراجع التحويل ونرجعلك بتأكيد الحجز على واتساب.',
                 thx_back: 'رجوع للرئيسية',
+
+                /* ===== public ticket-by-reference lookup ===== */
+                ticket_lookup_eyebrow: 'تذكرتك',
+                ticket_lookup_pending_title: 'حجزك قيد المراجعة',
+                ticket_lookup_pending_sub: 'هنراجع التحويل ونبعتلك التذاكر على واتساب فور الاعتماد.',
+                ticket_lookup_approved_title: 'حجزك معتمد ✅',
+                ticket_lookup_approved_sub: 'تم إرسال التذاكر على واتساب. لو ما وصلتش، تقدر تعيد الإرسال للرقم المسجل.',
+                ticket_lookup_rejected_title: 'الحجز غير معتمد',
+                ticket_lookup_rejected_sub: 'للأسف الحجز ده ما اتعتمدش. لو فيه استفسار اتواصل مع الدعم على واتساب.',
+                ticket_lookup_ref_label: 'رقم الحجز',
+                ticket_lookup_show_label: 'العرض',
+                ticket_lookup_when_label: 'موعد العرض',
+                ticket_lookup_seats_label: 'المقاعد',
+                ticket_lookup_total_label: 'إجمالي المبلغ',
+                ticket_lookup_phone_label: 'رقم واتساب',
+                ticket_lookup_resend_btn: 'إعادة إرسال التذاكر على واتساب',
+                ticket_lookup_resend_hint: 'الإرسال للرقم المسجل بس · مرة كل دقيقة',
+                ticket_lookup_back_home: 'الرجوع للرئيسية',
+                ticket_lookup_status_success: '✅ تم إعادة إرسال التذاكر على واتساب',
+                ticket_lookup_status_cooldown: '⏱️ استنى شوية وحاول تاني',
+                ticket_lookup_status_no_qr: 'التذاكر لسه ما اتجهزتش. حاول تاني بعد شوية.',
+                ticket_lookup_status_not_approved: 'الحجز ده لسه ما اتعتمدش.',
+
+                /* ===== branded error pages ===== */
+                error_back_home: 'الرجوع للرئيسية',
+                error_404_eyebrow: 'صفحة غير موجودة',
+                error_404_title: 'ما لقيناش الصفحة دي',
+                error_404_sub: 'الرابط غلط أو الصفحة اتنقلت. ارجع للرئيسية ومنها هتلاقي العروض.',
+                error_500_eyebrow: 'حصل خطأ',
+                error_500_title: 'حصلت مشكلة من جهتنا',
+                error_500_sub: 'حاول تاني بعد شوية. لو المشكلة فضلت موجودة كلّمنا على واتساب.',
 
                 /* ===== auth ===== */
                 auth_admin_pill: 'دخول الأدمن',
@@ -6972,6 +7376,9 @@
                 form_attendees_title: '👥 Attendee details',
                 form_attendees_hint: 'Enter a name and WhatsApp number for each seat',
                 form_screenshot: 'Transfer receipt',
+                form_screenshot_tap_upload: 'Tap to upload your transfer receipt',
+                form_screenshot_hint: 'JPG / PNG · 20MB max',
+                form_screenshot_replace: 'Change',
                 form_required: 'required',
                 form_name_label: 'Name',
                 form_phone_label: 'WhatsApp number',
@@ -7025,6 +7432,16 @@
                 seat_auto_pick_done: 'Best seats picked for you',
                 seat_auto_pick_none: 'Not enough adjacent seats free',
                 seat_auto_pick_prompt: 'How many seats?',
+                seat_auto_pick_eyebrow: 'Quick pick',
+                seat_auto_pick_cancel: 'Cancel',
+
+                /* ===== page <title>s — used by the meta[name="pt-title-i18n"] hook ===== */
+                page_title_shows: 'Available shows · Premium Tickets',
+                page_title_book_seats: 'Pick your seat',
+                page_title_book_form: 'Complete booking',
+                page_title_book_create: 'Book tickets',
+                page_title_thankyou: 'Booking submitted · Premium Tickets',
+                page_title_ticket_lookup: 'Your ticket · Premium Tickets',
 
                 /* ===== auth pages ===== */
                 auth_admin_pill: 'Admin Access',
@@ -7054,6 +7471,37 @@
                 thx_title: 'Booking received',
                 thx_sub: 'We\u2019ll review the transfer and confirm your booking on WhatsApp shortly.',
                 thx_back: 'Back to home',
+
+                /* ===== public ticket-by-reference lookup ===== */
+                ticket_lookup_eyebrow: 'Your booking',
+                ticket_lookup_pending_title: 'Your booking is under review',
+                ticket_lookup_pending_sub: 'We\u2019re reviewing your transfer and will send your tickets on WhatsApp once approved.',
+                ticket_lookup_approved_title: 'Booking approved \u2705',
+                ticket_lookup_approved_sub: 'We sent your tickets to WhatsApp. If you didn\u2019t get them, you can resend to the number on file.',
+                ticket_lookup_rejected_title: 'Booking not approved',
+                ticket_lookup_rejected_sub: 'Unfortunately this booking wasn\u2019t approved. Contact us on WhatsApp if you think this is a mistake.',
+                ticket_lookup_ref_label: 'Reference',
+                ticket_lookup_show_label: 'Show',
+                ticket_lookup_when_label: 'When',
+                ticket_lookup_seats_label: 'Seats',
+                ticket_lookup_total_label: 'Total',
+                ticket_lookup_phone_label: 'WhatsApp number',
+                ticket_lookup_resend_btn: 'Resend tickets to WhatsApp',
+                ticket_lookup_resend_hint: 'Sent to the number on file only \u00b7 once per minute',
+                ticket_lookup_back_home: 'Back to home',
+                ticket_lookup_status_success: '\u2705 Tickets resent on WhatsApp',
+                ticket_lookup_status_cooldown: '\u23f1\ufe0f Please wait a moment and try again',
+                ticket_lookup_status_no_qr: 'Your tickets aren\u2019t generated yet. Please try again shortly.',
+                ticket_lookup_status_not_approved: 'This booking isn\u2019t approved yet.',
+
+                /* ===== branded error pages ===== */
+                error_back_home: 'Back to home',
+                error_404_eyebrow: 'Not found',
+                error_404_title: 'We couldn\u2019t find that page',
+                error_404_sub: 'The link is wrong or the page has moved. Head back home to find the shows.',
+                error_500_eyebrow: 'Something went wrong',
+                error_500_title: 'Something on our side broke',
+                error_500_sub: 'Please try again in a moment. If it keeps failing, message us on WhatsApp.',
 
                 /* ===== auth ===== */
                 auth_admin_pill: 'Admin Access',
@@ -7599,6 +8047,21 @@
                 b.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
             document.querySelectorAll('.pt-lang-toggle').forEach(group => moveThumbForGroup(group, lang));
+            // Page title — pages can declare a meta tag like
+            //   <meta name="pt-title-i18n" content="key" data-suffix="...">
+            // and document.title is rebuilt here in the active language.
+            // The dynamic `data-suffix` (e.g. a show title) is appended
+            // with " · " when present. Missing keys leave the existing
+            // @section('title') string untouched.
+            const titleMeta = document.querySelector('meta[name="pt-title-i18n"]');
+            if (titleMeta) {
+                const tk = titleMeta.getAttribute('content');
+                const suffix = titleMeta.getAttribute('data-suffix') || '';
+                if (tk && dict[tk] !== undefined) {
+                    const base = interp(dict[tk], readVars(titleMeta));
+                    document.title = suffix ? base + ' · ' + suffix : base;
+                }
+            }
             try { localStorage.setItem('pt-lang', lang); } catch(_){}
             window.PT_LANG = lang;
             document.dispatchEvent(new CustomEvent('pt:langchange', { detail: { lang } }));

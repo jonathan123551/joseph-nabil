@@ -34,9 +34,14 @@
     //                     'GAP' inserts a 1.5×ROW_PITCH walkway/gap in
     //                     the geometry (NOT a CSS margin) — this is how
     //                     the balcony walkway between C and D is drawn.
+    //                     'GAP_HALF' inserts a 0.75×ROW_PITCH separator
+    //                     (half the size of 'GAP') — a subtle visual
+    //                     break, NOT a full aisle. Used between Q and R
+    //                     in the hall preset.
     //   rightShiftSteps : per-row outermost wing offset, in HALF-SEAT
     //                     units. 0 = wings flush with center column;
-    //                     larger = wings pushed outward (cinematic fan).
+    //                     positive = wings pushed outward (cinematic fan);
+    //                     negative = wings pulled inward (back-row stagger).
     //   noCenterAnchors : for rows that have no center column, the row
     //                     letter to ANCHOR each wing's inner edge to.
     //                     Object cast forces JSON object (not array).
@@ -47,15 +52,28 @@
     //                     2026-05-09 drop_anba_ruweis_q_center migration).
     $presets = [
         'hall' => [
-            'rowsOrder'        => ['A','B','C','D','E','F','G','H','GAP','I','J','K','L','M','N','O','P','Q','R'],
+            // 'GAP_HALF' between Q and R adds a subtle vertical separator
+            // (0.75×ROW_PITCH ≈ 22.5 px extra), about half the size of the
+            // H↔I walkway. Not a full aisle — a gentle visual hint that R
+            // is the offset back-row.
+            'rowsOrder'        => ['A','B','C','D','E','F','G','H','GAP','I','J','K','L','M','N','O','P','Q','GAP_HALF','R'],
             'rightShiftSteps'  => (object) [
                 'Q' => 0,    'P' => 1,    'O' => 2,    'N' => 3,
                 'M' => 3.0,  'L' => 3.2,  'K' => 3.4,  'J' => 3.6, 'I' => 4,
                 'H' => 5,    'G' => 6,    'F' => 7,    'E' => 8,   'D' => 9, 'C' => 10,
                 'B' => 10.2, 'A' => 11.2,
-                'R' => 1,
+                // Row R: NEGATIVE step = wings pulled INWARD relative to Q
+                // (the anchor). -2 = one full seat width inward — R's
+                // innermost seats sit visibly inside Q's innermost seats,
+                // a pronounced back-row sight-line stagger.
+                'R' => -2,
             ],
-            'noCenterAnchors'  => (object) ['A' => 'B', 'Q' => 'P', 'R' => 'Q'],
+            // Q is the anchor for R as well so R's inner edge lines up with
+            // Q's inner edge (both anchor to P's center column). Without
+            // this, R would anchor to Q (which has no center column) and
+            // its inner edge would collapse onto CX ± AISLE_GAP — far
+            // inside Q's inner edge.
+            'noCenterAnchors'  => (object) ['A' => 'B', 'Q' => 'P', 'R' => 'P'],
             'adminOnlyCenter'  => [],
         ],
         // anba_ruweis_ballacon — 8-row premium balcony tier.
@@ -424,6 +442,76 @@
             [data-anba-root] .gesture-hint.is-leaving .hint-card { animation: none; }
         }
 
+        /* ===== "More seats →" edge arrows =====
+           Pulsing chevrons pinned to the leading / trailing edges of the
+           scroller, visible only when the canvas extends past the
+           viewport on that axis. Mobile-first; hidden on desktop and on
+           reduced-motion (replaced with static visibility). Pointer-
+           events-none so the underlying gesture pipeline is unaffected. */
+        [data-anba-root] .edge-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 56px;
+            border-radius: 14px;
+            background: linear-gradient(90deg, rgba(8,10,20,0.78), rgba(8,10,20,0.42));
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            color: rgba(34,211,238,0.95);
+            font-size: 22px;
+            font-weight: 800;
+            line-height: 1;
+            opacity: 0;
+            transition: opacity .22s var(--p-ease);
+        }
+        [data-anba-root] .edge-arrow.is-visible { opacity: 1; }
+        [data-anba-root] .edge-arrow.start { inset-inline-start: 6px; }
+        [data-anba-root] .edge-arrow.end   { inset-inline-end:   6px; }
+        [data-anba-root] .edge-arrow.start { background: linear-gradient(90deg, rgba(8,10,20,0.78), rgba(8,10,20,0.10)); }
+        [data-anba-root] .edge-arrow.end   { background: linear-gradient(-90deg, rgba(8,10,20,0.78), rgba(8,10,20,0.10)); }
+        /* Subtle nudge animation — translateX 3px every 1.6s. Direction
+           flips per side (leading edge pulses leftward, trailing edge
+           pulses rightward) to suggest "more on this side". */
+        @keyframes edgeArrowPulseStart {
+            0%, 100% { transform: translateY(-50%) translateX(0); }
+            50%      { transform: translateY(-50%) translateX(-3px); }
+        }
+        @keyframes edgeArrowPulseEnd {
+            0%, 100% { transform: translateY(-50%) translateX(0); }
+            50%      { transform: translateY(-50%) translateX(3px); }
+        }
+        [data-anba-root] .edge-arrow.start.is-visible { animation: edgeArrowPulseStart 1.6s ease-in-out infinite; }
+        [data-anba-root] .edge-arrow.end.is-visible   { animation: edgeArrowPulseEnd   1.6s ease-in-out infinite; }
+        /* Soft fade-out shell so the arrows don't visually clash with
+           seats at the edge — same color as the surrounding canvas. */
+        [data-anba-root] .edge-arrow svg {
+            width: 14px;
+            height: 14px;
+            display: block;
+            filter: drop-shadow(0 0 6px rgba(34,211,238,0.35));
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .edge-arrow {
+            color: #4338ca;
+            background: linear-gradient(90deg, rgba(255,255,255,0.92), rgba(255,255,255,0.42));
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .edge-arrow.start { background: linear-gradient(90deg, rgba(255,255,255,0.92), rgba(255,255,255,0.10)); }
+        :root[data-pt-theme="light"] [data-anba-root] .edge-arrow.end   { background: linear-gradient(-90deg, rgba(255,255,255,0.92), rgba(255,255,255,0.10)); }
+        :root[data-pt-theme="light"] [data-anba-root] .edge-arrow svg   { filter: drop-shadow(0 0 6px rgba(99,102,241,0.35)); }
+        @media (min-width: 880px) {
+            [data-anba-root] .edge-arrow { display: none !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            [data-anba-root] .edge-arrow.start.is-visible,
+            [data-anba-root] .edge-arrow.end.is-visible { animation: none; }
+            [data-anba-root] .edge-arrow { transition: none; }
+        }
+
         /* ===== Side panel ===== */
         [data-anba-root] .seat-chip {
             display: inline-flex; align-items: center; gap: 4px;
@@ -589,6 +677,20 @@
         @media (prefers-reduced-motion: reduce) {
             [data-anba-root] .mobile-cta { transition: opacity .2s linear; }
         }
+        /* Inline seat labels in the mobile CTA so the user can verify
+           the actual seats picked (not just the count). Truncates to
+           one line; the full list is still in the chips region of the
+           side panel above. */
+        [data-anba-root] [data-mobile-labels] {
+            color: var(--p-gold);
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+            max-width: 60vw;
+            vertical-align: bottom;
+        }
 
         /* =========================================================
            Fullscreen mode (Step 2: dedicated seat-picker page).
@@ -709,6 +811,278 @@
             color: var(--p-text-2);
             font-size: 11px;
         }
+
+        /* ===== Auto-pick chip modal =====
+           Touch-first replacement for `window.prompt()`. A small glass
+           card with N tappable chips (1..max). Closes on overlay tap or
+           Escape. Layered on top of the seat-picker viewport so it works
+           in both inline and fullscreen modes. */
+        .anba-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(3, 5, 12, 0.72);
+            backdrop-filter: blur(8px) saturate(140%);
+            -webkit-backdrop-filter: blur(8px) saturate(140%);
+            opacity: 0;
+            transition: opacity .18s ease-out;
+        }
+        .anba-modal-backdrop.is-open {
+            display: flex;
+            opacity: 1;
+        }
+        .anba-modal-card {
+            width: min(360px, 92vw);
+            border-radius: 18px;
+            padding: 18px 18px 14px;
+            background: linear-gradient(180deg, rgba(15,18,32,0.96), rgba(8,10,20,0.96));
+            border: 1px solid rgba(251,191,36,0.40);
+            box-shadow:
+                0 24px 60px -12px rgba(0,0,0,0.65),
+                0 0 0 1px rgba(255,255,255,0.04) inset,
+                0 1px 0 rgba(255,255,255,0.10) inset;
+            color: var(--p-text);
+            transform: translateY(6px) scale(.98);
+            transition: transform .22s var(--p-ease);
+        }
+        .anba-modal-backdrop.is-open .anba-modal-card {
+            transform: translateY(0) scale(1);
+        }
+        .anba-modal-eyebrow {
+            font-size: 10.5px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #fcd34d;
+            font-weight: 700;
+            margin-bottom: 6px;
+            text-align: center;
+        }
+        .anba-modal-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--p-text);
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .anba-modal-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        .anba-modal-chip {
+            appearance: none;
+            -webkit-appearance: none;
+            border: 1px solid rgba(251,191,36,0.30);
+            background: rgba(251,191,36,0.06);
+            color: #fde68a;
+            border-radius: 12px;
+            padding: 12px 0;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 44px;
+            transition: transform .12s var(--p-ease), background .12s var(--p-ease), border-color .12s var(--p-ease);
+        }
+        .anba-modal-chip:hover {
+            background: rgba(251,191,36,0.16);
+            border-color: rgba(251,191,36,0.55);
+        }
+        .anba-modal-chip:active { transform: scale(0.95); }
+        .anba-modal-cancel {
+            display: block;
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--p-border);
+            color: var(--p-text-3);
+            border-radius: 12px;
+            padding: 10px 0;
+            font-size: 13px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 40px;
+        }
+        .anba-modal-cancel:hover {
+            background: rgba(255,255,255,0.04);
+            color: var(--p-text);
+        }
+        @media (max-width: 360px) {
+            .anba-modal-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .anba-modal-backdrop,
+            .anba-modal-card { transition: none; }
+        }
+        /* ---- Light-mode overrides: auto-pick chip-count modal ----
+           Fired from the auto-pick FAB. The dark amber-on-navy card looks
+           pasted-in on cream; swap to a white-cream card with amber
+           accent, neutral cancel button, and a softer scrim.
+           NB: the modal is rendered OUTSIDE [data-anba-root] (a sibling
+           of the picker), so the `--p-*` tokens don't cascade to it.
+           We use the global `--prism-*` tokens instead. */
+        :root[data-pt-theme="light"] .anba-modal-backdrop {
+            background: rgba(15,23,42,0.32);
+        }
+        :root[data-pt-theme="light"] .anba-modal-card {
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.98));
+            border-color: rgba(245,158,11,0.45);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.7),
+                0 24px 60px -12px rgba(15,23,42,0.28),
+                0 0 24px rgba(245,158,11,0.16);
+            color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] .anba-modal-eyebrow {
+            color: var(--prism-gold);
+        }
+        :root[data-pt-theme="light"] .anba-modal-title {
+            color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] .anba-modal-chip {
+            background: rgba(245,158,11,0.10);
+            border-color: rgba(245,158,11,0.45);
+            color: var(--prism-gold);
+        }
+        :root[data-pt-theme="light"] .anba-modal-chip:hover {
+            background: rgba(245,158,11,0.20);
+            border-color: rgba(245,158,11,0.65);
+        }
+        :root[data-pt-theme="light"] .anba-modal-cancel {
+            border-color: rgba(15,23,42,0.12);
+            color: var(--prism-text-3);
+        }
+        :root[data-pt-theme="light"] .anba-modal-cancel:hover {
+            background: rgba(15,23,42,0.04);
+            color: var(--prism-text);
+        }
+
+        /* =====================================================================
+           LIGHT THEME — seat picker chrome.
+           The canvas itself stays dark (it represents the theater stage) but
+           the wrapping glass panels, side panel, zoom bar, legend pills,
+           attendee cards, field inputs and transfer instructions all need
+           light overrides — the dark slate surfaces look pasted-in on cream
+           and the bg-white/[0.04] tinted info pills become invisible.
+           Dark mode is untouched.
+        ===================================================================== */
+        :root[data-pt-theme="light"] [data-anba-root] .glass {
+            background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(252,250,245,0.86));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                0 24px 52px -22px rgba(15,23,42,0.26),
+                0 4px 10px -4px rgba(15,23,42,0.10);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .ambient {
+            /* Keep the soft cyan / violet halo, but drop the dark slate base
+               so the wrapping glass stays light around the dark canvas. */
+            background:
+                radial-gradient(ellipse 120% 60% at 50% -10%, rgba(34,211,238,0.10), transparent 60%),
+                radial-gradient(ellipse 80% 50% at 50% 110%, rgba(192,132,252,0.10), transparent 60%);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .zoom-bar {
+            background: rgba(255,255,255,0.85);
+            border-color: rgba(79,70,229,0.30);
+            box-shadow:
+                0 4px 14px -6px rgba(79,70,229,0.25),
+                inset 0 1px 0 rgba(255,255,255,0.95);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .zoom-btn {
+            color: #3730a3;
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .zoom-btn:hover {
+            background: rgba(79,70,229,0.10);
+            color: #312e81;
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .zoom-btn + .zoom-btn {
+            border-right-color: rgba(79,70,229,0.20);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .legend-pill {
+            background: rgba(15,23,42,0.04);
+            border-color: rgba(15,23,42,0.14);
+            color: var(--prism-text-2);
+        }
+        /* Available swatch needs a different gradient on cream so it doesn't
+           collide with the slate-on-slate dark look. */
+        :root[data-pt-theme="light"] [data-anba-root] .legend-swatch {
+            border-color: rgba(15,23,42,0.20);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .legend-swatch.avail {
+            background: linear-gradient(180deg, #cbd5e1, #94a3b8);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .attendee-card {
+            background: rgba(255,255,255,0.92);
+            border-color: rgba(15,23,42,0.12);
+            box-shadow:
+                0 8px 18px -10px rgba(15,23,42,0.16),
+                inset 0 1px 0 rgba(255,255,255,0.85);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .field-input {
+            background: #ffffff;
+            border-color: rgba(15,23,42,0.16);
+            color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .field-input:focus {
+            border-color: rgba(79,70,229,0.55);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.14);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .seat-chip {
+            background: linear-gradient(135deg, rgba(4,120,87,0.14), rgba(8,145,178,0.10));
+            border-color: rgba(4,120,87,0.45);
+            color: #064e3b;
+            box-shadow: 0 0 12px rgba(4,120,87,0.14), inset 0 1px 0 rgba(255,255,255,0.6);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .seat-chip [data-remove] {
+            background: rgba(15,23,42,0.10);
+            color: #7f1d1d;
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .seat-chip [data-remove]:hover {
+            background: rgba(244,63,94,0.20);
+            color: #7f1d1d;
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .cta-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #7c3aed 50%, #8b5cf6 100%);
+            color: #ffffff;
+            border-color: rgba(255,255,255,0.85);
+            box-shadow:
+                0 10px 24px -8px rgba(79,70,229,0.45),
+                0 2px 4px -2px rgba(15,23,42,0.12),
+                inset 0 1px 0 rgba(255,255,255,0.30);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .cta-primary:hover:not(:disabled) {
+            box-shadow:
+                0 14px 32px -8px rgba(79,70,229,0.65),
+                0 0 24px rgba(124,58,237,0.30),
+                inset 0 1px 0 rgba(255,255,255,0.30);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .cta-primary:disabled {
+            background: linear-gradient(180deg, rgba(148,163,184,0.45), rgba(100,116,139,0.40));
+            color: rgba(15,23,42,0.55);
+        }
+        /* Transfer instructions inline-style override (the inline
+           rgba(8,10,20,0.55) is too dark on cream). */
+        :root[data-pt-theme="light"] [data-anba-root] [data-anba-transfer] {
+            background: rgba(255,255,255,0.78) !important;
+            border-color: rgba(79,70,229,0.22) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.95);
+        }
+        /* The wallet / insta info chips use bg-white/[0.04] which is invisible
+           on cream; mark them so we can lift them in light mode. */
+        :root[data-pt-theme="light"] [data-anba-root] [data-anba-payinfo] {
+            background: rgba(15,23,42,0.04) !important;
+            border-color: rgba(15,23,42,0.12) !important;
+        }
+        /* The "view more / less attendees" stack toggle. */
+        :root[data-pt-theme="light"] [data-anba-root] .attendee-stack {
+            background: rgba(15,23,42,0.04);
+            border-color: rgba(15,23,42,0.14);
+        }
     </style>
 
     <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr),360px] gap-5 fs-grid">
@@ -770,6 +1144,22 @@
                         <div class="hint-text" data-i18n="seat_gesture_hint">استخدم إصبعين للتكبير والتحريك</div>
                         <div class="hint-sub">Pinch &amp; pan</div>
                     </div>
+                </div>
+
+                {{-- Edge "more seats" indicators. Pulsing chevrons on
+                     the leading / trailing edges of the canvas viewport,
+                     visible only when content extends off-screen on
+                     that side. Mobile-only via CSS; toggled by JS as
+                     the user pans / zooms. --}}
+                <div class="edge-arrow start" data-anba-edge-arrow="start" aria-hidden="true">
+                    <svg viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 1 L3 6 L8 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="edge-arrow end" data-anba-edge-arrow="end" aria-hidden="true">
+                    <svg viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 1 L9 6 L4 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
                 </div>
 
                 @if ($isFullscreen)
@@ -835,6 +1225,7 @@
             {{-- transfer instructions — customer flow only --}}
             @if (!$adminMode && (!empty($transferWallet) || !empty($transferInsta)))
                 <div class="rounded-2xl p-3 space-y-2"
+                     data-anba-transfer
                      style="background: rgba(8,10,20,0.55); border: 1px solid rgba(129,140,248,0.18);">
                     <h4 class="text-[11px] font-semibold"
                         style="background: linear-gradient(135deg,#22d3ee,#818cf8,#c084fc); -webkit-background-clip: text; background-clip: text; color: transparent;"
@@ -842,13 +1233,13 @@
                         خطوة 1 · حوّل قيمة الحجز
                     </h4>
                     @if (!empty($transferWallet))
-                        <div class="bg-white/[0.04] border border-[color:var(--p-border)] rounded-xl px-3 py-2">
+                        <div class="bg-white/[0.04] border border-[color:var(--p-border)] rounded-xl px-3 py-2" data-anba-payinfo>
                             <p class="text-[9px] text-[color:var(--p-text-3)] mb-0.5" data-i18n="pay_wallet">📱 محفظة</p>
                             <p class="text-xs font-bold text-[color:var(--p-text)]" dir="ltr">{{ $transferWallet }}</p>
                         </div>
                     @endif
                     @if (!empty($transferInsta))
-                        <div class="bg-white/[0.04] border border-[color:var(--p-border)] rounded-xl px-3 py-2">
+                        <div class="bg-white/[0.04] border border-[color:var(--p-border)] rounded-xl px-3 py-2" data-anba-payinfo>
                             <p class="text-[9px] text-[color:var(--p-text-3)] mb-0.5" data-i18n="pay_insta">⚡ InstaPay</p>
                             <p class="text-xs font-bold text-[color:var(--p-text)]" dir="ltr">{{ $transferInsta }}</p>
                         </div>
@@ -953,7 +1344,7 @@
 
     {{-- mobile sticky CTA --}}
     <div class="mobile-cta">
-        <div class="flex-1">
+        <div class="flex-1 min-w-0">
             <div class="text-[10px] text-[color:var(--p-text-3)]">
                 @if ($adminMode)
                     <span data-i18n="seat_pending_changes">تغييرات معلَّقة</span>
@@ -961,13 +1352,19 @@
                     <span data-i18n="seat_chip_selected">المختار</span>
                 @endif
             </div>
-            <div class="text-sm font-bold text-[color:var(--p-text)]">
+            {{-- Count + (labels) on first line. The labels list is
+                 written by JS in renderSidePanel(); it gracefully
+                 truncates to one ellipsised line and stays empty
+                 when nothing is selected. --}}
+            <div class="text-sm font-bold text-[color:var(--p-text)] truncate">
                 <span data-mobile-count>0</span> <span data-i18n="seat_chip_seat">مقعد</span>
-                @unless ($adminMode)
-                    ·
-                    <span style="color: var(--p-gold);"><span data-mobile-total>0</span> EGP</span>
-                @endunless
+                <span data-mobile-labels></span>
             </div>
+            @unless ($adminMode)
+                <div class="text-[11px] mt-0.5" style="color: var(--p-gold);">
+                    <span data-mobile-total>0</span> EGP
+                </div>
+            @endunless
         </div>
         <button type="button" data-continue
                 disabled
@@ -1000,6 +1397,26 @@
     <script type="application/json" data-seat-preset>
         {!! json_encode($preset, JSON_UNESCAPED_UNICODE) !!}
     </script>
+
+    {{-- Auto-pick chip modal (mobile-first, replaces native prompt()).
+         Hidden by default; toggled .is-open from JS. The grid is filled
+         dynamically with N chips (1..max). All copy localized via
+         data-i18n so AR/EN switches live without re-render. --}}
+    @unless ($adminMode)
+        <div class="anba-modal-backdrop"
+             data-anba-modal
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="anba-modal-title"
+             hidden>
+            <div class="anba-modal-card" role="document">
+                <div class="anba-modal-eyebrow" data-i18n="seat_auto_pick_eyebrow">اختيار سريع</div>
+                <h2 id="anba-modal-title" class="anba-modal-title" data-i18n="seat_auto_pick_prompt">كم مقعد تريد؟</h2>
+                <div class="anba-modal-grid" data-anba-modal-grid></div>
+                <button type="button" class="anba-modal-cancel" data-anba-modal-cancel data-i18n="seat_auto_pick_cancel">إلغاء</button>
+            </div>
+        </div>
+    @endunless
 </div>
 
 <script>
@@ -1021,7 +1438,7 @@
         const PRESET       = presetEl
             ? JSON.parse(presetEl.textContent)
             : {
-                rowsOrder: ['A','B','C','D','E','F','G','H','GAP','I','J','K','L','M','N','O','P','Q','R'],
+                rowsOrder: ['A','B','C','D','E','F','G','H','GAP','I','J','K','L','M','N','O','P','Q','GAP_HALF','R'],
                 rightShiftSteps: {},
                 noCenterAnchors: {},
                 adminOnlyCenter: [],
@@ -1048,6 +1465,7 @@
         const continueBtns = root.querySelectorAll('[data-continue]');
         const mobileCount  = root.querySelector('[data-mobile-count]');
         const mobileTotal  = root.querySelector('[data-mobile-total]');
+        const mobileLabels = root.querySelector('[data-mobile-labels]');
 
         // map seatId -> { row, n, isAdminOnly? }
         const seatMeta  = new Map();
@@ -1081,10 +1499,13 @@
         //   RIGHT wing → x  +=  offset
         //
         // The offset comes from RIGHT_SHIFT_STEPS[row] (in half-seat widths,
-        // multiplied by STEP). Row Q is the anchor (offset = 0); front
-        // rows step further out. No interpolation, no stagger, no bias —
-        // every seat in a wing moves by exactly the same amount, so the
-        // wing keeps its natural SEAT_PITCH spacing.
+        // multiplied by STEP). Row Q is the anchor (offset = 0); rows in
+        // FRONT of Q step further OUT (positive steps), and row R (behind
+        // Q) is staggered IN (negative step) so its innermost seats sit
+        // half a seat inside Q's inner edge — a natural back-row stagger.
+        // No interpolation, no stagger-within-wing, no bias — every seat
+        // in a wing moves by exactly the same amount, so the wing keeps
+        // its natural SEAT_PITCH spacing.
         //
         // To find where the math runs, search the file for:
         //   ===== WING OFFSET (LEFT)  =====
@@ -1143,8 +1564,11 @@
 
         // Display size (CSS pixels). Will be scaled by devicePixelRatio internally.
         // Width is wide enough to fit the front rows' full progressive offset.
+        // Height accounts for the back row (R) plus the GAP_HALF separator
+        // between Q and R (~22.5 px) plus a comfortable bottom buffer so the
+        // last row never clips on mobile fit-to-screen.
         let DISPLAY_W = 1400;
-        let DISPLAY_H = 700;
+        let DISPLAY_H = 740;
         let CX        = DISPLAY_W / 2;
 
         // ===== State =====
@@ -1169,6 +1593,13 @@
             ROWS_ORDER.forEach((letter, idx) => {
                 if (letter === 'GAP') {
                     visualRow += 1.5; // walkway / section break (geometry, not CSS)
+                    return;
+                }
+                if (letter === 'GAP_HALF') {
+                    // Half-size separator (0.75×ROW_PITCH ≈ 22.5 px extra).
+                    // Subtle visual break, NOT a walkway — used between Q
+                    // and R in the hall preset to telegraph R's stagger.
+                    visualRow += 0.75;
                     return;
                 }
                 const data = rows[letter];
@@ -1771,22 +2202,117 @@
             if (window.PT && window.PT.toast) {
                 window.PT.toast(t('seat_auto_pick_done'), 1800);
             }
+            // Smoothly pan the canvas so the picked seats end up centered
+            // in the viewport. This is the visual confirmation that the
+            // user *can* see what got picked, even when the seats were
+            // off-screen at the moment of auto-pick. Looked up by id in
+            // seatMeta (the layout-computed cache) which already has
+            // canvas-local x/y coords for every seat.
+            const seatList = result.seats
+                .map((s) => seatMeta.get(s.id))
+                .filter(Boolean);
+            if (seatList.length && typeof panToSeats === 'function') {
+                // Defer one frame so the bottom-bar render + redraw
+                // run first; the camera move then feels like a
+                // confirmation rather than racing the UI.
+                requestAnimationFrame(() => panToSeats(seatList));
+            }
             return true;
+        }
+
+        // Auto-pick chip modal — replaces window.prompt() with a
+        // touch-first chip grid. Keyboard: Escape closes; Enter on a
+        // chip activates it. The grid is populated lazily on first open
+        // and re-uses the same DOM thereafter.
+        const AUTO_PICK_MAX = 12;
+        const modal     = root.querySelector('[data-anba-modal]');
+        const modalGrid = root.querySelector('[data-anba-modal-grid]');
+        const modalCancel = root.querySelector('[data-anba-modal-cancel]');
+        let modalOpen = false;
+        let lastFocus = null;
+
+        function ensureModalGrid() {
+            if (!modalGrid || modalGrid.children.length) return;
+            for (let i = 1; i <= AUTO_PICK_MAX; i++) {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'anba-modal-chip';
+                chip.textContent = String(i);
+                chip.dataset.n = String(i);
+                modalGrid.appendChild(chip);
+            }
+        }
+
+        function openModal(triggerBtn) {
+            if (!modal) return;
+            ensureModalGrid();
+            lastFocus = triggerBtn || document.activeElement;
+            modal.hidden = false;
+            // double-rAF so the .is-open transition kicks in cleanly
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                modal.classList.add('is-open');
+            }));
+            modalOpen = true;
+            const firstChip = modalGrid && modalGrid.firstElementChild;
+            if (firstChip) firstChip.focus({ preventScroll: true });
+        }
+
+        function closeModal() {
+            if (!modal || !modalOpen) return;
+            modal.classList.remove('is-open');
+            modalOpen = false;
+            // Wait for the fade-out, then fully hide so it doesn't
+            // intercept taps.
+            setTimeout(() => {
+                if (!modalOpen && modal) modal.hidden = true;
+            }, 220);
+            if (lastFocus && typeof lastFocus.focus === 'function') {
+                lastFocus.focus({ preventScroll: true });
+            }
+        }
+
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+            if (modalCancel) {
+                modalCancel.addEventListener('click', closeModal);
+            }
+            if (modalGrid) {
+                modalGrid.addEventListener('click', (e) => {
+                    const chip = e.target.closest('[data-n]');
+                    if (!chip) return;
+                    const n = parseInt(chip.dataset.n, 10);
+                    if (!isFinite(n) || n <= 0 || n > AUTO_PICK_MAX) return;
+                    closeModal();
+                    applyAutoPickN(n);
+                });
+            }
+            document.addEventListener('keydown', (e) => {
+                if (!modalOpen) return;
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeModal();
+                }
+            });
         }
 
         // Wire up auto-pick buttons. There may be more than one button —
         // the side-panel one is hidden in fullscreen, so a second copy is
-        // rendered as a floating chip on the canvas. Same prompt + same
-        // N for both. We re-prompt every click so the user can adjust
-        // without reaching for a separate input.
+        // rendered as a floating chip on the canvas. Same modal + same
+        // N for both. If the modal element is missing (admin mode), fall
+        // back to the legacy native prompt so the feature still works.
         root.querySelectorAll('[data-anba-auto-pick]').forEach((btn) => {
             btn.addEventListener('click', () => {
+                if (modal) {
+                    openModal(btn);
+                    return;
+                }
                 const t = window.PT_T || ((k) => k);
-                const promptStr = t('seat_auto_pick_prompt');
-                const raw = window.prompt(promptStr, '2');
+                const raw = window.prompt(t('seat_auto_pick_prompt'), '2');
                 if (raw === null) return;
                 const n = parseInt(String(raw).trim(), 10);
-                if (!isFinite(n) || n <= 0 || n > 12) return;
+                if (!isFinite(n) || n <= 0 || n > AUTO_PICK_MAX) return;
                 applyAutoPickN(n);
             });
         });
@@ -1825,6 +2351,31 @@
             if (totalEl)      totalEl.textContent     = (n * hallPrice).toLocaleString('en-US');
             if (mobileTotal)  mobileTotal.textContent = (n * hallPrice).toLocaleString('en-US');
             root.classList.toggle('has-selection', n > 0);
+
+            // Inline seat-label preview for the mobile CTA so the user
+            // can verify the actual seats picked (not just the count).
+            // Sorts by row + number, prefixes with " · ", truncates to 6
+            // labels with "+N" suffix when more are selected. Cleared
+            // when the selection is empty.
+            if (mobileLabels) {
+                if (n === 0) {
+                    mobileLabels.textContent = '';
+                } else {
+                    const sorted = ids.slice().sort((a, b) => {
+                        const ma = selected.get(a), mb = selected.get(b);
+                        if (ma.row !== mb.row) return ma.row < mb.row ? -1 : 1;
+                        return ma.n - mb.n;
+                    });
+                    const PREVIEW = 6;
+                    const head = sorted.slice(0, PREVIEW).map(id => {
+                        const meta = selected.get(id);
+                        return meta.row + meta.n;
+                    });
+                    const rest = n - head.length;
+                    const str = head.join(', ') + (rest > 0 ? ' +' + rest : '');
+                    mobileLabels.textContent = ' · ' + str;
+                }
+            }
 
             // chips
             chipsBox.innerHTML = '';
@@ -2416,10 +2967,20 @@
         boot();
 
         // ===== Pinch & pan onboarding hint =====
-        // Mobile-only. Stays visible until the user actually interacts with
-        // the seat map (any touch on the scroller — tap, pan, or pinch).
-        // The hint itself is `pointer-events: none`, so the underlying
-        // gesture passes through to the canvas unaffected.
+        // Mobile-only. Subtle glass card centered over the seat map that
+        // reminds users the canvas extends beyond the viewport and they
+        // can pinch / drag to explore.
+        // - mobile viewport only (<880px)
+        // - touch-capable devices only
+        // - shown EVERY time the seat picker opens (no persistent
+        //   dismissal). Many users only enter the picker once every few
+        //   weeks/months and forget the gestures, so the hint is treated
+        //   as recurring onboarding, not a one-shot tutorial.
+        // - auto-dismisses after 7s
+        // - dismisses on first real touch anywhere in the seat picker
+        // - the hint itself is `pointer-events: none`, so the underlying
+        //   gesture passes straight through to the canvas
+        // - prefers-reduced-motion handled in CSS (no idle animation)
         (function showGestureHint() {
             const hint = root.querySelector('[data-anba-gesture-hint]');
             if (!hint) return;
@@ -2442,18 +3003,150 @@
                 }, 450);
             }
 
-            // Show shortly after init so the canvas has rendered.
+            // Show shortly after init so the canvas has rendered and any
+            // entrance animation has settled. 380ms feels intentional, not
+            // jumpy — pairs with the inline `<style>` hintCardIn anim.
             setTimeout(() => {
                 if (!dismissed) hint.classList.add('is-visible');
-            }, 320);
+            }, 380);
 
-            // Any real touch on the seat-map area (canvas, FAB, scroller)
-            // dismisses the hint. `once: true` auto-removes the listener
-            // after the first fire so there's zero ongoing overhead.
-            if (scroller) {
-                scroller.addEventListener('touchstart', dismiss, { passive: true, once: true });
-            }
+            // Any real touch anywhere in the seat picker dismisses the
+            // hint (canvas, scroller, FABs, side panel). `once: true`
+            // auto-removes the listener after the first fire so there's
+            // zero ongoing overhead. Listening on `root` is broader than
+            // just `scroller` so taps on the floating zoom buttons or the
+            // auto-pick FAB also count as "the user knows what to do".
+            const dismissOpts = { passive: true, once: true };
+            root.addEventListener('touchstart', dismiss, dismissOpts);
+            root.addEventListener('pointerdown', dismiss, dismissOpts);
+            // Auto-dismiss after 7s so the hint never lingers if the user
+            // is reading the page without panning yet.
+            setTimeout(dismiss, 7000);
         })();
+
+        // ===== "More seats" edge arrows =====
+        // Show pulsing chevrons on the leading / trailing edges of the
+        // scroller whenever the canvas extends past that edge, so the
+        // user knows there's content to pan toward. Hidden on desktop
+        // via CSS (>=880px). Updated on every gesture / zoom / resize.
+        (function setupEdgeArrows() {
+            const startArrow = root.querySelector('[data-anba-edge-arrow="start"]');
+            const endArrow   = root.querySelector('[data-anba-edge-arrow="end"]');
+            if (!startArrow || !endArrow) return;
+
+            // Tolerance — within this many CSS px of the edge we
+            // consider the content "fully visible" and hide the arrow.
+            const EDGE_EPS = 6;
+
+            function update() {
+                const sw = scroller.clientWidth;
+                const cw = DISPLAY_W * zoomLevel;
+                // panX is the canvas-left offset relative to scroller-left.
+                // If panX < -EDGE_EPS the canvas extends off the leading
+                // edge → show the start arrow. If (panX + cw) > sw + EDGE_EPS
+                // the canvas extends off the trailing edge → show the
+                // end arrow.
+                const overflowStart = panX < -EDGE_EPS;
+                const overflowEnd   = (panX + cw) > sw + EDGE_EPS;
+                startArrow.classList.toggle('is-visible', overflowStart);
+                endArrow.classList.toggle('is-visible',   overflowEnd);
+            }
+
+            // The gesture pipeline writes panX/panY/zoomLevel and then
+            // calls applyTransform() at the end of every frame. We can't
+            // monkey-patch applyTransform from outside its closure, so
+            // we instead schedule an arrow-visibility recompute on every
+            // pointer / wheel / resize event via rAF (which keeps cost
+            // capped at one update per frame regardless of event rate).
+            let rafScheduled = false;
+            function scheduleUpdate() {
+                if (rafScheduled) return;
+                rafScheduled = true;
+                requestAnimationFrame(() => {
+                    rafScheduled = false;
+                    update();
+                });
+            }
+            scroller.addEventListener('pointermove', scheduleUpdate, { passive: true });
+            scroller.addEventListener('pointerup',   scheduleUpdate, { passive: true });
+            scroller.addEventListener('wheel',       scheduleUpdate, { passive: true });
+            window.addEventListener('resize', scheduleUpdate);
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', scheduleUpdate);
+            }
+            // Publish so non-pointer flows (auto-pick pan animation,
+            // double-tap fit) can also keep arrows in sync.
+            window.__ANBA_EDGE_ARROWS_UPDATE = scheduleUpdate;
+            // Initial paint
+            requestAnimationFrame(update);
+            // Also re-check after the boot fit (which runs in a deferred
+            // rAF) — at this point the layout has stabilized.
+            setTimeout(scheduleUpdate, 80);
+            setTimeout(scheduleUpdate, 320);
+        })();
+
+        // ===== Pan to selection =====
+        // Smoothly tween panX/panY so a group of seats ends up centered
+        // in the viewport. Used after auto-pick so the user can see the
+        // seats that got picked even if they were off-screen. Skipped
+        // under prefers-reduced-motion — we just snap.
+        function panToSeats(seatList) {
+            if (!Array.isArray(seatList) || seatList.length === 0) return;
+            // centroid in canvas-local coords
+            let cx = 0, cy = 0, count = 0;
+            for (const s of seatList) {
+                if (!s || typeof s.x !== 'number') continue;
+                cx += s.x; cy += s.y; count++;
+            }
+            if (count === 0) return;
+            cx /= count; cy /= count;
+            // Target pan such that the centroid lands at scroller center.
+            const sw = scroller.clientWidth;
+            const sh = scroller.clientHeight;
+            const targetX = sw / 2 - cx * zoomLevel;
+            const targetY = sh / 2 - cy * zoomLevel;
+            const startX = panX, startY = panY;
+            const dx = targetX - startX, dy = targetY - startY;
+            // Bail out for tiny motions — keeps animation cost zero
+            // when the seats were already near center.
+            if (Math.hypot(dx, dy) < 4) {
+                panX = targetX; panY = targetY;
+                clampPan(); applyTransform();
+                if (typeof window.__ANBA_EDGE_ARROWS_UPDATE === 'function') {
+                    window.__ANBA_EDGE_ARROWS_UPDATE();
+                }
+                return;
+            }
+            if (reducedMotion) {
+                panX = targetX; panY = targetY;
+                clampPan(); applyTransform();
+                if (typeof window.__ANBA_EDGE_ARROWS_UPDATE === 'function') {
+                    window.__ANBA_EDGE_ARROWS_UPDATE();
+                }
+                return;
+            }
+            const DUR = 420; // ms
+            const t0 = performance.now();
+            function step(now) {
+                const u = Math.min(1, (now - t0) / DUR);
+                // easeOutCubic — premium settle
+                const k = 1 - Math.pow(1 - u, 3);
+                panX = startX + dx * k;
+                panY = startY + dy * k;
+                clampPan();
+                applyTransform();
+                // Keep the edge-arrow visibility in sync with the camera
+                // move. Throttled internally to one update per frame.
+                if (typeof window.__ANBA_EDGE_ARROWS_UPDATE === 'function') {
+                    window.__ANBA_EDGE_ARROWS_UPDATE();
+                }
+                if (u < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+        // Publish on a stable symbol so the auto-pick handler can call
+        // it across closure boundaries.
+        window.__ANBA_PAN_TO_SEATS = panToSeats;
 
         // Redraw on devicePixelRatio change (rare) and re-fit on resize
         // so rotating the device or collapsing the URL bar doesn't leave

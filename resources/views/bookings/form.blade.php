@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
 @section('title', __('إكمال الحجز') . ' · ' . $showTime->show->title)
+@section('headMeta')
+    <meta name="pt-title-i18n" content="page_title_book_form" data-suffix="{{ $showTime->show->title }}">
+@endsection
 
 @section('content')
 
@@ -174,6 +177,112 @@
             animation: anbaShake .35s var(--prism-ease) both;
             border-radius: 12px;
             padding: 6px;
+        }
+        /* ===== Lightweight, mobile-first screenshot picker =====
+           Single tappable card that morphs between an empty state
+           ("tap to upload") and a filled state (thumbnail + filename +
+           size + "tap to change"). The underlying native input stays
+           in the DOM (hidden) so the form-data POST is unchanged.
+           NO desktop drag/drop, NO clipboard paste, NO multi-file —
+           per the user direction, this is purely a lightweight polish
+           pass over the existing flow. */
+        [data-anba-form] .file-zone-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            min-height: 84px;
+            background: rgba(8, 10, 20, 0.55);
+            border: 1px dashed rgba(255,255,255,0.18);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: border-color .2s var(--prism-ease), background .2s var(--prism-ease);
+            -webkit-tap-highlight-color: transparent;
+        }
+        [data-anba-form] .file-zone-card:hover,
+        [data-anba-form] .file-zone-card:focus-within {
+            border-color: rgba(129,140,248,0.6);
+            background: rgba(8,10,20,0.75);
+        }
+        [data-anba-form] .file-zone-empty {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+        }
+        [data-anba-form] .file-zone-emoji {
+            font-size: 22px;
+            line-height: 1;
+            flex: 0 0 auto;
+        }
+        [data-anba-form] .file-zone-cta {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--prism-text);
+            line-height: 1.3;
+        }
+        [data-anba-form] .file-zone-hint {
+            display: block;
+            font-size: 11px;
+            color: var(--prism-text-3);
+            margin-top: 2px;
+            line-height: 1.3;
+        }
+        [data-anba-form] .file-zone-filled {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+        }
+        [data-anba-form] .file-zone-thumb {
+            width: 56px;
+            height: 56px;
+            object-fit: cover;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.04);
+            flex: 0 0 auto;
+            border: 1px solid var(--prism-border);
+        }
+        [data-anba-form] .file-zone-meta {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+        [data-anba-form] .file-zone-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--prism-text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        [data-anba-form] .file-zone-size {
+            font-size: 11px;
+            color: var(--prism-text-3);
+            margin-top: 2px;
+        }
+        [data-anba-form] .file-zone-change {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--prism-indigo, #818cf8);
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(129,140,248,0.12);
+            flex: 0 0 auto;
+            white-space: nowrap;
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .file-zone-card {
+            background: #fff;
+            border-color: rgba(0,0,0,0.16);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .file-zone-card:hover,
+        :root[data-pt-theme="light"] [data-anba-form] .file-zone-card:focus-within {
+            background: #fff;
+            border-color: rgba(99,102,241,0.55);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .file-zone-change {
+            color: #4338ca;
+            background: rgba(99,102,241,0.10);
         }
         @keyframes anbaShake {
             0%, 100% { transform: translateX(0); }
@@ -424,6 +533,130 @@
             color: #e0e7ff;
         }
         [data-anba-form] .step-indicator .line { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(129,140,248,0.35), rgba(255,255,255,0.04)); }
+
+        /* =====================================================================
+           LIGHT THEME — Anba booking form.
+           The dark slate field backgrounds and translucent-white card
+           backgrounds become invisible / harsh on cream, so we redo every
+           surface here with light glass + crisper borders + warmer shadows
+           while preserving the cinematic premium accents (neon gradient
+           seat chips, gold summary pill, indigo seat dots).
+        ===================================================================== */
+        :root[data-pt-theme="light"] [data-anba-form] .seat-chip {
+            background: linear-gradient(135deg, rgba(4,120,87,0.14), rgba(8,145,178,0.10));
+            border-color: rgba(4,120,87,0.45);
+            color: #064e3b;
+            box-shadow: 0 0 12px rgba(4,120,87,0.14), inset 0 1px 0 rgba(255,255,255,0.6);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .seat-chip [data-remove] {
+            background: rgba(15,23,42,0.06);
+            color: #7f1d1d;
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .seat-chip [data-remove]:hover {
+            background: rgba(190,18,60,0.85);
+            color: #fff5f5;
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .add-seats-btn {
+            background: linear-gradient(135deg, rgba(8,145,178,0.12), rgba(124,58,237,0.14));
+            border-color: rgba(79,70,229,0.40);
+            color: #312e81;
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .step-list li {
+            color: var(--prism-text-2);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .step-list li::before {
+            background: linear-gradient(135deg, rgba(8,145,178,0.16), rgba(124,58,237,0.18));
+            border-color: rgba(79,70,229,0.55);
+            color: #312e81;
+            box-shadow: 0 0 10px rgba(79,70,229,0.12);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .attendee-card {
+            background: rgba(255,255,255,0.70);
+            border-color: rgba(15,23,42,0.12);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .attendee-card:focus-within {
+            border-color: rgba(79,70,229,0.55);
+            background: rgba(255,255,255,0.92);
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .attendee-card .seat-pill {
+            background: linear-gradient(180deg, rgba(4,120,87,0.22), rgba(4,120,87,0.10));
+            border-color: rgba(4,120,87,0.50);
+            color: #064e3b;
+            box-shadow: 0 0 10px rgba(4,120,87,0.16), inset 0 1px 0 rgba(255,255,255,0.6);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .field-input {
+            background: #ffffff;
+            border-color: rgba(15,23,42,0.16);
+            color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .field-input:focus {
+            border-color: rgba(79,70,229,0.55);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.14);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .field-input.is-invalid {
+            background: rgba(190,18,60,0.06);
+            border-color: rgba(190,18,60,0.65) !important;
+            box-shadow: 0 0 0 3px rgba(190,18,60,0.16);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .field-input::placeholder {
+            color: rgba(15,23,42,0.40);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .summary-pill {
+            background: linear-gradient(135deg, rgba(180,83,9,0.10), rgba(180,83,9,0.04));
+            border-color: rgba(180,83,9,0.32);
+            color: #78350f;
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .summary-pill .seats-count { color: #0f172a; }
+        :root[data-pt-theme="light"] [data-anba-form] .summary-pill .amount { color: #b45309; }
+        :root[data-pt-theme="light"] [data-anba-form] .summary-pill .dot { background: rgba(180,83,9,0.45); }
+        :root[data-pt-theme="light"] [data-anba-form] .pay-block {
+            background: rgba(255,255,255,0.72);
+            border-color: rgba(15,23,42,0.14);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .pay-block .pay-icon {
+            background: linear-gradient(135deg, rgba(8,145,178,0.14), rgba(124,58,237,0.16));
+            border-color: rgba(79,70,229,0.40);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .pay-block .pay-amount { color: #b45309; }
+        :root[data-pt-theme="light"] [data-anba-form] .pay-block .pay-row {
+            background: rgba(15,23,42,0.04);
+            border-color: rgba(15,23,42,0.10);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .attendee-stack {
+            background: rgba(255,255,255,0.70);
+            border-color: rgba(15,23,42,0.12);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .attendee-stack .attendee-card {
+            border-bottom-color: rgba(15,23,42,0.08);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .attendee-stack .attendee-card:focus-within {
+            background: rgba(79,70,229,0.06);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .reassurance {
+            background: rgba(255,255,255,0.70);
+            border-color: rgba(15,23,42,0.12);
+            color: var(--prism-text-2);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .reassurance .reassurance-icon {
+            background: linear-gradient(135deg, rgba(8,145,178,0.14), rgba(124,58,237,0.16));
+            border-color: rgba(79,70,229,0.40);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .step-indicator .dot {
+            background: rgba(15,23,42,0.05);
+            border-color: rgba(15,23,42,0.14);
+            color: var(--prism-text-4);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .step-indicator .dot.done,
+        :root[data-pt-theme="light"] [data-anba-form] .step-indicator .dot.cur {
+            background: linear-gradient(135deg, rgba(8,145,178,0.16), rgba(124,58,237,0.18));
+            border-color: rgba(79,70,229,0.55);
+            color: #312e81;
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .step-indicator .line {
+            background: linear-gradient(90deg, rgba(79,70,229,0.40), rgba(15,23,42,0.06));
+        }
     </style>
 
     <div class="space-y-5">
@@ -582,16 +815,37 @@
                         </span>
                         <span class="req" data-i18n="form_required">مطلوب</span>
                     </label>
+                    {{-- Mobile-first screenshot picker. The <label> wraps a
+                         hidden native file input so the entire card is the
+                         tap target (better Fitts's-law affordance than the
+                         old "tiny button + tiny filename" pattern). After a
+                         file is picked, the JS swaps the empty state for a
+                         filled state with a thumbnail + filename + size +
+                         a "تغيير/Change" cue; tapping the card again opens
+                         the picker so they can replace it. --}}
                     <div data-screenshot-zone>
-                        <input type="file"
-                               name="payment_screenshot"
-                               id="anbaScreenshotFinal"
-                               accept="image/*"
-                               class="w-full text-[12px] text-[color:var(--prism-text-2)]
-                                      file:bg-white/[0.06] file:text-[color:var(--prism-text)]
-                                      file:border file:border-[color:var(--prism-border)]
-                                      file:rounded-full file:px-4 file:py-2 file:ml-3 file:cursor-pointer
-                                      file:hover:bg-white/[0.10] file:transition">
+                        <label for="anbaScreenshotFinal" class="file-zone-card" data-screenshot-card>
+                            <div data-screenshot-empty class="file-zone-empty">
+                                <span class="file-zone-emoji" aria-hidden="true">📸</span>
+                                <div>
+                                    <span class="file-zone-cta" data-i18n="form_screenshot_tap_upload">اضغط لرفع صورة إيصال التحويل</span>
+                                    <small class="file-zone-hint" data-i18n="form_screenshot_hint">JPG / PNG · حد أقصى 20MB</small>
+                                </div>
+                            </div>
+                            <div data-screenshot-filled class="file-zone-filled" hidden>
+                                <img data-screenshot-thumb class="file-zone-thumb" alt="" decoding="async">
+                                <div class="file-zone-meta">
+                                    <div data-screenshot-name class="file-zone-name"></div>
+                                    <div data-screenshot-size class="file-zone-size"></div>
+                                </div>
+                                <span class="file-zone-change" data-i18n="form_screenshot_replace">تغيير</span>
+                            </div>
+                            <input type="file"
+                                   name="payment_screenshot"
+                                   id="anbaScreenshotFinal"
+                                   accept="image/*"
+                                   hidden>
+                        </label>
                     </div>
                 </div>
             </form>
@@ -688,9 +942,20 @@
     const emptyMsg      = root.querySelector('[data-empty-msg]');
 
     // ----- render chips (with × delete) -----
+    // Tiny i18n shim — wraps `window.PT_T(key, vars)` and adds a
+    // fallback string so the placeholder renders cleanly before the
+    // dictionary is hydrated. `vars` are forwarded for `{n}`-style
+    // substitution and applied to the fallback too when PT_T misses.
     function tt(key, fallback, vars) {
-        const fn = (window.PT_T || ((k, f) => f));
-        return fn(key, fallback, vars || {});
+        if (window.PT_T) {
+            const s = window.PT_T(key, vars);
+            if (s !== key) return s;
+        }
+        let s = fallback != null ? String(fallback) : key;
+        if (vars && typeof s === 'string') {
+            s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? vars[k] : m));
+        }
+        return s;
     }
 
     function renderChips() {
@@ -757,6 +1022,7 @@
                                autocomplete="name"
                                autocapitalize="words"
                                spellcheck="false"
+                               enterkeyhint="next"
                                value="${escapeAttr(cached[s.id]?.name || '')}">
                     </div>
                     <div>
@@ -772,6 +1038,7 @@
                                inputmode="tel"
                                autocomplete="tel"
                                dir="ltr"
+                               enterkeyhint="next"
                                value="${escapeAttr(cached[s.id]?.phone || '')}">
                     </div>
                 </div>
@@ -780,8 +1047,10 @@
         });
     }
 
-    // Re-render attendee cards + chips when language toggles so AR/EN labels stay in sync.
-    window.addEventListener('pt-lang-changed', () => {
+    // Re-render attendee cards + chips when language toggles so AR/EN
+    // labels stay in sync — `applyLang()` in layouts/app.blade.php
+    // dispatches `pt:langchange` on `document` after rewriting the dict.
+    document.addEventListener('pt:langchange', () => {
         renderChips();
         renderAttendees();
     });
@@ -865,12 +1134,73 @@
         }, 250);
     }
 
+    // ----- screenshot preview -----
+    // Mobile-first picker: empty card morphs into a thumbnail + filename +
+    // size + "تغيير" cue once a file is chosen. Reads the file via a
+    // FileReader so the preview works fully client-side (no Cloudinary
+    // round-trip). Caps preview rendering at 5MB just to keep memory
+    // bounded on older iPhones — the file itself can still be 20MB
+    // (Laravel validates server-side); we just skip the FileReader for
+    // huge files and show a generic icon instead. Object URL would be
+    // even cheaper but iOS Safari < 15 had blob-URL quirks.
+    const shotEmpty   = root.querySelector('[data-screenshot-empty]');
+    const shotFilled  = root.querySelector('[data-screenshot-filled]');
+    const shotThumb   = root.querySelector('[data-screenshot-thumb]');
+    const shotName    = root.querySelector('[data-screenshot-name]');
+    const shotSize    = root.querySelector('[data-screenshot-size]');
+
+    function formatFileSize(bytes) {
+        if (!Number.isFinite(bytes) || bytes <= 0) return '';
+        const KB = 1024, MB = KB * 1024;
+        if (bytes >= MB) return (bytes / MB).toFixed(bytes >= 10 * MB ? 0 : 1) + ' MB';
+        if (bytes >= KB) return Math.round(bytes / KB) + ' KB';
+        return bytes + ' B';
+    }
+
+    function setScreenshotEmpty() {
+        if (shotEmpty)  shotEmpty.hidden = false;
+        if (shotFilled) shotFilled.hidden = true;
+        if (shotThumb)  shotThumb.removeAttribute('src');
+        if (shotName)   shotName.textContent = '';
+        if (shotSize)   shotSize.textContent = '';
+    }
+
+    function setScreenshotFilled(file) {
+        if (!file) return setScreenshotEmpty();
+        if (shotName) shotName.textContent = file.name || '';
+        if (shotSize) shotSize.textContent = formatFileSize(file.size);
+        if (shotEmpty)  shotEmpty.hidden = true;
+        if (shotFilled) shotFilled.hidden = false;
+        // Skip the FileReader for very large or non-image files. The
+        // .file-zone-thumb background colour gives a soft placeholder
+        // in that fallback case, so the layout never collapses.
+        if (!shotThumb || !file.type || !file.type.startsWith('image/')) return;
+        if (file.size > 5 * 1024 * 1024) return; // ~5 MB preview cap
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try { shotThumb.src = ev.target.result; } catch (_) {}
+        };
+        reader.readAsDataURL(file);
+    }
+
     screenshot.addEventListener('change', () => {
         if (screenshotZone) screenshotZone.classList.remove('is-invalid');
         if (dock && dock.classList.contains('has-error')) {
             const stillBad = form.querySelector('.is-invalid');
             if (!stillBad) dock.classList.remove('has-error');
         }
+        const file = screenshot.files && screenshot.files[0];
+        if (file) setScreenshotFilled(file);
+        else      setScreenshotEmpty();
+    });
+
+    // iOS bfcache restoration may leave the input with a stale file
+    // reference whose FileList is empty (Safari quirk) — sync the
+    // preview UI to whatever the input *actually* holds at restore time.
+    window.addEventListener('pageshow', () => {
+        const file = screenshot && screenshot.files && screenshot.files[0];
+        if (file) setScreenshotFilled(file);
+        else      setScreenshotEmpty();
     });
 
     // ----- chip × delete handler -----
@@ -931,11 +1261,19 @@
         }
 
         isSubmitting = true;
-        const dockBtn = document.querySelector('[data-form-mobile-submit]');
-        if (dockBtn) {
-            dockBtn.disabled = true;
-            dockBtn.innerText = tt('book_sending', 'جارِ الإرسال...');
-        }
+        // Disable + show inline spinner on every submit button bound to
+        // this form (currently just the dock CTA, but the selector is
+        // future-proof). The is-loading class drives a CSS spinner via
+        // the layout — we don't replace innerText so the `data-i18n`
+        // span keeps re-translating correctly on language toggle.
+        const submitBtns = document.querySelectorAll(
+            '[data-form-mobile-submit], button[form="anbaFinalForm"], #anbaFinalForm button[type="submit"]'
+        );
+        submitBtns.forEach((btn) => {
+            btn.disabled = true;
+            btn.classList.add('is-loading');
+            btn.setAttribute('aria-busy', 'true');
+        });
         // Selection successfully sent — clear so refresh / back doesn't
         // resurrect an old payload. (If the server returns validation
         // errors the user is bounced back to this same page; the form
@@ -944,6 +1282,23 @@
         // empty in that edge case. To keep UX safe we DON'T clear if
         // the user navigates back without submitting.)
         try { localStorage.removeItem('booking_selection'); } catch (e) {}
+    });
+
+    // iOS / Safari back-forward cache restores the page WITH the
+    // submit-disabled state, leaving the customer stuck looking at a
+    // greyed-out button. `pageshow` with persisted=true means the page
+    // came out of the bfcache → reset the guard so the form is usable
+    // again. (Modern browsers only fire this when bfcache hits.)
+    window.addEventListener('pageshow', (e) => {
+        if (!e.persisted) return;
+        isSubmitting = false;
+        document.querySelectorAll(
+            '[data-form-mobile-submit], button[form="anbaFinalForm"], #anbaFinalForm button[type="submit"]'
+        ).forEach((btn) => {
+            btn.disabled = false;
+            btn.classList.remove('is-loading');
+            btn.removeAttribute('aria-busy');
+        });
     });
 
     // ----- init -----

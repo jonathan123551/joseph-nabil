@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
 @section('title', 'تم إرسال طلب الحجز · Premium Tickets')
+@section('headMeta')
+    <meta name="pt-title-i18n" content="page_title_thankyou">
+@endsection
 
 @php
     // Build calendar metadata once on the server. Show start = date + time;
@@ -70,6 +73,29 @@
 @endphp
 
 @section('content')
+{{-- Light-theme polish: the dark-mode rgba(255,255,255,0.04) info card and
+     amber-500/0.06 notice card are nearly invisible on the cream background,
+     so we lift them in light mode with proper glass surfaces + visible amber
+     warning tint. Dark mode remains untouched. --}}
+<style>
+    :root[data-pt-theme="light"] [data-thx-info] {
+        background: rgba(255,255,255,0.74) !important;
+        border-color: rgba(15,23,42,0.12) !important;
+        box-shadow:
+            0 12px 28px -16px rgba(15,23,42,0.18),
+            inset 0 1px 0 rgba(255,255,255,0.85);
+    }
+    :root[data-pt-theme="light"] [data-thx-info] .h-px {
+        background: rgba(15,23,42,0.10) !important;
+    }
+    :root[data-pt-theme="light"] [data-thx-notice] {
+        background: rgba(245,158,11,0.10) !important;
+        border-color: rgba(180,83,9,0.32) !important;
+        box-shadow:
+            0 12px 28px -16px rgba(180,83,9,0.20),
+            inset 0 1px 0 rgba(255,255,255,0.70);
+    }
+</style>
 <section class="max-w-lg mx-auto prism-fade-up">
 
     <div class="prism-glass prism-glow-border p-6 sm:p-8 text-center space-y-5"
@@ -109,7 +135,7 @@
         </div>
 
         {{-- Booking Info --}}
-        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-2xl p-4 text-sm space-y-3 pt-rtl-text">
+        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-2xl p-4 text-sm space-y-3 pt-rtl-text" data-thx-info>
 
             <div class="flex justify-between items-center gap-3">
                 <span class="text-[color:var(--prism-text-3)] text-xs shrink-0" data-i18n="thx_ref_label">رقم الحجز</span>
@@ -151,7 +177,7 @@
         </div>
 
         {{-- IMPORTANT NOTICE --}}
-        <div class="bg-amber-500/[0.06] border border-amber-400/30 rounded-2xl p-4 pt-rtl-text space-y-3">
+        <div class="bg-amber-500/[0.06] border border-amber-400/30 rounded-2xl p-4 pt-rtl-text space-y-3" data-thx-notice>
 
             <div class="flex items-center gap-2 text-[color:var(--prism-gold)] font-semibold text-sm">
                 <span aria-hidden="true">⏳</span>

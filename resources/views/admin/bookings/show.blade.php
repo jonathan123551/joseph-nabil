@@ -402,7 +402,11 @@
             form.addEventListener('submit', async (ev) => {
                 ev.preventDefault();
                 const btn = form.querySelector('button');
-                if (btn) btn.disabled = true;
+                if (btn) {
+                    btn.disabled = true;
+                    btn.classList.add('is-loading');
+                    btn.setAttribute('aria-busy', 'true');
+                }
                 // Pull this row's attendee + seat so the success toast can say
                 // exactly which ticket was resent (e.g. "Kareem · بلكون B7").
                 const row = form.closest('.pt-ticket-row');
@@ -434,7 +438,11 @@
                 } catch (err) {
                     show({ error: true, body: context });
                 } finally {
-                    if (btn) setTimeout(() => { btn.disabled = false; }, 600);
+                    if (btn) setTimeout(() => {
+                        btn.disabled = false;
+                        btn.classList.remove('is-loading');
+                        btn.removeAttribute('aria-busy');
+                    }, 600);
                 }
             });
         });
