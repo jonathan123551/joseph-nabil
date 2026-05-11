@@ -234,10 +234,21 @@
     gap: 12px;
     padding: 14px;
     border-radius: 18px;
-    background: var(--prism-glass);
+    /* `var(--prism-glass)` was never defined — falls back to transparent.
+       Use the same dark-glass tokens as the rest of the chrome so the
+       header has a visible surface on both themes. */
+    background: linear-gradient(180deg, rgba(20,24,38,0.62), rgba(8,10,20,0.72));
     border: 1px solid var(--prism-border);
     backdrop-filter: blur(18px) saturate(140%);
     -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+:root[data-pt-theme="light"] .scanner-header {
+    background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(252,250,245,0.86));
+    border-color: rgba(15,23,42,0.14);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.95),
+        0 12px 28px -16px rgba(15,23,42,0.18),
+        0 2px 6px -2px rgba(15,23,42,0.08);
 }
 
 .scanner-stage {
