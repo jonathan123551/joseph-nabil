@@ -2894,10 +2894,17 @@
         boot();
 
         // ===== Pinch & pan onboarding hint =====
-        // Mobile-only. Stays visible until the user actually interacts with
-        // the seat map (any touch on the scroller — tap, pan, or pinch).
-        // The hint itself is `pointer-events: none`, so the underlying
-        // gesture passes through to the canvas unaffected.
+        // Mobile-only. Subtle glass card centered over the seat map that
+        // teaches first-time mobile users the canvas extends beyond the
+        // viewport and they can pinch / drag to explore.
+        // - mobile viewport only (<880px)
+        // - touch-capable devices only
+        // - shown once per device (localStorage)
+        // - auto-dismisses after 7s
+        // - dismisses on first real touch anywhere in the seat picker
+        // - the hint itself is `pointer-events: none`, so the underlying
+        //   gesture passes straight through to the canvas
+        // - prefers-reduced-motion handled in CSS (no idle animation)
         (function showGestureHint() {
             const hint = root.querySelector('[data-anba-gesture-hint]');
             if (!hint) return;
@@ -2913,7 +2920,12 @@
             // and re-showing it on every visit becomes noise. Wrapped in
             // try/catch so private-mode Safari (no localStorage) still
             // shows the hint instead of erroring out.
-            const SEEN_KEY = 'anba_gesture_hint_seen_v1';
+            //
+            // Version bumped: `_v1 → _v2` so users who previously dismissed
+            // the hint see it once more — the Wave 2 edge arrows and
+            // pan-to-pick behavior changed the surrounding guidance and
+            // the gesture hint is the canonical first-touch explainer.
+            const SEEN_KEY = 'anba_gesture_hint_seen_v2';
             try {
                 if (localStorage.getItem(SEEN_KEY) === '1') {
                     hint.parentNode && hint.parentNode.removeChild(hint);
@@ -2933,20 +2945,25 @@
                 }, 450);
             }
 
-            // Show shortly after init so the canvas has rendered.
+            // Show shortly after init so the canvas has rendered and any
+            // entrance animation has settled. 380ms feels intentional, not
+            // jumpy — pairs with the inline `<style>` hintCardIn anim.
             setTimeout(() => {
                 if (!dismissed) hint.classList.add('is-visible');
-            }, 320);
+            }, 380);
 
-            // Any real touch on the seat-map area (canvas, FAB, scroller)
-            // dismisses the hint. `once: true` auto-removes the listener
-            // after the first fire so there's zero ongoing overhead.
-            if (scroller) {
-                scroller.addEventListener('touchstart', dismiss, { passive: true, once: true });
-            }
-            // Auto-dismiss after 6s so the hint never lingers if the
-            // user is reading the screen without panning yet.
-            setTimeout(dismiss, 6000);
+            // Any real touch anywhere in the seat picker dismisses the
+            // hint (canvas, scroller, FABs, side panel). `once: true`
+            // auto-removes the listener after the first fire so there's
+            // zero ongoing overhead. Listening on `root` is broader than
+            // just `scroller` so taps on the floating zoom buttons or the
+            // auto-pick FAB also count as "the user knows what to do".
+            const dismissOpts = { passive: true, once: true };
+            root.addEventListener('touchstart', dismiss, dismissOpts);
+            root.addEventListener('pointerdown', dismiss, dismissOpts);
+            // Auto-dismiss after 7s so the hint never lingers if the user
+            // is reading the page without panning yet.
+            setTimeout(dismiss, 7000);
         })();
 
         // ===== "More seats" edge arrows =====
