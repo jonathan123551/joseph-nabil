@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Seeds the مسرح الأنبا رويس theater + its full seat layout.
- *
+ 
  * Layout matches the unified "hall" JSON the user supplied — rows A–R, all
  * tagged as `section = hall`. Balcony was deprecated in this iteration (the
  * physical hall is one continuous seating area). The previous balcony/hall
