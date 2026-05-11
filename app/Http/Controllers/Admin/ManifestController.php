@@ -10,40 +10,227 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Seat Occupancy / Attendee Manifest — Phase 1.
+ * Seat Occupancy / Attendee Manifest — Phase 2.
  *
  * Single per-showtime read-only page used by event organizers / ushers on
  * event day to map every physical seat to its attendee. Backed by three
  * eager-loaded queries (booked seats + admin-blocked seats + full layout
  * for seatmap shows) so it stays flat regardless of booking count.
  *
- * Three view modes share one Blade template:
- *   ?view=print   (default) — A4-landscape printable HTML
- *   ?view=usher            — mobile-first single-column list with search
- *   ?view=grouped          — group rows by booking_id instead of by seat
+ * Three operator-led surfaces share one Blade template, each tuned to a
+ * device + workflow:
+ *
+ *   ?mode=ops    (default on ≥ md) — Operations Console for desktop head
+ *                                    ushers / box office. Chart-left,
+ *                                    detail rail-right, persistent filter
+ *                                    chips, live capacity gauge, bookings
+ *                                    sidebar. Polls JSON for check-ins.
+ *   ?mode=floor  (default on phones)— Floor Mode for floor ushers in dim
+ *                                    halls. Forced dark, search pinned to
+ *                                    the thumb-reach bottom, 80 px cards,
+ *                                    booked + pending + blocked by default
+ *                                    (empties off). Scanner FAB.
+ *   ?mode=paper                    — A4-landscape paper sheet. Attendees-
+ *                                    only by default (`include_empty=1`
+ *                                    for full roll-call), glyph status,
+ *                                    family color bands as soft backgrounds,
+ *                                    hand-check-in ☐ column, per-section
+ *                                    page breaks with running headers.
+ *
+ * Legacy `?view=grid|usher|grouped|print` URLs are mapped to the new modes
+ * for back-compat (scanner deep-links + bookmarked pages keep working).
+ *
+ * Live polling endpoint `/admin/show-times/{id}/manifest.json` returns the
+ * minimal payload Operations + Floor need to keep their gauge + check-in
+ * ✓ markers current without a full reload.
  *
  * CSV export uses the same data assembly, streamed to download.
  */
 class ManifestController extends Controller
 {
     /**
-     * Render the manifest page.
+     * Render the manifest page in the operator-led surface that fits the
+     * caller's device and intent.
+     *
+     * Mode resolution order (first match wins):
+     *   1. Explicit ?mode=ops|floor|paper.
+     *   2. Legacy ?view=grid|usher|grouped|print  -> mapped to a mode.
+     *   3. Mobile-class User-Agent                -> floor.
+     *   4. Default                                -> ops.
      */
     public function show(ShowTime $showTime, Request $request)
     {
         $data = $this->buildManifest($showTime);
 
-        $view = $request->query('view', 'print');
-        if (!in_array($view, ['print', 'usher', 'grouped', 'grid'], true)) {
-            $view = 'print';
-        }
+        $mode = $this->resolveMode($request);
 
         $showFullPhone = (bool) $request->query('full_phone', false);
+        $includeEmpty = (bool) $request->query('include_empty', false);
+
+        // Comma-separated allow-list of status filters; defaults to the
+        // operationally useful set (booked + pending + blocked). The view
+        // applies these client-side so a URL like
+        // ?status=approved,checked_in remains shareable.
+        $statusFilter = $this->resolveStatusFilter($request);
+
+        // `?focus=A12` — used by the scanner deep-link and by the usher
+        // chip taps. The view scrolls the matching seat into view and
+        // animates the pulse + auto-opens the detail rail.
+        $focusSeat = trim((string) $request->query('focus', ''));
+        if ($focusSeat !== '') {
+            $focusSeat = strtoupper($focusSeat);
+        }
+
+        // Bookings collection (grouped by booking_id) powers the
+        // Operations Console right-rail bookings list and the booking-
+        // colored hue rings on the chart.
+        $bookings = $this->buildBookings($data['rows']);
 
         return view('admin.show_times.manifest', array_merge($data, [
-            'view'          => $view,
+            'mode' => $mode,
             'showFullPhone' => $showFullPhone,
+            'includeEmpty' => $includeEmpty,
+            'statusFilter' => $statusFilter,
+            'focusSeat' => $focusSeat,
+            'bookings' => $bookings,
         ]));
+    }
+
+    /**
+     * Live-polling JSON endpoint. Returns the minimal payload Operations
+     * + Floor need to keep their capacity gauge and per-seat ✓ markers
+     * current. Intentionally smaller than the full row payload so polling
+     * every 10 s stays cheap.
+     */
+    public function showJson(ShowTime $showTime): \Illuminate\Http\JsonResponse
+    {
+        $data = $this->buildManifest($showTime);
+
+        $checkedInCount = 0;
+        $scanned = [];
+        foreach ($data['rows'] as $r) {
+            if (! empty($r['is_scanned'])) {
+                $checkedInCount++;
+                $scanned[$r['row_letter'].$r['seat_number']] = $r['scanned_at'];
+            }
+        }
+
+        return response()->json([
+            'summary' => $data['summary'],
+            'checked_in' => $checkedInCount,
+            'scanned_seats' => $scanned,
+            'server_time' => now()->toIso8601String(),
+        ])->header('Cache-Control', 'no-store, max-age=0');
+    }
+
+    /**
+     * Pick a surface for this request. Explicit `mode` wins; otherwise we
+     * map legacy `view` query strings; otherwise we sniff the User-Agent
+     * for a phone-class device and bias to Floor Mode.
+     */
+    protected function resolveMode(Request $request): string
+    {
+        $allowed = ['ops', 'floor', 'paper'];
+
+        $mode = (string) $request->query('mode', '');
+        if (in_array($mode, $allowed, true)) {
+            return $mode;
+        }
+
+        $legacy = (string) $request->query('view', '');
+        $legacyMap = [
+            'grid' => 'ops',
+            'grouped' => 'ops',
+            'usher' => 'floor',
+            'print' => 'paper',
+        ];
+        if (isset($legacyMap[$legacy])) {
+            return $legacyMap[$legacy];
+        }
+
+        $ua = (string) $request->header('User-Agent', '');
+        if ($ua !== '' && preg_match('/Mobi|Android|iPhone|iPod|IEMobile|BlackBerry/i', $ua)) {
+            return 'floor';
+        }
+
+        return 'ops';
+    }
+
+    /**
+     * Parse the `?status=` query into a normalized set of allowed statuses.
+     * Accepts comma-separated tokens; falls back to the default operational
+     * set (everything except empty + checked-in-only filter).
+     */
+    protected function resolveStatusFilter(Request $request): array
+    {
+        $defaults = ['approved', 'pending', 'blocked'];
+        $valid = ['approved', 'pending', 'blocked', 'empty', 'checked_in'];
+
+        $raw = (string) $request->query('status', '');
+        if ($raw === '') {
+            return $defaults;
+        }
+
+        $tokens = array_values(array_unique(array_filter(array_map(
+            fn ($t) => strtolower(trim($t)),
+            explode(',', $raw)
+        ))));
+
+        $tokens = array_values(array_intersect($tokens, $valid));
+
+        return empty($tokens) ? $defaults : $tokens;
+    }
+
+    /**
+     * Reduce the seat-major rows to a booking-major collection used by the
+     * Operations Console right-rail list. Each entry carries enough to
+     * render a one-line booking card + light up the booking's seats on
+     * the chart when selected.
+     */
+    protected function buildBookings(array $rows): array
+    {
+        $byBooking = [];
+        foreach ($rows as $r) {
+            if ($r['booking_id'] === null) {
+                continue;
+            }
+            $id = $r['booking_id'];
+            if (! isset($byBooking[$id])) {
+                $byBooking[$id] = [
+                    'id' => $id,
+                    'ref' => $r['booking_ref'],
+                    'owner' => $r['booking_owner'],
+                    'phone' => $r['phone'],
+                    'status' => $r['status'],
+                    'status_en' => $r['status_en'],
+                    'seats' => [],
+                    'seat_labels' => [],
+                    'checked_in' => 0,
+                ];
+            }
+            $label = $r['row_letter'].$r['seat_number'];
+            $byBooking[$id]['seats'][] = $label;
+            $byBooking[$id]['seat_labels'][] = $label;
+            if (! empty($r['is_scanned'])) {
+                $byBooking[$id]['checked_in']++;
+            }
+        }
+
+        // Sort: pending first (they need approval), then approved, then by
+        // owner name for stable ordering during scrubbing.
+        $bookings = array_values($byBooking);
+        usort($bookings, function ($a, $b) {
+            $statusOrder = ['pending' => 0, 'approved' => 1];
+            $ao = $statusOrder[$a['status']] ?? 9;
+            $bo = $statusOrder[$b['status']] ?? 9;
+            if ($ao !== $bo) {
+                return $ao <=> $bo;
+            }
+
+            return strcmp((string) $a['owner'], (string) $b['owner']);
+        });
+
+        return $bookings;
     }
 
     /**
@@ -54,12 +241,12 @@ class ManifestController extends Controller
      */
     public function exportCsv(ShowTime $showTime, Request $request): StreamedResponse
     {
-        $data          = $this->buildManifest($showTime);
+        $data = $this->buildManifest($showTime);
         $showFullPhone = (bool) $request->query('full_phone', false);
 
         $filename = sprintf(
             'manifest-%s-%s.csv',
-            optional($showTime->date)->format('Y-m-d') ?: 'showtime-' . $showTime->id,
+            optional($showTime->date)->format('Y-m-d') ?: 'showtime-'.$showTime->id,
             $showTime->id
         );
 
@@ -91,11 +278,11 @@ class ManifestController extends Controller
                     $r['row_letter'],
                     $r['seat_number'],
                     $r['attendee_name'] ?? '',
-                    $r['booking_ref']   ?? '',
+                    $r['booking_ref'] ?? '',
                     $r['booking_owner'] ?? '',
                     $phoneCsv,
                     $r['status_en'],
-                    $r['scanned_at']    ?? '',
+                    $r['scanned_at'] ?? '',
                 ]);
             }
 
@@ -219,10 +406,10 @@ class ManifestController extends Controller
 
         $summary = [
             'approved' => 0,
-            'pending'  => 0,
-            'blocked'  => 0,
-            'empty'    => 0,
-            'total'    => count($rows),
+            'pending' => 0,
+            'blocked' => 0,
+            'empty' => 0,
+            'total' => count($rows),
         ];
         foreach ($rows as $r) {
             $summary[$r['status']] = ($summary[$r['status']] ?? 0) + 1;
@@ -230,9 +417,9 @@ class ManifestController extends Controller
 
         return [
             'showTime' => $showTime,
-            'show'     => $show,
-            'rows'     => $rows,
-            'summary'  => $summary,
+            'show' => $show,
+            'rows' => $rows,
+            'summary' => $summary,
             'usesSeatMap' => $usesSeatMap,
         ];
     }
@@ -243,7 +430,7 @@ class ManifestController extends Controller
      */
     protected function seatKey(?string $section, ?string $row, int $seatNumber): string
     {
-        return strtolower((string) $section) . '.' . strtoupper((string) $row) . '.' . $seatNumber;
+        return strtolower((string) $section).'.'.strtoupper((string) $row).'.'.$seatNumber;
     }
 
     protected function rowFromBookedSeat(BookingSeat $bs): array
@@ -252,7 +439,7 @@ class ManifestController extends Controller
         // Set by buildManifest() via setRelation() so this resolves in
         // memory without another DB hit. Null = no ticket row was paired
         // with this seat yet (PR #70 back-fill edge case).
-        $ticket  = $bs->getRelation('matchedTicket');
+        $ticket = $bs->getRelation('matchedTicket');
 
         $status = $booking && $booking->status === 'pending' ? 'pending' : 'approved';
 
@@ -269,60 +456,60 @@ class ManifestController extends Controller
             : null;
 
         return [
-            'section'           => $bs->section,
-            'section_label_ar'  => $bs->section === 'balcony' ? 'بلكون' : 'صالة',
-            'section_label_en'  => $bs->section === 'balcony' ? 'Balcony' : 'Hall',
-            'row_letter'        => strtoupper((string) $bs->row_letter),
-            'seat_number'       => (int) $bs->seat_number,
-            'attendee_name'     => $attendeeName,
-            'phone'             => $attendeePhone,
-            'booking_id'        => optional($booking)->id,
-            'booking_ref'       => optional($booking)->reference_code,
-            'booking_owner'     => optional($booking)->full_name,
-            'status'            => $status,
-            'status_en'         => $status === 'pending' ? 'PENDING' : 'APPROVED',
-            'is_scanned'        => (bool) ($ticket->is_scanned ?? false),
-            'scanned_at'        => $scannedAt,
+            'section' => $bs->section,
+            'section_label_ar' => $bs->section === 'balcony' ? 'بلكون' : 'صالة',
+            'section_label_en' => $bs->section === 'balcony' ? 'Balcony' : 'Hall',
+            'row_letter' => strtoupper((string) $bs->row_letter),
+            'seat_number' => (int) $bs->seat_number,
+            'attendee_name' => $attendeeName,
+            'phone' => $attendeePhone,
+            'booking_id' => optional($booking)->id,
+            'booking_ref' => optional($booking)->reference_code,
+            'booking_owner' => optional($booking)->full_name,
+            'status' => $status,
+            'status_en' => $status === 'pending' ? 'PENDING' : 'APPROVED',
+            'is_scanned' => (bool) ($ticket->is_scanned ?? false),
+            'scanned_at' => $scannedAt,
         ];
     }
 
     protected function rowFromBlockedSeat($seat): array
     {
         return [
-            'section'           => $seat->section,
-            'section_label_ar'  => $seat->section === 'balcony' ? 'بلكون' : 'صالة',
-            'section_label_en'  => $seat->section === 'balcony' ? 'Balcony' : 'Hall',
-            'row_letter'        => strtoupper((string) $seat->row_letter),
-            'seat_number'       => (int) $seat->seat_number,
-            'attendee_name'     => null,
-            'phone'             => null,
-            'booking_id'        => null,
-            'booking_ref'       => null,
-            'booking_owner'     => null,
-            'status'            => 'blocked',
-            'status_en'         => 'BLOCKED',
-            'is_scanned'        => false,
-            'scanned_at'        => null,
+            'section' => $seat->section,
+            'section_label_ar' => $seat->section === 'balcony' ? 'بلكون' : 'صالة',
+            'section_label_en' => $seat->section === 'balcony' ? 'Balcony' : 'Hall',
+            'row_letter' => strtoupper((string) $seat->row_letter),
+            'seat_number' => (int) $seat->seat_number,
+            'attendee_name' => null,
+            'phone' => null,
+            'booking_id' => null,
+            'booking_ref' => null,
+            'booking_owner' => null,
+            'status' => 'blocked',
+            'status_en' => 'BLOCKED',
+            'is_scanned' => false,
+            'scanned_at' => null,
         ];
     }
 
     protected function rowFromEmptySeat($seat): array
     {
         return [
-            'section'           => $seat->section,
-            'section_label_ar'  => $seat->section === 'balcony' ? 'بلكون' : 'صالة',
-            'section_label_en'  => $seat->section === 'balcony' ? 'Balcony' : 'Hall',
-            'row_letter'        => strtoupper((string) $seat->row_letter),
-            'seat_number'       => (int) $seat->seat_number,
-            'attendee_name'     => null,
-            'phone'             => null,
-            'booking_id'        => null,
-            'booking_ref'       => null,
-            'booking_owner'     => null,
-            'status'            => 'empty',
-            'status_en'         => 'EMPTY',
-            'is_scanned'        => false,
-            'scanned_at'        => null,
+            'section' => $seat->section,
+            'section_label_ar' => $seat->section === 'balcony' ? 'بلكون' : 'صالة',
+            'section_label_en' => $seat->section === 'balcony' ? 'Balcony' : 'Hall',
+            'row_letter' => strtoupper((string) $seat->row_letter),
+            'seat_number' => (int) $seat->seat_number,
+            'attendee_name' => null,
+            'phone' => null,
+            'booking_id' => null,
+            'booking_ref' => null,
+            'booking_owner' => null,
+            'status' => 'empty',
+            'status_en' => 'EMPTY',
+            'is_scanned' => false,
+            'scanned_at' => null,
         ];
     }
 
@@ -334,13 +521,14 @@ class ManifestController extends Controller
     protected function maskPhone(string $phone): string
     {
         $digits = preg_replace('/\D+/', '', $phone);
-        $len    = strlen($digits);
+        $len = strlen($digits);
         if ($len <= 6) {
             return $phone;
         }
         $prefix = substr($digits, 0, 2);
         $suffix = substr($digits, -4);
         $maskedLen = max(0, $len - 6);
-        return $prefix . str_repeat('●', $maskedLen) . $suffix;
+
+        return $prefix.str_repeat('●', $maskedLen).$suffix;
     }
 }

@@ -918,7 +918,7 @@
             try {
                 const base = MANIFEST_URL_TEMPLATE.replace('__ID__', String(p.show_time_id));
                 const url  = base + (base.includes('?') ? '&' : '?') +
-                             'view=grid&focus=' + encodeURIComponent(heroSeat.label);
+                             'mode=ops&focus=' + encodeURIComponent(heroSeat.label);
                 $sheetManifest.setAttribute('href', url);
                 $sheetManifest.hidden = false;
             } catch (_) {

@@ -194,11 +194,16 @@ Route::middleware('admin')
 
         // 📋 Seat Occupancy / Attendee Manifest (read-only event-day view).
         // One page per showtime that maps every physical seat to its
-        // attendee. Three view modes share the same Blade and the same
-        // single eager-loaded query (booked seats + admin blocks + full
-        // venue layout). CSV export streams the same shape to disk.
+        // attendee. Three operator surfaces (Operations / Floor / Paper)
+        // share the same Blade and the same single eager-loaded query
+        // (booked seats + admin blocks + full venue layout). CSV export
+        // streams the same shape to disk. The .json variant is the live-
+        // polling endpoint that keeps the capacity gauge + check-in ✓
+        // markers fresh without a full page reload.
         Route::get('/show-times/{showTime}/manifest', [ManifestController::class, 'show'])
             ->name('show-times.manifest');
+        Route::get('/show-times/{showTime}/manifest.json', [ManifestController::class, 'showJson'])
+            ->name('show-times.manifest.json');
         Route::get('/show-times/{showTime}/manifest/export.csv', [ManifestController::class, 'exportCsv'])
             ->name('show-times.manifest.csv');
 
