@@ -62,11 +62,11 @@
                 'M' => 3.0,  'L' => 3.2,  'K' => 3.4,  'J' => 3.6, 'I' => 4,
                 'H' => 5,    'G' => 6,    'F' => 7,    'E' => 8,   'D' => 9, 'C' => 10,
                 'B' => 10.2, 'A' => 11.2,
-                // Row R: NEGATIVE step = wings pulled INWARD by half a seat
-                // relative to Q (the anchor). Produces a natural theater
-                // stagger where R's innermost seats sit half a seat-width
-                // inside Q's inner edge.
-                'R' => -1,
+                // Row R: NEGATIVE step = wings pulled INWARD relative to Q
+                // (the anchor). -2 = one full seat width inward — R's
+                // innermost seats sit visibly inside Q's innermost seats,
+                // a pronounced back-row sight-line stagger.
+                'R' => -2,
             ],
             // Q is the anchor for R as well so R's inner edge lines up with
             // Q's inner edge (both anchor to P's center column). Without
@@ -1564,8 +1564,11 @@
 
         // Display size (CSS pixels). Will be scaled by devicePixelRatio internally.
         // Width is wide enough to fit the front rows' full progressive offset.
+        // Height accounts for the back row (R) plus the GAP_HALF separator
+        // between Q and R (~22.5 px) plus a comfortable bottom buffer so the
+        // last row never clips on mobile fit-to-screen.
         let DISPLAY_W = 1400;
-        let DISPLAY_H = 700;
+        let DISPLAY_H = 740;
         let CX        = DISPLAY_W / 2;
 
         // ===== State =====
