@@ -316,6 +316,99 @@
         @media (prefers-reduced-motion: reduce) {
             .pay-details .pay-chev { transition: none; }
         }
+
+        /* =====================================================================
+           LIGHT THEME — Section picker, step indicator and payment accordion.
+           Dark-only surfaces would look pasted-in on the cream background, so
+           we rebuild them with light-tinted glass that still preserves the
+           cinematic premium feel (gradient title, decorative orb, neon hover
+           glow — just translated into a light-friendly palette).
+        ===================================================================== */
+        :root[data-pt-theme="light"] .anba-step1 .section-btn {
+            background:
+                radial-gradient(120% 80% at 0% 0%, rgba(8,145,178,0.10) 0%, rgba(8,145,178,0) 55%),
+                radial-gradient(120% 80% at 100% 100%, rgba(124,58,237,0.10) 0%, rgba(124,58,237,0) 55%),
+                linear-gradient(180deg, rgba(255,255,255,0.96), rgba(252,250,245,0.92));
+            border: 1px solid rgba(15,23,42,0.14);
+            color: #0f172a;
+            box-shadow:
+                0 12px 28px -16px rgba(15,23,42,0.22),
+                0 2px 6px -2px rgba(15,23,42,0.08),
+                inset 0 1px 0 rgba(255,255,255,0.9);
+        }
+        :root[data-pt-theme="light"] .anba-step1 .section-btn::before {
+            background: radial-gradient(closest-side, rgba(124,58,237,0.18), rgba(124,58,237,0) 70%);
+        }
+        :root[data-pt-theme="light"] .anba-step1 .section-btn::after {
+            background: linear-gradient(135deg, rgba(8,145,178,0) 0%, rgba(124,58,237,0.10) 50%, rgba(8,145,178,0) 100%);
+        }
+        :root[data-pt-theme="light"] .anba-step1 .section-btn:hover {
+            border-color: rgba(79,70,229,0.45);
+            box-shadow:
+                0 24px 44px -18px rgba(79,70,229,0.32),
+                0 0 22px rgba(8,145,178,0.12),
+                inset 0 1px 0 rgba(255,255,255,0.9);
+        }
+        :root[data-pt-theme="light"] .anba-step1 .section-btn .section-eyebrow {
+            color: rgba(15,23,42,0.55);
+        }
+        :root[data-pt-theme="light"] .anba-step1 .section-btn .section-tag {
+            background: rgba(79,70,229,0.10);
+            border-color: rgba(79,70,229,0.34);
+            color: #4338ca;
+        }
+        :root[data-pt-theme="light"] .anba-step1 .section-btn .section-price {
+            color: #b45309;
+        }
+        :root[data-pt-theme="light"] .anba-step1 .section-btn .section-price-unit {
+            color: rgba(15,23,42,0.55);
+        }
+        :root[data-pt-theme="light"] .anba-step1 .section-btn .section-cta {
+            background: linear-gradient(135deg, rgba(8,145,178,0.14), rgba(124,58,237,0.16));
+            border-color: rgba(79,70,229,0.40);
+            color: #312e81;
+        }
+        :root[data-pt-theme="light"] .anba-step1 .section-btn:hover .section-cta {
+            background: linear-gradient(135deg, rgba(8,145,178,0.22), rgba(124,58,237,0.26));
+        }
+        :root[data-pt-theme="light"] .anba-step1 .section-btn[disabled],
+        :root[data-pt-theme="light"] .anba-step1 .section-btn.disabled {
+            background: linear-gradient(180deg, rgba(241,238,232,0.7), rgba(229,226,218,0.5));
+            border-color: rgba(15,23,42,0.10);
+        }
+        :root[data-pt-theme="light"] .anba-step1 .section-btn .badge-soon {
+            background: rgba(79,70,229,0.10);
+            border-color: rgba(79,70,229,0.34);
+            color: #4338ca;
+        }
+        /* Step indicator — dim dots need a visible border on cream */
+        :root[data-pt-theme="light"] .step-indicator { color: var(--prism-text-3); }
+        :root[data-pt-theme="light"] .step-indicator .dot {
+            background: linear-gradient(135deg, rgba(8,145,178,0.16), rgba(124,58,237,0.18));
+            border-color: rgba(79,70,229,0.55);
+            color: #312e81;
+        }
+        :root[data-pt-theme="light"] .step-indicator .line {
+            background: linear-gradient(90deg, rgba(79,70,229,0.45), rgba(15,23,42,0.06));
+        }
+        :root[data-pt-theme="light"] .step-indicator .dim {
+            background: rgba(15,23,42,0.05);
+            border-color: rgba(15,23,42,0.14);
+            color: var(--prism-text-4);
+        }
+        /* Payment instructions accordion — invisible BG on cream otherwise */
+        :root[data-pt-theme="light"] .pay-details {
+            background: rgba(255,255,255,0.70);
+            border-color: rgba(15,23,42,0.14);
+        }
+        :root[data-pt-theme="light"] .pay-details[open] {
+            background: rgba(255,255,255,0.90);
+            border-color: rgba(79,70,229,0.34);
+        }
+        :root[data-pt-theme="light"] .pay-details .pay-icon {
+            background: linear-gradient(135deg, rgba(8,145,178,0.14), rgba(124,58,237,0.16));
+            border-color: rgba(79,70,229,0.40);
+        }
     </style>
 
     <div class="anba-step1 space-y-5">
