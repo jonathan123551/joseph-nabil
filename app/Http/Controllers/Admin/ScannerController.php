@@ -84,6 +84,9 @@ class ScannerController extends Controller
             'time'          => $time->time
                 ? Carbon::parse($time->time)->format('g:i A')
                 : '',
+            // ID of the showtime so the scanner result sheet can deep-link
+            // to the per-showtime manifest with this exact seat focused.
+            'show_time_id'  => $time ? (int) $time->id : null,
             'tickets_count' => (int) ($booking->tickets_count ?? $bookingSeats->count()),
             'reference'     => $booking->reference_code ?? '',
             // The seat THIS QR represents — used for the big seat badge.
