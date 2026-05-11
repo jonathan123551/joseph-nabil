@@ -2119,6 +2119,40 @@
             transform: translateX(-2px);
         }
 
+        /* Compact seat chip — pairs each attendee's name with their
+           assigned section + seat in admin views so operators can scan
+           "name → seat" without mentally matching data elsewhere.
+           Hall and balcony get distinct accent colors. */
+        .pt-seat-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: .01em;
+            background: rgba(129,140,248,0.12);
+            border: 1px solid rgba(129,140,248,0.4);
+            color: #c7d2fe;
+            white-space: nowrap;
+        }
+        .pt-seat-chip-hall {
+            background: linear-gradient(135deg, rgba(34,211,238,0.14), rgba(129,140,248,0.10));
+            border-color: rgba(34,211,238,0.40);
+            color: #a5f3fc;
+        }
+        .pt-seat-chip-balcony {
+            background: linear-gradient(135deg, rgba(251,191,36,0.14), rgba(192,132,252,0.10));
+            border-color: rgba(251,191,36,0.40);
+            color: #fde68a;
+        }
+        .pt-seat-chip .pt-seat-chip-seat {
+            font-weight: 800;
+            font-feature-settings: "tnum" 1;
+        }
+
         @media (prefers-reduced-motion: reduce) {
             .prism-stat,
             .prism-quick-action,
