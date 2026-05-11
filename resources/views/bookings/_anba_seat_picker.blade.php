@@ -2895,11 +2895,14 @@
 
         // ===== Pinch & pan onboarding hint =====
         // Mobile-only. Subtle glass card centered over the seat map that
-        // teaches first-time mobile users the canvas extends beyond the
-        // viewport and they can pinch / drag to explore.
+        // reminds users the canvas extends beyond the viewport and they
+        // can pinch / drag to explore.
         // - mobile viewport only (<880px)
         // - touch-capable devices only
-        // - shown once per device (localStorage)
+        // - shown EVERY time the seat picker opens (no persistent
+        //   dismissal). Many users only enter the picker once every few
+        //   weeks/months and forget the gestures, so the hint is treated
+        //   as recurring onboarding, not a one-shot tutorial.
         // - auto-dismisses after 7s
         // - dismisses on first real touch anywhere in the seat picker
         // - the hint itself is `pointer-events: none`, so the underlying
@@ -2916,28 +2919,10 @@
                 return;
             }
 
-            // Persistent once-per-device gate. The hint is purely advisory
-            // and re-showing it on every visit becomes noise. Wrapped in
-            // try/catch so private-mode Safari (no localStorage) still
-            // shows the hint instead of erroring out.
-            //
-            // Version bumped: `_v1 → _v2` so users who previously dismissed
-            // the hint see it once more — the Wave 2 edge arrows and
-            // pan-to-pick behavior changed the surrounding guidance and
-            // the gesture hint is the canonical first-touch explainer.
-            const SEEN_KEY = 'anba_gesture_hint_seen_v2';
-            try {
-                if (localStorage.getItem(SEEN_KEY) === '1') {
-                    hint.parentNode && hint.parentNode.removeChild(hint);
-                    return;
-                }
-            } catch (_) { /* storage unavailable — show the hint anyway */ }
-
             let dismissed = false;
             function dismiss() {
                 if (dismissed) return;
                 dismissed = true;
-                try { localStorage.setItem(SEEN_KEY, '1'); } catch (_) {}
                 hint.classList.remove('is-visible');
                 hint.classList.add('is-leaving');
                 setTimeout(() => {
