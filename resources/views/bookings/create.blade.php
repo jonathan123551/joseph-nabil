@@ -631,12 +631,20 @@ function renderNames() {
                 name="names[]"
                 placeholder="${escapeAttr(namePh)}"
                 class="prism-input"
+                autocomplete="name"
+                autocapitalize="words"
+                spellcheck="false"
+                enterkeyhint="next"
                 required>
 
-            <input type="text"
+            <input type="tel"
                 name="phones[]"
                 placeholder="${escapeAttr(phonePh)}"
                 class="prism-input"
+                inputmode="tel"
+                autocomplete="tel"
+                dir="ltr"
+                enterkeyhint="next"
                 required>
         `;
         namesContainer.appendChild(wrap);
@@ -693,7 +701,22 @@ bookingForm.addEventListener('submit', function (e) {
 
     isSubmitting = true;
     submitBtn.disabled = true;
-    submitBtn.innerText = tt('book_sending', 'جارِ الإرسال...');
+    // Inline spinner via the layout-wide `.is-loading` class. Avoids
+    // overwriting innerText so the existing `data-i18n` span keeps
+    // re-translating on language toggle.
+    submitBtn.classList.add('is-loading');
+    submitBtn.setAttribute('aria-busy', 'true');
+});
+
+// iOS / Safari back-forward cache restores the page with the submit
+// button still disabled. Reset the state when the page comes out of
+// the bfcache so the customer can retry / edit.
+window.addEventListener('pageshow', (e) => {
+    if (!e.persisted) return;
+    isSubmitting = false;
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('is-loading');
+    submitBtn.removeAttribute('aria-busy');
 });
 
 </script>

@@ -753,6 +753,13 @@
             z-index: 50;
             pointer-events: none;
             transition: top .35s var(--prism-ease);
+            /* CSS containment — tells the browser that no layout / paint
+               changes inside the topbar can affect anything outside. Cuts
+               first-paint CLS to zero for the floating bar (the wrap is
+               already `position: fixed`, so the body below cannot shift,
+               but inner reflows still trigger paint elsewhere without
+               containment). */
+            contain: layout paint;
         }
         .pt-topbar {
             pointer-events: auto;
@@ -1328,6 +1335,36 @@
             animation: ptSpin .9s linear infinite;
         }
         @keyframes ptSpin { to { transform: rotate(360deg); } }
+
+        /* Generic in-button loading state. Add `.is-loading` to ANY button
+           and an inline 14px spinner will appear before its text via a
+           ::before pseudo-element. Cursor turns wait, pointer events are
+           blocked so a frantic user can't trigger a double-submit even if
+           something forgets to set [disabled]. Inherits currentColor so it
+           tints itself correctly inside gold / indigo / rose buttons.
+           Respects prefers-reduced-motion (replaces spin with a static
+           dot so the state is still visually distinct). */
+        .is-loading {
+            position: relative;
+            cursor: wait !important;
+            pointer-events: none;
+        }
+        .is-loading::before {
+            content: "";
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            margin-inline-end: 8px;
+            vertical-align: -2px;
+            border-radius: 999px;
+            border: 2px solid currentColor;
+            border-top-color: transparent;
+            opacity: 0.85;
+            animation: ptSpin .8s linear infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .is-loading::before { animation: none; border-top-color: currentColor; opacity: 0.5; }
+        }
 
         /* ------------- Toast ------------- */
         .pt-toast {
@@ -2175,6 +2212,31 @@
             .prism-input { font-size: 14px; }
         }
 
+        /* Cap backdrop-blur cost on small viewports. Multiple stacked
+           blurs at 18–22px stutter iOS Safari's compositor on older
+           iPhones; 12px gives the same "glass" perception at a fraction
+           of the GPU cost. Applies only to the global chrome surfaces
+           that always paint on top of the page (topbar, action bar,
+           modals, drawers, the seat picker bottom CTA, the booking
+           dock, the scanner sheet) — page-specific decorative blurs
+           are untouched. Desktop sizes unchanged. */
+        @media (max-width: 880px) {
+            .pt-topbar,
+            .pt-action-bar,
+            .pt-modal-root,
+            .pt-drawer,
+            .pt-toast-overlay,
+            .anba-dock,
+            .anba-dock-inner,
+            [data-anba-root] .mobile-cta,
+            [data-anba-root] .anba-modal-backdrop,
+            [data-anba-root] .canvas-fab,
+            .scan-sheet {
+                backdrop-filter: blur(12px) saturate(140%) !important;
+                -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+            }
+        }
+
         /* ---------- LIGHT THEME ---------- */
         :root[data-pt-theme="light"] {
             --prism-bg-0: #f4f1ea;
@@ -2439,6 +2501,12 @@
             color: var(--prism-text-2);
             text-decoration: none;
             min-height: 36px;
+            /* Reserve enough width to fit the wider of AR/EN labels so the
+               topbar doesn't reflow when applyLang() swaps the text on
+               first paint. الرئيسية / Shows / لوحة التحكم all fit in 7ch
+               comfortably; the gap is absorbed inside the pill. Reduces
+               first-paint CLS on the topbar to zero. */
+            min-width: 7ch;
             transition: color .2s var(--prism-ease), background .2s var(--prism-ease), transform .2s var(--prism-ease);
         }
         @media (hover: hover) {
@@ -6182,6 +6250,9 @@
                 form_attendees_title: '👥 بيانات الحضور',
                 form_attendees_hint: 'اكتب اسم ورقم واتساب لكل مقعد',
                 form_screenshot: 'إيصال التحويل',
+                form_screenshot_tap_upload: 'اضغط لرفع صورة إيصال التحويل',
+                form_screenshot_hint: 'JPG / PNG · حد أقصى 20MB',
+                form_screenshot_replace: 'تغيير',
                 form_required: 'مطلوب',
                 form_name_label: 'الاسم',
                 form_phone_label: 'رقم واتساب',
@@ -6985,6 +7056,9 @@
                 form_attendees_title: '👥 Attendee details',
                 form_attendees_hint: 'Enter a name and WhatsApp number for each seat',
                 form_screenshot: 'Transfer receipt',
+                form_screenshot_tap_upload: 'Tap to upload your transfer receipt',
+                form_screenshot_hint: 'JPG / PNG · 20MB max',
+                form_screenshot_replace: 'Change',
                 form_required: 'required',
                 form_name_label: 'Name',
                 form_phone_label: 'WhatsApp number',
