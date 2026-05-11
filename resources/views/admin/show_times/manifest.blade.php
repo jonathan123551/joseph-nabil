@@ -117,7 +117,9 @@
 @push('styles')
 <style>
     /* ====================================================================
-       Manifest tokens — shared across all three surfaces
+       Manifest tokens — shared across all three surfaces.
+       Calmer palette + a tiny motion system so every surface feels
+       consistent rather than "busy enterprise dashboard".
        ==================================================================== */
     :root {
         --m-bg            : var(--prism-surface, rgba(255,255,255,0.03));
@@ -131,6 +133,19 @@
         --m-text          : var(--prism-text, #f3f4f6);
         --m-text-2        : var(--prism-text-2, #d1d5db);
         --m-text-3        : var(--prism-text-3, #9ca3af);
+        --m-ease          : cubic-bezier(.22,.61,.36,1);
+        --m-radius-card   : 18px;
+        --m-radius-pill   : 999px;
+        --m-shadow-card   : 0 8px 24px rgba(0,0,0,0.18);
+        --m-shadow-focus  : 0 0 0 2px rgba(56,189,248,0.55), 0 0 18px rgba(56,189,248,0.22);
+    }
+    .manifest-root, .manifest-root * {
+        font-feature-settings: "tnum" 1, "ss01" 1;
+    }
+    .manifest-root :focus-visible {
+        outline: none;
+        box-shadow: var(--m-shadow-focus);
+        border-radius: 8px;
     }
 
     /* Booking family hues (chart ring + paper band + floor card accent) */
@@ -152,28 +167,48 @@
         position: sticky;
         top: calc(64px + env(safe-area-inset-top, 0px));
         z-index: 20;
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        background: linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35));
+        backdrop-filter: blur(20px) saturate(140%);
+        -webkit-backdrop-filter: blur(20px) saturate(140%);
+        background: linear-gradient(180deg, rgba(8,9,18,0.72), rgba(8,9,18,0.42));
         border: 1px solid var(--m-border);
-        border-radius: 16px;
-        padding: 10px 14px;
+        border-radius: 18px;
+        padding: 12px 16px;
         display: grid;
         grid-template-columns: 1fr auto;
-        gap: 12px;
+        gap: 14px;
         align-items: center;
-        margin-bottom: 12px;
+        margin-bottom: 14px;
+        box-shadow: var(--m-shadow-card);
     }
-    .mfst-topbar-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .mfst-topbar-title { font-size: 15px; font-weight: 800; color: var(--m-text); display: flex; align-items: center; gap: 8px; }
+    .mfst-topbar-id { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .mfst-topbar-title {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: .01em;
+        color: var(--m-text);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        line-height: 1.15;
+    }
     .mfst-topbar-title .live-dot {
         width: 8px; height: 8px; border-radius: 999px;
         background: var(--m-emerald);
-        box-shadow: 0 0 8px rgba(52,211,153,0.7);
-        animation: mfst-pulse-soft 2s ease-in-out infinite;
+        box-shadow: 0 0 10px rgba(52,211,153,0.75);
+        animation: mfst-pulse-soft 2.4s ease-in-out infinite;
+        flex: 0 0 8px;
     }
-    @keyframes mfst-pulse-soft { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
-    .mfst-topbar-meta { font-size: 11px; color: var(--m-text-3); letter-spacing: .04em; display: flex; gap: 10px; flex-wrap: wrap; }
+    @keyframes mfst-pulse-soft { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .45; transform: scale(.85); } }
+    .mfst-topbar-meta {
+        font-size: 11.5px;
+        color: var(--m-text-3);
+        letter-spacing: .02em;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .mfst-topbar-meta > span { white-space: nowrap; }
 
     .mfst-topbar-actions { display: flex; gap: 8px; align-items: center; }
     .mfst-mode-switch {
@@ -181,21 +216,25 @@
         border: 1px solid var(--m-border);
         border-radius: 999px;
         overflow: hidden;
-        background: rgba(255,255,255,0.04);
+        background: rgba(255,255,255,0.03);
+        padding: 3px;
+        gap: 2px;
     }
     .mfst-mode-switch a {
-        padding: 8px 14px;
+        padding: 7px 14px;
         font-size: 12px;
         font-weight: 700;
-        letter-spacing: .04em;
-        color: var(--m-text-2);
-        transition: background .15s ease, color .15s ease;
+        letter-spacing: .02em;
+        color: var(--m-text-3);
+        transition: background .2s var(--m-ease), color .2s var(--m-ease);
         white-space: nowrap;
+        border-radius: 999px;
     }
-    .mfst-mode-switch a:hover { color: var(--m-text); background: rgba(129,140,248,0.10); }
+    .mfst-mode-switch a:hover { color: var(--m-text); background: rgba(255,255,255,0.05); }
     .mfst-mode-switch a.is-active {
         color: #fff;
-        background: linear-gradient(135deg, rgba(34,211,238,0.28), rgba(167,139,250,0.28));
+        background: linear-gradient(135deg, rgba(56,189,248,0.32), rgba(167,139,250,0.32));
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.10);
     }
 
     .mfst-overflow {
@@ -250,7 +289,7 @@
        Capacity gauge — single most important number; persistent in header
        ==================================================================== */
     .mfst-gauge {
-        display: flex;
+        display: inline-flex;
         align-items: center;
         gap: 10px;
         font-size: 12px;
@@ -258,10 +297,10 @@
     }
     .mfst-gauge-bar {
         position: relative;
-        width: clamp(140px, 22vw, 280px);
-        height: 6px;
+        width: clamp(120px, 18vw, 220px);
+        height: 5px;
         border-radius: 999px;
-        background: rgba(255,255,255,0.06);
+        background: rgba(255,255,255,0.07);
         overflow: hidden;
     }
     .mfst-gauge-bar .fill {
@@ -270,9 +309,10 @@
         width: 0%;
         border-radius: 999px;
         background: linear-gradient(90deg, var(--m-emerald), var(--m-sky));
-        transition: width .8s cubic-bezier(.4,0,.2,1);
+        transition: width .9s var(--m-ease);
+        box-shadow: 0 0 12px rgba(52,211,153,0.35);
     }
-    .mfst-gauge-num { font-weight: 800; color: var(--m-text); font-feature-settings: "tnum" 1; }
+    .mfst-gauge-num { font-weight: 800; color: var(--m-text); }
 
     /* ====================================================================
        Filter strip — sticky chips just under the top bar. Status + section
@@ -280,42 +320,57 @@
        ==================================================================== */
     .mfst-filters {
         display: flex;
-        gap: 10px;
+        gap: 8px;
         align-items: center;
         flex-wrap: wrap;
-        padding: 8px 4px;
-        margin-bottom: 12px;
+        padding: 6px 2px 10px;
+        margin-bottom: 10px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
     }
     .mfst-chip {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 7px;
         padding: 7px 12px;
         border-radius: 999px;
         border: 1px solid var(--m-border);
-        background: rgba(255,255,255,0.03);
+        background: rgba(255,255,255,0.025);
         font-size: 12px;
         font-weight: 600;
-        letter-spacing: .02em;
-        color: var(--m-text-2);
+        letter-spacing: .01em;
+        color: var(--m-text-3);
         cursor: pointer;
         user-select: none;
-        transition: background .15s ease, color .15s ease, border-color .15s ease, transform .12s ease;
+        transition: background .2s var(--m-ease), color .2s var(--m-ease),
+                    border-color .2s var(--m-ease), transform .15s var(--m-ease);
     }
-    .mfst-chip:hover { transform: translateY(-1px); color: var(--m-text); }
+    .mfst-chip:hover { transform: translateY(-1px); color: var(--m-text); border-color: rgba(255,255,255,0.18); }
     .mfst-chip:active { transform: translateY(0); }
     .mfst-chip[aria-pressed="true"] {
-        color: #fff;
-        border-color: var(--m-chip-color, rgba(167,139,250,0.7));
-        background: var(--m-chip-bg, rgba(167,139,250,0.18));
+        color: var(--m-text);
+        border-color: var(--m-chip-color, rgba(167,139,250,0.55));
+        background: var(--m-chip-bg, rgba(167,139,250,0.14));
+        box-shadow: inset 0 0 0 1px var(--m-chip-color, rgba(167,139,250,0.30));
     }
-    .mfst-chip .count { color: var(--m-text-3); font-weight: 700; }
-    .mfst-chip[aria-pressed="true"] .count { color: rgba(255,255,255,0.85); }
-    .mfst-chip-approved   { --m-chip-color: rgba(52,211,153,0.7);  --m-chip-bg: rgba(52,211,153,0.16);  }
-    .mfst-chip-pending    { --m-chip-color: rgba(251,191,36,0.7);  --m-chip-bg: rgba(251,191,36,0.16);  }
-    .mfst-chip-blocked    { --m-chip-color: rgba(251,113,133,0.7); --m-chip-bg: rgba(251,113,133,0.18); }
-    .mfst-chip-checked    { --m-chip-color: rgba(56,189,248,0.7);  --m-chip-bg: rgba(56,189,248,0.18);  }
-    .mfst-chip-empty      { --m-chip-color: rgba(255,255,255,0.45); --m-chip-bg: rgba(255,255,255,0.10); }
+    .mfst-chip .count {
+        color: var(--m-text-3);
+        font-weight: 700;
+        font-size: 11px;
+        padding: 1px 7px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.06);
+        min-width: 18px;
+        text-align: center;
+    }
+    .mfst-chip[aria-pressed="true"] .count {
+        color: #fff;
+        background: var(--m-chip-color, rgba(167,139,250,0.7));
+    }
+    .mfst-chip-approved   { --m-chip-color: rgba(52,211,153,0.65);  --m-chip-bg: rgba(52,211,153,0.10);  }
+    .mfst-chip-pending    { --m-chip-color: rgba(251,191,36,0.65);  --m-chip-bg: rgba(251,191,36,0.10);  }
+    .mfst-chip-blocked    { --m-chip-color: rgba(251,113,133,0.65); --m-chip-bg: rgba(251,113,133,0.10); }
+    .mfst-chip-checked    { --m-chip-color: rgba(56,189,248,0.65);  --m-chip-bg: rgba(56,189,248,0.10);  }
+    .mfst-chip-empty      { --m-chip-color: rgba(255,255,255,0.35); --m-chip-bg: rgba(255,255,255,0.05); }
 
     .mfst-search {
         margin-inline-start: auto;
@@ -328,13 +383,18 @@
         padding: 10px 38px 10px 14px;
         border-radius: 999px;
         border: 1px solid var(--m-border);
-        background: rgba(255,255,255,0.04);
+        background: rgba(255,255,255,0.03);
         color: var(--m-text);
         font-size: 13px;
         outline: none;
-        transition: border-color .15s ease, background .15s ease;
+        transition: border-color .2s var(--m-ease), background .2s var(--m-ease), box-shadow .2s var(--m-ease);
     }
-    .mfst-search input:focus { border-color: rgba(129,140,248,0.7); background: rgba(255,255,255,0.07); }
+    .mfst-search input::placeholder { color: var(--m-text-3); opacity: .7; }
+    .mfst-search input:focus {
+        border-color: rgba(56,189,248,0.55);
+        background: rgba(255,255,255,0.06);
+        box-shadow: 0 0 0 3px rgba(56,189,248,0.12);
+    }
     .mfst-search .icon {
         position: absolute;
         inset-inline-end: 12px;
@@ -372,28 +432,34 @@
 
     .mfst-ops-chart {
         border: 1px solid var(--m-border);
-        border-radius: 18px;
-        background: rgba(255,255,255,0.025);
-        padding: 18px;
+        border-radius: 20px;
+        background:
+            radial-gradient(120% 60% at 50% -20%, rgba(167,139,250,0.06), transparent 60%),
+            rgba(255,255,255,0.018);
+        padding: 20px;
         min-height: 60vh;
     }
 
     /* Section block (Hall / Balcony) inside the chart */
     .mfst-section {
-        margin-bottom: 18px;
+        margin-bottom: 22px;
     }
+    .mfst-section:last-child { margin-bottom: 6px; }
     .mfst-section-head {
         display: flex;
-        align-items: center;
+        align-items: baseline;
         justify-content: space-between;
         gap: 10px;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
     }
     .mfst-section-title {
-        font-size: 14px;
+        font-size: 11px;
         font-weight: 800;
-        letter-spacing: .04em;
-        color: var(--m-text);
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: var(--m-text-2);
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -401,41 +467,72 @@
     .mfst-section-sub {
         font-size: 11px;
         color: var(--m-text-3);
-        font-feature-settings: "tnum" 1;
     }
 
     .mfst-stage {
         text-align: center;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 700;
-        letter-spacing: .35em;
-        color: rgba(167,139,250,0.85);
-        padding: 12px;
-        border-radius: 12px;
-        border: 1px dashed rgba(167,139,250,0.4);
-        background: linear-gradient(180deg, rgba(167,139,250,0.06), transparent);
-        margin-bottom: 14px;
+        letter-spacing: .42em;
+        text-transform: uppercase;
+        color: rgba(167,139,250,0.7);
+        padding: 7px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(167,139,250,0.18);
+        background: linear-gradient(180deg, rgba(167,139,250,0.05), transparent);
+        margin: 0 auto 14px;
+        max-width: 220px;
     }
 
     /* Row of seats — letter + saturation gauge + chips */
     .mfst-row {
         display: grid;
-        grid-template-columns: 56px 1fr;
-        gap: 10px;
+        grid-template-columns: 64px 1fr;
+        gap: 12px;
         align-items: center;
-        padding: 4px 0;
-        border-bottom: 1px dashed rgba(255,255,255,0.05);
+        padding: 5px 0;
     }
-    .mfst-row:last-child { border-bottom: 0; }
+    .mfst-row + .mfst-row { border-top: 1px solid rgba(255,255,255,0.04); }
     .mfst-row-label {
-        display: flex; flex-direction: column; align-items: center;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
         font-weight: 800;
         font-size: 13px;
         color: var(--m-text);
+        padding-inline-start: 4px;
     }
-    .mfst-row-label .row-letter { font-size: 14px; }
-    .mfst-row-label .row-stats  { font-size: 9px; color: var(--m-text-3); margin-top: 2px; font-feature-settings: "tnum" 1; }
-    .mfst-row-label .row-stats .ck { color: var(--m-emerald); }
+    .mfst-row-label .row-letter {
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1;
+        color: var(--m-text);
+        text-align: center;
+        letter-spacing: .02em;
+    }
+    .mfst-row-label .row-stats {
+        font-size: 9.5px;
+        color: var(--m-text-3);
+        margin-top: 1px;
+        text-align: center;
+        letter-spacing: .02em;
+    }
+    .mfst-row-label .row-stats .ck { color: var(--m-emerald); font-weight: 700; }
+    .mfst-row-label .row-bar {
+        position: relative;
+        height: 3px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.06);
+        overflow: hidden;
+    }
+    .mfst-row-label .row-bar .fill {
+        position: absolute;
+        inset-inline-start: 0; top: 0; bottom: 0;
+        width: var(--row-pct, 0%);
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(52,211,153,0.85), rgba(56,189,248,0.85));
+    }
 
     .mfst-row-seats {
         display: flex;
@@ -444,54 +541,57 @@
         justify-content: center;
     }
 
-    /* Seat chip — visible by default. This is the chip that was effectively
-       invisible in Phase 1. Strong border, real status fill, family hue
-       ring as box-shadow inset. */
+    /* Seat chip — booked seats are bold and instantly readable; empty
+       seats fade into the background so the chart reads as data, not
+       noise. Family hue is a left edge accent (drawn in ::before).
+       ==================================================================== */
     .mfst-seat {
-        --m-seat-bg: rgba(255,255,255,0.06);
+        --m-seat-bg: rgba(255,255,255,0.04);
         --m-seat-border: var(--m-border-strong);
         --m-seat-color: var(--m-text);
         position: relative;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 28px;
-        height: 28px;
-        padding: 0 6px;
-        border-radius: 6px;
-        font-size: 11px;
+        min-width: 30px;
+        height: 30px;
+        padding: 0 7px;
+        border-radius: 7px;
+        font-size: 11.5px;
         font-weight: 700;
         line-height: 1;
         background: var(--m-seat-bg);
         border: 1px solid var(--m-seat-border);
         color: var(--m-seat-color);
-        font-feature-settings: "tnum" 1;
         cursor: pointer;
-        transition: transform .12s ease, border-color .15s ease, box-shadow .15s ease, background .15s ease;
+        transition: transform .15s var(--m-ease),
+                    border-color .2s var(--m-ease),
+                    box-shadow .2s var(--m-ease),
+                    background .2s var(--m-ease),
+                    opacity .2s var(--m-ease);
     }
-    .mfst-seat:hover { transform: translateY(-1px); border-color: rgba(255,255,255,0.5); }
-    .mfst-seat:focus-visible { outline: 2px solid var(--m-sky); outline-offset: 2px; }
+    .mfst-seat:hover { transform: translateY(-1px); border-color: rgba(255,255,255,0.5); box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
     .mfst-seat.is-approved {
-        --m-seat-bg: rgba(52,211,153,0.18);
-        --m-seat-border: rgba(52,211,153,0.65);
-        --m-seat-color: #d1fae5;
+        --m-seat-bg: rgba(52,211,153,0.16);
+        --m-seat-border: rgba(52,211,153,0.55);
+        --m-seat-color: #ecfdf5;
     }
     .mfst-seat.is-pending {
-        --m-seat-bg: rgba(251,191,36,0.16);
-        --m-seat-border: rgba(251,191,36,0.65);
-        --m-seat-color: #fef3c7;
+        --m-seat-bg: rgba(251,191,36,0.14);
+        --m-seat-border: rgba(251,191,36,0.55);
+        --m-seat-color: #fffbeb;
     }
     .mfst-seat.is-blocked {
-        --m-seat-bg: repeating-linear-gradient(45deg, rgba(251,113,133,0.18), rgba(251,113,133,0.18) 3px, rgba(0,0,0,0.18) 3px, rgba(0,0,0,0.18) 5px);
-        --m-seat-border: rgba(251,113,133,0.7);
-        --m-seat-color: #fecdd3;
+        --m-seat-bg: repeating-linear-gradient(45deg, rgba(251,113,133,0.16), rgba(251,113,133,0.16) 3px, rgba(0,0,0,0.18) 3px, rgba(0,0,0,0.18) 5px);
+        --m-seat-border: rgba(251,113,133,0.55);
+        --m-seat-color: #ffe4e6;
         cursor: not-allowed;
     }
     .mfst-seat.is-empty {
         --m-seat-bg: transparent;
-        --m-seat-border: rgba(255,255,255,0.12);
-        --m-seat-color: var(--m-text-3);
-        opacity: .8;
+        --m-seat-border: rgba(255,255,255,0.07);
+        --m-seat-color: rgba(255,255,255,0.32);
+        font-weight: 500;
     }
     /* Light theme overrides — chip stays visible on a parchment background */
     [data-pt-theme="light"] .mfst-seat {
@@ -588,8 +688,9 @@
     .mfst-rail-card {
         border: 1px solid var(--m-border);
         border-radius: 16px;
-        background: rgba(255,255,255,0.03);
-        padding: 14px;
+        background: rgba(255,255,255,0.02);
+        padding: 16px;
+        box-shadow: var(--m-shadow-card);
     }
     .mfst-rail-empty {
         text-align: center;
@@ -620,11 +721,11 @@
         margin-bottom: 10px;
     }
     .mfst-seat-detail .seat-big {
-        font-size: 24px;
+        font-size: 28px;
         font-weight: 800;
-        letter-spacing: .02em;
+        letter-spacing: -.005em;
         color: var(--m-text);
-        font-feature-settings: "tnum" 1;
+        line-height: 1;
     }
     .mfst-seat-detail .seat-section {
         font-size: 11px;
@@ -751,81 +852,117 @@
        FLOOR MODE (mode=floor) — mobile-first, dark-forced, thumb-first
        ==================================================================== */
     [data-mode="floor"] {
-        --m-bg            : #0a0a14;
-        --m-border        : rgba(255,255,255,0.10);
-        --m-border-strong : rgba(255,255,255,0.22);
-        --m-text          : #f3f4f6;
-        --m-text-2        : #d1d5db;
-        --m-text-3        : #9ca3af;
+        --m-bg            : #07070f;
+        --m-border        : rgba(255,255,255,0.08);
+        --m-border-strong : rgba(255,255,255,0.18);
+        --m-text          : #f5f5f7;
+        --m-text-2        : #d4d4d8;
+        --m-text-3        : #8a8a93;
         color: var(--m-text);
     }
-    [data-mode="floor"] .mfst-topbar { background: linear-gradient(180deg, rgba(0,0,0,0.85), rgba(0,0,0,0.55)); }
+    [data-mode="floor"] .mfst-topbar {
+        background: linear-gradient(180deg, rgba(0,0,0,0.92), rgba(0,0,0,0.65));
+        border-color: rgba(255,255,255,0.06);
+        padding: 10px 14px;
+        border-radius: 16px;
+    }
 
     .mfst-floor {
         display: flex;
         flex-direction: column;
         gap: 10px;
-        padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
-        /* Force dark background regardless of theme so the screen
-           doesn't blind a usher in a dim hall. */
-        background: #0a0a14;
+        padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+        /* Force a near-black background regardless of theme so a Floor
+           Mode screen doesn't blind an usher in a dim hall. */
+        background: #07070f;
         margin: -16px -16px 0;
-        padding: 12px;
+        padding: 12px 14px;
         min-height: calc(100vh - 80px);
-        color: #f3f4f6;
+        color: var(--m-text);
     }
     .mfst-floor-filters {
         display: flex;
-        gap: 6px;
+        gap: 8px;
         overflow-x: auto;
-        scroll-snap-type: x mandatory;
+        scroll-snap-type: x proximity;
         -webkit-overflow-scrolling: touch;
-        padding: 4px 0 8px;
-        margin: 0 -4px;
+        padding: 4px 4px 10px;
+        margin: 0 -10px;
+        scroll-padding-inline: 14px;
+        position: sticky;
+        top: calc(64px + env(safe-area-inset-top, 0px) + 68px);
+        z-index: 15;
+        background: linear-gradient(180deg, rgba(7,7,15,1) 60%, rgba(7,7,15,0));
     }
     .mfst-floor-filters::-webkit-scrollbar { display: none; }
     .mfst-floor-filters .mfst-chip {
         scroll-snap-align: start;
         white-space: nowrap;
-        font-size: 11px;
-        padding: 6px 10px;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 9px 14px;
+        min-height: 38px;
     }
+    .mfst-floor-filters .mfst-chip .count {
+        font-size: 11.5px;
+        padding: 1px 8px;
+    }
+    .mfst-floor-filters .mfst-chip:first-child { margin-inline-start: 10px; }
+    .mfst-floor-filters .mfst-chip:last-child  { margin-inline-end:   10px; }
     .mfst-floor-list {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 10px;
     }
 
-    /* 80 px card — chip top-left, name top-right, action trailing */
+    /* Floor card — 92px min-height, big touch targets, status accent on
+       the leading edge instead of competing pills. Name dominates the
+       middle column; meta is small + tabular + monospace for phone. */
     .mfst-card {
-        min-height: 80px;
+        min-height: 92px;
         display: grid;
-        grid-template-columns: 56px 1fr auto;
-        gap: 10px;
+        grid-template-columns: 64px 1fr 48px;
+        gap: 12px;
         align-items: center;
-        padding: 12px;
-        border-radius: 14px;
+        padding: 12px 14px;
+        border-radius: 16px;
         border: 1px solid var(--m-border);
-        background: rgba(255,255,255,0.04);
+        background: rgba(255,255,255,0.025);
         position: relative;
         overflow: hidden;
         cursor: pointer;
-        transition: transform .12s ease, border-color .15s ease;
+        transition: transform .12s var(--m-ease), border-color .2s var(--m-ease), background .2s var(--m-ease);
     }
-    .mfst-card:active { transform: scale(0.99); }
-    .mfst-card.is-approved { border-color: rgba(52,211,153,0.55); background: rgba(52,211,153,0.06); }
-    .mfst-card.is-pending  { border-color: rgba(251,191,36,0.55); background: rgba(251,191,36,0.06); }
-    .mfst-card.is-blocked  { border-color: rgba(251,113,133,0.55); background: rgba(251,113,133,0.06); }
-    .mfst-card.is-empty    { border-color: rgba(255,255,255,0.10); background: rgba(255,255,255,0.02); opacity: .85; }
-    .mfst-card.is-scanned  { border-color: rgba(52,211,153,0.85); background: rgba(52,211,153,0.14); }
+    .mfst-card::after {
+        /* Status accent bar on the leading edge (right in RTL, left in LTR) */
+        content: "";
+        position: absolute;
+        inset-block: 10px;
+        inset-inline-end: 0;
+        width: 4px;
+        border-radius: 4px;
+        background: rgba(255,255,255,0.10);
+        transition: background .2s var(--m-ease);
+    }
+    .mfst-card:active { transform: scale(0.985); }
+    .mfst-card.is-approved { border-color: rgba(52,211,153,0.40); background: linear-gradient(90deg, rgba(52,211,153,0.06), rgba(255,255,255,0.018)); }
+    .mfst-card.is-pending  { border-color: rgba(251,191,36,0.40); background: linear-gradient(90deg, rgba(251,191,36,0.06), rgba(255,255,255,0.018)); }
+    .mfst-card.is-blocked  { border-color: rgba(251,113,133,0.40); background: linear-gradient(90deg, rgba(251,113,133,0.06), rgba(255,255,255,0.018)); }
+    .mfst-card.is-empty    { border-color: rgba(255,255,255,0.07);  background: rgba(255,255,255,0.015); opacity: .8; }
+    .mfst-card.is-scanned  { border-color: rgba(52,211,153,0.70); background: linear-gradient(90deg, rgba(52,211,153,0.14), rgba(52,211,153,0.05)); }
+    .mfst-card.is-approved::after { background: rgba(52,211,153,0.85); }
+    .mfst-card.is-pending::after  { background: rgba(251,191,36,0.85); }
+    .mfst-card.is-blocked::after  { background: rgba(251,113,133,0.85); }
+    .mfst-card.is-scanned::after  { background: rgba(52,211,153,1);     box-shadow: 0 0 12px rgba(52,211,153,0.55); }
+    .mfst-card.is-empty::after    { background: rgba(255,255,255,0.06); }
 
     .mfst-card[data-hue]::before {
         content: "";
         position: absolute;
-        inset-block: 12px;
+        inset-block: 14px;
         inset-inline-start: 0;
         width: 3px;
-        border-radius: 2px;
+        border-radius: 4px;
         background: var(--m-hue);
     }
     .mfst-card .card-chip {
@@ -833,73 +970,97 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 6px 4px;
-        border-radius: 12px;
-        background: rgba(255,255,255,0.06);
-        border: 1px solid var(--m-border);
-        min-width: 56px;
+        padding: 8px 4px;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.045);
+        border: 1px solid rgba(255,255,255,0.08);
+        min-width: 64px;
+        min-height: 64px;
     }
     .mfst-card .card-chip .seat {
-        font-size: 16px;
+        font-size: 19px;
         font-weight: 800;
         color: var(--m-text);
-        font-feature-settings: "tnum" 1;
+        line-height: 1;
+        letter-spacing: .01em;
     }
     .mfst-card .card-chip .sec {
-        font-size: 9px;
+        font-size: 9.5px;
         color: var(--m-text-3);
         letter-spacing: .04em;
         text-transform: uppercase;
-        margin-top: 2px;
+        margin-top: 5px;
     }
-    .mfst-card.is-approved .card-chip { background: rgba(52,211,153,0.15); border-color: rgba(52,211,153,0.5); }
-    .mfst-card.is-pending  .card-chip { background: rgba(251,191,36,0.15); border-color: rgba(251,191,36,0.5); }
-    .mfst-card.is-blocked  .card-chip { background: rgba(251,113,133,0.15); border-color: rgba(251,113,133,0.5); }
-    .mfst-card.is-scanned  .card-chip { background: rgba(52,211,153,0.25); border-color: rgba(52,211,153,0.75); }
+    .mfst-card.is-approved .card-chip { background: rgba(52,211,153,0.14); border-color: rgba(52,211,153,0.40); }
+    .mfst-card.is-pending  .card-chip { background: rgba(251,191,36,0.14); border-color: rgba(251,191,36,0.40); }
+    .mfst-card.is-blocked  .card-chip { background: rgba(251,113,133,0.14); border-color: rgba(251,113,133,0.40); }
+    .mfst-card.is-scanned  .card-chip { background: rgba(52,211,153,0.22); border-color: rgba(52,211,153,0.65); }
+    .mfst-card.is-empty    .card-chip .seat { color: var(--m-text-3); }
 
     .mfst-card .card-body { min-width: 0; }
     .mfst-card .card-name {
-        font-size: 15px;
+        font-size: 16px;
         font-weight: 700;
         color: var(--m-text);
         line-height: 1.2;
-        margin-bottom: 4px;
+        margin-bottom: 5px;
         white-space: nowrap;
         text-overflow: ellipsis;
         overflow: hidden;
+        letter-spacing: .005em;
     }
+    .mfst-card.is-empty   .card-name,
+    .mfst-card.is-blocked .card-name { color: var(--m-text-3); font-weight: 600; font-style: italic; }
     .mfst-card .card-meta {
-        font-size: 11px;
+        font-size: 11.5px;
         color: var(--m-text-3);
-        font-feature-settings: "tnum" 1;
         display: flex;
         gap: 8px;
         flex-wrap: wrap;
+        align-items: center;
+        line-height: 1.3;
     }
     .mfst-card .card-meta .pill {
-        padding: 1px 6px;
+        padding: 2px 8px;
         border-radius: 999px;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: .04em;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        flex: 0 0 auto;
     }
-    .mfst-card .card-meta .pill.ok    { background: rgba(52,211,153,0.18); color: #6ee7b7; }
-    .mfst-card .card-meta .pill.pen   { background: rgba(251,191,36,0.18); color: #fcd34d; }
-    .mfst-card .card-meta .pill.blk   { background: rgba(251,113,133,0.18); color: #fda4af; }
-    .mfst-card .card-meta .pill.emp   { background: rgba(255,255,255,0.08); color: var(--m-text-3); }
-    .mfst-card .card-meta .pill.ck    { background: rgba(56,189,248,0.18); color: #7dd3fc; }
+    .mfst-card .card-meta .pill.ok    { background: rgba(52,211,153,0.14);  color: #6ee7b7; }
+    .mfst-card .card-meta .pill.pen   { background: rgba(251,191,36,0.14);  color: #fcd34d; }
+    .mfst-card .card-meta .pill.blk   { background: rgba(251,113,133,0.14); color: #fda4af; }
+    .mfst-card .card-meta .pill.emp   { background: rgba(255,255,255,0.06); color: var(--m-text-3); }
+    .mfst-card .card-meta .pill.ck    { background: rgba(56,189,248,0.16);  color: #7dd3fc; }
+    .mfst-card .card-meta .phone {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+        color: var(--m-text-2);
+        letter-spacing: .02em;
+    }
+    .mfst-card .card-meta .ref {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 10.5px;
+        color: var(--m-text-3);
+        letter-spacing: .02em;
+    }
 
     .mfst-card .card-action {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 44px; height: 44px;
-        border-radius: 12px;
-        border: 1px solid var(--m-border);
-        background: rgba(255,255,255,0.06);
+        width: 48px; height: 48px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.04);
         color: var(--m-text);
-        font-size: 16px;
+        font-size: 18px;
+        transition: background .15s var(--m-ease), transform .12s var(--m-ease);
     }
+    .mfst-card .card-action:hover { background: rgba(255,255,255,0.08); }
+    .mfst-card .card-action:active { transform: scale(.94); }
 
     .mfst-floor-empty {
         text-align: center;
@@ -908,38 +1069,60 @@
         font-size: 13px;
     }
 
-    /* Sticky bottom search + FAB */
+    /* Sticky bottom dock — thumb-zone search + scanner FAB. Bigger fonts
+       so iOS Safari doesn't auto-zoom the input on focus, bigger FAB so
+       it's reachable one-handed even on a 6.7" device. Uses position:
+       sticky so it isn't broken by ancestor `transform` (which converts
+       it into a containing block for any descendant `position: fixed`). */
     .mfst-floor-dock {
-        position: fixed;
-        inset-inline: 0;
+        position: sticky;
         bottom: 0;
-        padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
-        background: linear-gradient(180deg, rgba(10,10,20,0.0), rgba(10,10,20,0.95) 35%);
+        inset-inline: 0;
+        margin: 0 -14px;
+        padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+        background:
+            linear-gradient(180deg, rgba(7,7,15,0.0) 0%, rgba(7,7,15,0.85) 30%, rgba(7,7,15,0.98) 80%);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         z-index: 25;
         display: flex;
-        gap: 8px;
+        gap: 10px;
         align-items: center;
     }
     .mfst-floor-dock .mfst-search { flex: 1; margin-inline-start: 0; }
     .mfst-floor-dock .mfst-search input {
-        background: rgba(20,22,40,0.9);
-        border-color: rgba(255,255,255,0.16);
-        font-size: 15px;
-        padding: 14px 44px 14px 16px;
+        background: rgba(20,22,38,0.92);
+        border-color: rgba(255,255,255,0.12);
+        font-size: 16px;
+        padding: 16px 48px 16px 18px;
+        border-radius: 18px;
+        min-height: 54px;
+    }
+    .mfst-floor-dock .mfst-search input:focus {
+        background: rgba(28,30,52,1);
+        border-color: rgba(56,189,248,0.55);
+        box-shadow: 0 0 0 3px rgba(56,189,248,0.18);
+    }
+    .mfst-floor-dock .mfst-search .icon {
+        font-size: 18px;
+        inset-inline-end: 16px;
     }
     .mfst-fab {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 52px; height: 52px;
-        border-radius: 16px;
+        width: 56px; height: 56px;
+        border-radius: 18px;
         background: linear-gradient(135deg, var(--m-emerald), var(--m-sky));
         color: #052e23;
-        font-size: 22px;
+        font-size: 24px;
         font-weight: 800;
         text-decoration: none;
-        box-shadow: 0 12px 32px rgba(52,211,153,0.35);
+        box-shadow: 0 14px 36px rgba(52,211,153,0.40), inset 0 1px 0 rgba(255,255,255,0.25);
+        flex: 0 0 56px;
+        transition: transform .12s var(--m-ease), box-shadow .2s var(--m-ease);
     }
+    .mfst-fab:active { transform: scale(.95); box-shadow: 0 8px 22px rgba(52,211,153,0.35); }
 
     /* ====================================================================
        PAPER SHEET (mode=paper) — on-screen preview + print rules
@@ -947,9 +1130,10 @@
     .mfst-paper {
         background: #fff;
         color: #000;
-        padding: 18px;
-        border-radius: 12px;
+        padding: 22px 24px 18px;
+        border-radius: 14px;
         font-family: 'IBM Plex Sans Arabic', 'Space Grotesk', sans-serif;
+        box-shadow: 0 12px 32px rgba(0,0,0,0.18);
     }
     .mfst-paper-section {
         page-break-inside: auto;
@@ -966,10 +1150,10 @@
         border-bottom: 2px solid #000;
         margin-bottom: 8px;
     }
-    .mfst-paper-head .t1 { font-size: 16pt; font-weight: 800; }
-    .mfst-paper-head .t2 { font-size: 10pt; color: #444; }
-    .mfst-paper-head .stats { font-size: 9pt; text-align: end; line-height: 1.4; }
-    .mfst-paper-head .stats strong { font-weight: 800; }
+    .mfst-paper-head .t1 { font-size: 17pt; font-weight: 800; letter-spacing: -.005em; }
+    .mfst-paper-head .t2 { font-size: 10pt; color: #555; margin-top: 2px; }
+    .mfst-paper-head .stats { font-size: 9pt; text-align: end; line-height: 1.5; color: #333; }
+    .mfst-paper-head .stats strong { font-weight: 800; color: #000; }
     .mfst-paper-section-head {
         display: grid;
         grid-template-columns: 1fr auto;
@@ -1047,15 +1231,27 @@
     }
     .mfst-paper-legend .g { font-weight: 800; }
 
-    .mfst-paper-actions { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 10px; }
+    .mfst-paper-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+    }
     .mfst-paper-actions a, .mfst-paper-actions button {
-        padding: 7px 12px;
+        padding: 8px 14px;
         border-radius: 999px;
-        font-size: 12px;
+        font-size: 12.5px;
+        font-weight: 600;
         border: 1px solid var(--m-border);
         background: rgba(255,255,255,0.04);
         color: var(--m-text);
         cursor: pointer;
+        transition: background .2s var(--m-ease), border-color .2s var(--m-ease);
+    }
+    .mfst-paper-actions a:hover, .mfst-paper-actions button:hover {
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(255,255,255,0.22);
     }
 
     /* ====================================================================
@@ -1154,27 +1350,22 @@
     @if ($mode === 'ops')
     <div class="mfst-filters pt-no-print">
         <button type="button" class="mfst-chip mfst-chip-approved js-filter-chip" data-status="approved" aria-pressed="{{ in_array('approved', $statusFilter) ? 'true' : 'false' }}">
-            <span class="prism-dot prism-dot-emerald" aria-hidden="true"></span>
             <span>Approved</span>
             <span class="count">{{ $summary['approved'] }}</span>
         </button>
         <button type="button" class="mfst-chip mfst-chip-pending js-filter-chip" data-status="pending" aria-pressed="{{ in_array('pending', $statusFilter) ? 'true' : 'false' }}">
-            <span class="prism-dot prism-dot-amber" aria-hidden="true"></span>
             <span>Pending</span>
             <span class="count">{{ $summary['pending'] }}</span>
         </button>
         <button type="button" class="mfst-chip mfst-chip-blocked js-filter-chip" data-status="blocked" aria-pressed="{{ in_array('blocked', $statusFilter) ? 'true' : 'false' }}">
-            <span class="prism-dot prism-dot-rose" aria-hidden="true"></span>
             <span>Blocked</span>
             <span class="count">{{ $summary['blocked'] }}</span>
         </button>
         <button type="button" class="mfst-chip mfst-chip-checked js-filter-chip" data-status="checked_in" aria-pressed="{{ in_array('checked_in', $statusFilter) ? 'true' : 'false' }}">
-            <span class="prism-dot prism-dot-sky" aria-hidden="true"></span>
-            <span>Checked-in</span>
+            <span>✓ Checked-in</span>
             <span class="count js-filter-checked-count">{{ $checkedInCount }}</span>
         </button>
         <button type="button" class="mfst-chip mfst-chip-empty js-filter-chip" data-status="empty" aria-pressed="{{ in_array('empty', $statusFilter) ? 'true' : 'false' }}">
-            <span class="prism-dot" style="background: rgba(255,255,255,0.35);" aria-hidden="true"></span>
             <span>Empty</span>
             <span class="count">{{ $summary['empty'] }}</span>
         </button>
@@ -1221,7 +1412,7 @@
                             </span>
                         </div>
                     </div>
-                    <div class="mfst-stage">🎬 STAGE · المسرح</div>
+                    <div class="mfst-stage">STAGE · المسرح</div>
                     @foreach ($byRow as $rletter => $seats)
                         @php
                             $rowBooked   = 0; $rowChecked = 0; $rowTotal = count($seats);
@@ -1229,10 +1420,12 @@
                                 if (in_array($s['status'], ['approved', 'pending'], true)) $rowBooked++;
                                 if (!empty($s['is_scanned'])) $rowChecked++;
                             }
+                            $rowPct = $rowTotal > 0 ? (int) round(($rowBooked / $rowTotal) * 100) : 0;
                         @endphp
                         <div class="mfst-row">
                             <div class="mfst-row-label">
                                 <span class="row-letter">{{ $rletter }}</span>
+                                <span class="row-bar" aria-hidden="true" style="--row-pct: {{ $rowPct }}%;"><span class="fill"></span></span>
                                 <span class="row-stats">
                                     {{ $rowBooked }}/{{ $rowTotal }}
                                     @if ($rowChecked > 0) <span class="ck">✓{{ $rowChecked }}</span> @endif
@@ -1392,22 +1585,22 @@
                         </div>
                         <div class="card-meta">
                             @if ($s['status'] === 'approved')
-                                <span class="pill ok">APPROVED</span>
+                                <span class="pill ok">Approved</span>
                             @elseif ($s['status'] === 'pending')
-                                <span class="pill pen">PENDING</span>
+                                <span class="pill pen">Pending</span>
                             @elseif ($s['status'] === 'blocked')
-                                <span class="pill blk">BLOCKED</span>
+                                <span class="pill blk">Blocked</span>
                             @else
-                                <span class="pill emp">EMPTY</span>
+                                <span class="pill emp">Empty</span>
                             @endif
                             @if ($s['is_scanned'])
                                 <span class="pill ck">✓ {{ $s['scanned_at'] }}</span>
                             @endif
-                            @if ($s['booking_ref'])
-                                <span>{{ $s['booking_ref'] }}</span>
-                            @endif
                             @if ($s['phone'])
-                                <span>{{ $maskPhone($s['phone']) }}</span>
+                                <span class="phone">{{ $maskPhone($s['phone']) }}</span>
+                            @endif
+                            @if ($s['booking_ref'])
+                                <span class="ref">{{ $s['booking_ref'] }}</span>
                             @endif
                         </div>
                     </div>
@@ -1613,6 +1806,13 @@
     }
 
     /* ====================================================================
+       Search state — declared up here so applyFilter()'s initial call
+       (which may reach applySearch via applyFilterToFloorList) doesn't
+       trip the temporal dead zone.
+       ==================================================================== */
+    let searchTerm = '';
+
+    /* ====================================================================
        Status filter chips — toggle which statuses are visible on the
        chart (ops) or in the card list (floor). URL is updated so the
        filter state is shareable + survives refresh.
@@ -1676,9 +1876,9 @@
 
     /* ====================================================================
        Search — filters the same dataset (chart seats / floor cards) by
-       a `data-haystack` blob assembled server-side.
+       a `data-haystack` blob assembled server-side. `searchTerm` is
+       declared above so applyFilter() can call applySearch() safely.
        ==================================================================== */
-    let searchTerm = '';
     function applySearch() {
         if (mode === 'ops') {
             const seats = document.querySelectorAll('.js-seat');
