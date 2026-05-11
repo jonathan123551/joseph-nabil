@@ -144,8 +144,21 @@
                             <span class="text-[color:var(--prism-text-3)] block mb-1">{{ $booking->phone }}</span>
 
                             @foreach($booking->tickets as $ticket)
-                                <div class="text-xs text-[color:var(--prism-text-3)] mr-2">
-                                    👤 {{ $ticket->name }} - 📱 {{ $ticket->phone }}
+                                @php
+                                    $bs = $ticket->bookingSeat;
+                                    $seatLabel = $bs
+                                        ? (($bs->section === 'balcony' ? 'بلكون' : 'صالة') . ' ' . $bs->row_letter . $bs->seat_number)
+                                        : null;
+                                @endphp
+                                <div class="text-xs text-[color:var(--prism-text-3)] mr-2 flex flex-wrap items-center gap-x-2">
+                                    <span>👤 {{ $ticket->name }}</span>
+                                    @if ($bs)
+                                        <span class="pt-seat-chip pt-seat-chip-{{ $bs->section === 'balcony' ? 'balcony' : 'hall' }}">
+                                            <span class="pt-seat-chip-section">{{ $bs->section === 'balcony' ? 'بلكون' : 'صالة' }}</span>
+                                            <span class="pt-seat-chip-seat" dir="ltr">{{ $bs->row_letter }}{{ $bs->seat_number }}</span>
+                                        </span>
+                                    @endif
+                                    <span dir="ltr" class="opacity-70">📱 {{ $ticket->phone }}</span>
                                 </div>
                             @endforeach
                         </td>
@@ -224,8 +237,18 @@
                         <div class="text-[color:var(--prism-text-3)]">{{ $booking->phone }}</div>
 
                         @foreach($booking->tickets as $ticket)
-                            <div class="text-[11px] text-[color:var(--prism-text-3)]">
-                                👤 {{ $ticket->name }} - 📱 {{ $ticket->phone }}
+                            @php
+                                $bs = $ticket->bookingSeat;
+                            @endphp
+                            <div class="text-[11px] text-[color:var(--prism-text-3)] flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <span>👤 {{ $ticket->name }}</span>
+                                @if ($bs)
+                                    <span class="pt-seat-chip pt-seat-chip-{{ $bs->section === 'balcony' ? 'balcony' : 'hall' }}">
+                                        <span class="pt-seat-chip-section">{{ $bs->section === 'balcony' ? 'بلكون' : 'صالة' }}</span>
+                                        <span class="pt-seat-chip-seat" dir="ltr">{{ $bs->row_letter }}{{ $bs->seat_number }}</span>
+                                    </span>
+                                @endif
+                                <span dir="ltr" class="opacity-70">📱 {{ $ticket->phone }}</span>
                             </div>
                         @endforeach
                     </div>

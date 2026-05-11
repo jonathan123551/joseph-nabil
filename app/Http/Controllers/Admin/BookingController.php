@@ -28,7 +28,12 @@ class BookingController extends Controller
 
     public function index(Request $request)
     {
-        $bookings = Booking::with('showTime.show')
+        // Eager-load tickets + each ticket's bookingSeat so the admin index
+        // can render "name — section row+number" inline without N+1 queries.
+        $bookings = Booking::with([
+            'showTime.show',
+            'tickets.bookingSeat',
+        ])
             ->latest()
             ->get();
 
@@ -37,7 +42,10 @@ class BookingController extends Controller
 
     public function show(Booking $booking)
     {
-        $booking->load('showTime.show');
+        // Eager-load each ticket's bookingSeat so the per-ticket row in the
+        // booking-details view can display the assigned section+seat beside
+        // the attendee name.
+        $booking->load('showTime.show', 'tickets.bookingSeat');
 
         return view('admin.bookings.show', compact('booking'));
     }

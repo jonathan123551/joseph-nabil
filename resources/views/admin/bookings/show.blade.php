@@ -45,15 +45,38 @@
             <div class="space-y-3 max-h-[500px] overflow-auto pr-1 mt-2">
 
                 @foreach($booking->tickets as $ticket)
-                    <div class="pt-ticket-row rounded-xl p-3">
+                    @php
+                        // Resolve this ticket's seat (PR #70 per-ticket identity).
+                        // Tickets without a seat (manual / "Other" venue) stay valid.
+                        $bs = $ticket->bookingSeat;
+                        $seatSectionLabel = '';
+                        $seatLabel = '';
+                        if ($bs) {
+                            $seatSectionLabel = $bs->section === 'balcony' ? 'بلكون' : 'صالة';
+                            $seatLabel = $bs->row_letter . $bs->seat_number;
+                        }
+                    @endphp
+                    <div class="pt-ticket-row rounded-xl p-3"
+                         data-attendee-name="{{ $ticket->name }}"
+                         data-attendee-seat="{{ $bs ? ($seatSectionLabel . ' ' . $seatLabel) : '' }}">
 
                         <div class="flex justify-between items-center gap-2">
-                            <div>
-                                <p class="font-semibold text-[color:var(--prism-text)]">{{ $ticket->name }}</p>
-                                <p class="text-xs text-[color:var(--prism-text-3)]">{{ $ticket->phone }}</p>
+                            <div class="min-w-0">
+                                <p class="font-semibold text-[color:var(--prism-text)] flex flex-wrap items-center gap-x-2 gap-y-1">
+                                    <span>{{ $ticket->name }}</span>
+                                    @if ($bs)
+                                        <span class="pt-seat-chip pt-seat-chip-{{ $bs->section === 'balcony' ? 'balcony' : 'hall' }}"
+                                              aria-label="{{ $seatSectionLabel }} {{ $seatLabel }}">
+                                            <span aria-hidden="true">🎟</span>
+                                            <span class="pt-seat-chip-section" data-i18n="{{ $bs->section === 'balcony' ? 'section_balcony' : 'section_hall' }}">{{ $seatSectionLabel }}</span>
+                                            <span class="pt-seat-chip-seat" dir="ltr">{{ $seatLabel }}</span>
+                                        </span>
+                                    @endif
+                                </p>
+                                <p class="text-xs text-[color:var(--prism-text-3)]" dir="ltr">{{ $ticket->phone }}</p>
                             </div>
 
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-shrink-0">
                                 <span class="w-2 h-2 rounded-full"
                                       style="background: {{ $ticket->whatsapp_sent ? 'var(--prism-emerald)' : 'var(--prism-rose)' }};
                                              box-shadow: 0 0 8px {{ $ticket->whatsapp_sent ? 'rgba(52,211,153,0.7)' : 'rgba(251,113,133,0.7)' }};"></span>
@@ -384,6 +407,12 @@
                     btn.classList.add('is-loading');
                     btn.setAttribute('aria-busy', 'true');
                 }
+                // Pull this row's attendee + seat so the success toast can say
+                // exactly which ticket was resent (e.g. "Kareem · بلكون B7").
+                const row = form.closest('.pt-ticket-row');
+                const aName = row && row.dataset ? (row.dataset.attendeeName || '') : '';
+                const aSeat = row && row.dataset ? (row.dataset.attendeeSeat || '') : '';
+                const context = [aName, aSeat].filter(Boolean).join(' · ');
                 try {
                     const fd = new FormData(form);
                     const res = await fetch(form.action, {
@@ -396,18 +425,18 @@
                         credentials: 'same-origin',
                     });
                     if (!res.ok) {
-                        show({ error: true });
+                        show({ error: true, body: context });
                         return;
                     }
                     let payload = null;
                     try { payload = await res.json(); } catch (_) { /* tolerate */ }
                     if (payload && payload.ok === true) {
-                        show({});
+                        show({ body: context });
                     } else {
-                        show({ error: true });
+                        show({ error: true, body: context });
                     }
                 } catch (err) {
-                    show({ error: true });
+                    show({ error: true, body: context });
                 } finally {
                     if (btn) setTimeout(() => {
                         btn.disabled = false;
