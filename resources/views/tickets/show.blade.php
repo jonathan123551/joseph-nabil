@@ -242,17 +242,26 @@
 </section>
 
 <script>
-    // Disable the resend button on submit and surface a brief "sending…"
-    // state so a slow WhatsApp call doesn't tempt the user to double-tap.
+    // Disable the resend button on submit and surface an inline spinner
+    // (via the layout's `.is-loading` class) so a slow WhatsApp call
+    // doesn't tempt the user to double-tap. bfcache restore resets the
+    // state — without this, iOS back-button would leave the user with
+    // a permanently-disabled greyed-out button.
     (function () {
         const form = document.querySelector('[data-ticket-resend]');
         if (!form) return;
         const btn = form.querySelector('[data-ticket-resend-btn]');
         form.addEventListener('submit', function () {
             if (!btn) return;
-            btn.setAttribute('disabled', 'disabled');
-            btn.style.opacity = '0.6';
-            btn.style.pointerEvents = 'none';
+            btn.disabled = true;
+            btn.classList.add('is-loading');
+            btn.setAttribute('aria-busy', 'true');
+        });
+        window.addEventListener('pageshow', function (e) {
+            if (!e.persisted || !btn) return;
+            btn.disabled = false;
+            btn.classList.remove('is-loading');
+            btn.removeAttribute('aria-busy');
         });
     })();
 </script>

@@ -379,7 +379,11 @@
             form.addEventListener('submit', async (ev) => {
                 ev.preventDefault();
                 const btn = form.querySelector('button');
-                if (btn) btn.disabled = true;
+                if (btn) {
+                    btn.disabled = true;
+                    btn.classList.add('is-loading');
+                    btn.setAttribute('aria-busy', 'true');
+                }
                 try {
                     const fd = new FormData(form);
                     const res = await fetch(form.action, {
@@ -405,7 +409,11 @@
                 } catch (err) {
                     show({ error: true });
                 } finally {
-                    if (btn) setTimeout(() => { btn.disabled = false; }, 600);
+                    if (btn) setTimeout(() => {
+                        btn.disabled = false;
+                        btn.classList.remove('is-loading');
+                        btn.removeAttribute('aria-busy');
+                    }, 600);
                 }
             });
         });

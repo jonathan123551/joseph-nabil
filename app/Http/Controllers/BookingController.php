@@ -25,7 +25,7 @@ class BookingController extends Controller
         Configuration::instance([
             'cloud' => [
                 'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
-                'api_key'    => env('CLOUDINARY_API_KEY'),
+                'api_key' => env('CLOUDINARY_API_KEY'),
                 'api_secret' => env('CLOUDINARY_API_SECRET'),
             ],
             'url' => ['secure' => true],
@@ -46,7 +46,9 @@ class BookingController extends Controller
     public function create(ShowTime $showTime)
     {
         $base = $this->baseBookingPayload($showTime);
-        if ($base === null) abort(404);
+        if ($base === null) {
+            abort(404);
+        }
 
         // Step 1 only needs prices + transfer info; seat data is loaded in
         // step 2. For non-Anba-Ruweis the original create.blade.php still
@@ -57,16 +59,18 @@ class BookingController extends Controller
     public function seats(Request $request, ShowTime $showTime)
     {
         $base = $this->baseBookingPayload($showTime);
-        if ($base === null) abort(404);
+        if ($base === null) {
+            abort(404);
+        }
 
         // Seat picker only exists for Anba Ruweis. Anything else falls back
         // to step 1 (section picker / single-page manual form).
-        if (!$base['isAnbaRuweis']) {
+        if (! $base['isAnbaRuweis']) {
             return redirect()->route('bookings.create', $showTime);
         }
 
         $section = $request->query('section', Theater::SECTION_HALL);
-        if (!in_array($section, [Theater::SECTION_HALL, Theater::SECTION_BALCONY], true)) {
+        if (! in_array($section, [Theater::SECTION_HALL, Theater::SECTION_BALCONY], true)) {
             $section = Theater::SECTION_HALL;
         }
 
@@ -78,14 +82,16 @@ class BookingController extends Controller
     public function form(Request $request, ShowTime $showTime)
     {
         $base = $this->baseBookingPayload($showTime);
-        if ($base === null) abort(404);
+        if ($base === null) {
+            abort(404);
+        }
 
-        if (!$base['isAnbaRuweis']) {
+        if (! $base['isAnbaRuweis']) {
             return redirect()->route('bookings.create', $showTime);
         }
 
         $section = $request->query('section', Theater::SECTION_HALL);
-        if (!in_array($section, [Theater::SECTION_HALL, Theater::SECTION_BALCONY], true)) {
+        if (! in_array($section, [Theater::SECTION_HALL, Theater::SECTION_BALCONY], true)) {
             $section = Theater::SECTION_HALL;
         }
 
@@ -104,19 +110,21 @@ class BookingController extends Controller
         // see ShowTime::effectiveRemainingTickets() — so the storefront
         // never advertises capacity that the seat picker would refuse.
         $remaining = $showTime->effectiveRemainingTickets();
-        if ($remaining <= 0 || $showTime->is_sold_out) return null;
+        if ($remaining <= 0 || $showTime->is_sold_out) {
+            return null;
+        }
 
         $showTime->loadMissing('show');
         $isAnbaRuweis = $showTime->show && $showTime->show->theater_type === Show::THEATER_ANBA_RUWEIS;
 
         return [
-            'showTime'       => $showTime,
+            'showTime' => $showTime,
             'transferWallet' => Setting::get('transfer_wallet', ''),
-            'transferInsta'  => Setting::get('transfer_insta', ''),
-            'remaining'      => $remaining,
-            'isAnbaRuweis'   => $isAnbaRuweis,
-            'balconyPrice'   => (int) ($showTime->show->balcony_price ?? 0),
-            'hallPrice'      => (int) ($showTime->show->hall_price ?? 0),
+            'transferInsta' => Setting::get('transfer_insta', ''),
+            'remaining' => $remaining,
+            'isAnbaRuweis' => $isAnbaRuweis,
+            'balconyPrice' => (int) ($showTime->show->balcony_price ?? 0),
+            'hallPrice' => (int) ($showTime->show->hall_price ?? 0),
         ];
     }
 
@@ -126,18 +134,18 @@ class BookingController extends Controller
     private function anbaSeatPayload(ShowTime $showTime): array
     {
         $theater = Theater::anbaRuweis();
-        $seats   = $theater
+        $seats = $theater
             ? $theater->seats()->orderBy('row_letter')->orderBy('group_side')->orderBy('display_order')->get()
             : collect();
 
         $unavailable = $showTime->unavailableSeatIds();
-        $blocked     = $showTime->seatBlocks()->pluck('seat_id')->all();
+        $blocked = $showTime->seatBlocks()->pluck('seat_id')->all();
 
         return [
-            'theater'          => $theater,
-            'seatsByRow'       => $this->groupSeatsByRow($seats),
+            'theater' => $theater,
+            'seatsByRow' => $this->groupSeatsByRow($seats),
             'unavailableSeats' => $unavailable,
-            'blockedSeats'     => $blocked,
+            'blockedSeats' => $blocked,
         ];
     }
 
@@ -156,7 +164,7 @@ class BookingController extends Controller
         foreach ($grouped as $section => $rows) {
             foreach ($rows as $row => $sides) {
                 foreach (['left', 'center', 'right'] as $side) {
-                    if (!isset($grouped[$section][$row][$side])) {
+                    if (! isset($grouped[$section][$row][$side])) {
                         $grouped[$section][$row][$side] = [];
                     }
                 }
@@ -169,13 +177,13 @@ class BookingController extends Controller
     // ================= STORE =================
     public function store(Request $request, ShowTime $showTime)
     {
-        $lockKey = 'booking_lock_' . sha1(
-            $request->ip() . json_encode($request->phones ?? []) . $showTime->id
+        $lockKey = 'booking_lock_'.sha1(
+            $request->ip().json_encode($request->phones ?? []).$showTime->id
         );
 
-        if (!Cache::add($lockKey, true, 20)) {
+        if (! Cache::add($lockKey, true, 20)) {
             return back()->withErrors([
-                'general' => '⏳ الطلب قيد المعالجة بالفعل'
+                'general' => '⏳ الطلب قيد المعالجة بالفعل',
             ])->withInput();
         }
 
@@ -198,16 +206,16 @@ class BookingController extends Controller
     {
         // ✅ VALIDATION
         $request->validate([
-            'names' => ['required','array'],
-            'names.*' => ['required','string','max:255'],
-            'phones' => ['required','array'],
-            'phones.*' => ['required','string','min:8','max:20'],
+            'names' => ['required', 'array'],
+            'names.*' => ['required', 'string', 'max:255'],
+            'phones' => ['required', 'array'],
+            'phones.*' => ['required', 'string', 'min:8', 'max:20'],
             'payment_screenshot' => 'required|image|max:20480',
         ]);
 
         // 🔥 حساب التذاكر المتاحة
         $reserved = $showTime->bookings()
-            ->whereIn('status', ['approved','pending'])
+            ->whereIn('status', ['approved', 'pending'])
             ->sum('tickets_count');
 
         $remaining = max(0, $showTime->total_tickets - $reserved);
@@ -217,14 +225,14 @@ class BookingController extends Controller
         // ❌ منع الحجز لو أكتر من المتاح
         if ($ticketsCount > $remaining) {
             return back()->withErrors([
-                'general' => '❌ المتاح فقط: ' . $remaining . ' تذاكر'
+                'general' => '❌ المتاح فقط: '.$remaining.' تذاكر',
             ])->withInput();
         }
 
         // ❌ لو خلصت
         if ($remaining <= 0) {
             return back()->withErrors([
-                'general' => '❌ لا توجد تذاكر متاحة'
+                'general' => '❌ لا توجد تذاكر متاحة',
             ])->withInput();
         }
 
@@ -237,27 +245,27 @@ class BookingController extends Controller
         // ✅ إنشاء الحجز
         $booking = Booking::create([
             'show_time_id' => $showTime->id,
-            'full_name'    => $request->names[0],
-            'phone'        => $mainPhone,
-            'tickets_count'=> $ticketsCount,
-            'total_price'  => $showTime->ticket_price * $ticketsCount,
+            'full_name' => $request->names[0],
+            'phone' => $mainPhone,
+            'tickets_count' => $ticketsCount,
+            'total_price' => $showTime->ticket_price * $ticketsCount,
             'transfer_screenshot_path' => $upload['secure_url'],
             'transfer_screenshot_public_id' => $upload['public_id'],
-            'status'       => 'pending',
-            'reference_code' => 'SRC-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)),
+            'status' => 'pending',
+            'reference_code' => 'SRC-'.now()->format('Ymd').'-'.Str::upper(Str::random(6)),
         ]);
 
         // 🎟️ إنشاء التذاكر
         foreach ($request->names as $i => $name) {
             \App\Models\Ticket::create([
                 'booking_id' => $booking->id,
-                'name'       => $name,
-                'phone'      => $this->normalizeEgyptPhone($request->phones[$i]),
-                'ticket_code'=> 'TIC-' . strtoupper(Str::random(6)),
+                'name' => $name,
+                'phone' => $this->normalizeEgyptPhone($request->phones[$i]),
+                'ticket_code' => 'TIC-'.strtoupper(Str::random(6)),
             ]);
         }
 
-        return view('bookings.thankyou', compact('booking'));
+        return $this->redirectToThankyou($booking);
     }
 
     /**
@@ -270,12 +278,12 @@ class BookingController extends Controller
     private function storeSeatBased(Request $request, ShowTime $showTime)
     {
         $request->validate([
-            'section'  => ['required', 'in:' . Theater::SECTION_BALCONY . ',' . Theater::SECTION_HALL],
+            'section' => ['required', 'in:'.Theater::SECTION_BALCONY.','.Theater::SECTION_HALL],
             'seat_ids' => ['required', 'array', 'min:1'],
             'seat_ids.*' => ['integer'],
-            'names'    => ['required', 'array'],
-            'names.*'  => ['required', 'string', 'max:255'],
-            'phones'   => ['required', 'array'],
+            'names' => ['required', 'array'],
+            'names.*' => ['required', 'string', 'max:255'],
+            'phones' => ['required', 'array'],
             'phones.*' => ['required', 'string', 'min:8', 'max:20'],
             'payment_screenshot' => 'required|image|max:20480',
         ]);
@@ -290,7 +298,7 @@ class BookingController extends Controller
         }
 
         $theater = Theater::anbaRuweis();
-        if (!$theater) {
+        if (! $theater) {
             return back()->withErrors(['general' => '❌ لم يتم إعداد المسرح بعد'])->withInput();
         }
 
@@ -308,8 +316,8 @@ class BookingController extends Controller
 
         // Reject if any of them is already taken (booked or admin-blocked).
         $unavailable = $showTime->unavailableSeatIds();
-        $clashes     = array_intersect($seatIds, $unavailable);
-        if (!empty($clashes)) {
+        $clashes = array_intersect($seatIds, $unavailable);
+        if (! empty($clashes)) {
             return back()->withErrors([
                 'general' => '❌ بعض المقاعد المختارة غير متاحة، حاول مرة أخرى',
             ])->withInput();
@@ -326,22 +334,22 @@ class BookingController extends Controller
         }
 
         $mainPhone = $this->normalizeEgyptPhone($request->phones[0]);
-        $upload    = $this->uploadPaymentScreenshot($request->file('payment_screenshot'));
+        $upload = $this->uploadPaymentScreenshot($request->file('payment_screenshot'));
 
         try {
-            $booking = DB::transaction(function () use ($request, $showTime, $seats, $seatIds, $unitPrice, $mainPhone, $upload, $section) {
+            $booking = DB::transaction(function () use ($request, $showTime, $seats, $seatIds, $unitPrice, $mainPhone, $upload) {
                 $count = count($seatIds);
 
                 $booking = Booking::create([
                     'show_time_id' => $showTime->id,
-                    'full_name'    => $request->names[0],
-                    'phone'        => $mainPhone,
-                    'tickets_count'=> $count,
-                    'total_price'  => $unitPrice * $count,
+                    'full_name' => $request->names[0],
+                    'phone' => $mainPhone,
+                    'tickets_count' => $count,
+                    'total_price' => $unitPrice * $count,
                     'transfer_screenshot_path' => $upload['secure_url'],
                     'transfer_screenshot_public_id' => $upload['public_id'],
-                    'status'       => 'pending',
-                    'reference_code' => 'SRC-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)),
+                    'status' => 'pending',
+                    'reference_code' => 'SRC-'.now()->format('Ymd').'-'.Str::upper(Str::random(6)),
                 ]);
 
                 $rows = [];
@@ -350,15 +358,15 @@ class BookingController extends Controller
                 foreach ($seatIds as $sid) {
                     $seat = $seatsById[$sid];
                     $rows[] = [
-                        'booking_id'   => $booking->id,
-                        'seat_id'      => $seat->id,
+                        'booking_id' => $booking->id,
+                        'seat_id' => $seat->id,
                         'show_time_id' => $showTime->id,
-                        'section'      => $seat->section,
-                        'row_letter'   => $seat->row_letter,
-                        'seat_number'  => $seat->seat_number,
-                        'price'        => $unitPrice,
-                        'created_at'   => $now,
-                        'updated_at'   => $now,
+                        'section' => $seat->section,
+                        'row_letter' => $seat->row_letter,
+                        'seat_number' => $seat->seat_number,
+                        'price' => $unitPrice,
+                        'created_at' => $now,
+                        'updated_at' => $now,
                     ];
                 }
 
@@ -380,11 +388,11 @@ class BookingController extends Controller
                     $bookingSeat = $sid !== null ? ($seatBySeatId[$sid] ?? null) : null;
 
                     \App\Models\Ticket::create([
-                        'booking_id'      => $booking->id,
+                        'booking_id' => $booking->id,
                         'booking_seat_id' => optional($bookingSeat)->id,
-                        'name'            => $name,
-                        'phone'           => $this->normalizeEgyptPhone($request->phones[$i]),
-                        'ticket_code'     => 'TIC-' . strtoupper(Str::random(6)),
+                        'name' => $name,
+                        'phone' => $this->normalizeEgyptPhone($request->phones[$i]),
+                        'ticket_code' => 'TIC-'.strtoupper(Str::random(6)),
                     ]);
                 }
 
@@ -397,14 +405,71 @@ class BookingController extends Controller
             ])->withInput();
         }
 
-        return view('bookings.thankyou', compact('booking'));
+        return $this->redirectToThankyou($booking);
+    }
+
+    /**
+     * GET landing page rendered after the POST-redirect-GET pattern. Same
+     * view that storeManual()/storeSeatBased() used to render directly.
+     *
+     * Looking the booking up by reference_code keeps the URL stable and
+     * shareable, matches what the customer already sees, and avoids
+     * exposing sequential booking IDs. A short-lived session flash flag
+     * (set by redirectToThankyou()) is the "this booking was *just*
+     * submitted in this session" hint that lets us light up the
+     * celebration animation on the first render only; subsequent direct
+     * hits still render the page cleanly but skip the confetti.
+     */
+    public function thankyou(string $reference)
+    {
+        $booking = Booking::with(['tickets', 'showTime.show'])
+            ->where('reference_code', $reference)
+            ->first();
+
+        if (! $booking) {
+            abort(404);
+        }
+
+        // Bookmarking the celebratory landing page is fine for a
+        // pending/approved booking — the user just sees their own
+        // confirmation again. But if the booking was REJECTED by an
+        // admin after the fact, the green "تم إرسال طلب الحجز بنجاح"
+        // headline becomes actively misleading. Defer to the public
+        // ticket-lookup page, which has the proper "not approved"
+        // branch already wired up (Wave 0).
+        if ($booking->status === 'rejected') {
+            return redirect()->route('tickets.show', ['reference' => $reference]);
+        }
+
+        $justSubmitted = session('booking_just_submitted_ref') === $reference;
+
+        return view('bookings.thankyou', [
+            'booking' => $booking,
+            'justSubmitted' => $justSubmitted,
+        ]);
+    }
+
+    /**
+     * Centralised PRG redirect after a successful booking POST. A 303
+     * "See Other" forces the browser to follow with a GET, which both
+     * fixes Safari's "Resubmit form?" prompt on refresh AND prevents
+     * accidental double-submits via the browser's back button. The
+     * flash flag lets the GET handler distinguish a fresh celebration
+     * landing from a later direct hit on the reference URL.
+     */
+    private function redirectToThankyou(Booking $booking)
+    {
+        session()->flash('booking_just_submitted_ref', $booking->reference_code);
+
+        return redirect()
+            ->route('bookings.thankyou', ['reference' => $booking->reference_code], 303);
     }
 
     private function uploadPaymentScreenshot($file): array
     {
         $optimized = ImageOptimizer::optimize($file, 1600, 80);
 
-        $upload = (new UploadApi())->upload($optimized, [
+        $upload = (new UploadApi)->upload($optimized, [
             'folder' => 'payments/screenshots',
         ]);
 
@@ -427,11 +492,11 @@ class BookingController extends Controller
         $phone = preg_replace('/[^0-9]/', '', $phone);
 
         if (preg_match('/^01[0-9]{9}$/', $phone)) {
-            return '20' . substr($phone, 1);
+            return '20'.substr($phone, 1);
         }
 
         if (preg_match('/^1[0-9]{9}$/', $phone)) {
-            return '20' . $phone;
+            return '20'.$phone;
         }
 
         if (preg_match('/^20[0-9]{10}$/', $phone)) {
@@ -443,6 +508,3 @@ class BookingController extends Controller
         ]);
     }
 }
-
-
-
