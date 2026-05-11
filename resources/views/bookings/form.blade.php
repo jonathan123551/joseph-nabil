@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
 @section('title', __('إكمال الحجز') . ' · ' . $showTime->show->title)
+@section('headMeta')
+    <meta name="pt-title-i18n" content="page_title_book_form" data-suffix="{{ $showTime->show->title }}">
+@endsection
 
 @section('content')
 
@@ -688,9 +691,20 @@
     const emptyMsg      = root.querySelector('[data-empty-msg]');
 
     // ----- render chips (with × delete) -----
+    // Tiny i18n shim — wraps `window.PT_T(key, vars)` and adds a
+    // fallback string so the placeholder renders cleanly before the
+    // dictionary is hydrated. `vars` are forwarded for `{n}`-style
+    // substitution and applied to the fallback too when PT_T misses.
     function tt(key, fallback, vars) {
-        const fn = (window.PT_T || ((k, f) => f));
-        return fn(key, fallback, vars || {});
+        if (window.PT_T) {
+            const s = window.PT_T(key, vars);
+            if (s !== key) return s;
+        }
+        let s = fallback != null ? String(fallback) : key;
+        if (vars && typeof s === 'string') {
+            s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? vars[k] : m));
+        }
+        return s;
     }
 
     function renderChips() {
@@ -780,8 +794,10 @@
         });
     }
 
-    // Re-render attendee cards + chips when language toggles so AR/EN labels stay in sync.
-    window.addEventListener('pt-lang-changed', () => {
+    // Re-render attendee cards + chips when language toggles so AR/EN
+    // labels stay in sync — `applyLang()` in layouts/app.blade.php
+    // dispatches `pt:langchange` on `document` after rewriting the dict.
+    document.addEventListener('pt:langchange', () => {
         renderChips();
         renderAttendees();
     });

@@ -709,6 +709,113 @@
             color: var(--p-text-2);
             font-size: 11px;
         }
+
+        /* ===== Auto-pick chip modal =====
+           Touch-first replacement for `window.prompt()`. A small glass
+           card with N tappable chips (1..max). Closes on overlay tap or
+           Escape. Layered on top of the seat-picker viewport so it works
+           in both inline and fullscreen modes. */
+        .anba-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(3, 5, 12, 0.72);
+            backdrop-filter: blur(8px) saturate(140%);
+            -webkit-backdrop-filter: blur(8px) saturate(140%);
+            opacity: 0;
+            transition: opacity .18s ease-out;
+        }
+        .anba-modal-backdrop.is-open {
+            display: flex;
+            opacity: 1;
+        }
+        .anba-modal-card {
+            width: min(360px, 92vw);
+            border-radius: 18px;
+            padding: 18px 18px 14px;
+            background: linear-gradient(180deg, rgba(15,18,32,0.96), rgba(8,10,20,0.96));
+            border: 1px solid rgba(251,191,36,0.40);
+            box-shadow:
+                0 24px 60px -12px rgba(0,0,0,0.65),
+                0 0 0 1px rgba(255,255,255,0.04) inset,
+                0 1px 0 rgba(255,255,255,0.10) inset;
+            color: var(--p-text);
+            transform: translateY(6px) scale(.98);
+            transition: transform .22s var(--p-ease);
+        }
+        .anba-modal-backdrop.is-open .anba-modal-card {
+            transform: translateY(0) scale(1);
+        }
+        .anba-modal-eyebrow {
+            font-size: 10.5px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #fcd34d;
+            font-weight: 700;
+            margin-bottom: 6px;
+            text-align: center;
+        }
+        .anba-modal-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--p-text);
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .anba-modal-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        .anba-modal-chip {
+            appearance: none;
+            -webkit-appearance: none;
+            border: 1px solid rgba(251,191,36,0.30);
+            background: rgba(251,191,36,0.06);
+            color: #fde68a;
+            border-radius: 12px;
+            padding: 12px 0;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 44px;
+            transition: transform .12s var(--p-ease), background .12s var(--p-ease), border-color .12s var(--p-ease);
+        }
+        .anba-modal-chip:hover {
+            background: rgba(251,191,36,0.16);
+            border-color: rgba(251,191,36,0.55);
+        }
+        .anba-modal-chip:active { transform: scale(0.95); }
+        .anba-modal-cancel {
+            display: block;
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--p-border);
+            color: var(--p-text-3);
+            border-radius: 12px;
+            padding: 10px 0;
+            font-size: 13px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 40px;
+        }
+        .anba-modal-cancel:hover {
+            background: rgba(255,255,255,0.04);
+            color: var(--p-text);
+        }
+        @media (max-width: 360px) {
+            .anba-modal-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .anba-modal-backdrop,
+            .anba-modal-card { transition: none; }
+        }
     </style>
 
     <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr),360px] gap-5 fs-grid">
@@ -1000,6 +1107,26 @@
     <script type="application/json" data-seat-preset>
         {!! json_encode($preset, JSON_UNESCAPED_UNICODE) !!}
     </script>
+
+    {{-- Auto-pick chip modal (mobile-first, replaces native prompt()).
+         Hidden by default; toggled .is-open from JS. The grid is filled
+         dynamically with N chips (1..max). All copy localized via
+         data-i18n so AR/EN switches live without re-render. --}}
+    @unless ($adminMode)
+        <div class="anba-modal-backdrop"
+             data-anba-modal
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="anba-modal-title"
+             hidden>
+            <div class="anba-modal-card" role="document">
+                <div class="anba-modal-eyebrow" data-i18n="seat_auto_pick_eyebrow">اختيار سريع</div>
+                <h2 id="anba-modal-title" class="anba-modal-title" data-i18n="seat_auto_pick_prompt">كم مقعد تريد؟</h2>
+                <div class="anba-modal-grid" data-anba-modal-grid></div>
+                <button type="button" class="anba-modal-cancel" data-anba-modal-cancel data-i18n="seat_auto_pick_cancel">إلغاء</button>
+            </div>
+        </div>
+    @endunless
 </div>
 
 <script>
@@ -1774,19 +1901,99 @@
             return true;
         }
 
+        // Auto-pick chip modal — replaces window.prompt() with a
+        // touch-first chip grid. Keyboard: Escape closes; Enter on a
+        // chip activates it. The grid is populated lazily on first open
+        // and re-uses the same DOM thereafter.
+        const AUTO_PICK_MAX = 12;
+        const modal     = root.querySelector('[data-anba-modal]');
+        const modalGrid = root.querySelector('[data-anba-modal-grid]');
+        const modalCancel = root.querySelector('[data-anba-modal-cancel]');
+        let modalOpen = false;
+        let lastFocus = null;
+
+        function ensureModalGrid() {
+            if (!modalGrid || modalGrid.children.length) return;
+            for (let i = 1; i <= AUTO_PICK_MAX; i++) {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'anba-modal-chip';
+                chip.textContent = String(i);
+                chip.dataset.n = String(i);
+                modalGrid.appendChild(chip);
+            }
+        }
+
+        function openModal(triggerBtn) {
+            if (!modal) return;
+            ensureModalGrid();
+            lastFocus = triggerBtn || document.activeElement;
+            modal.hidden = false;
+            // double-rAF so the .is-open transition kicks in cleanly
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                modal.classList.add('is-open');
+            }));
+            modalOpen = true;
+            const firstChip = modalGrid && modalGrid.firstElementChild;
+            if (firstChip) firstChip.focus({ preventScroll: true });
+        }
+
+        function closeModal() {
+            if (!modal || !modalOpen) return;
+            modal.classList.remove('is-open');
+            modalOpen = false;
+            // Wait for the fade-out, then fully hide so it doesn't
+            // intercept taps.
+            setTimeout(() => {
+                if (!modalOpen && modal) modal.hidden = true;
+            }, 220);
+            if (lastFocus && typeof lastFocus.focus === 'function') {
+                lastFocus.focus({ preventScroll: true });
+            }
+        }
+
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+            if (modalCancel) {
+                modalCancel.addEventListener('click', closeModal);
+            }
+            if (modalGrid) {
+                modalGrid.addEventListener('click', (e) => {
+                    const chip = e.target.closest('[data-n]');
+                    if (!chip) return;
+                    const n = parseInt(chip.dataset.n, 10);
+                    if (!isFinite(n) || n <= 0 || n > AUTO_PICK_MAX) return;
+                    closeModal();
+                    applyAutoPickN(n);
+                });
+            }
+            document.addEventListener('keydown', (e) => {
+                if (!modalOpen) return;
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeModal();
+                }
+            });
+        }
+
         // Wire up auto-pick buttons. There may be more than one button —
         // the side-panel one is hidden in fullscreen, so a second copy is
-        // rendered as a floating chip on the canvas. Same prompt + same
-        // N for both. We re-prompt every click so the user can adjust
-        // without reaching for a separate input.
+        // rendered as a floating chip on the canvas. Same modal + same
+        // N for both. If the modal element is missing (admin mode), fall
+        // back to the legacy native prompt so the feature still works.
         root.querySelectorAll('[data-anba-auto-pick]').forEach((btn) => {
             btn.addEventListener('click', () => {
+                if (modal) {
+                    openModal(btn);
+                    return;
+                }
                 const t = window.PT_T || ((k) => k);
-                const promptStr = t('seat_auto_pick_prompt');
-                const raw = window.prompt(promptStr, '2');
+                const raw = window.prompt(t('seat_auto_pick_prompt'), '2');
                 if (raw === null) return;
                 const n = parseInt(String(raw).trim(), 10);
-                if (!isFinite(n) || n <= 0 || n > 12) return;
+                if (!isFinite(n) || n <= 0 || n > AUTO_PICK_MAX) return;
                 applyAutoPickN(n);
             });
         });

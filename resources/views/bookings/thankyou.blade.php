@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
 @section('title', 'تم إرسال طلب الحجز · Premium Tickets')
+@section('headMeta')
+    <meta name="pt-title-i18n" content="page_title_thankyou">
+@endsection
 
 @php
     // Build calendar metadata once on the server. Show start = date + time;

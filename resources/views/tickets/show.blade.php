@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
 @section('title', 'تذكرتك · Premium Tickets')
+@section('headMeta')
+    <meta name="pt-title-i18n" content="page_title_ticket_lookup">
+@endsection
 
 @php
     $showTime  = $booking->showTime ?? null;

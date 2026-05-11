@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
 @section('title', 'حجز تذاكر · ' . $showTime->show->title)
+@section('headMeta')
+    <meta name="pt-title-i18n" content="page_title_book_create" data-suffix="{{ $showTime->show->title }}">
+@endsection
 
 @section('content')
 
@@ -599,9 +602,20 @@ function escapeAttr(s) {
     return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
 
+// Tiny i18n shim — wraps the layout's `window.PT_T(key, vars)` and
+// adds a fallback string so the placeholder renders cleanly before the
+// dictionary is hydrated. `vars` are forwarded for `{n}`-style
+// substitution and applied to the fallback too when PT_T misses.
 function tt(key, fallback, vars) {
-    const fn = (window.PT_T || ((k, f) => f));
-    return fn(key, fallback, vars || {});
+    if (window.PT_T) {
+        const s = window.PT_T(key, vars);
+        if (s !== key) return s;
+    }
+    let s = fallback != null ? String(fallback) : key;
+    if (vars && typeof s === 'string') {
+        s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? vars[k] : m));
+    }
+    return s;
 }
 
 function renderNames() {
@@ -629,8 +643,10 @@ function renderNames() {
     }
 }
 
-// Re-render placeholders when language changes so AR/EN switch live.
-window.addEventListener('pt-lang-changed', renderNames);
+// Re-render placeholders when the language toggle fires so AR/EN
+// switch live — `applyLang()` in layouts/app.blade.php dispatches
+// `pt:langchange` on `document` after rewriting the dictionary.
+document.addEventListener('pt:langchange', renderNames);
 
 function changeCount(val) {
     count += val;

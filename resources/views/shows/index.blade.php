@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
 @section('title', 'العروض المتاحة · Premium Tickets')
+@section('headMeta')
+    <meta name="pt-title-i18n" content="page_title_shows">
+@endsection
 
 @section('body_class', 'is-pt-cine')
 
