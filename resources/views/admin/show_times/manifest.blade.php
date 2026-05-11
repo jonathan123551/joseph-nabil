@@ -359,6 +359,242 @@
     .manifest-booking-card li.is-scanned { background: rgba(52,211,153,0.06); }
 
     /* ====================================================================
+       GRID (theater map) view — spatial layout of every seat in the venue,
+       grouped by section → row, color-coded by status. Reads as a real
+       seating chart, not a list. Each cell shows just the seat number;
+       hover/tap reveals the attendee in a popover (title attr fallback).
+       The layout adapts: phones get smaller cells (overflow-x scroll per
+       row), desktops/print get full-width rows. */
+    .manifest-grid-wrap {
+        display: grid;
+        gap: 14px;
+    }
+    .manifest-grid-stage {
+        text-align: center;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: .26em;
+        text-transform: uppercase;
+        color: var(--prism-text-3);
+        padding: 6px 10px;
+        border-radius: 10px;
+        border: 1px dashed var(--prism-border);
+        background: rgba(255,255,255,0.02);
+    }
+    .manifest-grid-section {
+        border: 1px solid var(--prism-border);
+        border-radius: 14px;
+        overflow: hidden;
+        background: rgba(255,255,255,0.02);
+    }
+    .manifest-grid-section h3 {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        padding: 8px 12px;
+        background: linear-gradient(135deg, rgba(34,211,238,0.10), rgba(192,132,252,0.10));
+        border-bottom: 1px solid var(--prism-border);
+    }
+    .manifest-grid-section.section-balcony h3 {
+        background: linear-gradient(135deg, rgba(251,191,36,0.10), rgba(192,132,252,0.10));
+    }
+    .manifest-grid-rows {
+        display: grid;
+        gap: 6px;
+        padding: 10px;
+    }
+    .manifest-grid-row {
+        display: grid;
+        grid-template-columns: 32px 1fr;
+        align-items: center;
+        gap: 6px;
+    }
+    .manifest-grid-row-label {
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-align: center;
+        color: var(--prism-text);
+        padding: 4px 0;
+        border-radius: 6px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--prism-border);
+    }
+    .manifest-grid-seats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        align-items: center;
+        justify-content: flex-start;
+    }
+    /* Center the row within the row track so wider rows still look
+       balanced relative to narrower neighbors. */
+    .manifest-grid-section .manifest-grid-seats { justify-content: center; }
+
+    .manifest-grid-seat {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 28px;
+        height: 28px;
+        padding: 0 6px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 800;
+        font-feature-settings: "tnum" 1;
+        line-height: 1;
+        border: 1px solid var(--prism-border);
+        background: rgba(255,255,255,0.04);
+        color: var(--prism-text);
+        cursor: default;
+        transition: transform .12s ease, box-shadow .15s ease;
+    }
+    .manifest-grid-seat:hover,
+    .manifest-grid-seat:focus {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 14px -8px rgba(0,0,0,0.55);
+        outline: 0;
+    }
+    .manifest-grid-seat.is-approved {
+        background: rgba(52,211,153,0.16);
+        border-color: rgba(52,211,153,0.55);
+        color: #ecfdf5;
+    }
+    .manifest-grid-seat.is-pending {
+        background: rgba(251,191,36,0.20);
+        border-color: rgba(251,191,36,0.60);
+        color: #fff7e6;
+    }
+    .manifest-grid-seat.is-blocked {
+        background: repeating-linear-gradient(45deg,
+            rgba(244,63,94,0.25),
+            rgba(244,63,94,0.25) 3px,
+            rgba(244,63,94,0.08) 3px,
+            rgba(244,63,94,0.08) 6px);
+        border-color: rgba(244,63,94,0.55);
+        color: #ffe4e6;
+    }
+    .manifest-grid-seat.is-empty {
+        background: transparent;
+        color: var(--prism-text-3);
+        border-style: dashed;
+        opacity: .8;
+    }
+    .manifest-grid-seat.is-scanned::after {
+        content: "✓";
+        position: absolute;
+        top: -4px;
+        inset-inline-end: -4px;
+        background: var(--prism-emerald);
+        color: #052e26;
+        width: 14px; height: 14px;
+        font-size: 9px;
+        font-weight: 800;
+        line-height: 14px;
+        border-radius: 999px;
+        box-shadow: 0 0 0 1.5px rgba(8,10,20,0.9);
+    }
+
+    /* Booking color band as a 3px left bar (matches Phase 1 print-sheet hue) */
+    .manifest-grid-seat[data-hue] {
+        box-shadow: inset 3px 0 0 0 transparent;
+    }
+    .manifest-grid-seat[data-hue="0"] { box-shadow: inset 3px 0 0 0 rgba(34,211,238,0.85); }
+    .manifest-grid-seat[data-hue="1"] { box-shadow: inset 3px 0 0 0 rgba(192,132,252,0.85); }
+    .manifest-grid-seat[data-hue="2"] { box-shadow: inset 3px 0 0 0 rgba(251,191,36,0.85); }
+    .manifest-grid-seat[data-hue="3"] { box-shadow: inset 3px 0 0 0 rgba(52,211,153,0.85); }
+    .manifest-grid-seat[data-hue="4"] { box-shadow: inset 3px 0 0 0 rgba(244,114,182,0.85); }
+    .manifest-grid-seat[data-hue="5"] { box-shadow: inset 3px 0 0 0 rgba(96,165,250,0.85); }
+    .manifest-grid-seat[data-hue="6"] { box-shadow: inset 3px 0 0 0 rgba(251,113,133,0.85); }
+    .manifest-grid-seat[data-hue="7"] { box-shadow: inset 3px 0 0 0 rgba(167,243,208,0.85); }
+    html[dir="rtl"] .manifest-grid-seat[data-hue="0"] { box-shadow: inset -3px 0 0 0 rgba(34,211,238,0.85); }
+    html[dir="rtl"] .manifest-grid-seat[data-hue="1"] { box-shadow: inset -3px 0 0 0 rgba(192,132,252,0.85); }
+    html[dir="rtl"] .manifest-grid-seat[data-hue="2"] { box-shadow: inset -3px 0 0 0 rgba(251,191,36,0.85); }
+    html[dir="rtl"] .manifest-grid-seat[data-hue="3"] { box-shadow: inset -3px 0 0 0 rgba(52,211,153,0.85); }
+    html[dir="rtl"] .manifest-grid-seat[data-hue="4"] { box-shadow: inset -3px 0 0 0 rgba(244,114,182,0.85); }
+    html[dir="rtl"] .manifest-grid-seat[data-hue="5"] { box-shadow: inset -3px 0 0 0 rgba(96,165,250,0.85); }
+    html[dir="rtl"] .manifest-grid-seat[data-hue="6"] { box-shadow: inset -3px 0 0 0 rgba(251,113,133,0.85); }
+    html[dir="rtl"] .manifest-grid-seat[data-hue="7"] { box-shadow: inset -3px 0 0 0 rgba(167,243,208,0.85); }
+
+    /* Active-seat popover (revealed by JS on click/focus) */
+    .manifest-grid-popover {
+        position: fixed;
+        inset-inline-start: 50%;
+        bottom: 16px;
+        transform: translateX(-50%) translateY(8px);
+        z-index: 60;
+        max-width: 92vw;
+        width: 360px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(129,140,248,0.45);
+        background: linear-gradient(180deg, rgba(20,24,38,0.95), rgba(8,10,20,0.95));
+        backdrop-filter: blur(14px) saturate(140%);
+        -webkit-backdrop-filter: blur(14px) saturate(140%);
+        box-shadow: 0 18px 36px -16px rgba(0,0,0,0.7);
+        color: var(--prism-text);
+        font-size: 12px;
+        line-height: 1.4;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .15s ease, transform .15s ease;
+    }
+    html[dir="rtl"] .manifest-grid-popover { transform: translateX(50%) translateY(8px); }
+    .manifest-grid-popover.is-on {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateX(-50%) translateY(0);
+    }
+    html[dir="rtl"] .manifest-grid-popover.is-on { transform: translateX(50%) translateY(0); }
+    .manifest-grid-popover .pop-title {
+        font-size: 14px; font-weight: 800; color: var(--prism-text);
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .manifest-grid-popover .pop-meta { color: var(--prism-text-3); margin-top: 4px; font-feature-settings: "tnum" 1; }
+    .manifest-grid-popover .pop-close {
+        position: absolute; top: 6px; inset-inline-end: 10px;
+        font-size: 16px; line-height: 1; color: var(--prism-text-3);
+        background: transparent; border: 0; cursor: pointer;
+    }
+
+    /* Legend strip (only screen) */
+    .manifest-grid-legend {
+        display: flex; flex-wrap: wrap; gap: 10px;
+        font-size: 11px; color: var(--prism-text-3);
+        padding: 8px 12px;
+        border: 1px solid var(--prism-border);
+        border-radius: 12px;
+        background: rgba(255,255,255,0.02);
+    }
+    .manifest-grid-legend .lg { display: inline-flex; align-items: center; gap: 6px; }
+    .manifest-grid-legend .sw {
+        width: 14px; height: 14px; border-radius: 4px;
+        border: 1px solid var(--prism-border);
+    }
+    .manifest-grid-legend .sw.is-approved { background: rgba(52,211,153,0.16); border-color: rgba(52,211,153,0.55); }
+    .manifest-grid-legend .sw.is-pending  { background: rgba(251,191,36,0.20); border-color: rgba(251,191,36,0.60); }
+    .manifest-grid-legend .sw.is-blocked  {
+        background: repeating-linear-gradient(45deg,
+            rgba(244,63,94,0.25),
+            rgba(244,63,94,0.25) 3px,
+            rgba(244,63,94,0.08) 3px,
+            rgba(244,63,94,0.08) 6px);
+        border-color: rgba(244,63,94,0.55);
+    }
+    .manifest-grid-legend .sw.is-empty    { background: transparent; border-style: dashed; }
+
+    /* Mobile compaction — phones get tighter cells and a row-by-row
+       horizontal scroll so a wide row doesn't break the page width. */
+    @media (max-width: 720px) {
+        .manifest-grid-seat { min-width: 26px; height: 26px; font-size: 10px; }
+        .manifest-grid-row-label { font-size: 12px; }
+        .manifest-grid-rows { padding: 8px; }
+        .manifest-grid-row { grid-template-columns: 28px 1fr; }
+    }
+
+    /* ====================================================================
        LIGHT MODE — paper-first surfaces */
     :root[data-pt-theme="light"] .manifest-stat,
     :root[data-pt-theme="light"] .manifest-search,
@@ -471,6 +707,59 @@
             color: #000 !important;
             margin-top: 4mm;
         }
+
+        /* Grid view print — each section becomes its own A4 landscape
+           page. Cells go pure outline so the chart is readable in ink. */
+        .manifest-grid-section {
+            background: #fff !important;
+            border: 1px solid #000 !important;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            page-break-after: always;
+        }
+        .manifest-grid-section:last-child { page-break-after: auto; }
+        .manifest-grid-section h3 {
+            background: #f0f0f0 !important;
+            color: #000 !important;
+            border-bottom: 1px solid #000 !important;
+            font-size: 11pt;
+        }
+        .manifest-grid-stage {
+            background: #fff !important; color: #000 !important;
+            border: 1px dashed #000 !important;
+        }
+        .manifest-grid-row-label {
+            background: #f6f6f6 !important;
+            color: #000 !important;
+            border: 1px solid #000 !important;
+            font-size: 10pt;
+        }
+        .manifest-grid-seat {
+            background: #fff !important;
+            color: #000 !important;
+            border: 1px solid #000 !important;
+            min-width: 7mm; height: 7mm; font-size: 7pt;
+        }
+        .manifest-grid-seat.is-approved { background: #fff !important; }
+        .manifest-grid-seat.is-pending  {
+            background: repeating-linear-gradient(45deg,
+                #fff, #fff 1.5px, #eee 1.5px, #eee 3px) !important;
+        }
+        .manifest-grid-seat.is-blocked  {
+            background: repeating-linear-gradient(45deg,
+                #fff, #fff 1.5px, #000 1.5px, #000 2.5px) !important;
+            color: #fff !important;
+        }
+        .manifest-grid-seat.is-empty    {
+            background: #fff !important; border-style: dashed !important; color: #888 !important;
+        }
+        .manifest-grid-seat.is-scanned::after {
+            background: #000 !important; color: #fff !important;
+            box-shadow: 0 0 0 1px #fff;
+        }
+        .manifest-grid-seat[data-hue]   { border-left-width: 2.5px !important; }
+        html[dir="rtl"] .manifest-grid-seat[data-hue] { border-left-width: 1px !important; border-right-width: 2.5px !important; }
+        .manifest-grid-popover, .manifest-grid-legend { display: none !important; }
     }
 </style>
 @endpush
@@ -511,6 +800,11 @@
                        class="{{ $view === 'grouped' ? 'is-active' : '' }}"
                        role="tab" aria-selected="{{ $view === 'grouped' ? 'true' : 'false' }}">
                         👥 By Booking
+                    </a>
+                    <a href="{{ $url(['view' => 'grid']) }}"
+                       class="{{ $view === 'grid' ? 'is-active' : '' }}"
+                       role="tab" aria-selected="{{ $view === 'grid' ? 'true' : 'false' }}">
+                        🗺 Grid
                     </a>
                 </div>
 
@@ -822,6 +1116,213 @@
                 </div>
             @endforelse
         </div>
+
+    {{-- ===================== GRID (theater map) VIEW =====================
+         Spatial layout of every physical seat in the venue grouped by
+         section → row, color-coded by status. Reads as a real seating
+         chart, not a list. Hover/tap a seat to see attendee details in
+         the popover. For non-seatmap shows (where there's no fixed
+         layout) we fall back to a notice — the grid only makes sense
+         when there's a physical seat axis to anchor against. --}}
+    @elseif ($view === 'grid')
+
+        <div class="manifest-stats prism-fade-up">
+            <div class="manifest-stat approved">
+                <div class="v">{{ $summary['approved'] }}</div>
+                <div class="l">Approved</div>
+            </div>
+            <div class="manifest-stat pending">
+                <div class="v">{{ $summary['pending'] }}</div>
+                <div class="l">Pending</div>
+            </div>
+            <div class="manifest-stat blocked">
+                <div class="v">{{ $summary['blocked'] }}</div>
+                <div class="l">Blocked</div>
+            </div>
+            <div class="manifest-stat empty">
+                <div class="v">{{ $summary['empty'] }}</div>
+                <div class="l">Empty</div>
+            </div>
+            <div class="manifest-stat total">
+                <div class="v">{{ $checkedInCount }}</div>
+                <div class="l">Checked-In</div>
+            </div>
+        </div>
+
+        @if (!$usesSeatMap)
+            <div class="prism-glass p-6 text-center text-sm text-[color:var(--prism-text-3)]">
+                لا توجد خريطة مقاعد لهذا العرض — استخدم وضع "🔍 Usher" أو "👥 By Booking".
+            </div>
+        @else
+            @php
+                // Group rows by section then by row_letter, preserving
+                // the seat-major ordering the controller produced. This
+                // gives us a stable spatial layout: { section: { row: [...] } }
+                $bySection = [];
+                foreach ($rows as $r) {
+                    $bySection[$r['section']][$r['row_letter']][] = $r;
+                }
+                // Hall first, balcony second (operationally what ushers
+                // expect — main floor before the upper deck).
+                uksort($bySection, function ($a, $b) {
+                    if ($a === $b) return 0;
+                    if ($a === 'hall') return -1;
+                    if ($b === 'hall') return 1;
+                    return strcmp($a, $b);
+                });
+            @endphp
+
+            <div class="manifest-grid-legend pt-no-print prism-fade-up" role="note">
+                <span class="lg"><span class="sw is-approved"></span> Approved</span>
+                <span class="lg"><span class="sw is-pending"></span> Pending</span>
+                <span class="lg"><span class="sw is-blocked"></span> Blocked</span>
+                <span class="lg"><span class="sw is-empty"></span> Empty</span>
+                <span class="lg"><span class="sw" style="background:#0f172a; border-color:#0f172a; position:relative;"><span style="position:absolute; top:-2px; right:-2px; width:8px; height:8px; background:var(--prism-emerald); border-radius:999px; box-shadow:0 0 0 1.5px #0f172a;"></span></span> Checked-In</span>
+            </div>
+
+            <div class="manifest-grid-wrap prism-fade-up">
+                @foreach ($bySection as $sectionKey => $rowsByRow)
+                    @php
+                        $sectionLabel = $sectionKey === 'balcony' ? 'بلكون · Balcony' : 'صالة · Hall';
+                        // Booked count for this section header
+                        $sectionBooked = 0;
+                        $sectionTotal  = 0;
+                        foreach ($rowsByRow as $rowSeats) {
+                            foreach ($rowSeats as $cell) {
+                                $sectionTotal++;
+                                if (in_array($cell['status'], ['approved', 'pending'], true)) $sectionBooked++;
+                            }
+                        }
+                    @endphp
+                    <div class="manifest-grid-section section-{{ $sectionKey === 'balcony' ? 'balcony' : 'hall' }}">
+                        <h3 class="flex items-center justify-between gap-2 flex-wrap">
+                            <span>{{ $sectionLabel }}</span>
+                            <span class="text-[color:var(--prism-text-3)]" dir="ltr" style="font-weight: 600; letter-spacing: .04em;">
+                                {{ $sectionBooked }} / {{ $sectionTotal }}
+                            </span>
+                        </h3>
+
+                        <div class="manifest-grid-stage" aria-hidden="true">🎬 المسرح · STAGE</div>
+
+                        <div class="manifest-grid-rows">
+                            @foreach ($rowsByRow as $rowLetter => $rowSeats)
+                                <div class="manifest-grid-row">
+                                    <div class="manifest-grid-row-label" dir="ltr">{{ $rowLetter }}</div>
+                                    <div class="manifest-grid-seats">
+                                        @foreach ($rowSeats as $cell)
+                                            @php
+                                                $hue = $cell['booking_id']
+                                                    ? abs(crc32((string) $cell['booking_id'])) % 8
+                                                    : null;
+                                                $labelBits = [];
+                                                if ($cell['attendee_name']) $labelBits[] = $cell['attendee_name'];
+                                                if ($cell['booking_ref']) $labelBits[] = '#' . $cell['booking_ref'];
+                                                if ($cell['is_scanned'] && $cell['scanned_at']) $labelBits[] = '✓ ' . $cell['scanned_at'];
+                                                if ($cell['status'] === 'blocked') $labelBits[] = 'BLOCKED';
+                                                if ($cell['status'] === 'empty') $labelBits[] = 'EMPTY';
+                                                $title = empty($labelBits)
+                                                    ? ($cell['row_letter'] . $cell['seat_number'])
+                                                    : ($cell['row_letter'] . $cell['seat_number'] . ' · ' . implode(' · ', $labelBits));
+                                            @endphp
+                                            <button type="button"
+                                                    class="manifest-grid-seat is-{{ $cell['status'] }} {{ $cell['is_scanned'] ? 'is-scanned' : '' }}"
+                                                    @if ($hue !== null) data-hue="{{ $hue }}" @endif
+                                                    data-seat="{{ $cell['row_letter'] }}{{ $cell['seat_number'] }}"
+                                                    data-section="{{ $cell['section_label_ar'] }}"
+                                                    data-attendee="{{ $cell['attendee_name'] ?? '' }}"
+                                                    data-phone="{{ $cell['phone'] ? $maskPhone($cell['phone']) : '' }}"
+                                                    data-booking="{{ $cell['booking_ref'] ?? '' }}"
+                                                    data-owner="{{ $cell['booking_owner'] ?? '' }}"
+                                                    data-status="{{ $cell['status_en'] }}"
+                                                    data-checked="{{ $cell['scanned_at'] ?? '' }}"
+                                                    title="{{ $title }}"
+                                                    aria-label="{{ $title }}">
+                                                {{ $cell['seat_number'] }}
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            {{-- Floating popover — JS toggles .is-on when a seat is clicked. --}}
+            <div id="manifest-grid-popover" class="manifest-grid-popover pt-no-print" role="dialog" aria-live="polite" aria-hidden="true">
+                <button type="button" class="pop-close" data-pop-close aria-label="إغلاق">✕</button>
+                <div class="pop-title">
+                    <span class="pt-seat-chip" data-pop-chip>
+                        <span class="pt-seat-chip-section" data-pop-section>—</span>
+                        <span class="pt-seat-chip-seat" dir="ltr" data-pop-seat>—</span>
+                    </span>
+                    <span data-pop-name>—</span>
+                </div>
+                <div class="pop-meta">
+                    <span data-pop-status></span>
+                    <span data-pop-booking></span>
+                    <span data-pop-phone></span>
+                    <span data-pop-checked></span>
+                </div>
+            </div>
+
+            <script>
+                (function () {
+                    const wrap = document.querySelector('.manifest-grid-wrap');
+                    const pop  = document.getElementById('manifest-grid-popover');
+                    if (!wrap || !pop) return;
+
+                    const els = {
+                        chip:    pop.querySelector('[data-pop-chip]'),
+                        section: pop.querySelector('[data-pop-section]'),
+                        seat:    pop.querySelector('[data-pop-seat]'),
+                        name:    pop.querySelector('[data-pop-name]'),
+                        status:  pop.querySelector('[data-pop-status]'),
+                        booking: pop.querySelector('[data-pop-booking]'),
+                        phone:   pop.querySelector('[data-pop-phone]'),
+                        checked: pop.querySelector('[data-pop-checked]'),
+                    };
+                    const close = pop.querySelector('[data-pop-close]');
+
+                    function show(btn) {
+                        const d = btn.dataset;
+                        els.section.textContent = d.section || '—';
+                        els.seat.textContent    = d.seat || '—';
+                        els.chip.className      = 'pt-seat-chip pt-seat-chip-' + (
+                            (d.section || '').includes('بلكون') ? 'balcony' : 'hall'
+                        );
+                        els.name.textContent    = d.attendee || '— فارغ —';
+                        els.status.textContent  = d.status ? d.status : '';
+                        els.booking.textContent = d.booking ? ' · #' + d.booking + (d.owner ? ' · ' + d.owner : '') : '';
+                        els.phone.textContent   = d.phone   ? ' · ' + d.phone   : '';
+                        els.checked.textContent = d.checked ? ' · ✓ ' + d.checked : '';
+                        pop.classList.add('is-on');
+                        pop.setAttribute('aria-hidden', 'false');
+                    }
+                    function hide() {
+                        pop.classList.remove('is-on');
+                        pop.setAttribute('aria-hidden', 'true');
+                    }
+
+                    wrap.addEventListener('click', function (e) {
+                        const btn = e.target.closest('.manifest-grid-seat');
+                        if (!btn) return;
+                        show(btn);
+                    });
+                    close.addEventListener('click', hide);
+                    document.addEventListener('keydown', function (e) {
+                        if (e.key === 'Escape') hide();
+                    });
+                    // Dismiss when tapping anywhere outside the popover/grid
+                    document.addEventListener('click', function (e) {
+                        if (!pop.classList.contains('is-on')) return;
+                        if (pop.contains(e.target)) return;
+                        if (e.target.closest('.manifest-grid-seat')) return;
+                        hide();
+                    });
+                })();
+            </script>
+        @endif
 
     @endif
 

@@ -34,7 +34,7 @@ class ManifestController extends Controller
         $data = $this->buildManifest($showTime);
 
         $view = $request->query('view', 'print');
-        if (!in_array($view, ['print', 'usher', 'grouped'], true)) {
+        if (!in_array($view, ['print', 'usher', 'grouped', 'grid'], true)) {
             $view = 'print';
         }
 
