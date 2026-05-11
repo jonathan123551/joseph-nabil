@@ -34,9 +34,14 @@
     //                     'GAP' inserts a 1.5×ROW_PITCH walkway/gap in
     //                     the geometry (NOT a CSS margin) — this is how
     //                     the balcony walkway between C and D is drawn.
+    //                     'GAP_HALF' inserts a 0.75×ROW_PITCH separator
+    //                     (half the size of 'GAP') — a subtle visual
+    //                     break, NOT a full aisle. Used between Q and R
+    //                     in the hall preset.
     //   rightShiftSteps : per-row outermost wing offset, in HALF-SEAT
     //                     units. 0 = wings flush with center column;
-    //                     larger = wings pushed outward (cinematic fan).
+    //                     positive = wings pushed outward (cinematic fan);
+    //                     negative = wings pulled inward (back-row stagger).
     //   noCenterAnchors : for rows that have no center column, the row
     //                     letter to ANCHOR each wing's inner edge to.
     //                     Object cast forces JSON object (not array).
@@ -47,15 +52,28 @@
     //                     2026-05-09 drop_anba_ruweis_q_center migration).
     $presets = [
         'hall' => [
-            'rowsOrder'        => ['A','B','C','D','E','F','G','H','GAP','I','J','K','L','M','N','O','P','Q','R'],
+            // 'GAP_HALF' between Q and R adds a subtle vertical separator
+            // (0.75×ROW_PITCH ≈ 22.5 px extra), about half the size of the
+            // H↔I walkway. Not a full aisle — a gentle visual hint that R
+            // is the offset back-row.
+            'rowsOrder'        => ['A','B','C','D','E','F','G','H','GAP','I','J','K','L','M','N','O','P','Q','GAP_HALF','R'],
             'rightShiftSteps'  => (object) [
                 'Q' => 0,    'P' => 1,    'O' => 2,    'N' => 3,
                 'M' => 3.0,  'L' => 3.2,  'K' => 3.4,  'J' => 3.6, 'I' => 4,
                 'H' => 5,    'G' => 6,    'F' => 7,    'E' => 8,   'D' => 9, 'C' => 10,
                 'B' => 10.2, 'A' => 11.2,
-                'R' => 1,
+                // Row R: NEGATIVE step = wings pulled INWARD by half a seat
+                // relative to Q (the anchor). Produces a natural theater
+                // stagger where R's innermost seats sit half a seat-width
+                // inside Q's inner edge.
+                'R' => -1,
             ],
-            'noCenterAnchors'  => (object) ['A' => 'B', 'Q' => 'P', 'R' => 'Q'],
+            // Q is the anchor for R as well so R's inner edge lines up with
+            // Q's inner edge (both anchor to P's center column). Without
+            // this, R would anchor to Q (which has no center column) and
+            // its inner edge would collapse onto CX ± AISLE_GAP — far
+            // inside Q's inner edge.
+            'noCenterAnchors'  => (object) ['A' => 'B', 'Q' => 'P', 'R' => 'P'],
             'adminOnlyCenter'  => [],
         ],
         // anba_ruweis_ballacon — 8-row premium balcony tier.
@@ -1420,7 +1438,7 @@
         const PRESET       = presetEl
             ? JSON.parse(presetEl.textContent)
             : {
-                rowsOrder: ['A','B','C','D','E','F','G','H','GAP','I','J','K','L','M','N','O','P','Q','R'],
+                rowsOrder: ['A','B','C','D','E','F','G','H','GAP','I','J','K','L','M','N','O','P','Q','GAP_HALF','R'],
                 rightShiftSteps: {},
                 noCenterAnchors: {},
                 adminOnlyCenter: [],
@@ -1481,10 +1499,13 @@
         //   RIGHT wing → x  +=  offset
         //
         // The offset comes from RIGHT_SHIFT_STEPS[row] (in half-seat widths,
-        // multiplied by STEP). Row Q is the anchor (offset = 0); front
-        // rows step further out. No interpolation, no stagger, no bias —
-        // every seat in a wing moves by exactly the same amount, so the
-        // wing keeps its natural SEAT_PITCH spacing.
+        // multiplied by STEP). Row Q is the anchor (offset = 0); rows in
+        // FRONT of Q step further OUT (positive steps), and row R (behind
+        // Q) is staggered IN (negative step) so its innermost seats sit
+        // half a seat inside Q's inner edge — a natural back-row stagger.
+        // No interpolation, no stagger-within-wing, no bias — every seat
+        // in a wing moves by exactly the same amount, so the wing keeps
+        // its natural SEAT_PITCH spacing.
         //
         // To find where the math runs, search the file for:
         //   ===== WING OFFSET (LEFT)  =====
@@ -1569,6 +1590,13 @@
             ROWS_ORDER.forEach((letter, idx) => {
                 if (letter === 'GAP') {
                     visualRow += 1.5; // walkway / section break (geometry, not CSS)
+                    return;
+                }
+                if (letter === 'GAP_HALF') {
+                    // Half-size separator (0.75×ROW_PITCH ≈ 22.5 px extra).
+                    // Subtle visual break, NOT a walkway — used between Q
+                    // and R in the hall preset to telegraph R's stagger.
+                    visualRow += 0.75;
                     return;
                 }
                 const data = rows[letter];
