@@ -424,6 +424,76 @@
             [data-anba-root] .gesture-hint.is-leaving .hint-card { animation: none; }
         }
 
+        /* ===== "More seats →" edge arrows =====
+           Pulsing chevrons pinned to the leading / trailing edges of the
+           scroller, visible only when the canvas extends past the
+           viewport on that axis. Mobile-first; hidden on desktop and on
+           reduced-motion (replaced with static visibility). Pointer-
+           events-none so the underlying gesture pipeline is unaffected. */
+        [data-anba-root] .edge-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 56px;
+            border-radius: 14px;
+            background: linear-gradient(90deg, rgba(8,10,20,0.78), rgba(8,10,20,0.42));
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            color: rgba(34,211,238,0.95);
+            font-size: 22px;
+            font-weight: 800;
+            line-height: 1;
+            opacity: 0;
+            transition: opacity .22s var(--p-ease);
+        }
+        [data-anba-root] .edge-arrow.is-visible { opacity: 1; }
+        [data-anba-root] .edge-arrow.start { inset-inline-start: 6px; }
+        [data-anba-root] .edge-arrow.end   { inset-inline-end:   6px; }
+        [data-anba-root] .edge-arrow.start { background: linear-gradient(90deg, rgba(8,10,20,0.78), rgba(8,10,20,0.10)); }
+        [data-anba-root] .edge-arrow.end   { background: linear-gradient(-90deg, rgba(8,10,20,0.78), rgba(8,10,20,0.10)); }
+        /* Subtle nudge animation — translateX 3px every 1.6s. Direction
+           flips per side (leading edge pulses leftward, trailing edge
+           pulses rightward) to suggest "more on this side". */
+        @keyframes edgeArrowPulseStart {
+            0%, 100% { transform: translateY(-50%) translateX(0); }
+            50%      { transform: translateY(-50%) translateX(-3px); }
+        }
+        @keyframes edgeArrowPulseEnd {
+            0%, 100% { transform: translateY(-50%) translateX(0); }
+            50%      { transform: translateY(-50%) translateX(3px); }
+        }
+        [data-anba-root] .edge-arrow.start.is-visible { animation: edgeArrowPulseStart 1.6s ease-in-out infinite; }
+        [data-anba-root] .edge-arrow.end.is-visible   { animation: edgeArrowPulseEnd   1.6s ease-in-out infinite; }
+        /* Soft fade-out shell so the arrows don't visually clash with
+           seats at the edge — same color as the surrounding canvas. */
+        [data-anba-root] .edge-arrow svg {
+            width: 14px;
+            height: 14px;
+            display: block;
+            filter: drop-shadow(0 0 6px rgba(34,211,238,0.35));
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .edge-arrow {
+            color: #4338ca;
+            background: linear-gradient(90deg, rgba(255,255,255,0.92), rgba(255,255,255,0.42));
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .edge-arrow.start { background: linear-gradient(90deg, rgba(255,255,255,0.92), rgba(255,255,255,0.10)); }
+        :root[data-pt-theme="light"] [data-anba-root] .edge-arrow.end   { background: linear-gradient(-90deg, rgba(255,255,255,0.92), rgba(255,255,255,0.10)); }
+        :root[data-pt-theme="light"] [data-anba-root] .edge-arrow svg   { filter: drop-shadow(0 0 6px rgba(99,102,241,0.35)); }
+        @media (min-width: 880px) {
+            [data-anba-root] .edge-arrow { display: none !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            [data-anba-root] .edge-arrow.start.is-visible,
+            [data-anba-root] .edge-arrow.end.is-visible { animation: none; }
+            [data-anba-root] .edge-arrow { transition: none; }
+        }
+
         /* ===== Side panel ===== */
         [data-anba-root] .seat-chip {
             display: inline-flex; align-items: center; gap: 4px;
@@ -588,6 +658,20 @@
         }
         @media (prefers-reduced-motion: reduce) {
             [data-anba-root] .mobile-cta { transition: opacity .2s linear; }
+        }
+        /* Inline seat labels in the mobile CTA so the user can verify
+           the actual seats picked (not just the count). Truncates to
+           one line; the full list is still in the chips region of the
+           side panel above. */
+        [data-anba-root] [data-mobile-labels] {
+            color: var(--p-gold);
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+            max-width: 60vw;
+            vertical-align: bottom;
         }
 
         /* =========================================================
@@ -879,6 +963,22 @@
                     </div>
                 </div>
 
+                {{-- Edge "more seats" indicators. Pulsing chevrons on
+                     the leading / trailing edges of the canvas viewport,
+                     visible only when content extends off-screen on
+                     that side. Mobile-only via CSS; toggled by JS as
+                     the user pans / zooms. --}}
+                <div class="edge-arrow start" data-anba-edge-arrow="start" aria-hidden="true">
+                    <svg viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 1 L3 6 L8 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="edge-arrow end" data-anba-edge-arrow="end" aria-hidden="true">
+                    <svg viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 1 L9 6 L4 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+
                 @if ($isFullscreen)
                     {{-- Floating zoom controls (fullscreen mobile primary path).
                          Glass + neon, sits above the sticky CTA. --}}
@@ -1060,7 +1160,7 @@
 
     {{-- mobile sticky CTA --}}
     <div class="mobile-cta">
-        <div class="flex-1">
+        <div class="flex-1 min-w-0">
             <div class="text-[10px] text-[color:var(--p-text-3)]">
                 @if ($adminMode)
                     <span data-i18n="seat_pending_changes">تغييرات معلَّقة</span>
@@ -1068,13 +1168,19 @@
                     <span data-i18n="seat_chip_selected">المختار</span>
                 @endif
             </div>
-            <div class="text-sm font-bold text-[color:var(--p-text)]">
+            {{-- Count + (labels) on first line. The labels list is
+                 written by JS in renderSidePanel(); it gracefully
+                 truncates to one ellipsised line and stays empty
+                 when nothing is selected. --}}
+            <div class="text-sm font-bold text-[color:var(--p-text)] truncate">
                 <span data-mobile-count>0</span> <span data-i18n="seat_chip_seat">مقعد</span>
-                @unless ($adminMode)
-                    ·
-                    <span style="color: var(--p-gold);"><span data-mobile-total>0</span> EGP</span>
-                @endunless
+                <span data-mobile-labels></span>
             </div>
+            @unless ($adminMode)
+                <div class="text-[11px] mt-0.5" style="color: var(--p-gold);">
+                    <span data-mobile-total>0</span> EGP
+                </div>
+            @endunless
         </div>
         <button type="button" data-continue
                 disabled
@@ -1175,6 +1281,7 @@
         const continueBtns = root.querySelectorAll('[data-continue]');
         const mobileCount  = root.querySelector('[data-mobile-count]');
         const mobileTotal  = root.querySelector('[data-mobile-total]');
+        const mobileLabels = root.querySelector('[data-mobile-labels]');
 
         // map seatId -> { row, n, isAdminOnly? }
         const seatMeta  = new Map();
@@ -1898,6 +2005,21 @@
             if (window.PT && window.PT.toast) {
                 window.PT.toast(t('seat_auto_pick_done'), 1800);
             }
+            // Smoothly pan the canvas so the picked seats end up centered
+            // in the viewport. This is the visual confirmation that the
+            // user *can* see what got picked, even when the seats were
+            // off-screen at the moment of auto-pick. Looked up by id in
+            // seatMeta (the layout-computed cache) which already has
+            // canvas-local x/y coords for every seat.
+            const seatList = result.seats
+                .map((s) => seatMeta.get(s.id))
+                .filter(Boolean);
+            if (seatList.length && typeof panToSeats === 'function') {
+                // Defer one frame so the bottom-bar render + redraw
+                // run first; the camera move then feels like a
+                // confirmation rather than racing the UI.
+                requestAnimationFrame(() => panToSeats(seatList));
+            }
             return true;
         }
 
@@ -2032,6 +2154,31 @@
             if (totalEl)      totalEl.textContent     = (n * hallPrice).toLocaleString('en-US');
             if (mobileTotal)  mobileTotal.textContent = (n * hallPrice).toLocaleString('en-US');
             root.classList.toggle('has-selection', n > 0);
+
+            // Inline seat-label preview for the mobile CTA so the user
+            // can verify the actual seats picked (not just the count).
+            // Sorts by row + number, prefixes with " · ", truncates to 6
+            // labels with "+N" suffix when more are selected. Cleared
+            // when the selection is empty.
+            if (mobileLabels) {
+                if (n === 0) {
+                    mobileLabels.textContent = '';
+                } else {
+                    const sorted = ids.slice().sort((a, b) => {
+                        const ma = selected.get(a), mb = selected.get(b);
+                        if (ma.row !== mb.row) return ma.row < mb.row ? -1 : 1;
+                        return ma.n - mb.n;
+                    });
+                    const PREVIEW = 6;
+                    const head = sorted.slice(0, PREVIEW).map(id => {
+                        const meta = selected.get(id);
+                        return meta.row + meta.n;
+                    });
+                    const rest = n - head.length;
+                    const str = head.join(', ') + (rest > 0 ? ' +' + rest : '');
+                    mobileLabels.textContent = ' · ' + str;
+                }
+            }
 
             // chips
             chipsBox.innerHTML = '';
@@ -2638,10 +2785,23 @@
                 return;
             }
 
+            // Persistent once-per-device gate. The hint is purely advisory
+            // and re-showing it on every visit becomes noise. Wrapped in
+            // try/catch so private-mode Safari (no localStorage) still
+            // shows the hint instead of erroring out.
+            const SEEN_KEY = 'anba_gesture_hint_seen_v1';
+            try {
+                if (localStorage.getItem(SEEN_KEY) === '1') {
+                    hint.parentNode && hint.parentNode.removeChild(hint);
+                    return;
+                }
+            } catch (_) { /* storage unavailable — show the hint anyway */ }
+
             let dismissed = false;
             function dismiss() {
                 if (dismissed) return;
                 dismissed = true;
+                try { localStorage.setItem(SEEN_KEY, '1'); } catch (_) {}
                 hint.classList.remove('is-visible');
                 hint.classList.add('is-leaving');
                 setTimeout(() => {
@@ -2660,7 +2820,134 @@
             if (scroller) {
                 scroller.addEventListener('touchstart', dismiss, { passive: true, once: true });
             }
+            // Auto-dismiss after 6s so the hint never lingers if the
+            // user is reading the screen without panning yet.
+            setTimeout(dismiss, 6000);
         })();
+
+        // ===== "More seats" edge arrows =====
+        // Show pulsing chevrons on the leading / trailing edges of the
+        // scroller whenever the canvas extends past that edge, so the
+        // user knows there's content to pan toward. Hidden on desktop
+        // via CSS (>=880px). Updated on every gesture / zoom / resize.
+        (function setupEdgeArrows() {
+            const startArrow = root.querySelector('[data-anba-edge-arrow="start"]');
+            const endArrow   = root.querySelector('[data-anba-edge-arrow="end"]');
+            if (!startArrow || !endArrow) return;
+
+            // Tolerance — within this many CSS px of the edge we
+            // consider the content "fully visible" and hide the arrow.
+            const EDGE_EPS = 6;
+
+            function update() {
+                const sw = scroller.clientWidth;
+                const cw = DISPLAY_W * zoomLevel;
+                // panX is the canvas-left offset relative to scroller-left.
+                // If panX < -EDGE_EPS the canvas extends off the leading
+                // edge → show the start arrow. If (panX + cw) > sw + EDGE_EPS
+                // the canvas extends off the trailing edge → show the
+                // end arrow.
+                const overflowStart = panX < -EDGE_EPS;
+                const overflowEnd   = (panX + cw) > sw + EDGE_EPS;
+                startArrow.classList.toggle('is-visible', overflowStart);
+                endArrow.classList.toggle('is-visible',   overflowEnd);
+            }
+
+            // The gesture pipeline writes panX/panY/zoomLevel and then
+            // calls applyTransform() at the end of every frame. We can't
+            // monkey-patch applyTransform from outside its closure, so
+            // we instead schedule an arrow-visibility recompute on every
+            // pointer / wheel / resize event via rAF (which keeps cost
+            // capped at one update per frame regardless of event rate).
+            let rafScheduled = false;
+            function scheduleUpdate() {
+                if (rafScheduled) return;
+                rafScheduled = true;
+                requestAnimationFrame(() => {
+                    rafScheduled = false;
+                    update();
+                });
+            }
+            scroller.addEventListener('pointermove', scheduleUpdate, { passive: true });
+            scroller.addEventListener('pointerup',   scheduleUpdate, { passive: true });
+            scroller.addEventListener('wheel',       scheduleUpdate, { passive: true });
+            window.addEventListener('resize', scheduleUpdate);
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', scheduleUpdate);
+            }
+            // Publish so non-pointer flows (auto-pick pan animation,
+            // double-tap fit) can also keep arrows in sync.
+            window.__ANBA_EDGE_ARROWS_UPDATE = scheduleUpdate;
+            // Initial paint
+            requestAnimationFrame(update);
+            // Also re-check after the boot fit (which runs in a deferred
+            // rAF) — at this point the layout has stabilized.
+            setTimeout(scheduleUpdate, 80);
+            setTimeout(scheduleUpdate, 320);
+        })();
+
+        // ===== Pan to selection =====
+        // Smoothly tween panX/panY so a group of seats ends up centered
+        // in the viewport. Used after auto-pick so the user can see the
+        // seats that got picked even if they were off-screen. Skipped
+        // under prefers-reduced-motion — we just snap.
+        function panToSeats(seatList) {
+            if (!Array.isArray(seatList) || seatList.length === 0) return;
+            // centroid in canvas-local coords
+            let cx = 0, cy = 0, count = 0;
+            for (const s of seatList) {
+                if (!s || typeof s.x !== 'number') continue;
+                cx += s.x; cy += s.y; count++;
+            }
+            if (count === 0) return;
+            cx /= count; cy /= count;
+            // Target pan such that the centroid lands at scroller center.
+            const sw = scroller.clientWidth;
+            const sh = scroller.clientHeight;
+            const targetX = sw / 2 - cx * zoomLevel;
+            const targetY = sh / 2 - cy * zoomLevel;
+            const startX = panX, startY = panY;
+            const dx = targetX - startX, dy = targetY - startY;
+            // Bail out for tiny motions — keeps animation cost zero
+            // when the seats were already near center.
+            if (Math.hypot(dx, dy) < 4) {
+                panX = targetX; panY = targetY;
+                clampPan(); applyTransform();
+                if (typeof window.__ANBA_EDGE_ARROWS_UPDATE === 'function') {
+                    window.__ANBA_EDGE_ARROWS_UPDATE();
+                }
+                return;
+            }
+            if (reducedMotion) {
+                panX = targetX; panY = targetY;
+                clampPan(); applyTransform();
+                if (typeof window.__ANBA_EDGE_ARROWS_UPDATE === 'function') {
+                    window.__ANBA_EDGE_ARROWS_UPDATE();
+                }
+                return;
+            }
+            const DUR = 420; // ms
+            const t0 = performance.now();
+            function step(now) {
+                const u = Math.min(1, (now - t0) / DUR);
+                // easeOutCubic — premium settle
+                const k = 1 - Math.pow(1 - u, 3);
+                panX = startX + dx * k;
+                panY = startY + dy * k;
+                clampPan();
+                applyTransform();
+                // Keep the edge-arrow visibility in sync with the camera
+                // move. Throttled internally to one update per frame.
+                if (typeof window.__ANBA_EDGE_ARROWS_UPDATE === 'function') {
+                    window.__ANBA_EDGE_ARROWS_UPDATE();
+                }
+                if (u < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+        // Publish on a stable symbol so the auto-pick handler can call
+        // it across closure boundaries.
+        window.__ANBA_PAN_TO_SEATS = panToSeats;
 
         // Redraw on devicePixelRatio change (rare) and re-fit on resize
         // so rotating the device or collapsing the URL bar doesn't leave
