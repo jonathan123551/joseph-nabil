@@ -255,7 +255,7 @@ class BookingController extends Controller
     /* =======================
  | RESEND TICKET
  ======================= */
-    public function resendTicket(\Illuminate\Http\Request $request, $id)
+    public function resendTicket(Request $request, $id)
     {
         $ticket = Ticket::findOrFail($id);
 
@@ -296,5 +296,107 @@ class BookingController extends Controller
 
         return redirect()->route('admin.bookings.index')
             ->with('status', 'تم حذف الحجز بالكامل');
+    }
+
+    /* =======================
+     | PUBLIC TICKET-BY-REFERENCE LOOKUP
+     |
+     | Customer-facing self-serve page reachable at GET /ticket/{reference}.
+     | Renders one of three variants based on booking status. Intentionally
+     | minimal: no admin actions, no payment screenshot, masked phone. The
+     | route stays public — same posture as the scanner — so a link sent in
+     | a WhatsApp template / email keeps working without auth.
+     ======================= */
+    public function sendTicketsByReference(string $reference)
+    {
+        $booking = Booking::with(['tickets', 'seats', 'showTime.show'])
+            ->where('reference_code', $reference)
+            ->first();
+
+        if (! $booking) {
+            // Branded 404 — never throws so we don't leak debug info.
+            return response()->view('errors.404', [], 404);
+        }
+
+        return view('tickets.show', [
+            'booking' => $booking,
+            'maskedPhone' => $this->maskPhone($booking->phone),
+        ]);
+    }
+
+    /* =======================
+     | RESEND BY REFERENCE
+     |
+     | Customer-initiated resend of an approved booking's tickets to the
+     | phone already on file. Rate-limited to 1 request / 60s per booking.
+     | Never accepts a user-supplied phone number.
+     ======================= */
+    public function resendByReference(Request $request, string $reference)
+    {
+        $booking = Booking::with('tickets')
+            ->where('reference_code', $reference)
+            ->first();
+
+        if (! $booking) {
+            return response()->view('errors.404', [], 404);
+        }
+
+        // Flash codes (not translated strings) — the view picks the right
+        // localized text based on the active language. Keeps this code free
+        // of Arabic/English string literals and respects the JS-side i18n
+        // system the rest of the app uses.
+        $redirect = redirect()->route('tickets.show', ['reference' => $reference]);
+
+        if ($booking->status !== 'approved') {
+            return $redirect->with('ticket_lookup_status', 'not_approved');
+        }
+
+        $cacheKey = 'ticket_resend:'.$booking->id;
+        if (cache()->has($cacheKey)) {
+            $secondsLeft = max(1, (int) cache()->get($cacheKey) - now()->timestamp);
+
+            return $redirect
+                ->with('ticket_lookup_status', 'cooldown')
+                ->with('ticket_lookup_cooldown', $secondsLeft);
+        }
+
+        $sent = 0;
+        foreach ($booking->tickets as $ticket) {
+            if (! $ticket->qr_image_path) {
+                continue;
+            }
+
+            $this->sendWhatsAppTicket(
+                $ticket->phone,
+                $ticket->qr_image_path,
+                $ticket->ticket_code,
+                $ticket->name,
+                ''
+            );
+
+            $ticket->update(['whatsapp_sent' => true]);
+            $sent++;
+        }
+
+        // 60-second cooldown — value stored is the unix timestamp at which
+        // the cooldown expires, so the UI can show a precise countdown.
+        cache()->put($cacheKey, now()->timestamp + 60, now()->addSeconds(60));
+
+        return $redirect->with('ticket_lookup_status', $sent > 0 ? 'success' : 'no_qr');
+    }
+
+    /**
+     * Mask a phone number to its last 4 digits — `********1234`.
+     * Safe to display on a publicly-shareable page.
+     */
+    private function maskPhone(?string $phone): string
+    {
+        $digits = preg_replace('/[^0-9]/', '', (string) $phone);
+        $len = strlen($digits);
+        if ($len <= 4) {
+            return $digits;
+        }
+
+        return str_repeat('•', max(4, $len - 4)).substr($digits, -4);
     }
 }
