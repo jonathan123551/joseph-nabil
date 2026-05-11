@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>@yield('title', 'Premium Tickets')</title>
+    {{-- Pages can opt into JS-driven title localization by declaring
+         @section('headMeta') with a <meta name="pt-title-i18n"
+         content="my_key" data-suffix="optional dynamic suffix">. The
+         layout's applyLang() reads this tag and updates document.title
+         on initial load and on every language toggle. --}}
+    @yield('headMeta')
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#05060d" id="pt-theme-color">
 
@@ -6229,6 +6235,16 @@
                 seat_auto_pick_done: 'تم اختيار أفضل المقاعد',
                 seat_auto_pick_none: 'لا توجد مقاعد متجاورة كافية',
                 seat_auto_pick_prompt: 'كم مقعد تريد؟',
+                seat_auto_pick_eyebrow: 'اختيار سريع',
+                seat_auto_pick_cancel: 'إلغاء',
+
+                /* ===== page <title>s — used by the meta[name="pt-title-i18n"] hook ===== */
+                page_title_shows: 'العروض المتاحة · Premium Tickets',
+                page_title_book_seats: 'اختار مقعدك',
+                page_title_book_form: 'إكمال الحجز',
+                page_title_book_create: 'حجز تذاكر',
+                page_title_thankyou: 'تم إرسال طلب الحجز · Premium Tickets',
+                page_title_ticket_lookup: 'تذكرتك · Premium Tickets',
 
                 /* ===== auth pages ===== */
                 auth_admin_pill: 'دخول الأدمن',
@@ -7022,6 +7038,16 @@
                 seat_auto_pick_done: 'Best seats picked for you',
                 seat_auto_pick_none: 'Not enough adjacent seats free',
                 seat_auto_pick_prompt: 'How many seats?',
+                seat_auto_pick_eyebrow: 'Quick pick',
+                seat_auto_pick_cancel: 'Cancel',
+
+                /* ===== page <title>s — used by the meta[name="pt-title-i18n"] hook ===== */
+                page_title_shows: 'Available shows · Premium Tickets',
+                page_title_book_seats: 'Pick your seat',
+                page_title_book_form: 'Complete booking',
+                page_title_book_create: 'Book tickets',
+                page_title_thankyou: 'Booking submitted · Premium Tickets',
+                page_title_ticket_lookup: 'Your ticket · Premium Tickets',
 
                 /* ===== auth pages ===== */
                 auth_admin_pill: 'Admin Access',
@@ -7627,6 +7653,21 @@
                 b.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
             document.querySelectorAll('.pt-lang-toggle').forEach(group => moveThumbForGroup(group, lang));
+            // Page title — pages can declare a meta tag like
+            //   <meta name="pt-title-i18n" content="key" data-suffix="...">
+            // and document.title is rebuilt here in the active language.
+            // The dynamic `data-suffix` (e.g. a show title) is appended
+            // with " · " when present. Missing keys leave the existing
+            // @section('title') string untouched.
+            const titleMeta = document.querySelector('meta[name="pt-title-i18n"]');
+            if (titleMeta) {
+                const tk = titleMeta.getAttribute('content');
+                const suffix = titleMeta.getAttribute('data-suffix') || '';
+                if (tk && dict[tk] !== undefined) {
+                    const base = interp(dict[tk], readVars(titleMeta));
+                    document.title = suffix ? base + ' · ' + suffix : base;
+                }
+            }
             try { localStorage.setItem('pt-lang', lang); } catch(_){}
             window.PT_LANG = lang;
             document.dispatchEvent(new CustomEvent('pt:langchange', { detail: { lang } }));
