@@ -2628,6 +2628,341 @@
         }
 
         /* =====================================================================
+           ADMIN POLISH — Reusable utilities + missing light-mode overrides.
+           Goal: every admin CRUD page (bookings, shows, showtimes, settings)
+           reads cleanly in BOTH themes without per-view inline color tweaks.
+           ====================================================================*/
+
+        /* ------------- Missing dark-mode component baselines ------------- */
+        /* (These already exist in the dark theme — re-asserted here only when
+           a light-mode override below depends on a specific base property.
+           No new dark-mode visual changes.) */
+
+        /* ------------- Light: filter toolbar / quick-stats strip ------------- */
+        /* Their dark slate gradients (rgba(20,24,38,*)) read as a near-black
+           rectangle on the cream background — breaking the "light glass" feel
+           of every admin index page. */
+        :root[data-pt-theme="light"] .prism-stat-strip {
+            background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(252,250,245,0.86));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                0 20px 40px -22px rgba(15,23,42,0.18),
+                0 4px 10px -4px rgba(15,23,42,0.08);
+        }
+        :root[data-pt-theme="light"] .prism-stat-strip > .prism-stat-strip-item {
+            border-inline-end-color: rgba(15,23,42,0.10);
+        }
+        :root[data-pt-theme="light"] .prism-stat-strip-label {
+            color: var(--prism-text-3);
+        }
+
+        :root[data-pt-theme="light"] .prism-toolbar {
+            background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(252,250,245,0.90));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                0 20px 40px -22px rgba(15,23,42,0.20),
+                0 4px 10px -4px rgba(15,23,42,0.08);
+        }
+
+        /* ------------- Light: segmented control ------------- */
+        :root[data-pt-theme="light"] .prism-segment {
+            background: rgba(15,23,42,0.04);
+            border-color: rgba(15,23,42,0.14);
+        }
+        :root[data-pt-theme="light"] .prism-segment > label {
+            color: var(--prism-text-3);
+        }
+        :root[data-pt-theme="light"] .prism-segment > label:hover { color: var(--prism-text-2); }
+        :root[data-pt-theme="light"] .prism-segment > input[type="radio"]:checked + label {
+            color: var(--prism-text);
+            background: linear-gradient(135deg, rgba(8,145,178,0.14), rgba(124,58,237,0.14));
+            border-color: rgba(79,70,229,0.45);
+            box-shadow: 0 0 18px rgba(79,70,229,0.16);
+        }
+
+        /* ------------- Light: seat chips (admin booking rows) -------------
+           Dark-mode chip text colors (#a5f3fc, #fde68a) disappear on cream.
+           Switch to deep tints with matching tinted backgrounds. */
+        :root[data-pt-theme="light"] .pt-seat-chip-hall {
+            background: linear-gradient(135deg, rgba(8,145,178,0.14), rgba(79,70,229,0.08));
+            border-color: rgba(8,145,178,0.40);
+            color: #0e7490;
+        }
+        :root[data-pt-theme="light"] .pt-seat-chip-balcony {
+            background: linear-gradient(135deg, rgba(180,83,9,0.14), rgba(124,58,237,0.08));
+            border-color: rgba(180,83,9,0.40);
+            color: #92400e;
+        }
+        :root[data-pt-theme="light"] .pt-seat-chip {
+            background: rgba(79,70,229,0.10);
+            border-color: rgba(79,70,229,0.32);
+            color: #3730a3;
+        }
+
+        /* ------------- Light: form section card ------------- */
+        /* Dark slate base on the admin shows / showtimes create/edit forms
+           reads as a black bar on cream. Switch to a soft white panel. */
+        :root[data-pt-theme="light"] .pt-form-section {
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(252,250,245,0.90));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                0 22px 44px -22px rgba(15,23,42,0.20),
+                0 4px 10px -4px rgba(15,23,42,0.08);
+        }
+        :root[data-pt-theme="light"] .pt-form-section-head {
+            border-bottom-color: rgba(79,70,229,0.22);
+        }
+        :root[data-pt-theme="light"] .pt-form-section-head-icon {
+            background: linear-gradient(135deg, rgba(8,145,178,0.16), rgba(124,58,237,0.16));
+            border-color: rgba(79,70,229,0.40);
+            color: var(--prism-text);
+            box-shadow: 0 0 14px rgba(79,70,229,0.16);
+        }
+        :root[data-pt-theme="light"] .pt-file-zone {
+            border-color: rgba(79,70,229,0.40);
+        }
+
+        /* =====================================================================
+           Reusable admin utilities — replace repeated inline-styled patterns
+           with semantic classes so they look right in BOTH themes.
+           ====================================================================*/
+
+        /* ------------- pt-alert: flash / validation / info banner -------------
+           Replaces the repeated `style="background: rgba(...); border: 1px solid
+           rgba(...); color: #xxxxxx"` blocks scattered across admin views. */
+        .pt-alert {
+            border-radius: 14px;
+            padding: 12px 14px;
+            font-size: 13px;
+            line-height: 1.55;
+            border: 1px solid var(--prism-border);
+            background: rgba(255,255,255,0.04);
+            color: var(--prism-text-2);
+        }
+        .pt-alert + .pt-alert { margin-top: 10px; }
+        .pt-alert-success {
+            background: rgba(52,211,153,0.10);
+            border-color: rgba(52,211,153,0.45);
+            color: #6ee7b7;
+        }
+        .pt-alert-info {
+            background: rgba(34,211,238,0.10);
+            border-color: rgba(34,211,238,0.40);
+            color: #a5f3fc;
+        }
+        .pt-alert-warn {
+            background: rgba(251,191,36,0.10);
+            border-color: rgba(251,191,36,0.40);
+            color: #fcd34d;
+        }
+        .pt-alert-danger {
+            background: rgba(244,63,94,0.10);
+            border-color: rgba(251,113,133,0.45);
+            color: #fda4af;
+        }
+        :root[data-pt-theme="light"] .pt-alert {
+            background: rgba(15,23,42,0.04);
+            border-color: rgba(15,23,42,0.14);
+            color: var(--prism-text-2);
+        }
+        :root[data-pt-theme="light"] .pt-alert-success {
+            background: rgba(4,120,87,0.10);
+            border-color: rgba(4,120,87,0.40);
+            color: #047857;
+        }
+        :root[data-pt-theme="light"] .pt-alert-info {
+            background: rgba(8,145,178,0.10);
+            border-color: rgba(8,145,178,0.40);
+            color: #0e7490;
+        }
+        :root[data-pt-theme="light"] .pt-alert-warn {
+            background: rgba(180,83,9,0.10);
+            border-color: rgba(180,83,9,0.40);
+            color: #92400e;
+        }
+        :root[data-pt-theme="light"] .pt-alert-danger {
+            background: rgba(190,18,60,0.10);
+            border-color: rgba(190,18,60,0.40);
+            color: #be123c;
+        }
+
+        /* ------------- pt-mini-card: small inline data card -------------
+           Used for hall/balcony/total capacity boxes, pricing splits, etc.
+           Dark-mode token-driven colors stay; light-mode tints replace them. */
+        .pt-mini-card {
+            border-radius: 12px;
+            padding: 10px 12px;
+            border: 1px solid var(--prism-border);
+            background: rgba(255,255,255,0.04);
+        }
+        .pt-mini-card-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--prism-text-3);
+            display: block;
+        }
+        .pt-mini-card-value {
+            font-weight: 700;
+            font-size: 16px;
+            font-family: "Space Grotesk", system-ui, sans-serif;
+        }
+        .pt-mini-card-gold    { background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.32); }
+        .pt-mini-card-gold .pt-mini-card-value    { color: var(--prism-gold); }
+        .pt-mini-card-violet  { background: rgba(192,132,252,0.08); border-color: rgba(192,132,252,0.32); }
+        .pt-mini-card-violet .pt-mini-card-value  { color: #c084fc; }
+        .pt-mini-card-emerald { background: rgba(52,211,153,0.10); border-color: rgba(52,211,153,0.40); }
+        .pt-mini-card-emerald .pt-mini-card-value { color: var(--prism-emerald); }
+        .pt-mini-card-cyan    { background: rgba(34,211,238,0.10); border-color: rgba(34,211,238,0.40); }
+        .pt-mini-card-cyan .pt-mini-card-value    { color: var(--prism-cyan); }
+        .pt-mini-card-rose    { background: rgba(244,63,94,0.10); border-color: rgba(251,113,133,0.40); }
+        .pt-mini-card-rose .pt-mini-card-value    { color: var(--prism-rose); }
+        :root[data-pt-theme="light"] .pt-mini-card {
+            background: rgba(15,23,42,0.03);
+            border-color: rgba(15,23,42,0.12);
+        }
+        :root[data-pt-theme="light"] .pt-mini-card-gold {
+            background: rgba(180,83,9,0.08);
+            border-color: rgba(180,83,9,0.32);
+        }
+        :root[data-pt-theme="light"] .pt-mini-card-gold .pt-mini-card-value { color: #b45309; }
+        :root[data-pt-theme="light"] .pt-mini-card-violet {
+            background: rgba(124,58,237,0.08);
+            border-color: rgba(124,58,237,0.32);
+        }
+        :root[data-pt-theme="light"] .pt-mini-card-violet .pt-mini-card-value { color: #7c3aed; }
+        :root[data-pt-theme="light"] .pt-mini-card-emerald {
+            background: rgba(4,120,87,0.08);
+            border-color: rgba(4,120,87,0.32);
+        }
+        :root[data-pt-theme="light"] .pt-mini-card-emerald .pt-mini-card-value { color: #047857; }
+        :root[data-pt-theme="light"] .pt-mini-card-cyan {
+            background: rgba(8,145,178,0.08);
+            border-color: rgba(8,145,178,0.32);
+        }
+        :root[data-pt-theme="light"] .pt-mini-card-cyan .pt-mini-card-value { color: #0e7490; }
+        :root[data-pt-theme="light"] .pt-mini-card-rose {
+            background: rgba(190,18,60,0.08);
+            border-color: rgba(190,18,60,0.32);
+        }
+        :root[data-pt-theme="light"] .pt-mini-card-rose .pt-mini-card-value { color: #be123c; }
+
+        /* ------------- pt-action-pill: tinted action button -------------
+           Replaces inline-styled action buttons (edit / delete / view-times /
+           seat-map / cancel) in admin shows + showtimes lists. CSS-only hover
+           replaces inline onmouseover handlers. */
+        .pt-action-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 12px;
+            min-height: 38px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            white-space: nowrap;
+            border: 1px solid var(--prism-border);
+            background: rgba(255,255,255,0.06);
+            color: var(--prism-text);
+            cursor: pointer;
+            transition:
+                background .2s var(--prism-ease),
+                border-color .2s var(--prism-ease),
+                box-shadow .2s var(--prism-ease),
+                transform .15s var(--prism-ease);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .pt-action-pill:hover {
+            background: rgba(129,140,248,0.14);
+            border-color: rgba(129,140,248,0.40);
+        }
+        .pt-action-pill:active { transform: scale(0.97); }
+
+        .pt-action-pill-violet  { background: rgba(192,132,252,0.12); border-color: rgba(192,132,252,0.35); color: #ddd6fe; }
+        .pt-action-pill-violet:hover  { background: rgba(192,132,252,0.22); box-shadow: 0 0 18px rgba(192,132,252,0.28); }
+        .pt-action-pill-cyan    { background: rgba(34,211,238,0.12); border-color: rgba(34,211,238,0.40); color: #a5f3fc; }
+        .pt-action-pill-cyan:hover    { background: rgba(34,211,238,0.22); box-shadow: 0 0 18px rgba(34,211,238,0.28); }
+        .pt-action-pill-emerald { background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.40); color: #6ee7b7; }
+        .pt-action-pill-emerald:hover { background: rgba(52,211,153,0.22); box-shadow: 0 0 18px rgba(52,211,153,0.28); }
+        .pt-action-pill-gold    { background: rgba(251,191,36,0.14); border-color: rgba(251,191,36,0.40); color: #fcd34d; }
+        .pt-action-pill-gold:hover    { background: rgba(251,191,36,0.24); box-shadow: 0 0 18px rgba(251,191,36,0.28); }
+        .pt-action-pill-rose    { background: rgba(244,63,94,0.12); border-color: rgba(251,113,133,0.40); color: #fda4af; }
+        .pt-action-pill-rose:hover    { background: rgba(244,63,94,0.22); box-shadow: 0 0 18px rgba(244,63,94,0.28); }
+
+        :root[data-pt-theme="light"] .pt-action-pill {
+            background: rgba(15,23,42,0.04);
+            border-color: rgba(15,23,42,0.14);
+            color: var(--prism-text-2);
+        }
+        :root[data-pt-theme="light"] .pt-action-pill:hover {
+            background: rgba(79,70,229,0.10);
+            border-color: rgba(79,70,229,0.40);
+            color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] .pt-action-pill-violet  {
+            background: rgba(124,58,237,0.10); border-color: rgba(124,58,237,0.35); color: #6d28d9;
+        }
+        :root[data-pt-theme="light"] .pt-action-pill-violet:hover  {
+            background: rgba(124,58,237,0.18); box-shadow: 0 0 18px rgba(124,58,237,0.22);
+        }
+        :root[data-pt-theme="light"] .pt-action-pill-cyan    {
+            background: rgba(8,145,178,0.10); border-color: rgba(8,145,178,0.40); color: #0e7490;
+        }
+        :root[data-pt-theme="light"] .pt-action-pill-cyan:hover    {
+            background: rgba(8,145,178,0.18); box-shadow: 0 0 18px rgba(8,145,178,0.22);
+        }
+        :root[data-pt-theme="light"] .pt-action-pill-emerald {
+            background: rgba(4,120,87,0.10); border-color: rgba(4,120,87,0.40); color: #047857;
+        }
+        :root[data-pt-theme="light"] .pt-action-pill-emerald:hover {
+            background: rgba(4,120,87,0.18); box-shadow: 0 0 18px rgba(4,120,87,0.22);
+        }
+        :root[data-pt-theme="light"] .pt-action-pill-gold    {
+            background: rgba(180,83,9,0.10); border-color: rgba(180,83,9,0.40); color: #92400e;
+        }
+        :root[data-pt-theme="light"] .pt-action-pill-gold:hover    {
+            background: rgba(180,83,9,0.18); box-shadow: 0 0 18px rgba(180,83,9,0.22);
+        }
+        :root[data-pt-theme="light"] .pt-action-pill-rose    {
+            background: rgba(190,18,60,0.10); border-color: rgba(190,18,60,0.40); color: #be123c;
+        }
+        :root[data-pt-theme="light"] .pt-action-pill-rose:hover    {
+            background: rgba(190,18,60,0.18); box-shadow: 0 0 18px rgba(190,18,60,0.22);
+        }
+
+        /* ------------- pt-thead-soft: subtle table head bg ------------- */
+        /* Replaces inline `style="background: rgba(255,255,255,0.04)"` on
+           admin tables (showtimes index) so it adapts to light mode. */
+        .pt-thead-soft { background: rgba(255,255,255,0.04); }
+        :root[data-pt-theme="light"] .pt-thead-soft {
+            background: rgba(15,23,42,0.03);
+        }
+
+        /* ------------- pt-time-row: lightweight table-row hover ------------- */
+        /* Used on admin/show_times/index where the table doesn't use
+           .prism-table-clean so we need a standalone hover style. */
+        .pt-time-row {
+            border-top: 1px solid rgba(255,255,255,0.06);
+            transition: background .15s ease;
+        }
+        .pt-time-row:hover { background: rgba(129,140,248,0.06); }
+        :root[data-pt-theme="light"] .pt-time-row {
+            border-top-color: rgba(15,23,42,0.08);
+        }
+        :root[data-pt-theme="light"] .pt-time-row:hover { background: rgba(79,70,229,0.06); }
+
+        @media (prefers-reduced-motion: reduce) {
+            .pt-action-pill { transition: none !important; }
+            .pt-action-pill:active { transform: none !important; }
+        }
+
+        /* =====================================================================
            v2 NAVBAR — replaces .pt-topbar look
            ====================================================================*/
         .pt-topbar-wrap {

@@ -35,8 +35,7 @@
 
     {{-- ========================== STATUS FLASH ========================== --}}
     @if(session('status'))
-        <div class="rounded-2xl px-4 py-3 text-sm prism-fade-up"
-             style="background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.45); color: #6ee7b7;">
+        <div class="pt-alert pt-alert-success prism-fade-up">
             {{ session('status') }}
         </div>
     @endif
@@ -253,7 +252,7 @@
                         @endforeach
                     </div>
                     <span class="font-mono px-2 py-1 rounded text-[10px] h-fit"
-                          style="background: rgba(255,255,255,0.05); border: 1px solid var(--prism-border); color: var(--prism-text-2);">
+                          style="background: var(--prism-surface-soft); border: 1px solid var(--prism-border); color: var(--prism-text-2);">
                         {{ $booking->reference_code }}
                     </span>
                 </div>

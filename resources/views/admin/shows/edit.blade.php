@@ -31,8 +31,7 @@
 
     {{-- Errors --}}
     @if ($errors->any())
-        <div class="rounded-xl px-4 py-3 text-xs prism-fade-up"
-             style="background: rgba(244,63,94,0.10); border: 1px solid rgba(251,113,133,0.45); color: #fda4af;">
+        <div class="pt-alert pt-alert-danger text-xs prism-fade-up">
             <ul class="list-disc pr-4 space-y-1">
                 @foreach($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -127,29 +126,25 @@
                         $anbaCounts['total']   = $anbaCounts['hall'] + $anbaCounts['balcony'];
                     }
                 @endphp
-                <div class="rounded-xl px-3 py-3 text-xs"
-                     style="background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.32); color: var(--prism-text-2);">
+                <div class="pt-alert pt-alert-success text-xs">
                     <div class="flex items-center gap-2 mb-2">
                         <span class="prism-dot prism-dot-emerald"></span>
-                        <span class="font-semibold" data-i18n="adm_show_capacity_preview_title" style="color: var(--prism-text);">
+                        <span class="font-semibold text-[color:var(--prism-text)]" data-i18n="adm_show_capacity_preview_title">
                             سعة المقاعد للمسرح
                         </span>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
-                        <div class="rounded-lg px-3 py-2"
-                             style="background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.32);">
-                            <div class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_section_hall">صالة</div>
-                            <div class="font-semibold" style="color: var(--prism-gold);">{{ $anbaCounts['hall'] }}</div>
+                        <div class="pt-mini-card pt-mini-card-gold">
+                            <div class="pt-mini-card-label" data-i18n="adm_section_hall">صالة</div>
+                            <div class="pt-mini-card-value">{{ $anbaCounts['hall'] }}</div>
                         </div>
-                        <div class="rounded-lg px-3 py-2"
-                             style="background: rgba(192,132,252,0.08); border: 1px solid rgba(192,132,252,0.32);">
-                            <div class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_section_balcony">بلكون</div>
-                            <div class="font-semibold" style="color: var(--prism-violet, #c084fc);">{{ $anbaCounts['balcony'] }}</div>
+                        <div class="pt-mini-card pt-mini-card-violet">
+                            <div class="pt-mini-card-label" data-i18n="adm_section_balcony">بلكون</div>
+                            <div class="pt-mini-card-value">{{ $anbaCounts['balcony'] }}</div>
                         </div>
-                        <div class="rounded-lg px-3 py-2"
-                             style="background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.40);">
-                            <div class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_time_capacity_total">الإجمالي</div>
-                            <div class="font-semibold" style="color: var(--prism-emerald);">{{ $anbaCounts['total'] }}</div>
+                        <div class="pt-mini-card pt-mini-card-emerald">
+                            <div class="pt-mini-card-label" data-i18n="adm_time_capacity_total">الإجمالي</div>
+                            <div class="pt-mini-card-value">{{ $anbaCounts['total'] }}</div>
                         </div>
                     </div>
                     <p class="pt-form-helper mt-2" data-i18n="adm_time_capacity_helper">
@@ -176,7 +171,7 @@
                 <img id="posterPreview"
                      src="{{ $posterUrl }}"
                      class="w-full max-h-60 object-contain rounded-xl p-2"
-                     style="background: rgba(8,10,20,0.5); border: 1px solid var(--prism-border);">
+                     style="background: var(--prism-surface-soft); border: 1px solid var(--prism-border);">
             @endif
 
             <label class="pt-file-zone">
@@ -217,7 +212,7 @@
                 @endphp
 
                 <div class="relative rounded-xl overflow-hidden"
-                     style="background: rgba(8,10,20,0.55); border: 1px solid var(--prism-border);">
+                     style="background: var(--prism-surface-soft); border: 1px solid var(--prism-border);">
 
                     <img id="ticketTemplatePreview"
                          src="{{ $ticketUrl }}"

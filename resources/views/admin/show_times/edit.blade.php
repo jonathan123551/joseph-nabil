@@ -41,8 +41,7 @@
 
     {{-- Errors --}}
     @if ($errors->any())
-        <div class="rounded-xl px-4 py-3 text-xs prism-fade-up"
-             style="background: rgba(244,63,94,0.10); border: 1px solid rgba(251,113,133,0.45); color: #fda4af;">
+        <div class="pt-alert pt-alert-danger text-xs prism-fade-up">
             <ul class="space-y-1">
                 @foreach($errors->all() as $error)
                     <li>• {{ $error }}</li>
@@ -99,24 +98,21 @@
                 <input type="hidden" name="ticket_price"
                        value="{{ old('ticket_price', $showTime->ticket_price ?? 0) }}">
 
-                <div class="rounded-xl px-3 py-3 text-xs"
-                     style="background: rgba(34,211,238,0.06); border: 1px solid rgba(129,140,248,0.32); color: var(--prism-text-2);">
+                <div class="pt-alert pt-alert-info text-xs">
                     <div class="flex items-center gap-2 mb-2">
                         <span class="prism-dot prism-dot-emerald"></span>
-                        <span class="font-semibold" data-i18n="adm_time_section_pricing_split" style="color: var(--prism-text);">الأسعار من العرض (لكل فئة)</span>
+                        <span class="font-semibold text-[color:var(--prism-text)]" data-i18n="adm_time_section_pricing_split">الأسعار من العرض (لكل فئة)</span>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
-                        <div class="rounded-lg px-3 py-2"
-                             style="background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.32);">
-                            <div class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_section_hall">صالة</div>
-                            <div class="font-semibold" style="color: var(--prism-gold);">
+                        <div class="pt-mini-card pt-mini-card-gold">
+                            <div class="pt-mini-card-label" data-i18n="adm_section_hall">صالة</div>
+                            <div class="pt-mini-card-value">
                                 {{ (int) ($show->hall_price ?? 0) }} <span data-i18n="common_currency_short">ج</span>
                             </div>
                         </div>
-                        <div class="rounded-lg px-3 py-2"
-                             style="background: rgba(192,132,252,0.08); border: 1px solid rgba(192,132,252,0.32);">
-                            <div class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_section_balcony">بلكون</div>
-                            <div class="font-semibold" style="color: var(--prism-violet, #c084fc);">
+                        <div class="pt-mini-card pt-mini-card-violet">
+                            <div class="pt-mini-card-label" data-i18n="adm_section_balcony">بلكون</div>
+                            <div class="pt-mini-card-value">
                                 {{ (int) ($show->balcony_price ?? 0) }} <span data-i18n="common_currency_short">ج</span>
                             </div>
                         </div>
@@ -145,12 +141,11 @@
                      the live seat layout — admin gets a read-only breakdown
                      here. The controller re-syncs total_tickets on save so
                      the saved value always matches the seat table. --}}
-                <div class="rounded-xl px-3 py-3 text-xs"
-                     style="background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.32); color: var(--prism-text-2);">
+                <div class="pt-alert pt-alert-success text-xs">
                     <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
                         <div class="flex items-center gap-2">
                             <span class="prism-dot prism-dot-emerald"></span>
-                            <span class="font-semibold" data-i18n="adm_time_capacity_card_title" style="color: var(--prism-text);">
+                            <span class="font-semibold text-[color:var(--prism-text)]" data-i18n="adm_time_capacity_card_title">
                                 سعة المسرح (تلقائي)
                             </span>
                         </div>
@@ -159,24 +154,21 @@
                         </span>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
-                        <div class="rounded-lg px-3 py-2"
-                             style="background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.32);">
-                            <div class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_section_hall">صالة</div>
-                            <div class="font-semibold" style="color: var(--prism-gold);">
+                        <div class="pt-mini-card pt-mini-card-gold">
+                            <div class="pt-mini-card-label" data-i18n="adm_section_hall">صالة</div>
+                            <div class="pt-mini-card-value">
                                 {{ (int) ($seatCap['hall'] ?? 0) }}
                             </div>
                         </div>
-                        <div class="rounded-lg px-3 py-2"
-                             style="background: rgba(192,132,252,0.08); border: 1px solid rgba(192,132,252,0.32);">
-                            <div class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_section_balcony">بلكون</div>
-                            <div class="font-semibold" style="color: var(--prism-violet, #c084fc);">
+                        <div class="pt-mini-card pt-mini-card-violet">
+                            <div class="pt-mini-card-label" data-i18n="adm_section_balcony">بلكون</div>
+                            <div class="pt-mini-card-value">
                                 {{ (int) ($seatCap['balcony'] ?? 0) }}
                             </div>
                         </div>
-                        <div class="rounded-lg px-3 py-2"
-                             style="background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.40);">
-                            <div class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="adm_time_capacity_total">الإجمالي</div>
-                            <div class="font-semibold" style="color: var(--prism-emerald);">
+                        <div class="pt-mini-card pt-mini-card-emerald">
+                            <div class="pt-mini-card-label" data-i18n="adm_time_capacity_total">الإجمالي</div>
+                            <div class="pt-mini-card-value">
                                 {{ (int) ($seatCap['total'] ?? 0) }}
                             </div>
                         </div>
