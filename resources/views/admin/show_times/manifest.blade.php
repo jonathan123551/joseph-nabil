@@ -3,12 +3,26 @@
 @php
     use App\Models\Show as ShowModel;
 
+    /* ========================================================================
+       Seat Occupancy / Attendee Manifest — Phase 2
+
+       Three operator-led surfaces share this single Blade. The controller
+       picks the right surface for the device:
+
+         mode=ops    desktop  — Operations Console: chart-left + detail rail.
+         mode=floor  mobile   — Floor Mode: thumb-first usher card list.
+         mode=paper  print    — Paper Sheet: A4-landscape, paper-first.
+
+       All three pull from the same flat `rows` payload. The view layer
+       does the visual + interaction work; the controller stays pure data.
+       ======================================================================== */
+
     $eventDate = optional($showTime->date)->format('d/m/Y');
     $eventTime = $showTime->time ? \Carbon\Carbon::parse($showTime->time)->format('g:i A') : '';
     $showTitle = optional($show)->title ?? '—';
 
-    // Phone masking happens at the view layer so the controller's row
-    // payload stays unmasked and the same data drives the CSV export.
+    // Phone masking happens in the view so the controller payload stays
+    // unmasked and the same data drives the CSV export.
     $maskPhone = function (?string $phone) use ($showFullPhone) {
         if (!$phone) return '';
         if ($showFullPhone) return $phone;
@@ -18,19 +32,18 @@
         return substr($digits, 0, 2) . str_repeat('●', max(0, $len - 6)) . substr($digits, -4);
     };
 
-    // Group rows by section → row letter so we can render banded blocks
-    // on the print sheet. PHP preserves insertion order, and the
-    // controller already ordered by (section, row, seat#).
+    // Group rows by section → row letter for both the Operations chart and
+    // the Paper sheet. PHP preserves insertion order; the controller
+    // already ordered by (section, row, seat#).
     $rowsBySectionRow = [];
     foreach ($rows as $r) {
         $rowsBySectionRow[$r['section_label_ar']][$r['row_letter']][] = $r;
     }
 
-    // Stable booking-id → color band index so each booking gets its own
-    // subtle background on the print sheet ("families pop together").
-    // Capped at 8 distinct hues; beyond that we cycle, which is fine
-    // because no two adjacent bookings on a row are likely to land on
-    // the same hue.
+    // Stable booking_id → hue index so each booking gets the same color
+    // wherever it appears (chart ring, booking list, paper band). Capped
+    // at 8 distinct hues; beyond that we cycle. Two adjacent bookings on
+    // a row are extremely unlikely to land on the same hue.
     $bookingColorIndex = [];
     $bookingHueIdx = 0;
     foreach ($rows as $r) {
@@ -42,17 +55,61 @@
 
     $totalBooked   = $summary['approved'] + $summary['pending'];
     $checkedInCount = collect($rows)->where('is_scanned', true)->count();
+    $capacity       = $summary['total'] ?: 1;
+    $capacityPct    = (int) round(($totalBooked / $capacity) * 100);
 
-    // URL helpers — preserve current `full_phone` flag across view
-    // switches so the toggle doesn't fight the user.
-    $url = function ($params = []) use ($showTime, $showFullPhone) {
+    // URL helper — preserves `full_phone` + `mode` so toggles don't fight
+    // the user. Pass `null` to remove a key.
+    $url = function ($params = []) use ($showTime, $showFullPhone, $mode) {
         $base = route('admin.show-times.manifest', $showTime);
-        $q    = array_merge(['full_phone' => $showFullPhone ? 1 : 0], $params);
+        $q    = array_merge(
+            ['full_phone' => $showFullPhone ? 1 : 0, 'mode' => $mode],
+            $params
+        );
+        $q = array_filter($q, fn ($v) => $v !== null && $v !== '');
         return $base . '?' . http_build_query($q);
     };
 
     $csvUrl = route('admin.show-times.manifest.csv', $showTime)
         . '?' . http_build_query(['full_phone' => $showFullPhone ? 1 : 0]);
+
+    $jsonUrl = route('admin.show-times.manifest.json', $showTime);
+
+    // Filter / search initial state for the JS-driven panels. The URL is
+    // the source of truth so refreshes don't lose context.
+    $statusFilterJoined = implode(',', $statusFilter);
+
+    // Per-row blocks used by the Paper sheet (attendees-only by default).
+    // Empties are filtered out unless ?include_empty=1.
+    $paperRowsBySectionRow = [];
+    foreach ($rowsBySectionRow as $sectionLabel => $byRow) {
+        foreach ($byRow as $rowLetter => $seats) {
+            $kept = array_values(array_filter($seats, function ($s) use ($includeEmpty) {
+                if ($includeEmpty) return true;
+                return $s['status'] !== 'empty';
+            }));
+            if (!empty($kept)) {
+                $paperRowsBySectionRow[$sectionLabel][$rowLetter] = $kept;
+            }
+        }
+    }
+
+    // Status glyph for the paper sheet — survives photocopy + grayscale
+    // better than letters ("OK / PEND / BLK").
+    $statusGlyph = [
+        'approved' => '●',
+        'pending'  => '◐',
+        'blocked'  => '✕',
+        'empty'    => '·',
+    ];
+
+    // Status pill class for the on-screen surfaces.
+    $statusPill = [
+        'approved' => ['emerald', 'Approved', 'معتمد'],
+        'pending'  => ['amber',   'Pending',  'انتظار'],
+        'blocked'  => ['rose',    'Blocked',  'محجوب'],
+        'empty'    => ['ghost',   'Empty',    'فارغ'],
+    ];
 @endphp
 
 @section('title', 'مانيفست المقاعد · ' . $showTitle)
@@ -60,436 +117,340 @@
 @push('styles')
 <style>
     /* ====================================================================
-       Seat Occupancy / Attendee Manifest — Phase 1
-       Optimized for printable A4-landscape hard copies AND a usable
-       on-screen view. Print rules at the bottom of the file override the
-       screen layout completely to produce a paper-first artifact.
+       Manifest tokens — shared across all three surfaces
        ==================================================================== */
-
-    .manifest-shell { display: grid; gap: 16px; }
-
-    /* Top chrome — view switcher, phone toggle, export buttons. Hidden
-       on print so the printed page is pure data. */
-    .manifest-chrome {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        align-items: center;
-        justify-content: space-between;
-    }
-    .manifest-chrome .pt-tabs {
-        display: inline-flex;
-        border: 1px solid var(--prism-border);
-        border-radius: 999px;
-        overflow: hidden;
-        background: rgba(255,255,255,0.03);
-    }
-    .manifest-chrome .pt-tabs a {
-        padding: 8px 14px;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: .04em;
-        color: var(--prism-text-2);
-        transition: background .15s ease, color .15s ease;
-    }
-    .manifest-chrome .pt-tabs a:hover { color: var(--prism-text); background: rgba(129,140,248,0.08); }
-    .manifest-chrome .pt-tabs a.is-active {
-        color: #fff;
-        background: linear-gradient(135deg, rgba(34,211,238,0.22), rgba(192,132,252,0.22));
+    :root {
+        --m-bg            : var(--prism-surface, rgba(255,255,255,0.03));
+        --m-border        : var(--prism-border, rgba(255,255,255,0.10));
+        --m-border-strong : rgba(255,255,255,0.22);
+        --m-emerald       : #34d399;
+        --m-amber         : #fbbf24;
+        --m-rose          : #fb7185;
+        --m-sky           : #38bdf8;
+        --m-violet        : #a78bfa;
+        --m-text          : var(--prism-text, #f3f4f6);
+        --m-text-2        : var(--prism-text-2, #d1d5db);
+        --m-text-3        : var(--prism-text-3, #9ca3af);
     }
 
-    /* Summary stats card — visible on both screen and print so the
-       printed manifest has a header summary the head usher can lean on. */
-    .manifest-stats {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 8px;
-    }
-    @media (max-width: 720px) { .manifest-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    .manifest-stat {
-        padding: 10px 12px;
-        border-radius: 12px;
-        border: 1px solid var(--prism-border);
-        background: rgba(255,255,255,0.03);
-        text-align: center;
-    }
-    .manifest-stat .v { font-size: 18px; font-weight: 800; font-feature-settings: "tnum" 1; }
-    .manifest-stat .l { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--prism-text-3); margin-top: 2px; }
-    .manifest-stat.approved .v { color: var(--prism-emerald); }
-    .manifest-stat.pending .v  { color: #fcd34d; }
-    .manifest-stat.blocked .v  { color: #fda4af; }
-    .manifest-stat.empty .v    { color: var(--prism-text-3); }
-    .manifest-stat.total .v    { color: var(--prism-text); }
-
-    /* Search box (usher view) */
-    .manifest-search {
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 12px 14px;
-        border-radius: 14px;
-        border: 1px solid var(--prism-border);
-        background: rgba(255,255,255,0.03);
-    }
-    .manifest-search input {
-        flex: 1;
-        background: transparent;
-        border: 0;
-        outline: 0;
-        color: var(--prism-text);
-        font-size: 14px;
-        font-weight: 600;
-    }
-    .manifest-search input::placeholder { color: var(--prism-text-3); }
+    /* Booking family hues (chart ring + paper band + floor card accent) */
+    .mfst-hue-0 { --m-hue: rgba(34,211,238,0.65);  --m-hue-soft: rgba(34,211,238,0.10); }
+    .mfst-hue-1 { --m-hue: rgba(129,140,248,0.65); --m-hue-soft: rgba(129,140,248,0.10); }
+    .mfst-hue-2 { --m-hue: rgba(244,114,182,0.65); --m-hue-soft: rgba(244,114,182,0.10); }
+    .mfst-hue-3 { --m-hue: rgba(251,191,36,0.65);  --m-hue-soft: rgba(251,191,36,0.10); }
+    .mfst-hue-4 { --m-hue: rgba(52,211,153,0.65);  --m-hue-soft: rgba(52,211,153,0.10); }
+    .mfst-hue-5 { --m-hue: rgba(251,113,133,0.65); --m-hue-soft: rgba(251,113,133,0.10); }
+    .mfst-hue-6 { --m-hue: rgba(167,139,250,0.65); --m-hue-soft: rgba(167,139,250,0.10); }
+    .mfst-hue-7 { --m-hue: rgba(252,165,165,0.65); --m-hue-soft: rgba(252,165,165,0.10); }
 
     /* ====================================================================
-       Print sheet (the main artifact). Rendered as one block per (section,
-       row) so each strip prints together without breaking across columns. */
-    .manifest-print {
-        display: grid;
-        gap: 10px;
-    }
-    .manifest-section {
-        border: 1px solid var(--prism-border);
-        border-radius: 14px;
-        overflow: hidden;
-        background: rgba(255,255,255,0.02);
-    }
-    .manifest-section h3 {
-        font-size: 13px;
-        font-weight: 800;
-        letter-spacing: .12em;
-        text-transform: uppercase;
-        padding: 8px 12px;
-        background: linear-gradient(135deg, rgba(34,211,238,0.10), rgba(192,132,252,0.10));
-        border-bottom: 1px solid var(--prism-border);
-    }
-    .manifest-section.section-balcony h3 {
-        background: linear-gradient(135deg, rgba(251,191,36,0.10), rgba(192,132,252,0.10));
-    }
-    .manifest-row-strip {
-        display: grid;
-        grid-template-columns: 56px 1fr;
-        align-items: stretch;
-        border-top: 1px solid var(--prism-border);
-    }
-    .manifest-row-strip:first-of-type { border-top: 0; }
-    .manifest-row-label {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-        font-weight: 800;
-        letter-spacing: .08em;
-        background: rgba(255,255,255,0.04);
-        border-inline-end: 1px solid var(--prism-border);
-        color: var(--prism-text);
-        gap: 2px;
-        padding: 4px 0;
-    }
-    /* Compact per-row counter pinned under the row letter. Reads
-       "12/25" (booked/total) so operators see saturation per row at
-       a glance. Optional scanned suffix appears when at least one
-       attendee in the row has been checked in. */
-    .manifest-row-label .row-stats {
-        font-size: 10px;
-        font-weight: 600;
-        letter-spacing: .02em;
-        font-feature-settings: "tnum" 1;
-        color: var(--prism-text-3);
-        opacity: .8;
-    }
-    .manifest-row-label .row-stats .ck { color: var(--prism-emerald, #34d399); }
-    .manifest-row-seats {
-        display: grid;
-        gap: 4px;
-        padding: 6px;
-        /* keep at most ~10 per row on print — 6 on narrow screens */
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    }
-    .manifest-cell {
-        display: flex;
-        flex-direction: column;
-        gap: 1px;
-        padding: 6px 8px;
-        border-radius: 8px;
-        border: 1px solid var(--prism-border);
-        background: rgba(255,255,255,0.02);
-        font-size: 11px;
-        line-height: 1.25;
-        min-height: 44px;
-    }
-    .manifest-cell .seat-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-feature-settings: "tnum" 1;
-    }
-    .manifest-cell .seat-num {
-        font-size: 13px;
-        font-weight: 800;
-        letter-spacing: .02em;
-        color: var(--prism-text);
-    }
-    .manifest-cell .seat-tag {
-        font-size: 9px;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-        font-weight: 700;
-        padding: 1px 6px;
-        border-radius: 999px;
-        white-space: nowrap;
-    }
-    /* Attendee names can be long ("عبد الرحمن محمد إبراهيم" + family
-       names + nicknames). Clamp to 2 lines on screen so the cell
-       height stays predictable; full text is available via title=
-       and on hover via a custom :hover {white-space: normal} state
-       only on touch-capable devices, so an operator pressing into
-       the cell can read the full name without leaving the page.
-       Word-break keeps long single-word names from overflowing. */
-    .manifest-cell .seat-attendee {
-        font-weight: 700;
-        color: var(--prism-text);
-        font-size: 12px;
-        line-height: 1.25;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        word-break: break-word;
-        overflow-wrap: anywhere;
-    }
-    .manifest-cell .seat-meta {
-        color: var(--prism-text-3);
-        font-size: 10px;
-        font-feature-settings: "tnum" 1;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* Status accents on each cell */
-    .manifest-cell.is-approved { border-color: rgba(52,211,153,0.45); }
-    .manifest-cell.is-approved .seat-tag { background: rgba(52,211,153,0.16); color: #6ee7b7; }
-    .manifest-cell.is-pending  { border-color: rgba(251,191,36,0.55); background: rgba(251,191,36,0.04); }
-    .manifest-cell.is-pending  .seat-tag { background: rgba(251,191,36,0.18); color: #fde68a; }
-    .manifest-cell.is-blocked  { border-color: rgba(244,63,94,0.55); background: rgba(244,63,94,0.04); }
-    .manifest-cell.is-blocked  .seat-tag { background: rgba(244,63,94,0.18); color: #fda4af; }
-    .manifest-cell.is-empty    { opacity: .55; }
-    .manifest-cell.is-empty    .seat-tag { background: rgba(255,255,255,0.06); color: var(--prism-text-3); }
-    /* Subtle emerald sweep on the inner edge of scanned cells so the
-       check-in state reads at a glance against a packed Hall block.
-       Pairs with the existing seat-check timestamp pill. */
-    .manifest-cell.is-scanned  {
-        background: rgba(52,211,153,0.06);
-        box-shadow: inset 0 0 0 1px rgba(52,211,153,0.30);
-    }
-    .manifest-cell .seat-check {
-        font-size: 11px;
-        font-weight: 800;
-        color: var(--prism-emerald);
-        letter-spacing: .04em;
-    }
-
-    /* Per-booking color band so family groups visually cluster on print */
-    .manifest-cell[data-hue="0"] { box-shadow: inset 3px 0 0 0 rgba(34,211,238,0.55); }
-    .manifest-cell[data-hue="1"] { box-shadow: inset 3px 0 0 0 rgba(192,132,252,0.55); }
-    .manifest-cell[data-hue="2"] { box-shadow: inset 3px 0 0 0 rgba(251,191,36,0.55); }
-    .manifest-cell[data-hue="3"] { box-shadow: inset 3px 0 0 0 rgba(52,211,153,0.55); }
-    .manifest-cell[data-hue="4"] { box-shadow: inset 3px 0 0 0 rgba(244,114,182,0.55); }
-    .manifest-cell[data-hue="5"] { box-shadow: inset 3px 0 0 0 rgba(96,165,250,0.55); }
-    .manifest-cell[data-hue="6"] { box-shadow: inset 3px 0 0 0 rgba(251,113,133,0.55); }
-    .manifest-cell[data-hue="7"] { box-shadow: inset 3px 0 0 0 rgba(167,243,208,0.55); }
-    html[dir="rtl"] .manifest-cell[data-hue]  { box-shadow: inset -3px 0 0 0 currentColor; }
-    html[dir="rtl"] .manifest-cell[data-hue="0"] { box-shadow: inset -3px 0 0 0 rgba(34,211,238,0.55); }
-    html[dir="rtl"] .manifest-cell[data-hue="1"] { box-shadow: inset -3px 0 0 0 rgba(192,132,252,0.55); }
-    html[dir="rtl"] .manifest-cell[data-hue="2"] { box-shadow: inset -3px 0 0 0 rgba(251,191,36,0.55); }
-    html[dir="rtl"] .manifest-cell[data-hue="3"] { box-shadow: inset -3px 0 0 0 rgba(52,211,153,0.55); }
-    html[dir="rtl"] .manifest-cell[data-hue="4"] { box-shadow: inset -3px 0 0 0 rgba(244,114,182,0.55); }
-    html[dir="rtl"] .manifest-cell[data-hue="5"] { box-shadow: inset -3px 0 0 0 rgba(96,165,250,0.55); }
-    html[dir="rtl"] .manifest-cell[data-hue="6"] { box-shadow: inset -3px 0 0 0 rgba(251,113,133,0.55); }
-    html[dir="rtl"] .manifest-cell[data-hue="7"] { box-shadow: inset -3px 0 0 0 rgba(167,243,208,0.55); }
-
-    /* ====================================================================
-       Usher view (mobile-first searchable single-column list) */
-    .manifest-usher-list { display: grid; gap: 6px; }
-    .manifest-usher-row {
-        display: grid;
-        grid-template-columns: 90px 1fr auto;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: 12px;
-        border: 1px solid var(--prism-border);
-        background: rgba(255,255,255,0.03);
-        min-height: 44px;
-    }
-    .manifest-usher-row.is-approved { border-color: rgba(52,211,153,0.35); }
-    .manifest-usher-row.is-pending  { border-color: rgba(251,191,36,0.45); }
-    .manifest-usher-row.is-blocked  { border-color: rgba(244,63,94,0.45); }
-    .manifest-usher-row.is-empty    { opacity: .55; }
-    .manifest-usher-row .seat-block { display: flex; align-items: center; gap: 6px; }
-    .manifest-usher-row .seat-block .pt-seat-chip { padding: 4px 10px; font-size: 12px; }
-    .manifest-usher-row .who { display: flex; flex-direction: column; min-width: 0; }
-    .manifest-usher-row .who .nm { font-weight: 700; color: var(--prism-text); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .manifest-usher-row .who .meta { font-size: 11px; color: var(--prism-text-3); font-feature-settings: "tnum" 1; }
-    .manifest-usher-row .ck { font-size: 11px; font-weight: 800; letter-spacing: .04em; }
-    .manifest-usher-row.is-scanned .ck { color: var(--prism-emerald); }
-
-    .manifest-usher-empty {
-        text-align: center;
-        padding: 24px;
-        color: var(--prism-text-3);
-        font-size: 13px;
-    }
-
-    /* ====================================================================
-       Grouped-by-booking view (party/family clustering)
-       Each booking is a card with all its seats inside. */
-    .manifest-grouped { display: grid; gap: 10px; }
-    .manifest-booking-card {
-        border: 1px solid var(--prism-border);
-        border-radius: 14px;
-        overflow: hidden;
-        background: rgba(255,255,255,0.02);
-    }
-    .manifest-booking-card .bk-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 8px;
+       Top bar — Operations + Floor share it; Paper hides it (.pt-no-print).
+       Compact, sticky, single row with overflow menu. Replaces the bigger
+       "manifest-chrome" card that used to dominate the first viewport.
+       ==================================================================== */
+    .mfst-topbar {
+        position: sticky;
+        top: calc(64px + env(safe-area-inset-top, 0px));
+        z-index: 20;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        background: linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35));
+        border: 1px solid var(--m-border);
+        border-radius: 16px;
         padding: 10px 14px;
-        background: rgba(255,255,255,0.04);
-        border-bottom: 1px solid var(--prism-border);
-        font-size: 12px;
-    }
-    .manifest-booking-card .bk-head .ref { font-weight: 800; letter-spacing: .04em; color: var(--prism-text); }
-    .manifest-booking-card .bk-head .owner { color: var(--prism-text-2); }
-    .manifest-booking-card .bk-head .status-chip {
-        font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
-        padding: 2px 10px; border-radius: 999px;
-    }
-    .manifest-booking-card.s-pending .status-chip { background: rgba(251,191,36,0.18); color: #fde68a; border: 1px solid rgba(251,191,36,0.45); }
-    .manifest-booking-card.s-approved .status-chip { background: rgba(52,211,153,0.16); color: #6ee7b7; border: 1px solid rgba(52,211,153,0.45); }
-    .manifest-booking-card ul {
-        margin: 0; padding: 0; list-style: none;
-    }
-    .manifest-booking-card li {
         display: grid;
         grid-template-columns: 1fr auto;
+        gap: 12px;
         align-items: center;
-        gap: 10px;
-        padding: 8px 14px;
-        border-top: 1px solid var(--prism-border);
-        font-size: 13px;
+        margin-bottom: 12px;
     }
-    .manifest-booking-card li:first-of-type { border-top: 0; }
-    .manifest-booking-card li .nm { font-weight: 700; color: var(--prism-text); }
-    .manifest-booking-card li .ck { color: var(--prism-emerald); font-size: 11px; font-weight: 800; }
-    .manifest-booking-card li.is-scanned { background: rgba(52,211,153,0.06); }
+    .mfst-topbar-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .mfst-topbar-title { font-size: 15px; font-weight: 800; color: var(--m-text); display: flex; align-items: center; gap: 8px; }
+    .mfst-topbar-title .live-dot {
+        width: 8px; height: 8px; border-radius: 999px;
+        background: var(--m-emerald);
+        box-shadow: 0 0 8px rgba(52,211,153,0.7);
+        animation: mfst-pulse-soft 2s ease-in-out infinite;
+    }
+    @keyframes mfst-pulse-soft { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+    .mfst-topbar-meta { font-size: 11px; color: var(--m-text-3); letter-spacing: .04em; display: flex; gap: 10px; flex-wrap: wrap; }
 
-    /* ====================================================================
-       GRID (theater map) view — spatial layout of every seat in the venue,
-       grouped by section → row, color-coded by status. Reads as a real
-       seating chart, not a list. Each cell shows just the seat number;
-       hover/tap reveals the attendee in a popover (title attr fallback).
-       The layout adapts: phones get smaller cells (overflow-x scroll per
-       row), desktops/print get full-width rows. */
-    .manifest-grid-wrap {
-        display: grid;
-        gap: 14px;
-    }
-    .manifest-grid-stage {
-        text-align: center;
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: .26em;
-        text-transform: uppercase;
-        color: var(--prism-text-3);
-        padding: 6px 10px;
-        border-radius: 10px;
-        border: 1px dashed var(--prism-border);
-        background: rgba(255,255,255,0.02);
-    }
-    .manifest-grid-section {
-        border: 1px solid var(--prism-border);
-        border-radius: 14px;
+    .mfst-topbar-actions { display: flex; gap: 8px; align-items: center; }
+    .mfst-mode-switch {
+        display: inline-flex;
+        border: 1px solid var(--m-border);
+        border-radius: 999px;
         overflow: hidden;
-        background: rgba(255,255,255,0.02);
-    }
-    .manifest-grid-section h3 {
-        font-size: 12px;
-        font-weight: 800;
-        letter-spacing: .14em;
-        text-transform: uppercase;
-        padding: 8px 12px;
-        background: linear-gradient(135deg, rgba(34,211,238,0.10), rgba(192,132,252,0.10));
-        border-bottom: 1px solid var(--prism-border);
-    }
-    .manifest-grid-section.section-balcony h3 {
-        background: linear-gradient(135deg, rgba(251,191,36,0.10), rgba(192,132,252,0.10));
-    }
-    .manifest-grid-rows {
-        display: grid;
-        gap: 6px;
-        padding: 10px;
-    }
-    .manifest-grid-row {
-        display: grid;
-        grid-template-columns: 44px 1fr 56px;
-        align-items: center;
-        gap: 6px;
-    }
-    .manifest-grid-row-label {
-        font-size: 13px;
-        font-weight: 800;
-        letter-spacing: .04em;
-        text-align: center;
-        color: var(--prism-text);
-        padding: 4px 0;
-        border-radius: 6px;
         background: rgba(255,255,255,0.04);
-        border: 1px solid var(--prism-border);
     }
-    /* Per-row stats chip pinned at the end of each row in the grid.
-       Reads "12/25" and optionally adds a small "✓3" suffix when one
-       or more attendees in the row are checked in. Visually echoes
-       the row label tile so the row reads as a band: label · seats
-       · stats. */
-    .manifest-grid-row-stats {
-        font-size: 11px;
+    .mfst-mode-switch a {
+        padding: 8px 14px;
+        font-size: 12px;
         font-weight: 700;
-        letter-spacing: .02em;
-        text-align: center;
-        font-feature-settings: "tnum" 1;
-        color: var(--prism-text-3);
-        padding: 4px 6px;
-        border-radius: 6px;
-        background: rgba(255,255,255,0.02);
-        border: 1px solid var(--prism-border);
+        letter-spacing: .04em;
+        color: var(--m-text-2);
+        transition: background .15s ease, color .15s ease;
         white-space: nowrap;
     }
-    .manifest-grid-row-stats .ck {
-        color: var(--prism-emerald, #34d399);
-        font-weight: 800;
-        margin-inline-start: 4px;
+    .mfst-mode-switch a:hover { color: var(--m-text); background: rgba(129,140,248,0.10); }
+    .mfst-mode-switch a.is-active {
+        color: #fff;
+        background: linear-gradient(135deg, rgba(34,211,238,0.28), rgba(167,139,250,0.28));
     }
-    .manifest-grid-seats {
+
+    .mfst-overflow {
+        position: relative;
+    }
+    .mfst-overflow-btn {
+        width: 36px; height: 36px;
+        border-radius: 12px;
+        border: 1px solid var(--m-border);
+        background: rgba(255,255,255,0.04);
+        color: var(--m-text);
+        font-size: 18px;
+        display: inline-flex; align-items: center; justify-content: center;
+        cursor: pointer;
+        transition: background .15s ease;
+    }
+    .mfst-overflow-btn:hover { background: rgba(129,140,248,0.12); }
+    .mfst-overflow-menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        inset-inline-end: 0;
+        min-width: 220px;
+        padding: 6px;
+        border-radius: 14px;
+        border: 1px solid var(--m-border);
+        background: rgba(8,9,18,0.95);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 16px 48px rgba(0,0,0,0.55);
+        display: none;
+        z-index: 30;
+    }
+    .mfst-overflow-menu.is-open { display: block; }
+    .mfst-overflow-menu a, .mfst-overflow-menu button {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 9px 12px;
+        border-radius: 10px;
+        font-size: 13px;
+        color: var(--m-text);
+        background: transparent;
+        border: 0;
+        cursor: pointer;
+        text-align: start;
+        transition: background .12s ease;
+    }
+    .mfst-overflow-menu a:hover, .mfst-overflow-menu button:hover { background: rgba(129,140,248,0.10); }
+    .mfst-overflow-menu hr { border: 0; border-top: 1px solid var(--m-border); margin: 4px 0; }
+
+    /* ====================================================================
+       Capacity gauge — single most important number; persistent in header
+       ==================================================================== */
+    .mfst-gauge {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--m-text-2);
+    }
+    .mfst-gauge-bar {
+        position: relative;
+        width: clamp(140px, 22vw, 280px);
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.06);
+        overflow: hidden;
+    }
+    .mfst-gauge-bar .fill {
+        position: absolute;
+        inset-inline-start: 0; top: 0; bottom: 0;
+        width: 0%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--m-emerald), var(--m-sky));
+        transition: width .8s cubic-bezier(.4,0,.2,1);
+    }
+    .mfst-gauge-num { font-weight: 800; color: var(--m-text); font-feature-settings: "tnum" 1; }
+
+    /* ====================================================================
+       Filter strip — sticky chips just under the top bar. Status + section
+       + search. URL-encoded so refresh preserves intent.
+       ==================================================================== */
+    .mfst-filters {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        padding: 8px 4px;
+        margin-bottom: 12px;
+    }
+    .mfst-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--m-border);
+        background: rgba(255,255,255,0.03);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: .02em;
+        color: var(--m-text-2);
+        cursor: pointer;
+        user-select: none;
+        transition: background .15s ease, color .15s ease, border-color .15s ease, transform .12s ease;
+    }
+    .mfst-chip:hover { transform: translateY(-1px); color: var(--m-text); }
+    .mfst-chip:active { transform: translateY(0); }
+    .mfst-chip[aria-pressed="true"] {
+        color: #fff;
+        border-color: var(--m-chip-color, rgba(167,139,250,0.7));
+        background: var(--m-chip-bg, rgba(167,139,250,0.18));
+    }
+    .mfst-chip .count { color: var(--m-text-3); font-weight: 700; }
+    .mfst-chip[aria-pressed="true"] .count { color: rgba(255,255,255,0.85); }
+    .mfst-chip-approved   { --m-chip-color: rgba(52,211,153,0.7);  --m-chip-bg: rgba(52,211,153,0.16);  }
+    .mfst-chip-pending    { --m-chip-color: rgba(251,191,36,0.7);  --m-chip-bg: rgba(251,191,36,0.16);  }
+    .mfst-chip-blocked    { --m-chip-color: rgba(251,113,133,0.7); --m-chip-bg: rgba(251,113,133,0.18); }
+    .mfst-chip-checked    { --m-chip-color: rgba(56,189,248,0.7);  --m-chip-bg: rgba(56,189,248,0.18);  }
+    .mfst-chip-empty      { --m-chip-color: rgba(255,255,255,0.45); --m-chip-bg: rgba(255,255,255,0.10); }
+
+    .mfst-search {
+        margin-inline-start: auto;
+        flex: 1 1 240px;
+        min-width: 200px;
+        position: relative;
+    }
+    .mfst-search input {
+        width: 100%;
+        padding: 10px 38px 10px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--m-border);
+        background: rgba(255,255,255,0.04);
+        color: var(--m-text);
+        font-size: 13px;
+        outline: none;
+        transition: border-color .15s ease, background .15s ease;
+    }
+    .mfst-search input:focus { border-color: rgba(129,140,248,0.7); background: rgba(255,255,255,0.07); }
+    .mfst-search .icon {
+        position: absolute;
+        inset-inline-end: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: .55;
+        pointer-events: none;
+    }
+    .mfst-search kbd {
+        position: absolute;
+        inset-inline-end: 38px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid var(--m-border);
+        color: var(--m-text-3);
+        background: rgba(255,255,255,0.04);
+    }
+
+    /* ====================================================================
+       OPERATIONS CONSOLE (mode=ops) — chart-left + detail rail-right
+       ==================================================================== */
+    .mfst-ops {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 16px;
+        align-items: start;
+    }
+    @media (max-width: 1024px) {
+        .mfst-ops { grid-template-columns: 1fr; }
+        .mfst-ops-rail { order: 2; }
+    }
+
+    .mfst-ops-chart {
+        border: 1px solid var(--m-border);
+        border-radius: 18px;
+        background: rgba(255,255,255,0.025);
+        padding: 18px;
+        min-height: 60vh;
+    }
+
+    /* Section block (Hall / Balcony) inside the chart */
+    .mfst-section {
+        margin-bottom: 18px;
+    }
+    .mfst-section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    .mfst-section-title {
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: .04em;
+        color: var(--m-text);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .mfst-section-sub {
+        font-size: 11px;
+        color: var(--m-text-3);
+        font-feature-settings: "tnum" 1;
+    }
+
+    .mfst-stage {
+        text-align: center;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .35em;
+        color: rgba(167,139,250,0.85);
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px dashed rgba(167,139,250,0.4);
+        background: linear-gradient(180deg, rgba(167,139,250,0.06), transparent);
+        margin-bottom: 14px;
+    }
+
+    /* Row of seats — letter + saturation gauge + chips */
+    .mfst-row {
+        display: grid;
+        grid-template-columns: 56px 1fr;
+        gap: 10px;
+        align-items: center;
+        padding: 4px 0;
+        border-bottom: 1px dashed rgba(255,255,255,0.05);
+    }
+    .mfst-row:last-child { border-bottom: 0; }
+    .mfst-row-label {
+        display: flex; flex-direction: column; align-items: center;
+        font-weight: 800;
+        font-size: 13px;
+        color: var(--m-text);
+    }
+    .mfst-row-label .row-letter { font-size: 14px; }
+    .mfst-row-label .row-stats  { font-size: 9px; color: var(--m-text-3); margin-top: 2px; font-feature-settings: "tnum" 1; }
+    .mfst-row-label .row-stats .ck { color: var(--m-emerald); }
+
+    .mfst-row-seats {
         display: flex;
         flex-wrap: wrap;
         gap: 4px;
-        align-items: center;
-        justify-content: flex-start;
+        justify-content: center;
     }
-    /* Center the row within the row track so wider rows still look
-       balanced relative to narrower neighbors. */
-    .manifest-grid-section .manifest-grid-seats { justify-content: center; }
 
-    .manifest-grid-seat {
+    /* Seat chip — visible by default. This is the chip that was effectively
+       invisible in Phase 1. Strong border, real status fill, family hue
+       ring as box-shadow inset. */
+    .mfst-seat {
+        --m-seat-bg: rgba(255,255,255,0.06);
+        --m-seat-border: var(--m-border-strong);
+        --m-seat-color: var(--m-text);
         position: relative;
         display: inline-flex;
         align-items: center;
@@ -499,1253 +460,1481 @@
         padding: 0 6px;
         border-radius: 6px;
         font-size: 11px;
-        font-weight: 800;
-        font-feature-settings: "tnum" 1;
+        font-weight: 700;
         line-height: 1;
-        border: 1px solid var(--prism-border);
-        background: rgba(255,255,255,0.04);
-        color: var(--prism-text);
-        cursor: default;
-        transition: transform .12s ease, box-shadow .15s ease;
+        background: var(--m-seat-bg);
+        border: 1px solid var(--m-seat-border);
+        color: var(--m-seat-color);
+        font-feature-settings: "tnum" 1;
+        cursor: pointer;
+        transition: transform .12s ease, border-color .15s ease, box-shadow .15s ease, background .15s ease;
     }
-    .manifest-grid-seat:hover,
-    .manifest-grid-seat:focus {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 14px -8px rgba(0,0,0,0.55);
-        outline: 0;
+    .mfst-seat:hover { transform: translateY(-1px); border-color: rgba(255,255,255,0.5); }
+    .mfst-seat:focus-visible { outline: 2px solid var(--m-sky); outline-offset: 2px; }
+    .mfst-seat.is-approved {
+        --m-seat-bg: rgba(52,211,153,0.18);
+        --m-seat-border: rgba(52,211,153,0.65);
+        --m-seat-color: #d1fae5;
     }
-    .manifest-grid-seat.is-approved {
-        background: rgba(52,211,153,0.16);
-        border-color: rgba(52,211,153,0.55);
-        color: #ecfdf5;
+    .mfst-seat.is-pending {
+        --m-seat-bg: rgba(251,191,36,0.16);
+        --m-seat-border: rgba(251,191,36,0.65);
+        --m-seat-color: #fef3c7;
     }
-    .manifest-grid-seat.is-pending {
-        background: rgba(251,191,36,0.20);
-        border-color: rgba(251,191,36,0.60);
-        color: #fff7e6;
+    .mfst-seat.is-blocked {
+        --m-seat-bg: repeating-linear-gradient(45deg, rgba(251,113,133,0.18), rgba(251,113,133,0.18) 3px, rgba(0,0,0,0.18) 3px, rgba(0,0,0,0.18) 5px);
+        --m-seat-border: rgba(251,113,133,0.7);
+        --m-seat-color: #fecdd3;
+        cursor: not-allowed;
     }
-    .manifest-grid-seat.is-blocked {
-        background: repeating-linear-gradient(45deg,
-            rgba(244,63,94,0.25),
-            rgba(244,63,94,0.25) 3px,
-            rgba(244,63,94,0.08) 3px,
-            rgba(244,63,94,0.08) 6px);
-        border-color: rgba(244,63,94,0.55);
-        color: #ffe4e6;
-    }
-    .manifest-grid-seat.is-empty {
-        background: transparent;
-        color: var(--prism-text-3);
-        border-style: dashed;
+    .mfst-seat.is-empty {
+        --m-seat-bg: transparent;
+        --m-seat-border: rgba(255,255,255,0.12);
+        --m-seat-color: var(--m-text-3);
         opacity: .8;
     }
-    /* Focus pulse — when the page is loaded with ?focus=A12 (e.g. from
-       a scanner deep-link or a usher-view chip tap), we scroll the
-       matching seat into view and run this glow so the operator can
-       spot it instantly against a packed chart. Softer than v1:
-       fewer iterations, smaller ring, gentler ease so it reads as
-       an attention cue rather than a flashing alert. The seat fades
-       its lift back to baseline so the surrounding row doesn't feel
-       disturbed once focus is established. */
-    .manifest-grid-seat.is-focused {
-        animation: manifest-seat-pulse 1.1s cubic-bezier(.4,0,.2,1) 0s 3 both;
-        z-index: 5;
+    /* Light theme overrides — chip stays visible on a parchment background */
+    [data-pt-theme="light"] .mfst-seat {
+        --m-seat-bg: rgba(0,0,0,0.04);
+        --m-seat-border: rgba(0,0,0,0.20);
+        --m-seat-color: #1f2937;
     }
-    @keyframes manifest-seat-pulse {
-        0%   { transform: translateY(-1px); box-shadow: 0 0 0 0 rgba(129,140,248,0.55), 0 0 0 0 rgba(192,132,252,0.30); }
-        40%  { transform: translateY(-2px); box-shadow: 0 0 0 4px rgba(129,140,248,0.45), 0 0 18px 2px rgba(192,132,252,0.32); }
-        100% { transform: translateY(-1px); box-shadow: 0 0 0 0 rgba(129,140,248,0); }
+    [data-pt-theme="light"] .mfst-seat.is-approved {
+        --m-seat-bg: rgba(16,185,129,0.15);
+        --m-seat-border: rgba(5,150,105,0.7);
+        --m-seat-color: #065f46;
     }
-    /* Respect users who explicitly request reduced motion — the pulse
-       collapses into a static ring so the focus cue still reads. */
-    @media (prefers-reduced-motion: reduce) {
-        .manifest-grid-seat.is-focused {
-            animation: none;
-            box-shadow: 0 0 0 2px rgba(129,140,248,0.55);
-        }
+    [data-pt-theme="light"] .mfst-seat.is-pending {
+        --m-seat-bg: rgba(245,158,11,0.15);
+        --m-seat-border: rgba(217,119,6,0.7);
+        --m-seat-color: #92400e;
     }
-
-    /* Usher chip behaves like a link but inherits the chip look. The
-       subtle underline-on-hover hints it's tappable without breaking
-       the chip's rounded silhouette. */
-    .manifest-usher-chip {
-        text-decoration: none;
-        transition: transform .12s ease, box-shadow .15s ease;
+    [data-pt-theme="light"] .mfst-seat.is-blocked {
+        --m-seat-bg: repeating-linear-gradient(45deg, rgba(244,63,94,0.15), rgba(244,63,94,0.15) 3px, rgba(0,0,0,0.10) 3px, rgba(0,0,0,0.10) 5px);
+        --m-seat-border: rgba(225,29,72,0.7);
+        --m-seat-color: #9f1239;
     }
-    .manifest-usher-chip:hover,
-    .manifest-usher-chip:focus {
-        outline: 0;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 14px -8px rgba(0,0,0,0.55);
+    [data-pt-theme="light"] .mfst-seat.is-empty {
+        --m-seat-border: rgba(0,0,0,0.12);
+        --m-seat-color: #6b7280;
     }
-
-    .manifest-grid-seat.is-scanned::after {
+    /* Family hue ring — drawn as a left-side inset shadow so it doesn't
+       fight the status border. Visible on RTL too. */
+    .mfst-seat[data-hue]::before {
+        content: "";
+        position: absolute;
+        inset-block: 3px;
+        inset-inline-start: 2px;
+        width: 3px;
+        border-radius: 2px;
+        background: var(--m-hue);
+    }
+    /* Checked-in marker (✓) — emerald dot top-right */
+    .mfst-seat[data-checked="1"]::after {
         content: "✓";
         position: absolute;
         top: -4px;
         inset-inline-end: -4px;
-        background: var(--prism-emerald);
-        color: #052e26;
         width: 14px; height: 14px;
+        border-radius: 999px;
+        background: var(--m-emerald);
+        color: #052e23;
         font-size: 9px;
-        font-weight: 800;
-        line-height: 14px;
-        border-radius: 999px;
-        box-shadow: 0 0 0 1.5px rgba(8,10,20,0.9);
+        font-weight: 900;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 8px rgba(52,211,153,0.7);
     }
-
-    /* Booking color band as a 3px left bar (matches Phase 1 print-sheet hue) */
-    .manifest-grid-seat[data-hue] {
-        box-shadow: inset 3px 0 0 0 transparent;
+    .mfst-seat.is-focused {
+        animation: mfst-focus-pulse 1.4s ease-out 3;
+        z-index: 3;
+        border-color: var(--m-sky) !important;
+        box-shadow: 0 0 0 3px rgba(56,189,248,0.18), 0 0 24px rgba(56,189,248,0.45);
     }
-    .manifest-grid-seat[data-hue="0"] { box-shadow: inset 3px 0 0 0 rgba(34,211,238,0.85); }
-    .manifest-grid-seat[data-hue="1"] { box-shadow: inset 3px 0 0 0 rgba(192,132,252,0.85); }
-    .manifest-grid-seat[data-hue="2"] { box-shadow: inset 3px 0 0 0 rgba(251,191,36,0.85); }
-    .manifest-grid-seat[data-hue="3"] { box-shadow: inset 3px 0 0 0 rgba(52,211,153,0.85); }
-    .manifest-grid-seat[data-hue="4"] { box-shadow: inset 3px 0 0 0 rgba(244,114,182,0.85); }
-    .manifest-grid-seat[data-hue="5"] { box-shadow: inset 3px 0 0 0 rgba(96,165,250,0.85); }
-    .manifest-grid-seat[data-hue="6"] { box-shadow: inset 3px 0 0 0 rgba(251,113,133,0.85); }
-    .manifest-grid-seat[data-hue="7"] { box-shadow: inset 3px 0 0 0 rgba(167,243,208,0.85); }
-    html[dir="rtl"] .manifest-grid-seat[data-hue="0"] { box-shadow: inset -3px 0 0 0 rgba(34,211,238,0.85); }
-    html[dir="rtl"] .manifest-grid-seat[data-hue="1"] { box-shadow: inset -3px 0 0 0 rgba(192,132,252,0.85); }
-    html[dir="rtl"] .manifest-grid-seat[data-hue="2"] { box-shadow: inset -3px 0 0 0 rgba(251,191,36,0.85); }
-    html[dir="rtl"] .manifest-grid-seat[data-hue="3"] { box-shadow: inset -3px 0 0 0 rgba(52,211,153,0.85); }
-    html[dir="rtl"] .manifest-grid-seat[data-hue="4"] { box-shadow: inset -3px 0 0 0 rgba(244,114,182,0.85); }
-    html[dir="rtl"] .manifest-grid-seat[data-hue="5"] { box-shadow: inset -3px 0 0 0 rgba(96,165,250,0.85); }
-    html[dir="rtl"] .manifest-grid-seat[data-hue="6"] { box-shadow: inset -3px 0 0 0 rgba(251,113,133,0.85); }
-    html[dir="rtl"] .manifest-grid-seat[data-hue="7"] { box-shadow: inset -3px 0 0 0 rgba(167,243,208,0.85); }
+    .mfst-seat.is-selected {
+        border-color: var(--m-sky) !important;
+        box-shadow: 0 0 0 2px rgba(56,189,248,0.30);
+    }
+    .mfst-seat.is-booking-highlight {
+        box-shadow: 0 0 0 2px var(--m-hue), 0 0 18px var(--m-hue-soft);
+        transform: translateY(-1px);
+    }
+    @keyframes mfst-focus-pulse {
+        0%   { box-shadow: 0 0 0 0 rgba(56,189,248,0.65); }
+        100% { box-shadow: 0 0 0 14px rgba(56,189,248,0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .mfst-seat.is-focused { animation: none; box-shadow: 0 0 0 3px rgba(56,189,248,0.35); }
+    }
+    /* Hide seats filtered out by the chip strip (status-driven). The
+       `data-status` attribute holds the row status; JS toggles a class
+       on the chart root that disables matching seats. */
+    .mfst-ops-chart.hide-empty    .mfst-seat[data-status="empty"]    { opacity: .18; pointer-events: none; }
+    .mfst-ops-chart.hide-approved .mfst-seat[data-status="approved"] { opacity: .18; pointer-events: none; }
+    .mfst-ops-chart.hide-pending  .mfst-seat[data-status="pending"]  { opacity: .18; pointer-events: none; }
+    .mfst-ops-chart.hide-blocked  .mfst-seat[data-status="blocked"]  { opacity: .18; pointer-events: none; }
+    .mfst-ops-chart.only-checked  .mfst-seat:not([data-checked="1"]) { opacity: .18; pointer-events: none; }
 
-    /* Active-seat popover (revealed by JS on click/focus). Operators
-       read this under entrance-hour pressure, often in dim lighting,
-       on a glance. We bias for a clear visual hierarchy:
-         row 1 — chip + attendee name (big)
-         row 2 — booking ref + owner (smaller, monospaced tnum)
-         row 3 — phone + status pill
-         row 4 — check-in time (only when scanned)
-       Min-height stays stable so opening different seats doesn't
-       reshuffle. */
-    .manifest-grid-popover {
-        position: fixed;
-        inset-inline-start: 50%;
-        bottom: 16px;
-        transform: translateX(-50%) translateY(8px);
-        z-index: 60;
-        max-width: 92vw;
-        width: 380px;
-        padding: 14px 16px 16px;
+    /* ----- Detail rail (right) ----- */
+    .mfst-rail {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        position: sticky;
+        top: calc(64px + env(safe-area-inset-top, 0px) + 70px);
+        max-height: calc(100vh - 160px);
+    }
+    .mfst-rail-card {
+        border: 1px solid var(--m-border);
         border-radius: 16px;
-        border: 1px solid rgba(129,140,248,0.45);
-        background: linear-gradient(180deg, rgba(20,24,38,0.97), rgba(8,10,20,0.97));
-        backdrop-filter: blur(14px) saturate(140%);
-        -webkit-backdrop-filter: blur(14px) saturate(140%);
-        box-shadow: 0 18px 36px -16px rgba(0,0,0,0.7);
-        color: var(--prism-text);
+        background: rgba(255,255,255,0.03);
+        padding: 14px;
+    }
+    .mfst-rail-empty {
+        text-align: center;
+        padding: 24px 14px;
+        color: var(--m-text-3);
         font-size: 12px;
-        line-height: 1.45;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity .15s ease, transform .15s ease;
+        border: 1px dashed var(--m-border);
+        border-radius: 16px;
     }
-    html[dir="rtl"] .manifest-grid-popover { transform: translateX(50%) translateY(8px); }
-    .manifest-grid-popover.is-on {
-        opacity: 1;
-        pointer-events: auto;
-        transform: translateX(-50%) translateY(0);
-    }
-    html[dir="rtl"] .manifest-grid-popover.is-on { transform: translateX(50%) translateY(0); }
-    .manifest-grid-popover .pop-title {
-        font-size: 14px; font-weight: 800; color: var(--prism-text);
-        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-        padding-inline-end: 22px; /* room for the close × */
-    }
-    .manifest-grid-popover .pop-title .pop-name {
-        flex: 1 1 auto;
-        font-size: 16px;
-        font-weight: 800;
-        line-height: 1.2;
-        word-break: break-word;
-        overflow-wrap: anywhere;
-    }
-    .manifest-grid-popover .pop-title .pt-seat-chip {
-        font-size: 12px;
-        padding: 4px 8px;
-    }
-    .manifest-grid-popover .pop-row {
-        display: flex; align-items: center; gap: 8px;
-        margin-top: 8px;
-        font-size: 12px;
-        color: var(--prism-text-3);
-        font-feature-settings: "tnum" 1;
-        flex-wrap: wrap;
-    }
-    .manifest-grid-popover .pop-row .pop-label {
-        font-size: 10px;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-        color: var(--prism-text-3);
-        opacity: .7;
-        min-width: 48px;
-    }
-    .manifest-grid-popover .pop-row .pop-value {
-        color: var(--prism-text);
-        font-weight: 600;
-    }
-    .manifest-grid-popover .pop-row .pop-value.is-mono { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
-    .manifest-grid-popover .pop-status {
-        display: inline-flex; align-items: center; gap: 6px;
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: .1em;
-        text-transform: uppercase;
-        padding: 3px 8px;
-        border-radius: 999px;
-        border: 1px solid currentColor;
-    }
-    .manifest-grid-popover .pop-status.is-approved { color: #6ee7b7; background: rgba(52,211,153,0.10); }
-    .manifest-grid-popover .pop-status.is-pending  { color: #fde68a; background: rgba(251,191,36,0.10); }
-    .manifest-grid-popover .pop-status.is-blocked  { color: #fda4af; background: rgba(244,63,94,0.10); }
-    .manifest-grid-popover .pop-status.is-empty    { color: var(--prism-text-3); background: rgba(255,255,255,0.04); }
-    .manifest-grid-popover .pop-checked {
+    .mfst-rail-empty .kbd-hint {
+        display: inline-flex;
+        gap: 4px;
         margin-top: 8px;
         font-size: 11px;
-        font-weight: 700;
-        color: var(--prism-emerald, #34d399);
+    }
+    .mfst-rail-empty .kbd-hint kbd {
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid var(--m-border);
+        font-family: ui-monospace, monospace;
+    }
+
+    .mfst-seat-detail .seat-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    .mfst-seat-detail .seat-big {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: .02em;
+        color: var(--m-text);
         font-feature-settings: "tnum" 1;
     }
-    .manifest-grid-popover .pop-checked[hidden] { display: none; }
-    .manifest-grid-popover .pop-close {
-        position: absolute; top: 8px; inset-inline-end: 12px;
-        font-size: 18px; line-height: 1; color: var(--prism-text-3);
-        background: transparent; border: 0; cursor: pointer;
+    .mfst-seat-detail .seat-section {
+        font-size: 11px;
+        color: var(--m-text-3);
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+    .mfst-seat-detail .seat-name {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--m-text);
+        margin: 2px 0 6px;
+        line-height: 1.25;
+    }
+    .mfst-seat-detail .seat-meta {
+        font-size: 12px;
+        color: var(--m-text-2);
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        font-feature-settings: "tnum" 1;
+    }
+    .mfst-seat-detail .seat-meta .label { color: var(--m-text-3); margin-inline-end: 4px; }
+    .mfst-seat-detail .seat-actions {
+        margin-top: 10px;
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .mfst-seat-detail .seat-actions a, .mfst-seat-detail .seat-actions button {
+        flex: 1 1 auto;
+        text-align: center;
+        padding: 8px 10px;
+        font-size: 12px;
+        border-radius: 10px;
+        border: 1px solid var(--m-border);
+        background: rgba(255,255,255,0.04);
+        color: var(--m-text);
+        cursor: pointer;
+    }
+    .mfst-seat-detail .seat-actions a:hover { background: rgba(129,140,248,0.12); }
+
+    /* Party (full booking) inside seat detail */
+    .mfst-seat-detail .seat-party {
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px dashed var(--m-border);
+    }
+    .mfst-seat-detail .seat-party .label {
+        font-size: 10px;
+        color: var(--m-text-3);
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+    .mfst-seat-detail .seat-party ul { display: flex; flex-direction: column; gap: 4px; }
+    .mfst-seat-detail .seat-party li {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 12px;
         padding: 4px 6px;
-        border-radius: 6px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.03);
     }
-    .manifest-grid-popover .pop-close:hover { color: var(--prism-text); background: rgba(255,255,255,0.06); }
+    .mfst-seat-detail .seat-party li.is-current { background: rgba(56,189,248,0.12); }
+    .mfst-seat-detail .seat-party li .lbl { font-weight: 800; color: var(--m-text); }
+    .mfst-seat-detail .seat-party li .nm  { color: var(--m-text-2); }
 
-    /* Legend strip (only screen) */
-    .manifest-grid-legend {
-        display: flex; flex-wrap: wrap; gap: 10px;
-        font-size: 11px; color: var(--prism-text-3);
-        padding: 8px 12px;
-        border: 1px solid var(--prism-border);
+    /* Bookings list card */
+    .mfst-bookings-card { padding: 0; }
+    .mfst-bookings-head {
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--m-border);
+    }
+    .mfst-bookings-head .title {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: var(--m-text-2);
+    }
+    .mfst-bookings-head .count { font-size: 11px; color: var(--m-text-3); }
+    .mfst-bookings-list {
+        max-height: 360px;
+        overflow-y: auto;
+    }
+    .mfst-bookings-list .row {
+        display: grid;
+        grid-template-columns: 16px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 14px;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+        cursor: pointer;
+        transition: background .12s ease;
+    }
+    .mfst-bookings-list .row:hover { background: rgba(129,140,248,0.08); }
+    .mfst-bookings-list .row.is-active { background: rgba(56,189,248,0.10); }
+    .mfst-bookings-list .row:last-child { border-bottom: 0; }
+    .mfst-bookings-list .dot {
+        width: 8px; height: 8px; border-radius: 999px;
+        background: var(--m-hue, var(--m-text-3));
+        box-shadow: 0 0 8px var(--m-hue, transparent);
+    }
+    .mfst-bookings-list .body { min-width: 0; }
+    .mfst-bookings-list .body .l1 {
+        font-size: 13px; font-weight: 700; color: var(--m-text);
+        white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
+    }
+    .mfst-bookings-list .body .l2 {
+        font-size: 11px; color: var(--m-text-3);
+        font-feature-settings: "tnum" 1;
+    }
+    .mfst-bookings-list .meta {
+        font-size: 11px;
+        color: var(--m-text-2);
+        text-align: end;
+    }
+    .mfst-bookings-list .meta .seats { font-weight: 800; color: var(--m-text); }
+
+    /* ====================================================================
+       FLOOR MODE (mode=floor) — mobile-first, dark-forced, thumb-first
+       ==================================================================== */
+    [data-mode="floor"] {
+        --m-bg            : #0a0a14;
+        --m-border        : rgba(255,255,255,0.10);
+        --m-border-strong : rgba(255,255,255,0.22);
+        --m-text          : #f3f4f6;
+        --m-text-2        : #d1d5db;
+        --m-text-3        : #9ca3af;
+        color: var(--m-text);
+    }
+    [data-mode="floor"] .mfst-topbar { background: linear-gradient(180deg, rgba(0,0,0,0.85), rgba(0,0,0,0.55)); }
+
+    .mfst-floor {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+        /* Force dark background regardless of theme so the screen
+           doesn't blind a usher in a dim hall. */
+        background: #0a0a14;
+        margin: -16px -16px 0;
+        padding: 12px;
+        min-height: calc(100vh - 80px);
+        color: #f3f4f6;
+    }
+    .mfst-floor-filters {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        padding: 4px 0 8px;
+        margin: 0 -4px;
+    }
+    .mfst-floor-filters::-webkit-scrollbar { display: none; }
+    .mfst-floor-filters .mfst-chip {
+        scroll-snap-align: start;
+        white-space: nowrap;
+        font-size: 11px;
+        padding: 6px 10px;
+    }
+    .mfst-floor-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    /* 80 px card — chip top-left, name top-right, action trailing */
+    .mfst-card {
+        min-height: 80px;
+        display: grid;
+        grid-template-columns: 56px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid var(--m-border);
+        background: rgba(255,255,255,0.04);
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform .12s ease, border-color .15s ease;
+    }
+    .mfst-card:active { transform: scale(0.99); }
+    .mfst-card.is-approved { border-color: rgba(52,211,153,0.55); background: rgba(52,211,153,0.06); }
+    .mfst-card.is-pending  { border-color: rgba(251,191,36,0.55); background: rgba(251,191,36,0.06); }
+    .mfst-card.is-blocked  { border-color: rgba(251,113,133,0.55); background: rgba(251,113,133,0.06); }
+    .mfst-card.is-empty    { border-color: rgba(255,255,255,0.10); background: rgba(255,255,255,0.02); opacity: .85; }
+    .mfst-card.is-scanned  { border-color: rgba(52,211,153,0.85); background: rgba(52,211,153,0.14); }
+
+    .mfst-card[data-hue]::before {
+        content: "";
+        position: absolute;
+        inset-block: 12px;
+        inset-inline-start: 0;
+        width: 3px;
+        border-radius: 2px;
+        background: var(--m-hue);
+    }
+    .mfst-card .card-chip {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 4px;
         border-radius: 12px;
-        background: rgba(255,255,255,0.02);
+        background: rgba(255,255,255,0.06);
+        border: 1px solid var(--m-border);
+        min-width: 56px;
     }
-    .manifest-grid-legend .lg { display: inline-flex; align-items: center; gap: 6px; }
-    .manifest-grid-legend .sw {
-        width: 14px; height: 14px; border-radius: 4px;
-        border: 1px solid var(--prism-border);
+    .mfst-card .card-chip .seat {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--m-text);
+        font-feature-settings: "tnum" 1;
     }
-    .manifest-grid-legend .sw.is-approved { background: rgba(52,211,153,0.16); border-color: rgba(52,211,153,0.55); }
-    .manifest-grid-legend .sw.is-pending  { background: rgba(251,191,36,0.20); border-color: rgba(251,191,36,0.60); }
-    .manifest-grid-legend .sw.is-blocked  {
-        background: repeating-linear-gradient(45deg,
-            rgba(244,63,94,0.25),
-            rgba(244,63,94,0.25) 3px,
-            rgba(244,63,94,0.08) 3px,
-            rgba(244,63,94,0.08) 6px);
-        border-color: rgba(244,63,94,0.55);
+    .mfst-card .card-chip .sec {
+        font-size: 9px;
+        color: var(--m-text-3);
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        margin-top: 2px;
     }
-    .manifest-grid-legend .sw.is-empty    { background: transparent; border-style: dashed; }
+    .mfst-card.is-approved .card-chip { background: rgba(52,211,153,0.15); border-color: rgba(52,211,153,0.5); }
+    .mfst-card.is-pending  .card-chip { background: rgba(251,191,36,0.15); border-color: rgba(251,191,36,0.5); }
+    .mfst-card.is-blocked  .card-chip { background: rgba(251,113,133,0.15); border-color: rgba(251,113,133,0.5); }
+    .mfst-card.is-scanned  .card-chip { background: rgba(52,211,153,0.25); border-color: rgba(52,211,153,0.75); }
 
-    /* Mobile compaction — phones get tighter cells and a row-by-row
-       horizontal scroll so a wide row doesn't break the page width. */
-    @media (max-width: 720px) {
-        .manifest-grid-seat { min-width: 26px; height: 26px; font-size: 10px; }
-        .manifest-grid-row-label { font-size: 12px; }
-        .manifest-grid-rows { padding: 8px; }
-        .manifest-grid-row { grid-template-columns: 28px 1fr; }
+    .mfst-card .card-body { min-width: 0; }
+    .mfst-card .card-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--m-text);
+        line-height: 1.2;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+    .mfst-card .card-meta {
+        font-size: 11px;
+        color: var(--m-text-3);
+        font-feature-settings: "tnum" 1;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .mfst-card .card-meta .pill {
+        padding: 1px 6px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .04em;
+    }
+    .mfst-card .card-meta .pill.ok    { background: rgba(52,211,153,0.18); color: #6ee7b7; }
+    .mfst-card .card-meta .pill.pen   { background: rgba(251,191,36,0.18); color: #fcd34d; }
+    .mfst-card .card-meta .pill.blk   { background: rgba(251,113,133,0.18); color: #fda4af; }
+    .mfst-card .card-meta .pill.emp   { background: rgba(255,255,255,0.08); color: var(--m-text-3); }
+    .mfst-card .card-meta .pill.ck    { background: rgba(56,189,248,0.18); color: #7dd3fc; }
+
+    .mfst-card .card-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px; height: 44px;
+        border-radius: 12px;
+        border: 1px solid var(--m-border);
+        background: rgba(255,255,255,0.06);
+        color: var(--m-text);
+        font-size: 16px;
+    }
+
+    .mfst-floor-empty {
+        text-align: center;
+        padding: 40px 12px;
+        color: var(--m-text-3);
+        font-size: 13px;
+    }
+
+    /* Sticky bottom search + FAB */
+    .mfst-floor-dock {
+        position: fixed;
+        inset-inline: 0;
+        bottom: 0;
+        padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+        background: linear-gradient(180deg, rgba(10,10,20,0.0), rgba(10,10,20,0.95) 35%);
+        z-index: 25;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    .mfst-floor-dock .mfst-search { flex: 1; margin-inline-start: 0; }
+    .mfst-floor-dock .mfst-search input {
+        background: rgba(20,22,40,0.9);
+        border-color: rgba(255,255,255,0.16);
+        font-size: 15px;
+        padding: 14px 44px 14px 16px;
+    }
+    .mfst-fab {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 52px; height: 52px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, var(--m-emerald), var(--m-sky));
+        color: #052e23;
+        font-size: 22px;
+        font-weight: 800;
+        text-decoration: none;
+        box-shadow: 0 12px 32px rgba(52,211,153,0.35);
     }
 
     /* ====================================================================
-       LIGHT MODE — paper-first surfaces */
-    :root[data-pt-theme="light"] .manifest-stat,
-    :root[data-pt-theme="light"] .manifest-search,
-    :root[data-pt-theme="light"] .manifest-section,
-    :root[data-pt-theme="light"] .manifest-row-label,
-    :root[data-pt-theme="light"] .manifest-cell,
-    :root[data-pt-theme="light"] .manifest-usher-row,
-    :root[data-pt-theme="light"] .manifest-booking-card,
-    :root[data-pt-theme="light"] .manifest-booking-card .bk-head {
-        background: #ffffff;
-        border-color: rgba(15,23,42,0.14);
+       PAPER SHEET (mode=paper) — on-screen preview + print rules
+       ==================================================================== */
+    .mfst-paper {
+        background: #fff;
+        color: #000;
+        padding: 18px;
+        border-radius: 12px;
+        font-family: 'IBM Plex Sans Arabic', 'Space Grotesk', sans-serif;
     }
-    :root[data-pt-theme="light"] .manifest-cell .seat-num,
-    :root[data-pt-theme="light"] .manifest-cell .seat-attendee,
-    :root[data-pt-theme="light"] .manifest-usher-row .who .nm,
-    :root[data-pt-theme="light"] .manifest-booking-card li .nm,
-    :root[data-pt-theme="light"] .manifest-row-label {
-        color: var(--prism-text);
+    .mfst-paper-section {
+        page-break-inside: auto;
+        break-inside: auto;
+        margin-bottom: 18px;
+    }
+    .mfst-paper-section + .mfst-paper-section { page-break-before: always; break-before: page; }
+    .mfst-paper-head {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        align-items: end;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #000;
+        margin-bottom: 8px;
+    }
+    .mfst-paper-head .t1 { font-size: 16pt; font-weight: 800; }
+    .mfst-paper-head .t2 { font-size: 10pt; color: #444; }
+    .mfst-paper-head .stats { font-size: 9pt; text-align: end; line-height: 1.4; }
+    .mfst-paper-head .stats strong { font-weight: 800; }
+    .mfst-paper-section-head {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        padding: 4px 6px;
+        background: #f3f4f6;
+        border: 1px solid #000;
+        font-size: 10pt;
+        font-weight: 800;
+        margin-bottom: 0;
+    }
+
+    /* Table */
+    .mfst-paper-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 9.5pt;
+        font-feature-settings: "tnum" 1;
+    }
+    .mfst-paper-table th, .mfst-paper-table td {
+        padding: 5px 6px;
+        border: 1px solid #000;
+        vertical-align: middle;
+    }
+    .mfst-paper-table th {
+        background: #f0f0f0;
+        font-size: 8.5pt;
+        font-weight: 800;
+        text-align: start;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+    .mfst-paper-table td.t-glyph { width: 22px; text-align: center; font-weight: 800; font-size: 12pt; }
+    .mfst-paper-table td.t-seat  { width: 60px; text-align: center; font-weight: 800; font-size: 11pt; }
+    .mfst-paper-table td.t-name  { font-weight: 600; }
+    .mfst-paper-table td.t-ref   { white-space: nowrap; }
+    .mfst-paper-table td.t-phone { white-space: nowrap; font-family: ui-monospace, monospace; font-size: 9pt; }
+    .mfst-paper-table td.t-check { width: 28px; text-align: center; font-size: 14pt; }
+    .mfst-paper-table tr.is-approved td.t-glyph { color: #047857; }
+    .mfst-paper-table tr.is-pending  td.t-glyph { color: #92400e; }
+    .mfst-paper-table tr.is-blocked  td.t-glyph { color: #be123c; }
+    .mfst-paper-table tr.is-empty    td.t-glyph { color: #6b7280; }
+    .mfst-paper-table tr.is-blocked  td.t-name  { color: #6b7280; font-style: italic; }
+    .mfst-paper-table tr.is-empty    td.t-name  { color: #9ca3af; font-style: italic; }
+    /* Family hue band — soft background tint behind the whole row */
+    .mfst-paper-table tr[data-hue="0"] td { background: rgba(34,211,238,0.08); }
+    .mfst-paper-table tr[data-hue="1"] td { background: rgba(129,140,248,0.08); }
+    .mfst-paper-table tr[data-hue="2"] td { background: rgba(244,114,182,0.08); }
+    .mfst-paper-table tr[data-hue="3"] td { background: rgba(251,191,36,0.10); }
+    .mfst-paper-table tr[data-hue="4"] td { background: rgba(52,211,153,0.10); }
+    .mfst-paper-table tr[data-hue="5"] td { background: rgba(251,113,133,0.10); }
+    .mfst-paper-table tr[data-hue="6"] td { background: rgba(167,139,250,0.10); }
+    .mfst-paper-table tr[data-hue="7"] td { background: rgba(252,165,165,0.10); }
+
+    .mfst-paper-rowsumm {
+        font-size: 8.5pt;
+        color: #444;
+        padding: 4px 8px;
+        border: 1px solid #000;
+        border-top: 0;
+        background: #fafafa;
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+    .mfst-paper-legend {
+        margin-top: 10px;
+        font-size: 8pt;
+        color: #444;
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        border-top: 1px dashed #000;
+        padding-top: 6px;
+    }
+    .mfst-paper-legend .g { font-weight: 800; }
+
+    .mfst-paper-actions { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 10px; }
+    .mfst-paper-actions a, .mfst-paper-actions button {
+        padding: 7px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        border: 1px solid var(--m-border);
+        background: rgba(255,255,255,0.04);
+        color: var(--m-text);
+        cursor: pointer;
     }
 
     /* ====================================================================
-       PRINT — A4 landscape, paper-first. Strips all chrome, neutralizes
-       backgrounds for ink, and force-breaks per section so each prints
-       on its own page when the row count overflows. */
+       PRINT RULES — paper-first, only the paper section survives
+       ==================================================================== */
     @media print {
-        @page { size: A4 landscape; margin: 10mm 10mm 12mm 10mm; }
+        @page { size: A4 landscape; margin: 10mm 10mm 14mm 10mm; }
 
         body, html { background: #fff !important; color: #000 !important; }
         body.has-bg::before, body.has-bg::after { display: none !important; }
 
-        /* Hide everything except the manifest itself */
+        /* Hide everything except the paper area */
         body * { visibility: hidden; }
-        .manifest-print-area, .manifest-print-area * { visibility: visible; }
-        .manifest-print-area { position: absolute; inset: 0; padding: 0; }
+        .mfst-paper, .mfst-paper * { visibility: visible; }
+        .mfst-paper { position: absolute; inset: 0; padding: 0; background: #fff !important; color: #000 !important; }
 
-        /* Hide chrome */
-        .manifest-chrome, .manifest-search, .pt-no-print { display: none !important; }
+        /* Chrome */
+        .mfst-topbar, .mfst-filters, .mfst-paper-actions, .pt-no-print { display: none !important; }
 
-        .manifest-print-title { text-align: center; font-size: 14pt; font-weight: 800; margin-bottom: 4mm; color: #000 !important; }
-        .manifest-print-sub   { text-align: center; font-size: 10pt; margin-bottom: 4mm; color: #000 !important; }
+        /* Running header on every page (CSS Paged Media) */
+        .mfst-paper-section { page-break-inside: auto; break-inside: auto; }
+        .mfst-paper-section-head { page-break-after: avoid; break-after: avoid; }
+        .mfst-paper-table tr     { page-break-inside: avoid; break-inside: avoid; }
+        .mfst-paper-table thead  { display: table-header-group; }
 
-        .manifest-stats { gap: 4mm; margin-bottom: 4mm; }
-        .manifest-stat {
-            background: #fff !important; border: 1px solid #000 !important;
-        }
-        .manifest-stat .v { color: #000 !important; font-size: 14pt; }
-        .manifest-stat .l { color: #000 !important; font-size: 8pt; }
-
-        .manifest-section {
-            background: #fff !important;
-            border: 1px solid #000 !important;
-            page-break-inside: avoid;
-            break-inside: avoid;
-            margin-bottom: 4mm;
-        }
-        .manifest-section + .manifest-section { page-break-before: auto; }
-        .manifest-section h3 {
-            background: #f0f0f0 !important;
-            color: #000 !important;
-            border-bottom: 1px solid #000 !important;
-            font-size: 11pt;
-        }
-        .manifest-row-strip { border-top: 1px solid #000 !important; }
-        .manifest-row-label {
-            background: #f6f6f6 !important;
-            color: #000 !important;
-            border-inline-end: 1px solid #000 !important;
-            font-size: 13pt;
-            padding: 2mm 0 !important;
-        }
-        /* Row stats survive in print — slightly smaller and dark gray
-           so they don't compete with the row letter. */
-        .manifest-row-label .row-stats {
-            color: #000 !important;
-            opacity: 1 !important;
-            font-size: 8pt !important;
-            font-weight: 600 !important;
-        }
-        .manifest-row-label .row-stats .ck { color: #000 !important; }
-        .manifest-row-seats {
-            grid-template-columns: repeat(auto-fill, minmax(56mm, 1fr));
-            gap: 2mm; padding: 2mm;
-        }
-        .manifest-cell {
-            background: #fff !important;
-            border: 1px solid #000 !important;
-            color: #000 !important;
-            min-height: 14mm;
-            page-break-inside: avoid;
-            break-inside: avoid;
-        }
-        .manifest-cell .seat-num,
-        .manifest-cell .seat-attendee {
-            color: #000 !important;
-        }
-        .manifest-cell .seat-meta { color: #333 !important; }
-        /* Status tag goes pure outline in print but adds a thick
-           letter glyph for low-ink/grayscale printers that may not
-           render the patterned backgrounds well: OK / P / B. */
-        .manifest-cell .seat-tag {
-            color: #000 !important;
-            background: transparent !important;
-            border: 1px solid #000 !important;
-            font-weight: 800 !important;
-            letter-spacing: .04em !important;
-        }
-        .manifest-cell.is-approved .seat-tag { border-width: 2px !important; }
-        .manifest-cell.is-pending  .seat-tag {
-            background: repeating-linear-gradient(45deg, #fff, #fff 2px, #eee 2px, #eee 4px) !important;
-            border-style: dashed !important;
-        }
-        .manifest-cell.is-blocked {
-            background: repeating-linear-gradient(45deg, #fff, #fff 3px, #000 3px, #000 4px) !important;
-        }
-        .manifest-cell.is-blocked .seat-num,
-        .manifest-cell.is-blocked .seat-tag { background: #fff !important; padding: 0 2px; }
-        .manifest-cell.is-empty { opacity: 1; }
-        .manifest-cell.is-empty .seat-attendee::after { content: "—"; }
-        .manifest-cell.is-scanned { background: #f3fff6 !important; }
-        .manifest-cell .seat-check { color: #000 !important; }
-
-        /* Hue is drawn as a thicker left border so it survives on paper */
-        .manifest-cell[data-hue]    { border-left-width: 3px !important; }
-        html[dir="rtl"] .manifest-cell[data-hue] { border-left-width: 1px !important; border-right-width: 3px !important; }
-
-        .manifest-print-footer {
-            text-align: center;
-            font-size: 8pt;
-            color: #000 !important;
-            margin-top: 4mm;
-        }
-
-        /* Grid view print — each section becomes its own A4 landscape
-           page. Cells go pure outline so the chart is readable in ink. */
-        .manifest-grid-section {
-            background: #fff !important;
-            border: 1px solid #000 !important;
-            page-break-inside: avoid;
-            break-inside: avoid;
-            page-break-after: always;
-        }
-        .manifest-grid-section:last-child { page-break-after: auto; }
-        .manifest-grid-section h3 {
-            background: #f0f0f0 !important;
-            color: #000 !important;
-            border-bottom: 1px solid #000 !important;
-            font-size: 11pt;
-        }
-        .manifest-grid-stage {
-            background: #fff !important; color: #000 !important;
-            border: 1px dashed #000 !important;
-        }
-        .manifest-grid-row-label {
-            background: #f6f6f6 !important;
-            color: #000 !important;
-            border: 1px solid #000 !important;
-            font-size: 10pt;
-        }
-        /* Per-row stats chip in the grid view also survives printing
-           so an A4 chart still reads "Row J · 18/25 ✓3" at the end. */
-        .manifest-grid-row-stats {
-            background: #fff !important;
-            color: #000 !important;
-            border: 1px solid #000 !important;
-            font-size: 8pt !important;
-            font-weight: 700 !important;
-        }
-        .manifest-grid-row-stats .ck { color: #000 !important; }
-        .manifest-grid-seat {
-            background: #fff !important;
-            color: #000 !important;
-            border: 1px solid #000 !important;
-            min-width: 7mm; height: 7mm; font-size: 7pt;
-        }
-        .manifest-grid-seat.is-approved { background: #fff !important; }
-        .manifest-grid-seat.is-pending  {
-            background: repeating-linear-gradient(45deg,
-                #fff, #fff 1.5px, #eee 1.5px, #eee 3px) !important;
-        }
-        .manifest-grid-seat.is-blocked  {
-            background: repeating-linear-gradient(45deg,
-                #fff, #fff 1.5px, #000 1.5px, #000 2.5px) !important;
-            color: #fff !important;
-        }
-        .manifest-grid-seat.is-empty    {
-            background: #fff !important; border-style: dashed !important; color: #888 !important;
-        }
-        .manifest-grid-seat.is-scanned::after {
-            background: #000 !important; color: #fff !important;
-            box-shadow: 0 0 0 1px #fff;
-        }
-        .manifest-grid-seat[data-hue]   { border-left-width: 2.5px !important; }
-        html[dir="rtl"] .manifest-grid-seat[data-hue] { border-left-width: 1px !important; border-right-width: 2.5px !important; }
-        .manifest-grid-popover, .manifest-grid-legend { display: none !important; }
+        /* Force the soft hue tints to print on most desktop browsers */
+        .mfst-paper-table tr[data-hue] td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
 </style>
 @endpush
 
 @section('content')
-<section class="space-y-4 manifest-shell">
+<div class="manifest-root prism-fade-up"
+     data-mode="{{ $mode }}"
+     data-focus-seat="{{ $focusSeat }}"
+     data-poll-url="{{ $jsonUrl }}"
+     data-status-filter="{{ $statusFilterJoined }}"
+     data-mobile-default-mode="floor"
+     data-checked-in-initial="{{ $checkedInCount }}"
+     data-capacity="{{ $capacity }}"
+     dir="rtl">
 
-    {{-- Top chrome (screen only) --}}
-    <div class="prism-glass prism-glow-border p-4 prism-fade-up pt-no-print">
-        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div class="space-y-1">
-                <span class="prism-pill prism-pill-neon">
-                    <span class="prism-dot prism-dot-emerald"></span>
-                    <span>Seat Manifest</span>
-                </span>
-                <h1 class="prism-headline text-xl sm:text-2xl"
-                    style="background: var(--prism-neon); -webkit-background-clip: text; background-clip: text; color: transparent;">
-                    {{ $showTitle }}
-                </h1>
-                <p class="text-xs text-[color:var(--prism-text-3)]" dir="ltr">
-                    {{ $eventDate }} · {{ $eventTime }} · {{ $totalBooked }} / {{ $summary['total'] }} seats booked
-                </p>
+    {{-- ============================================================
+         Top bar — Operations + Floor share it; Paper hides it
+         ============================================================ --}}
+    @if ($mode !== 'paper')
+    <div class="mfst-topbar pt-no-print">
+        <div class="mfst-topbar-id">
+            <div class="mfst-topbar-title">
+                <span class="live-dot" aria-hidden="true"></span>
+                <span>{{ $showTitle }}</span>
             </div>
-
-            <div class="flex flex-wrap items-center gap-2 manifest-chrome">
-                <div class="pt-tabs" role="tablist" aria-label="View">
-                    <a href="{{ $url(['view' => 'print']) }}"
-                       class="{{ $view === 'print' ? 'is-active' : '' }}"
-                       role="tab" aria-selected="{{ $view === 'print' ? 'true' : 'false' }}">
-                        🖨 Print
+            <div class="mfst-topbar-meta">
+                <span>{{ $eventDate }}</span>
+                @if ($eventTime)<span>•</span><span>{{ $eventTime }}</span>@endif
+                <span>•</span>
+                <span class="mfst-gauge">
+                    <span class="mfst-gauge-num js-gauge-num">{{ $totalBooked }} / {{ $capacity }}</span>
+                    <span class="mfst-gauge-bar" aria-hidden="true"><span class="fill js-gauge-fill" data-pct="{{ $capacityPct }}"></span></span>
+                </span>
+                <span>•</span>
+                <span class="js-gauge-checked">✓ <strong class="js-checked-num">{{ $checkedInCount }}</strong> checked-in</span>
+            </div>
+        </div>
+        <div class="mfst-topbar-actions">
+            <nav class="mfst-mode-switch" role="tablist" aria-label="Mode">
+                <a href="{{ $url(['mode' => 'ops']) }}"   role="tab" aria-selected="{{ $mode === 'ops'   ? 'true' : 'false' }}" class="{{ $mode === 'ops'   ? 'is-active' : '' }}">🎛 Operations</a>
+                <a href="{{ $url(['mode' => 'floor']) }}" role="tab" aria-selected="{{ $mode === 'floor' ? 'true' : 'false' }}" class="{{ $mode === 'floor' ? 'is-active' : '' }}">📱 Floor</a>
+                <a href="{{ $url(['mode' => 'paper']) }}" role="tab" aria-selected="{{ $mode === 'paper' ? 'true' : 'false' }}" class="{{ $mode === 'paper' ? 'is-active' : '' }}">🖨 Paper</a>
+            </nav>
+            <div class="mfst-overflow">
+                <button type="button" class="mfst-overflow-btn js-overflow-toggle" aria-haspopup="true" aria-expanded="false" aria-label="More actions">⋯</button>
+                <div class="mfst-overflow-menu js-overflow-menu" role="menu">
+                    <a href="{{ $url(['mode' => 'paper']) }}#autoprint" data-autoprint="1">🖨 Print sheet</a>
+                    <a href="{{ $csvUrl }}">⬇ Export CSV</a>
+                    <hr>
+                    <a href="{{ $url(['full_phone' => $showFullPhone ? 0 : 1]) }}">
+                        {{ $showFullPhone ? '🙈 Mask phones' : '👁 Show full phone numbers' }}
                     </a>
-                    <a href="{{ $url(['view' => 'usher']) }}"
-                       class="{{ $view === 'usher' ? 'is-active' : '' }}"
-                       role="tab" aria-selected="{{ $view === 'usher' ? 'true' : 'false' }}">
-                        🔍 Usher
-                    </a>
-                    <a href="{{ $url(['view' => 'grouped']) }}"
-                       class="{{ $view === 'grouped' ? 'is-active' : '' }}"
-                       role="tab" aria-selected="{{ $view === 'grouped' ? 'true' : 'false' }}">
-                        👥 By Booking
-                    </a>
-                    <a href="{{ $url(['view' => 'grid']) }}"
-                       class="{{ $view === 'grid' ? 'is-active' : '' }}"
-                       role="tab" aria-selected="{{ $view === 'grid' ? 'true' : 'false' }}">
-                        🗺 Grid
-                    </a>
+                    <a href="/admin/scanner">📷 Open QR Scanner</a>
+                    <hr>
+                    <a href="{{ route('admin.show-times.index') }}">← Back to show-times</a>
                 </div>
-
-                <a href="{{ $url(['full_phone' => $showFullPhone ? 0 : 1]) }}"
-                   class="prism-btn-ghost text-xs"
-                   title="Toggle phone visibility">
-                    {{ $showFullPhone ? '🔒 إخفاء الأرقام' : '👁 إظهار الأرقام' }}
-                </a>
-
-                <button type="button" onclick="window.print()" class="prism-btn text-xs">
-                    🖨 طباعة
-                </button>
-
-                <a href="{{ $csvUrl }}" class="prism-btn-ghost text-xs">
-                    ⬇ CSV
-                </a>
-
-                @if($show)
-                    <a href="{{ route('admin.shows.times.index', $show) }}" class="prism-btn-ghost text-xs">
-                        <span aria-hidden="true" class="pt-arrow-rtl">→</span>
-                        <span>رجوع</span>
-                    </a>
-                @endif
             </div>
         </div>
     </div>
+    @endif
 
-    {{-- ===================== PRINT-PRIMARY VIEW ===================== --}}
-    @if ($view === 'print')
+    {{-- ============================================================
+         Filter strip — Operations only. Floor has its own scroller.
+         ============================================================ --}}
+    @if ($mode === 'ops')
+    <div class="mfst-filters pt-no-print">
+        <button type="button" class="mfst-chip mfst-chip-approved js-filter-chip" data-status="approved" aria-pressed="{{ in_array('approved', $statusFilter) ? 'true' : 'false' }}">
+            <span class="prism-dot prism-dot-emerald" aria-hidden="true"></span>
+            <span>Approved</span>
+            <span class="count">{{ $summary['approved'] }}</span>
+        </button>
+        <button type="button" class="mfst-chip mfst-chip-pending js-filter-chip" data-status="pending" aria-pressed="{{ in_array('pending', $statusFilter) ? 'true' : 'false' }}">
+            <span class="prism-dot prism-dot-amber" aria-hidden="true"></span>
+            <span>Pending</span>
+            <span class="count">{{ $summary['pending'] }}</span>
+        </button>
+        <button type="button" class="mfst-chip mfst-chip-blocked js-filter-chip" data-status="blocked" aria-pressed="{{ in_array('blocked', $statusFilter) ? 'true' : 'false' }}">
+            <span class="prism-dot prism-dot-rose" aria-hidden="true"></span>
+            <span>Blocked</span>
+            <span class="count">{{ $summary['blocked'] }}</span>
+        </button>
+        <button type="button" class="mfst-chip mfst-chip-checked js-filter-chip" data-status="checked_in" aria-pressed="{{ in_array('checked_in', $statusFilter) ? 'true' : 'false' }}">
+            <span class="prism-dot prism-dot-sky" aria-hidden="true"></span>
+            <span>Checked-in</span>
+            <span class="count js-filter-checked-count">{{ $checkedInCount }}</span>
+        </button>
+        <button type="button" class="mfst-chip mfst-chip-empty js-filter-chip" data-status="empty" aria-pressed="{{ in_array('empty', $statusFilter) ? 'true' : 'false' }}">
+            <span class="prism-dot" style="background: rgba(255,255,255,0.35);" aria-hidden="true"></span>
+            <span>Empty</span>
+            <span class="count">{{ $summary['empty'] }}</span>
+        </button>
 
-        <div class="manifest-print-area">
-
-            <div class="manifest-print-title">
-                {{ $showTitle }}
-            </div>
-            <div class="manifest-print-sub" dir="ltr">
-                {{ $eventDate }} · {{ $eventTime }}
-            </div>
-
-            {{-- Summary --}}
-            <div class="manifest-stats prism-fade-up">
-                <div class="manifest-stat approved">
-                    <div class="v">{{ $summary['approved'] }}</div>
-                    <div class="l">Approved</div>
-                </div>
-                <div class="manifest-stat pending">
-                    <div class="v">{{ $summary['pending'] }}</div>
-                    <div class="l">Pending</div>
-                </div>
-                <div class="manifest-stat blocked">
-                    <div class="v">{{ $summary['blocked'] }}</div>
-                    <div class="l">Blocked</div>
-                </div>
-                <div class="manifest-stat empty">
-                    <div class="v">{{ $summary['empty'] }}</div>
-                    <div class="l">Empty</div>
-                </div>
-                <div class="manifest-stat total">
-                    <div class="v">{{ $summary['total'] }}</div>
-                    <div class="l">Total Seats</div>
-                </div>
-            </div>
-
-            <div class="manifest-print prism-fade-up">
-                @forelse ($rowsBySectionRow as $sectionLabel => $byRow)
-                    @php
-                        $firstCell = collect($byRow)->flatten(1)->first();
-                        $sectionEnum = $firstCell['section'] ?? 'hall';
-                    @endphp
-                    <div class="manifest-section section-{{ $sectionEnum === 'balcony' ? 'balcony' : 'hall' }}">
-                        <h3>{{ $sectionLabel }} · {{ $sectionEnum === 'balcony' ? 'Balcony' : 'Hall' }}</h3>
-
-                        @foreach ($byRow as $rowLetter => $cells)
-                            @php
-                                // Per-row stats — counts each status once
-                                // per cell so the operator sees row saturation
-                                // at a glance. Approved + pending count as
-                                // booked; scanned is a subset of approved.
-                                $rowTotal    = count($cells);
-                                $rowBooked   = 0;
-                                $rowScanned  = 0;
-                                $rowBlocked  = 0;
-                                foreach ($cells as $cc) {
-                                    if (in_array($cc['status'], ['approved', 'pending'], true)) $rowBooked++;
-                                    if (!empty($cc['is_scanned'])) $rowScanned++;
-                                    if ($cc['status'] === 'blocked') $rowBlocked++;
-                                }
-                            @endphp
-                            <div class="manifest-row-strip">
-                                <div class="manifest-row-label">
-                                    <span>{{ $rowLetter }}</span>
-                                    <span class="row-stats" dir="ltr">
-                                        {{ $rowBooked }}/{{ $rowTotal }}@if ($rowScanned) <span class="ck">✓{{ $rowScanned }}</span>@endif
-                                    </span>
-                                </div>
-                                <div class="manifest-row-seats">
-                                    @foreach ($cells as $c)
-                                        @php
-                                            $statusClass = 'is-' . $c['status'];
-                                            $hue = $c['booking_id'] !== null
-                                                ? ($bookingColorIndex[$c['booking_id']] ?? null)
-                                                : null;
-                                        @endphp
-                                        <div class="manifest-cell {{ $statusClass }} {{ $c['is_scanned'] ? 'is-scanned' : '' }}"
-                                             @if ($hue !== null) data-hue="{{ $hue }}" @endif>
-                                            <div class="seat-head">
-                                                <span class="seat-num" dir="ltr">{{ $c['row_letter'] }}{{ $c['seat_number'] }}</span>
-                                                <span class="seat-tag">
-                                                    @switch($c['status'])
-                                                        @case('approved') OK @break
-                                                        @case('pending')  PEND @break
-                                                        @case('blocked')  BLK @break
-                                                        @default          — @break
-                                                    @endswitch
-                                                </span>
-                                            </div>
-                                            <div class="seat-attendee">
-                                                {{ $c['attendee_name'] ?: ($c['status'] === 'blocked' ? 'BLOCKED' : '') }}
-                                            </div>
-                                            <div class="seat-meta">
-                                                @if ($c['booking_ref'])
-                                                    #{{ $c['booking_ref'] }}
-                                                @endif
-                                                @if ($c['phone'])
-                                                    · {{ $maskPhone($c['phone']) }}
-                                                @endif
-                                            </div>
-                                            @if ($c['is_scanned'] && $c['scanned_at'])
-                                                <div class="seat-check">✓ {{ $c['scanned_at'] }}</div>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @empty
-                    <div class="prism-glass p-6 text-center text-sm text-[color:var(--prism-text-3)]">
-                        لا يوجد مقاعد لعرضها — هذا العرض غير مرتبط بخريطة مقاعد.
-                    </div>
-                @endforelse
-            </div>
-
-            <div class="manifest-print-footer">
-                Printed {{ now()->format('d/m/Y g:i A') }} · {{ $showFullPhone ? 'Full phone numbers' : 'Masked phones (last 4)' }}
-            </div>
-        </div>
-
-    {{-- ===================== USHER (mobile search) VIEW ===================== --}}
-    @elseif ($view === 'usher')
-
-        <div class="manifest-stats prism-fade-up">
-            <div class="manifest-stat approved">
-                <div class="v">{{ $summary['approved'] }}</div>
-                <div class="l">Approved</div>
-            </div>
-            <div class="manifest-stat pending">
-                <div class="v">{{ $summary['pending'] }}</div>
-                <div class="l">Pending</div>
-            </div>
-            <div class="manifest-stat blocked">
-                <div class="v">{{ $summary['blocked'] }}</div>
-                <div class="l">Blocked</div>
-            </div>
-            <div class="manifest-stat empty">
-                <div class="v">{{ $summary['empty'] }}</div>
-                <div class="l">Empty</div>
-            </div>
-            <div class="manifest-stat total">
-                <div class="v">{{ $checkedInCount }}</div>
-                <div class="l">Checked-In</div>
-            </div>
-        </div>
-
-        <div class="manifest-search prism-fade-up">
-            <span aria-hidden="true" style="font-size: 16px; opacity: .7;">🔎</span>
+        <label class="mfst-search">
             <input type="search"
-                   id="manifest-search-input"
-                   placeholder="ابحث: اسم / رقم / كود حجز / مقعد (مثال: A12)"
-                   aria-label="Search manifest"
+                   class="js-search-input"
+                   placeholder="🔍 ابحث: اسم / رقم / كود حجز / مقعد (مثال: A12)"
+                   aria-label="Search seats, bookings, attendees"
                    autocomplete="off"
-                   autocorrect="off"
-                   autocapitalize="off"
-                   spellcheck="false">
+                   autocapitalize="off">
+            <kbd>/</kbd>
+            <span class="icon">🔎</span>
+        </label>
+    </div>
+    @endif
+
+    {{-- ============================================================
+         OPERATIONS CONSOLE
+         ============================================================ --}}
+    @if ($mode === 'ops')
+    <div class="mfst-ops">
+        <section class="mfst-ops-chart js-chart" aria-label="Seating chart">
+            @foreach ($rowsBySectionRow as $sectionLabel => $byRow)
+                @php
+                    $sectionApproved = 0; $sectionPending = 0; $sectionBlocked = 0; $sectionEmpty = 0; $sectionTotal = 0;
+                    foreach ($byRow as $rletter => $seats) {
+                        foreach ($seats as $s) {
+                            $sectionTotal++;
+                            $sectionApproved += $s['status'] === 'approved' ? 1 : 0;
+                            $sectionPending  += $s['status'] === 'pending'  ? 1 : 0;
+                            $sectionBlocked  += $s['status'] === 'blocked'  ? 1 : 0;
+                            $sectionEmpty    += $s['status'] === 'empty'    ? 1 : 0;
+                        }
+                    }
+                @endphp
+                <div class="mfst-section">
+                    <div class="mfst-section-head">
+                        <div class="mfst-section-title">
+                            <span>{{ $sectionLabel }}</span>
+                            <span class="mfst-section-sub">
+                                {{ $sectionApproved + $sectionPending }} / {{ $sectionTotal }}
+                                · ✕ {{ $sectionBlocked }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mfst-stage">🎬 STAGE · المسرح</div>
+                    @foreach ($byRow as $rletter => $seats)
+                        @php
+                            $rowBooked   = 0; $rowChecked = 0; $rowTotal = count($seats);
+                            foreach ($seats as $s) {
+                                if (in_array($s['status'], ['approved', 'pending'], true)) $rowBooked++;
+                                if (!empty($s['is_scanned'])) $rowChecked++;
+                            }
+                        @endphp
+                        <div class="mfst-row">
+                            <div class="mfst-row-label">
+                                <span class="row-letter">{{ $rletter }}</span>
+                                <span class="row-stats">
+                                    {{ $rowBooked }}/{{ $rowTotal }}
+                                    @if ($rowChecked > 0) <span class="ck">✓{{ $rowChecked }}</span> @endif
+                                </span>
+                            </div>
+                            <div class="mfst-row-seats">
+                                @foreach ($seats as $s)
+                                    @php
+                                        $seatLabel = $s['row_letter'] . $s['seat_number'];
+                                        $hue = $s['booking_id'] ? ($bookingColorIndex[$s['booking_id']] ?? null) : null;
+                                    @endphp
+                                    <button type="button"
+                                            class="mfst-seat is-{{ $s['status'] }} {{ $hue !== null ? 'mfst-hue-' . $hue : '' }} js-seat"
+                                            data-seat="{{ $seatLabel }}"
+                                            data-status="{{ $s['status'] }}"
+                                            data-section="{{ $s['section_label_ar'] }}"
+                                            data-section-en="{{ $s['section_label_en'] }}"
+                                            data-row="{{ $s['row_letter'] }}"
+                                            data-seat-num="{{ $s['seat_number'] }}"
+                                            @if ($hue !== null) data-hue="{{ $hue }}" @endif
+                                            data-booking-id="{{ $s['booking_id'] ?? '' }}"
+                                            data-booking-ref="{{ $s['booking_ref'] ?? '' }}"
+                                            data-name="{{ $s['attendee_name'] ?? '' }}"
+                                            data-owner="{{ $s['booking_owner'] ?? '' }}"
+                                            data-phone="{{ $s['phone'] ? $maskPhone($s['phone']) : '' }}"
+                                            data-status-en="{{ $s['status_en'] }}"
+                                            data-checked="{{ $s['is_scanned'] ? '1' : '0' }}"
+                                            data-scanned-at="{{ $s['scanned_at'] ?? '' }}"
+                                            data-haystack="@php echo strtolower(trim(($s['attendee_name'] ?? '') . ' ' . ($s['booking_owner'] ?? '') . ' ' . ($s['booking_ref'] ?? '') . ' ' . ($s['phone'] ?? '') . ' ' . $seatLabel . ' ' . $s['section_label_ar'])); @endphp"
+                                            aria-label="Seat {{ $seatLabel }} ({{ $s['status_en'] }})">
+                                        <span>{{ $s['seat_number'] }}</span>
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endforeach
+        </section>
+
+        <aside class="mfst-rail" aria-label="Detail rail">
+            <div class="mfst-rail-card mfst-seat-detail js-seat-detail" style="display:none;">
+                <div class="seat-head">
+                    <div>
+                        <div class="seat-big js-detail-seat">—</div>
+                        <div class="seat-section js-detail-section"></div>
+                    </div>
+                    <button type="button" class="prism-btn prism-btn-ghost js-detail-close" aria-label="Close detail">✕</button>
+                </div>
+                <div class="seat-name js-detail-name"></div>
+                <div class="seat-meta">
+                    <div><span class="label">Status:</span><span class="js-detail-status"></span></div>
+                    <div><span class="label">Booking:</span><span class="js-detail-booking"></span></div>
+                    <div><span class="label">Owner:</span><span class="js-detail-owner"></span></div>
+                    <div><span class="label">Phone:</span><span class="js-detail-phone"></span></div>
+                    <div class="js-detail-scan-row" style="display:none;"><span class="label">Checked in:</span><span class="js-detail-scan"></span></div>
+                </div>
+                <div class="seat-actions">
+                    <a href="#" class="js-detail-scanlink" target="_self">📷 Scan to verify</a>
+                </div>
+                <div class="seat-party js-detail-party" style="display:none;">
+                    <div class="label">Booking party</div>
+                    <ul class="js-detail-party-list"></ul>
+                </div>
+            </div>
+
+            <div class="mfst-rail-empty js-rail-empty">
+                <div>Select a seat or a booking to see details.</div>
+                <div class="kbd-hint">
+                    <kbd>/</kbd> search · <kbd>Esc</kbd> clear
+                </div>
+            </div>
+
+            <div class="mfst-rail-card mfst-bookings-card">
+                <div class="mfst-bookings-head">
+                    <span class="title">Bookings</span>
+                    <span class="count">{{ count($bookings) }}</span>
+                </div>
+                <div class="mfst-bookings-list js-bookings-list">
+                    @foreach ($bookings as $b)
+                        @php $hue = $bookingColorIndex[$b['id']] ?? 0; @endphp
+                        <div class="row mfst-hue-{{ $hue }} js-booking-row"
+                             data-booking-id="{{ $b['id'] }}"
+                             data-booking-ref="{{ $b['ref'] }}"
+                             data-seats="{{ implode(',', $b['seat_labels']) }}"
+                             data-haystack="@php echo strtolower(($b['owner'] ?? '') . ' ' . ($b['ref'] ?? '') . ' ' . ($b['phone'] ?? '')); @endphp">
+                            <span class="dot" aria-hidden="true"></span>
+                            <div class="body">
+                                <div class="l1">{{ $b['owner'] ?? '—' }}</div>
+                                <div class="l2">{{ $b['ref'] }} · {{ strtolower($b['status_en']) }}</div>
+                            </div>
+                            <div class="meta">
+                                <div><span class="seats">{{ count($b['seats']) }}</span> seats</div>
+                                @if ($b['checked_in'] > 0)
+                                    <div style="color: var(--m-emerald);">✓ {{ $b['checked_in'] }}/{{ count($b['seats']) }}</div>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </aside>
+    </div>
+    @endif
+
+    {{-- ============================================================
+         FLOOR MODE
+         ============================================================ --}}
+    @if ($mode === 'floor')
+    <div class="mfst-floor" data-floor>
+        <div class="mfst-floor-filters" role="tablist" aria-label="Status filter">
+            <button type="button" class="mfst-chip mfst-chip-approved js-filter-chip" data-status="approved" aria-pressed="{{ in_array('approved', $statusFilter) ? 'true' : 'false' }}">
+                <span>Approved</span><span class="count">{{ $summary['approved'] }}</span>
+            </button>
+            <button type="button" class="mfst-chip mfst-chip-pending js-filter-chip" data-status="pending" aria-pressed="{{ in_array('pending', $statusFilter) ? 'true' : 'false' }}">
+                <span>Pending</span><span class="count">{{ $summary['pending'] }}</span>
+            </button>
+            <button type="button" class="mfst-chip mfst-chip-blocked js-filter-chip" data-status="blocked" aria-pressed="{{ in_array('blocked', $statusFilter) ? 'true' : 'false' }}">
+                <span>Blocked</span><span class="count">{{ $summary['blocked'] }}</span>
+            </button>
+            <button type="button" class="mfst-chip mfst-chip-checked js-filter-chip" data-status="checked_in" aria-pressed="{{ in_array('checked_in', $statusFilter) ? 'true' : 'false' }}">
+                <span>✓ Checked</span><span class="count js-filter-checked-count">{{ $checkedInCount }}</span>
+            </button>
+            <button type="button" class="mfst-chip mfst-chip-empty js-filter-chip" data-status="empty" aria-pressed="{{ in_array('empty', $statusFilter) ? 'true' : 'false' }}">
+                <span>Empty</span><span class="count">{{ $summary['empty'] }}</span>
+            </button>
         </div>
 
-        <div class="manifest-usher-list prism-fade-up" id="manifest-usher-list">
-            @foreach ($rows as $r)
+        <div class="mfst-floor-list js-floor-list">
+            @foreach ($rows as $s)
                 @php
-                    $seatLabel = $r['row_letter'] . $r['seat_number'];
-                    $haystack = strtolower(implode(' ', array_filter([
-                        $seatLabel,
-                        $r['row_letter'],
-                        (string) $r['seat_number'],
-                        $r['section_label_ar'],
-                        $r['section_label_en'],
-                        $r['attendee_name'] ?? '',
-                        $r['booking_ref'] ?? '',
-                        $r['booking_owner'] ?? '',
-                        $r['phone'] ?? '',
-                    ])));
+                    $seatLabel = $s['row_letter'] . $s['seat_number'];
+                    $hue = $s['booking_id'] ? ($bookingColorIndex[$s['booking_id']] ?? null) : null;
+                    $statusPillKey = $s['status'];
                 @endphp
-                <div class="manifest-usher-row is-{{ $r['status'] }} {{ $r['is_scanned'] ? 'is-scanned' : '' }}"
-                     data-haystack="{{ $haystack }}">
-                    <div class="seat-block">
-                        {{-- Tapping the chip jumps to the grid view with
-                             this seat pre-focused (pulse + auto-popover).
-                             Blocked / empty seats also link so operators
-                             can confirm spatially that the row is right. --}}
-                        <a class="pt-seat-chip pt-seat-chip-{{ $r['section'] === 'balcony' ? 'balcony' : 'hall' }} manifest-usher-chip"
-                           href="{{ $url(['view' => 'grid', 'focus' => $seatLabel]) }}"
-                           title="عرض على الخريطة">
-                            <span class="pt-seat-chip-section">{{ $r['section_label_ar'] }}</span>
-                            <span class="pt-seat-chip-seat" dir="ltr">{{ $seatLabel }}</span>
-                        </a>
+                <div class="mfst-card is-{{ $s['status'] }} @if($s['is_scanned']) is-scanned @endif {{ $hue !== null ? 'mfst-hue-' . $hue : '' }} js-floor-card"
+                     data-seat="{{ $seatLabel }}"
+                     data-status="{{ $s['status'] }}"
+                     data-checked="{{ $s['is_scanned'] ? '1' : '0' }}"
+                     @if ($hue !== null) data-hue="{{ $hue }}" @endif
+                     data-haystack="@php echo strtolower(trim(($s['attendee_name'] ?? '') . ' ' . ($s['booking_owner'] ?? '') . ' ' . ($s['booking_ref'] ?? '') . ' ' . ($s['phone'] ?? '') . ' ' . $seatLabel . ' ' . $s['section_label_ar'])); @endphp"
+                     role="button"
+                     tabindex="0">
+                    <div class="card-chip">
+                        <span class="seat">{{ $seatLabel }}</span>
+                        <span class="sec">{{ $s['section_label_ar'] }}</span>
                     </div>
-                    <div class="who">
-                        <span class="nm">
-                            {{ $r['attendee_name'] ?: ($r['status'] === 'blocked' ? 'BLOCKED' : ($r['status'] === 'empty' ? '— فارغ —' : '—')) }}
-                        </span>
-                        <span class="meta" dir="ltr">
-                            @if ($r['booking_ref']) #{{ $r['booking_ref'] }} @endif
-                            @if ($r['phone']) · {{ $maskPhone($r['phone']) }} @endif
-                            @if ($r['status'] === 'pending') · PENDING @endif
-                        </span>
+                    <div class="card-body">
+                        <div class="card-name">
+                            @if ($s['status'] === 'blocked')
+                                — محجوب —
+                            @elseif ($s['status'] === 'empty')
+                                — فارغ —
+                            @else
+                                {{ $s['attendee_name'] ?? '—' }}
+                            @endif
+                        </div>
+                        <div class="card-meta">
+                            @if ($s['status'] === 'approved')
+                                <span class="pill ok">APPROVED</span>
+                            @elseif ($s['status'] === 'pending')
+                                <span class="pill pen">PENDING</span>
+                            @elseif ($s['status'] === 'blocked')
+                                <span class="pill blk">BLOCKED</span>
+                            @else
+                                <span class="pill emp">EMPTY</span>
+                            @endif
+                            @if ($s['is_scanned'])
+                                <span class="pill ck">✓ {{ $s['scanned_at'] }}</span>
+                            @endif
+                            @if ($s['booking_ref'])
+                                <span>{{ $s['booking_ref'] }}</span>
+                            @endif
+                            @if ($s['phone'])
+                                <span>{{ $maskPhone($s['phone']) }}</span>
+                            @endif
+                        </div>
                     </div>
-                    <div class="ck">
-                        @if ($r['is_scanned']) ✓ {{ $r['scanned_at'] }} @endif
-                    </div>
+                    <a href="{{ $url(['mode' => 'ops', 'focus' => $seatLabel]) }}" class="card-action" aria-label="Show {{ $seatLabel }} on chart" data-no-card-click>↗</a>
                 </div>
             @endforeach
         </div>
 
-        <div class="manifest-usher-empty pt-no-print" id="manifest-usher-empty" hidden>
-            لا توجد نتائج مطابقة.
+        <div class="mfst-floor-empty js-floor-empty" style="display:none;">
+            No seats match the current filter.
         </div>
 
-        <script>
-            (function () {
-                var input = document.getElementById('manifest-search-input');
-                var list  = document.getElementById('manifest-usher-list');
-                var empty = document.getElementById('manifest-usher-empty');
-                if (!input || !list) return;
-
-                function apply(q) {
-                    q = (q || '').trim().toLowerCase();
-                    var rows = list.querySelectorAll('.manifest-usher-row');
-                    var visible = 0;
-                    rows.forEach(function (r) {
-                        var hay = r.dataset.haystack || '';
-                        var match = !q || hay.indexOf(q) !== -1;
-                        r.hidden = !match;
-                        if (match) visible++;
-                    });
-                    if (empty) empty.hidden = (visible !== 0);
-                }
-
-                input.addEventListener('input', function () { apply(input.value); });
-                input.addEventListener('search', function () { apply(input.value); });
-
-                // Keyboard shortcut: "/" focuses search
-                document.addEventListener('keydown', function (e) {
-                    if (e.key === '/' && document.activeElement !== input) {
-                        e.preventDefault();
-                        input.focus();
-                    }
-                });
-            })();
-        </script>
-
-    {{-- ===================== GROUPED-BY-BOOKING VIEW ===================== --}}
-    @elseif ($view === 'grouped')
-
-        <div class="manifest-stats prism-fade-up">
-            <div class="manifest-stat approved">
-                <div class="v">{{ $summary['approved'] }}</div>
-                <div class="l">Approved</div>
-            </div>
-            <div class="manifest-stat pending">
-                <div class="v">{{ $summary['pending'] }}</div>
-                <div class="l">Pending</div>
-            </div>
-            <div class="manifest-stat blocked">
-                <div class="v">{{ $summary['blocked'] }}</div>
-                <div class="l">Blocked</div>
-            </div>
-            <div class="manifest-stat empty">
-                <div class="v">{{ $summary['empty'] }}</div>
-                <div class="l">Empty</div>
-            </div>
-            <div class="manifest-stat total">
-                <div class="v">{{ $checkedInCount }}</div>
-                <div class="l">Checked-In</div>
-            </div>
+        <div class="mfst-floor-dock pt-no-print">
+            <label class="mfst-search">
+                <input type="search"
+                       class="js-search-input"
+                       placeholder="🔍 اسم / رقم / مقعد"
+                       aria-label="Search"
+                       autocomplete="off"
+                       autocapitalize="off">
+                <span class="icon">🔎</span>
+            </label>
+            <a href="/admin/scanner" class="mfst-fab" aria-label="Open QR scanner">📷</a>
         </div>
-
-        @php
-            $byBooking = [];
-            foreach ($rows as $r) {
-                if ($r['booking_id'] === null) continue;
-                $byBooking[$r['booking_id']][] = $r;
-            }
-        @endphp
-
-        <div class="manifest-grouped prism-fade-up">
-            @forelse ($byBooking as $bookingId => $cells)
-                @php $first = $cells[0]; @endphp
-                <div class="manifest-booking-card s-{{ $first['status'] }}">
-                    <div class="bk-head">
-                        <span class="ref" dir="ltr">#{{ $first['booking_ref'] }}</span>
-                        <span class="owner">{{ $first['booking_owner'] }}</span>
-                        <span class="meta" dir="ltr">{{ $maskPhone($first['phone'] ?? '') }}</span>
-                        <span class="status-chip">{{ $first['status_en'] }}</span>
-                    </div>
-                    <ul>
-                        @foreach ($cells as $c)
-                            <li class="{{ $c['is_scanned'] ? 'is-scanned' : '' }}">
-                                <div class="flex items-center gap-2">
-                                    <span class="pt-seat-chip pt-seat-chip-{{ $c['section'] === 'balcony' ? 'balcony' : 'hall' }}">
-                                        <span class="pt-seat-chip-section">{{ $c['section_label_ar'] }}</span>
-                                        <span class="pt-seat-chip-seat" dir="ltr">{{ $c['row_letter'] }}{{ $c['seat_number'] }}</span>
-                                    </span>
-                                    <span class="nm">{{ $c['attendee_name'] }}</span>
-                                </div>
-                                <span class="ck">
-                                    @if ($c['is_scanned']) ✓ {{ $c['scanned_at'] }} @endif
-                                </span>
-                            </li>
-                        @endforeach
-                    </ul>
-                </div>
-            @empty
-                <div class="prism-glass p-6 text-center text-sm text-[color:var(--prism-text-3)]">
-                    لا توجد حجوزات لهذا الموعد بعد.
-                </div>
-            @endforelse
-        </div>
-
-    {{-- ===================== GRID (theater map) VIEW =====================
-         Spatial layout of every physical seat in the venue grouped by
-         section → row, color-coded by status. Reads as a real seating
-         chart, not a list. Hover/tap a seat to see attendee details in
-         the popover. For non-seatmap shows (where there's no fixed
-         layout) we fall back to a notice — the grid only makes sense
-         when there's a physical seat axis to anchor against. --}}
-    @elseif ($view === 'grid')
-
-        <div class="manifest-stats prism-fade-up">
-            <div class="manifest-stat approved">
-                <div class="v">{{ $summary['approved'] }}</div>
-                <div class="l">Approved</div>
-            </div>
-            <div class="manifest-stat pending">
-                <div class="v">{{ $summary['pending'] }}</div>
-                <div class="l">Pending</div>
-            </div>
-            <div class="manifest-stat blocked">
-                <div class="v">{{ $summary['blocked'] }}</div>
-                <div class="l">Blocked</div>
-            </div>
-            <div class="manifest-stat empty">
-                <div class="v">{{ $summary['empty'] }}</div>
-                <div class="l">Empty</div>
-            </div>
-            <div class="manifest-stat total">
-                <div class="v">{{ $checkedInCount }}</div>
-                <div class="l">Checked-In</div>
-            </div>
-        </div>
-
-        @if (!$usesSeatMap)
-            <div class="prism-glass p-6 text-center text-sm text-[color:var(--prism-text-3)]">
-                لا توجد خريطة مقاعد لهذا العرض — استخدم وضع "🔍 Usher" أو "👥 By Booking".
-            </div>
-        @else
-            @php
-                // Group rows by section then by row_letter, preserving
-                // the seat-major ordering the controller produced. This
-                // gives us a stable spatial layout: { section: { row: [...] } }
-                $bySection = [];
-                foreach ($rows as $r) {
-                    $bySection[$r['section']][$r['row_letter']][] = $r;
-                }
-                // Hall first, balcony second (operationally what ushers
-                // expect — main floor before the upper deck).
-                uksort($bySection, function ($a, $b) {
-                    if ($a === $b) return 0;
-                    if ($a === 'hall') return -1;
-                    if ($b === 'hall') return 1;
-                    return strcmp($a, $b);
-                });
-            @endphp
-
-            <div class="manifest-grid-legend pt-no-print prism-fade-up" role="note">
-                <span class="lg"><span class="sw is-approved"></span> Approved</span>
-                <span class="lg"><span class="sw is-pending"></span> Pending</span>
-                <span class="lg"><span class="sw is-blocked"></span> Blocked</span>
-                <span class="lg"><span class="sw is-empty"></span> Empty</span>
-                <span class="lg"><span class="sw" style="background:#0f172a; border-color:#0f172a; position:relative;"><span style="position:absolute; top:-2px; right:-2px; width:8px; height:8px; background:var(--prism-emerald); border-radius:999px; box-shadow:0 0 0 1.5px #0f172a;"></span></span> Checked-In</span>
-            </div>
-
-            <div class="manifest-grid-wrap prism-fade-up">
-                @foreach ($bySection as $sectionKey => $rowsByRow)
-                    @php
-                        $sectionLabel = $sectionKey === 'balcony' ? 'بلكون · Balcony' : 'صالة · Hall';
-                        // Booked count for this section header
-                        $sectionBooked = 0;
-                        $sectionTotal  = 0;
-                        foreach ($rowsByRow as $rowSeats) {
-                            foreach ($rowSeats as $cell) {
-                                $sectionTotal++;
-                                if (in_array($cell['status'], ['approved', 'pending'], true)) $sectionBooked++;
-                            }
-                        }
-                    @endphp
-                    <div class="manifest-grid-section section-{{ $sectionKey === 'balcony' ? 'balcony' : 'hall' }}">
-                        <h3 class="flex items-center justify-between gap-2 flex-wrap">
-                            <span>{{ $sectionLabel }}</span>
-                            <span class="text-[color:var(--prism-text-3)]" dir="ltr" style="font-weight: 600; letter-spacing: .04em;">
-                                {{ $sectionBooked }} / {{ $sectionTotal }}
-                            </span>
-                        </h3>
-
-                        <div class="manifest-grid-stage" aria-hidden="true">🎬 المسرح · STAGE</div>
-
-                        <div class="manifest-grid-rows">
-                            @foreach ($rowsByRow as $rowLetter => $rowSeats)
-                                @php
-                                    $rowTotal    = count($rowSeats);
-                                    $rowBooked   = 0;
-                                    $rowScanned  = 0;
-                                    foreach ($rowSeats as $cc) {
-                                        if (in_array($cc['status'], ['approved', 'pending'], true)) $rowBooked++;
-                                        if (!empty($cc['is_scanned'])) $rowScanned++;
-                                    }
-                                @endphp
-                                <div class="manifest-grid-row">
-                                    <div class="manifest-grid-row-label" dir="ltr">{{ $rowLetter }}</div>
-                                    <div class="manifest-grid-seats">
-                                        @foreach ($rowSeats as $cell)
-                                            @php
-                                                $hue = $cell['booking_id']
-                                                    ? abs(crc32((string) $cell['booking_id'])) % 8
-                                                    : null;
-                                                $labelBits = [];
-                                                if ($cell['attendee_name']) $labelBits[] = $cell['attendee_name'];
-                                                if ($cell['booking_ref']) $labelBits[] = '#' . $cell['booking_ref'];
-                                                if ($cell['is_scanned'] && $cell['scanned_at']) $labelBits[] = '✓ ' . $cell['scanned_at'];
-                                                if ($cell['status'] === 'blocked') $labelBits[] = 'BLOCKED';
-                                                if ($cell['status'] === 'empty') $labelBits[] = 'EMPTY';
-                                                $title = empty($labelBits)
-                                                    ? ($cell['row_letter'] . $cell['seat_number'])
-                                                    : ($cell['row_letter'] . $cell['seat_number'] . ' · ' . implode(' · ', $labelBits));
-                                            @endphp
-                                            <button type="button"
-                                                    class="manifest-grid-seat is-{{ $cell['status'] }} {{ $cell['is_scanned'] ? 'is-scanned' : '' }}"
-                                                    @if ($hue !== null) data-hue="{{ $hue }}" @endif
-                                                    data-seat="{{ $cell['row_letter'] }}{{ $cell['seat_number'] }}"
-                                                    data-section="{{ $cell['section_label_ar'] }}"
-                                                    data-attendee="{{ $cell['attendee_name'] ?? '' }}"
-                                                    data-phone="{{ $cell['phone'] ? $maskPhone($cell['phone']) : '' }}"
-                                                    data-booking="{{ $cell['booking_ref'] ?? '' }}"
-                                                    data-owner="{{ $cell['booking_owner'] ?? '' }}"
-                                                    data-status="{{ $cell['status_en'] }}"
-                                                    data-status-key="{{ $cell['status'] }}"
-                                                    data-checked="{{ $cell['scanned_at'] ?? '' }}"
-                                                    title="{{ $title }}"
-                                                    aria-label="{{ $title }}">
-                                                {{ $cell['seat_number'] }}
-                                            </button>
-                                        @endforeach
-                                    </div>
-                                    {{-- Per-row stats chip — anchors the row
-                                         visually and tells the operator the
-                                         row's saturation + check-in count
-                                         without leaving the chart. --}}
-                                    <div class="manifest-grid-row-stats" dir="ltr" title="{{ $rowBooked }}/{{ $rowTotal }} booked, {{ $rowScanned }} checked-in">
-                                        {{ $rowBooked }}/{{ $rowTotal }}@if ($rowScanned) <span class="ck">✓{{ $rowScanned }}</span>@endif
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-
-            {{-- Floating popover — JS toggles .is-on when a seat is
-                 clicked. Hierarchy reads top→bottom: chip + name,
-                 then status pill on its own line, then booking ref +
-                 owner, then masked phone (monospaced for fast scan),
-                 then a green check-in time when scanned. Each block
-                 is hidden when its data is empty so the popover never
-                 shows a half-empty row. --}}
-            <div id="manifest-grid-popover" class="manifest-grid-popover pt-no-print" role="dialog" aria-live="polite" aria-hidden="true">
-                <button type="button" class="pop-close" data-pop-close aria-label="إغلاق">✕</button>
-                <div class="pop-title">
-                    <span class="pt-seat-chip" data-pop-chip>
-                        <span class="pt-seat-chip-section" data-pop-section>—</span>
-                        <span class="pt-seat-chip-seat" dir="ltr" data-pop-seat>—</span>
-                    </span>
-                    <span class="pop-name" data-pop-name>—</span>
-                </div>
-                <div class="pop-row" data-pop-row-status hidden>
-                    <span class="pop-status" data-pop-status>—</span>
-                </div>
-                <div class="pop-row" data-pop-row-booking hidden>
-                    <span class="pop-label">حجز</span>
-                    <span class="pop-value is-mono" dir="ltr" data-pop-booking>—</span>
-                </div>
-                <div class="pop-row" data-pop-row-phone hidden>
-                    <span class="pop-label">هاتف</span>
-                    <span class="pop-value is-mono" dir="ltr" data-pop-phone>—</span>
-                </div>
-                <div class="pop-checked" data-pop-checked hidden>
-                    ✓ <span data-pop-checked-time>—</span>
-                </div>
-            </div>
-
-            <script>
-                (function () {
-                    const wrap = document.querySelector('.manifest-grid-wrap');
-                    const pop  = document.getElementById('manifest-grid-popover');
-                    if (!wrap || !pop) return;
-
-                    const els = {
-                        chip:       pop.querySelector('[data-pop-chip]'),
-                        section:    pop.querySelector('[data-pop-section]'),
-                        seat:       pop.querySelector('[data-pop-seat]'),
-                        name:       pop.querySelector('[data-pop-name]'),
-                        rowStatus:  pop.querySelector('[data-pop-row-status]'),
-                        status:     pop.querySelector('[data-pop-status]'),
-                        rowBooking: pop.querySelector('[data-pop-row-booking]'),
-                        booking:    pop.querySelector('[data-pop-booking]'),
-                        rowPhone:   pop.querySelector('[data-pop-row-phone]'),
-                        phone:      pop.querySelector('[data-pop-phone]'),
-                        checked:    pop.querySelector('[data-pop-checked]'),
-                        checkedT:   pop.querySelector('[data-pop-checked-time]'),
-                    };
-                    const close = pop.querySelector('[data-pop-close]');
-
-                    function show(btn) {
-                        const d = btn.dataset;
-                        els.section.textContent = d.section || '—';
-                        els.seat.textContent    = d.seat || '—';
-                        els.chip.className      = 'pt-seat-chip pt-seat-chip-' + (
-                            (d.section || '').includes('بلكون') ? 'balcony' : 'hall'
-                        );
-                        els.name.textContent    = d.attendee || '— فارغ —';
-
-                        // Status pill — keyed off data-status-key so the
-                        // pill picks up the right color class without
-                        // re-parsing the human-readable English label.
-                        const key = (d.statusKey || '').toLowerCase();
-                        els.status.className = 'pop-status is-' + (key || 'empty');
-                        els.status.textContent = d.status || (key || '—');
-                        els.rowStatus.hidden = !d.status && !key;
-
-                        // Booking ref + owner — combined on a single
-                        // line. "حجز #1234 · Hamdy" reads naturally in
-                        // RTL with the LTR ref preserved by the inner
-                        // dir="ltr" on the value.
-                        if (d.booking) {
-                            els.booking.textContent = '#' + d.booking + (d.owner ? ' · ' + d.owner : '');
-                            els.rowBooking.hidden = false;
-                        } else {
-                            els.rowBooking.hidden = true;
-                        }
-
-                        // Phone (already masked server-side)
-                        if (d.phone) {
-                            els.phone.textContent = d.phone;
-                            els.rowPhone.hidden = false;
-                        } else {
-                            els.rowPhone.hidden = true;
-                        }
-
-                        // Check-in time — its own emerald row at the
-                        // bottom so it's immediately legible against the
-                        // dark popover background.
-                        if (d.checked) {
-                            els.checkedT.textContent = d.checked;
-                            els.checked.hidden = false;
-                        } else {
-                            els.checked.hidden = true;
-                        }
-
-                        pop.classList.add('is-on');
-                        pop.setAttribute('aria-hidden', 'false');
-                    }
-                    function hide() {
-                        pop.classList.remove('is-on');
-                        pop.setAttribute('aria-hidden', 'true');
-                    }
-
-                    wrap.addEventListener('click', function (e) {
-                        const btn = e.target.closest('.manifest-grid-seat');
-                        if (!btn) return;
-                        show(btn);
-                    });
-                    close.addEventListener('click', hide);
-                    document.addEventListener('keydown', function (e) {
-                        if (e.key === 'Escape') hide();
-                    });
-                    // Dismiss when tapping anywhere outside the popover/grid
-                    document.addEventListener('click', function (e) {
-                        if (!pop.classList.contains('is-on')) return;
-                        if (pop.contains(e.target)) return;
-                        if (e.target.closest('.manifest-grid-seat')) return;
-                        hide();
-                    });
-
-                    /* ?focus=A12 handling — deep-link from the scanner
-                       result sheet or the usher-view chip tap. We look
-                       up the matching seat, scroll it center-stage,
-                       run the 3-pulse glow, and auto-open the popover.
-
-                       Snappier than v1: a tighter rAF schedule + a
-                       shorter cleanup window so the focus transition
-                       feels less like an animation and more like an
-                       attention cue. */
-                    try {
-                        const params = new URLSearchParams(window.location.search);
-                        const focus  = (params.get('focus') || '').trim().toUpperCase();
-                        if (focus) {
-                            const target = wrap.querySelector(
-                                '.manifest-grid-seat[data-seat="' + focus + '"]'
-                            );
-                            if (target) {
-                                // 1) Scroll into view immediately on next
-                                //    frame so the seat is in the viewport
-                                //    before the pulse starts.
-                                requestAnimationFrame(function () {
-                                    target.scrollIntoView({
-                                        behavior: 'smooth',
-                                        block:    'center',
-                                        inline:   'center',
-                                    });
-                                    // 2) Open the popover early — the
-                                    //    operator can read details while
-                                    //    the scroll is still settling.
-                                    show(target);
-                                    // 3) Add the pulse class on the next
-                                    //    frame so the transform doesn't
-                                    //    fight the scroll animation.
-                                    requestAnimationFrame(function () {
-                                        target.classList.add('is-focused');
-                                    });
-                                    // 4) Strip the pulse class once the
-                                    //    animation finishes so it doesn't
-                                    //    bleed into hover states.
-                                    setTimeout(function () {
-                                        target.classList.remove('is-focused');
-                                    }, 3700);
-                                });
-                            }
-                        }
-                    } catch (_) { /* malformed query param — ignore */ }
-                })();
-            </script>
-        @endif
-
+    </div>
     @endif
 
-    {{-- ===================== KEYBOARD SHORTCUTS =====================
-         Lightweight power-user shortcuts that work in every view mode.
-         Mirrors the way ushers and the show owner switch contexts at
-         the entrance under pressure:
+    {{-- ============================================================
+         PAPER SHEET — A4 landscape
+         ============================================================ --}}
+    @if ($mode === 'paper')
+    <div class="mfst-paper-actions pt-no-print">
+        <a href="{{ $url(['mode' => 'paper', 'include_empty' => $includeEmpty ? 0 : 1]) }}">
+            {{ $includeEmpty ? 'Hide empty seats' : 'Include empty seats (full roll-call)' }}
+        </a>
+        <a href="{{ $url(['mode' => 'ops']) }}">← Back to Operations</a>
+        <button type="button" class="js-print-now">🖨 Print this sheet</button>
+    </div>
 
-           p — print view
-           u — usher view
-           b — by-booking view
-           g — grid view
-           / — focus the usher search (works on any view; navigates
-               to usher first if not already there)
-           Esc — handled per-view (e.g. grid popover), no-op here
+    <div class="mfst-paper">
+        <div class="mfst-paper-head">
+            <div>
+                <div class="t1">{{ $showTitle }}</div>
+                <div class="t2">{{ $eventDate }} @if ($eventTime) · {{ $eventTime }} @endif</div>
+            </div>
+            <div class="stats">
+                <strong>{{ $summary['approved'] }}</strong> Approved &nbsp;·&nbsp;
+                <strong>{{ $summary['pending'] }}</strong> Pending &nbsp;·&nbsp;
+                <strong>{{ $summary['blocked'] }}</strong> Blocked &nbsp;·&nbsp;
+                <strong>{{ $summary['empty'] }}</strong> Empty<br>
+                <strong>{{ $summary['total'] }}</strong> Total seats &nbsp;·&nbsp;
+                <strong>{{ $checkedInCount }}</strong> ✓ checked-in
+            </div>
+        </div>
 
-         Modifier-bearing combos (ctrl/cmd/alt/meta) are ignored so we
-         don't fight browser shortcuts. Typing into any input/textarea
-         disables the letter shortcuts so editing search/notes still
-         works naturally. --}}
-    <script>
-        (function () {
-            const tabs = {
-                p: document.querySelector('a[href*="view=print"][role="tab"]'),
-                u: document.querySelector('a[href*="view=usher"][role="tab"]'),
-                b: document.querySelector('a[href*="view=grouped"][role="tab"]'),
-                g: document.querySelector('a[href*="view=grid"][role="tab"]'),
-            };
-            const usherSearch = document.getElementById('manifest-search-input');
-
-            function isEditingTarget(el) {
-                if (!el) return false;
-                const tag = (el.tagName || '').toLowerCase();
-                if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
-                if (el.isContentEditable) return true;
-                return false;
-            }
-
-            document.addEventListener('keydown', function (e) {
-                // Skip when a modifier is held — leaves space for browser shortcuts
-                if (e.ctrlKey || e.metaKey || e.altKey) return;
-                // Don't hijack typing in fields
-                if (isEditingTarget(e.target)) {
-                    // ...except Escape, which should blur the input so
-                    // letter shortcuts work again.
-                    if (e.key === 'Escape') e.target.blur();
-                    return;
-                }
-
-                // "/" — focus the usher search (or navigate to it)
-                if (e.key === '/') {
-                    if (usherSearch) {
-                        e.preventDefault();
-                        usherSearch.focus();
-                        try { usherSearch.select(); } catch (_) {}
-                    } else if (tabs.u) {
-                        e.preventDefault();
-                        // Append ?focus_search to hint the usher view to
-                        // auto-focus its input after navigation. Even
-                        // without server-side support, browsers will jump
-                        // to the input on the next page via fragment + JS.
-                        window.location.href = tabs.u.getAttribute('href');
+        @foreach ($paperRowsBySectionRow as $sectionLabel => $byRow)
+            @php
+                $secApproved = 0; $secPending = 0; $secBlocked = 0; $secEmpty = 0; $secTotal = 0;
+                foreach ($byRow as $rletter => $seats) {
+                    foreach ($seats as $s) {
+                        $secTotal++;
+                        $secApproved += $s['status'] === 'approved' ? 1 : 0;
+                        $secPending  += $s['status'] === 'pending'  ? 1 : 0;
+                        $secBlocked  += $s['status'] === 'blocked'  ? 1 : 0;
+                        $secEmpty    += $s['status'] === 'empty'    ? 1 : 0;
                     }
-                    return;
                 }
+            @endphp
+            <section class="mfst-paper-section">
+                <div class="mfst-paper-section-head">
+                    <span>{{ $sectionLabel }}</span>
+                    <span>{{ $secApproved + $secPending }} attendees · {{ $secBlocked }} blocked @if ($includeEmpty) · {{ $secEmpty }} empty @endif</span>
+                </div>
+                <table class="mfst-paper-table">
+                    <thead>
+                        <tr>
+                            <th style="width:42px;">Row</th>
+                            <th style="width:22px;"></th>
+                            <th style="width:60px;">Seat</th>
+                            <th>Attendee</th>
+                            <th>Booking</th>
+                            <th style="width:160px;">Phone</th>
+                            <th style="width:30px;">☐</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($byRow as $rletter => $seats)
+                            @foreach ($seats as $i => $s)
+                                @php
+                                    $seatLabel = $s['row_letter'] . $s['seat_number'];
+                                    $hue = $s['booking_id'] ? ($bookingColorIndex[$s['booking_id']] ?? null) : null;
+                                @endphp
+                                <tr class="is-{{ $s['status'] }}" @if ($hue !== null) data-hue="{{ $hue }}" @endif>
+                                    @if ($i === 0)
+                                        <td rowspan="{{ count($seats) }}" style="text-align:center; font-weight:800; font-size:14pt; background:#fafafa;">{{ $rletter }}</td>
+                                    @endif
+                                    <td class="t-glyph">{{ $statusGlyph[$s['status']] ?? '·' }}</td>
+                                    <td class="t-seat">{{ $seatLabel }}</td>
+                                    <td class="t-name">
+                                        @if ($s['status'] === 'blocked')
+                                            BLOCKED
+                                        @elseif ($s['status'] === 'empty')
+                                            —
+                                        @else
+                                            {{ $s['attendee_name'] }}
+                                            @if ($s['booking_owner'] && $s['booking_owner'] !== $s['attendee_name'])
+                                                <span style="color:#666; font-weight:400; font-size:8.5pt;"> · {{ $s['booking_owner'] }}</span>
+                                            @endif
+                                        @endif
+                                    </td>
+                                    <td class="t-ref">
+                                        @if ($s['booking_ref'])
+                                            {{ $s['booking_ref'] }}
+                                            @if ($s['is_scanned'])
+                                                <span style="color:#047857; font-weight:800;"> · ✓</span>
+                                            @endif
+                                        @else
+                                            —
+                                        @endif
+                                    </td>
+                                    <td class="t-phone">{{ $maskPhone($s['phone']) }}</td>
+                                    <td class="t-check">☐</td>
+                                </tr>
+                            @endforeach
+                        @endforeach
+                    </tbody>
+                </table>
+                <div class="mfst-paper-rowsumm">
+                    @foreach ($byRow as $rletter => $seats)
+                        @php
+                            $rb = 0; $rt = count($seats);
+                            foreach ($seats as $s) if (in_array($s['status'], ['approved','pending'], true)) $rb++;
+                        @endphp
+                        <span>Row {{ $rletter }}: <strong>{{ $rb }}</strong>/{{ $rt }}</span>
+                    @endforeach
+                </div>
+            </section>
+        @endforeach
 
-                // Letter shortcuts — switch view by simulating a tab click
-                const k = (e.key || '').toLowerCase();
-                if (tabs[k]) {
-                    // If we're already on that view, no-op (avoid full
-                    // page reload).
-                    if (tabs[k].getAttribute('aria-selected') === 'true') return;
-                    e.preventDefault();
-                    window.location.href = tabs[k].getAttribute('href');
+        <div class="mfst-paper-legend">
+            <span><span class="g">●</span> Approved</span>
+            <span><span class="g">◐</span> Pending</span>
+            <span><span class="g">✕</span> Blocked</span>
+            <span><span class="g">☐</span> Mark check-in by hand</span>
+            <span style="margin-inline-start:auto;">Printed {{ now()->format('Y-m-d H:i') }} · Phones masked except last 4 · Family color band = same booking</span>
+        </div>
+    </div>
+    @endif
+</div>
+@endsection
+
+@push('scripts')
+<script>
+(function () {
+    'use strict';
+
+    const root = document.querySelector('.manifest-root');
+    if (!root) return;
+
+    const mode = root.dataset.mode || 'ops';
+
+    /* ====================================================================
+       Capacity gauge — animate the fill bar to the booked-percentage
+       ==================================================================== */
+    function animateGauge() {
+        const fill = document.querySelector('.js-gauge-fill');
+        if (!fill) return;
+        const pct = Math.max(0, Math.min(100, parseInt(fill.dataset.pct || '0', 10)));
+        requestAnimationFrame(() => { fill.style.width = pct + '%'; });
+    }
+    animateGauge();
+
+    /* ====================================================================
+       Overflow menu (⋯)
+       ==================================================================== */
+    const overflowBtn = document.querySelector('.js-overflow-toggle');
+    const overflowMenu = document.querySelector('.js-overflow-menu');
+    if (overflowBtn && overflowMenu) {
+        overflowBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const open = overflowMenu.classList.toggle('is-open');
+            overflowBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        document.addEventListener('click', (e) => {
+            if (!overflowMenu.contains(e.target) && e.target !== overflowBtn) {
+                overflowMenu.classList.remove('is-open');
+                overflowBtn.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+
+    /* ====================================================================
+       Auto-print when the user lands with #autoprint or ?autoprint=1
+       ==================================================================== */
+    if (mode === 'paper') {
+        const wantsAutoprint = window.location.hash === '#autoprint'
+                            || /[?&]autoprint=1/.test(window.location.search);
+        if (wantsAutoprint) {
+            setTimeout(() => { try { window.print(); } catch (e) {} }, 350);
+        }
+        const printBtn = document.querySelector('.js-print-now');
+        if (printBtn) printBtn.addEventListener('click', () => window.print());
+    }
+
+    /* ====================================================================
+       Status filter chips — toggle which statuses are visible on the
+       chart (ops) or in the card list (floor). URL is updated so the
+       filter state is shareable + survives refresh.
+       ==================================================================== */
+    function getActiveStatuses() {
+        return Array.from(document.querySelectorAll('.js-filter-chip[aria-pressed="true"]'))
+            .map(b => b.dataset.status);
+    }
+    function applyFilterToOpsChart() {
+        const chart = document.querySelector('.js-chart');
+        if (!chart) return;
+        const active = new Set(getActiveStatuses());
+        chart.classList.toggle('hide-empty',    !active.has('empty'));
+        chart.classList.toggle('hide-approved', !active.has('approved'));
+        chart.classList.toggle('hide-pending',  !active.has('pending'));
+        chart.classList.toggle('hide-blocked',  !active.has('blocked'));
+        chart.classList.toggle('only-checked',   active.has('checked_in'));
+    }
+    function applyFilterToFloorList() {
+        const cards = document.querySelectorAll('.js-floor-card');
+        if (!cards.length) return;
+        const active = new Set(getActiveStatuses());
+        let visible = 0;
+        cards.forEach(card => {
+            const status   = card.dataset.status;
+            const checked  = card.dataset.checked === '1';
+            const passesStatus = active.has(status);
+            const passesChecked = !active.has('checked_in') || checked;
+            const show = passesStatus && passesChecked;
+            card.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        const empty = document.querySelector('.js-floor-empty');
+        if (empty) empty.style.display = visible === 0 ? '' : 'none';
+        // Re-apply search filter on top of the status filter
+        applySearch();
+    }
+    function applyFilter() {
+        if (mode === 'ops') applyFilterToOpsChart();
+        if (mode === 'floor') applyFilterToFloorList();
+        syncFilterToUrl();
+    }
+    function syncFilterToUrl() {
+        const active = getActiveStatuses();
+        const url = new URL(window.location.href);
+        if (active.length === 0) {
+            url.searchParams.set('status', 'none');
+        } else {
+            url.searchParams.set('status', active.join(','));
+        }
+        window.history.replaceState({}, '', url);
+    }
+    document.querySelectorAll('.js-filter-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const cur = btn.getAttribute('aria-pressed') === 'true';
+            btn.setAttribute('aria-pressed', cur ? 'false' : 'true');
+            applyFilter();
+        });
+    });
+    applyFilter();
+
+    /* ====================================================================
+       Search — filters the same dataset (chart seats / floor cards) by
+       a `data-haystack` blob assembled server-side.
+       ==================================================================== */
+    let searchTerm = '';
+    function applySearch() {
+        if (mode === 'ops') {
+            const seats = document.querySelectorAll('.js-seat');
+            const q = searchTerm.trim().toLowerCase();
+            if (!q) {
+                seats.forEach(s => s.style.opacity = '');
+                return;
+            }
+            seats.forEach(s => {
+                const hay = s.dataset.haystack || '';
+                s.style.opacity = hay.includes(q) ? '' : '0.18';
+            });
+            // Also highlight matching booking rows
+            document.querySelectorAll('.js-booking-row').forEach(r => {
+                const hay = r.dataset.haystack || '';
+                r.style.display = (!q || hay.includes(q)) ? '' : 'none';
+            });
+        } else if (mode === 'floor') {
+            const cards = document.querySelectorAll('.js-floor-card');
+            const q = searchTerm.trim().toLowerCase();
+            let visible = 0;
+            cards.forEach(c => {
+                if (c.style.display === 'none' && !q) return; // already filtered
+                const hay = c.dataset.haystack || '';
+                const matchesQuery = !q || hay.includes(q);
+                if (!matchesQuery) {
+                    c.style.display = 'none';
+                } else if (c.dataset._statusHidden !== '1') {
+                    c.style.display = '';
+                    visible++;
                 }
             });
+            const empty = document.querySelector('.js-floor-empty');
+            if (empty) {
+                const anyVisible = Array.from(cards).some(c => c.style.display !== 'none');
+                empty.style.display = anyVisible ? 'none' : '';
+            }
+        }
+    }
+    document.querySelectorAll('.js-search-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+            searchTerm = e.target.value;
+            applySearch();
+        });
+    });
+    // `/` keyboard shortcut → focus the first visible search input
+    document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+            const input = document.querySelector('.js-search-input');
+            if (input) {
+                e.preventDefault();
+                input.focus();
+                input.select();
+            }
+        }
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.js-search-input').forEach(i => { if (i.value) i.value = ''; });
+            searchTerm = '';
+            applySearch();
+            const detail = document.querySelector('.js-seat-detail');
+            if (detail) detail.style.display = 'none';
+            const railEmpty = document.querySelector('.js-rail-empty');
+            if (railEmpty) railEmpty.style.display = '';
+            // Clear booking highlight
+            document.querySelectorAll('.is-booking-highlight').forEach(el => el.classList.remove('is-booking-highlight'));
+            document.querySelectorAll('.js-booking-row.is-active').forEach(el => el.classList.remove('is-active'));
+            document.querySelectorAll('.is-selected').forEach(el => el.classList.remove('is-selected'));
+        }
+    });
 
-            // Auto-focus search when arriving from "/" with hint param
-            try {
-                const params = new URLSearchParams(window.location.search);
-                if (params.has('focus_search') && usherSearch) {
-                    requestAnimationFrame(function () {
-                        usherSearch.focus();
-                        try { usherSearch.select(); } catch (_) {}
-                    });
+    /* ====================================================================
+       Operations — seat selection drives the detail rail
+       ==================================================================== */
+    function openSeatDetail(seatEl) {
+        const detail = document.querySelector('.js-seat-detail');
+        const empty  = document.querySelector('.js-rail-empty');
+        if (!detail || !seatEl) return;
+
+        document.querySelectorAll('.mfst-seat.is-selected').forEach(s => s.classList.remove('is-selected'));
+        seatEl.classList.add('is-selected');
+
+        detail.style.display = '';
+        if (empty) empty.style.display = 'none';
+
+        const d = seatEl.dataset;
+        detail.querySelector('.js-detail-seat').textContent     = d.seat;
+        detail.querySelector('.js-detail-section').textContent  = (d.section || '') + ' · ' + (d.sectionEn || '');
+        detail.querySelector('.js-detail-name').textContent     = d.name || (d.status === 'blocked' ? '— محجوب —' : (d.status === 'empty' ? '— فارغ —' : '—'));
+        detail.querySelector('.js-detail-status').textContent   = d.statusEn || '';
+        detail.querySelector('.js-detail-booking').textContent  = d.bookingRef || '—';
+        detail.querySelector('.js-detail-owner').textContent    = d.owner || '—';
+        detail.querySelector('.js-detail-phone').textContent    = d.phone || '—';
+
+        const scanRow = detail.querySelector('.js-detail-scan-row');
+        if (d.checked === '1') {
+            scanRow.style.display = '';
+            detail.querySelector('.js-detail-scan').textContent = d.scannedAt || '—';
+        } else {
+            scanRow.style.display = 'none';
+        }
+
+        // Scanner deep-link
+        const scanLink = detail.querySelector('.js-detail-scanlink');
+        if (scanLink) {
+            scanLink.href = '/admin/scanner?expect=' + encodeURIComponent(d.seat);
+        }
+
+        // Party — show all seats from the same booking
+        const partyWrap = detail.querySelector('.js-detail-party');
+        const partyList = detail.querySelector('.js-detail-party-list');
+        if (d.bookingId) {
+            const partySeats = document.querySelectorAll('.mfst-seat[data-booking-id="' + d.bookingId + '"]');
+            if (partySeats.length > 1) {
+                partyList.innerHTML = '';
+                partySeats.forEach(p => {
+                    const li = document.createElement('li');
+                    if (p.dataset.seat === d.seat) li.classList.add('is-current');
+                    li.innerHTML = '<span class="lbl">' + p.dataset.seat + '</span> <span class="nm">' + (p.dataset.name || '—') + '</span>';
+                    partyList.appendChild(li);
+                });
+                partyWrap.style.display = '';
+            } else {
+                partyWrap.style.display = 'none';
+            }
+        } else {
+            partyWrap.style.display = 'none';
+        }
+    }
+
+    document.querySelectorAll('.js-seat').forEach(seat => {
+        seat.addEventListener('click', () => openSeatDetail(seat));
+    });
+
+    const detailClose = document.querySelector('.js-detail-close');
+    if (detailClose) {
+        detailClose.addEventListener('click', () => {
+            const detail = document.querySelector('.js-seat-detail');
+            const empty  = document.querySelector('.js-rail-empty');
+            if (detail) detail.style.display = 'none';
+            if (empty)  empty.style.display = '';
+            document.querySelectorAll('.is-selected').forEach(el => el.classList.remove('is-selected'));
+        });
+    }
+
+    /* ====================================================================
+       Bookings sidebar — click a row to light up its seats on the chart
+       ==================================================================== */
+    document.querySelectorAll('.js-booking-row').forEach(row => {
+        row.addEventListener('click', () => {
+            document.querySelectorAll('.js-booking-row.is-active').forEach(r => r.classList.remove('is-active'));
+            row.classList.add('is-active');
+
+            document.querySelectorAll('.is-booking-highlight').forEach(s => s.classList.remove('is-booking-highlight'));
+
+            const seats = (row.dataset.seats || '').split(',').filter(Boolean);
+            if (!seats.length) return;
+
+            const first = document.querySelector('.mfst-seat[data-seat="' + seats[0] + '"]');
+            seats.forEach(label => {
+                const el = document.querySelector('.mfst-seat[data-seat="' + label + '"]');
+                if (el) el.classList.add('is-booking-highlight');
+            });
+
+            if (first) {
+                first.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                openSeatDetail(first);
+            }
+        });
+    });
+
+    /* ====================================================================
+       Floor — tapping a card opens the seat detail (here we just scroll
+       to it / pulse). The trailing ↗ button goes to ops mode.
+       ==================================================================== */
+    document.querySelectorAll('.js-floor-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('[data-no-card-click]')) return;
+            card.classList.add('is-focused');
+            setTimeout(() => card.classList.remove('is-focused'), 1500);
+        });
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                card.click();
+            }
+        });
+    });
+
+    /* ====================================================================
+       Initial focus — if the URL has ?focus=A12, scroll there + pulse
+       ==================================================================== */
+    const focusSeat = root.dataset.focusSeat || '';
+    if (focusSeat) {
+        const target = document.querySelector('[data-seat="' + focusSeat + '"]');
+        if (target) {
+            requestAnimationFrame(() => {
+                target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                target.classList.add('is-focused');
+                if (target.classList.contains('mfst-seat')) {
+                    openSeatDetail(target);
                 }
-            } catch (_) { /* malformed query — ignore */ }
-        })();
-    </script>
+            });
+        }
+    }
 
-</section>
-@endsection
+    /* ====================================================================
+       Live polling — every 10 s, refresh capacity gauge + ✓ markers
+       ==================================================================== */
+    function startPolling() {
+        const url = root.dataset.pollUrl;
+        if (!url) return;
+        const capacity = parseInt(root.dataset.capacity || '1', 10) || 1;
+
+        async function tick() {
+            try {
+                const res = await fetch(url, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!data || !data.summary) return;
+
+                // Gauge: total booked / capacity
+                const booked = (data.summary.approved || 0) + (data.summary.pending || 0);
+                const num = document.querySelector('.js-gauge-num');
+                if (num) num.textContent = booked + ' / ' + capacity;
+                const fill = document.querySelector('.js-gauge-fill');
+                if (fill) {
+                    const pct = Math.max(0, Math.min(100, Math.round((booked / capacity) * 100)));
+                    fill.dataset.pct = String(pct);
+                    fill.style.width = pct + '%';
+                }
+                const checkedNum = document.querySelector('.js-checked-num');
+                if (checkedNum) checkedNum.textContent = String(data.checked_in || 0);
+
+                // Per-seat ✓ markers
+                const scanned = data.scanned_seats || {};
+                Object.keys(scanned).forEach(label => {
+                    document.querySelectorAll('[data-seat="' + label + '"]').forEach(el => {
+                        if (el.dataset.checked !== '1') {
+                            el.dataset.checked = '1';
+                            el.classList.add('is-scanned');
+                        }
+                        if (!el.dataset.scannedAt && scanned[label]) {
+                            el.dataset.scannedAt = scanned[label];
+                        }
+                    });
+                });
+
+                // Filter chip count
+                const ck = document.querySelector('.js-filter-checked-count');
+                if (ck) ck.textContent = String(data.checked_in || 0);
+            } catch (e) {
+                /* silent — polling continues */
+            }
+        }
+
+        tick();
+        return setInterval(tick, 10000);
+    }
+    if (mode !== 'paper') startPolling();
+
+})();
+</script>
+@endpush
