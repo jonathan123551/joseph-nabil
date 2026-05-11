@@ -120,9 +120,13 @@ class ManifestController extends Controller
 
         $usesSeatMap = $show && $show->usesSeatMap();
 
-        // Pending + approved booking seats joined with their booking +
-        // matched ticket. Rejected / deleted bookings are filtered out
-        // so they never show up on the manifest.
+        // Pending + approved booking seats with their booking. We pull
+        // the matched ticket separately (keyed by booking_seat_id) and
+        // index it locally rather than relying on a constrained eager-
+        // load — Eloquent's constrained closure can't reference the
+        // parent `booking_seats.id` from inside the `booking.tickets`
+        // load, so a closure-based whereColumn there would silently
+        // produce wrong rows for multi-attendee bookings.
         $bookedQ = BookingSeat::query()
             ->where('show_time_id', $showTime->id)
             ->whereHas('booking', function ($q) {
@@ -130,18 +134,31 @@ class ManifestController extends Controller
             })
             ->with([
                 'booking:id,reference_code,full_name,phone,status,paid_at,approved_at',
-                // PR #70: tickets.booking_seat_id points back to the seat,
-                // so a constrained eager-load pulls *the* matching ticket
-                // per seat in one query (not per-row).
-                'booking.tickets' => function ($q) {
-                    $q->whereColumn('tickets.booking_seat_id', 'booking_seats.id');
-                },
             ])
             ->orderBy('section')
             ->orderBy('row_letter')
             ->orderBy('seat_number');
 
-        $booked = $bookedQ->get()->keyBy(function (BookingSeat $bs) {
+        $bookedSeats = $bookedQ->get();
+
+        // PR #70: tickets carry the per-attendee identity. Pull them in
+        // one query keyed by booking_seat_id so each seat row resolves
+        // to the right attendee in O(1) — no N+1, no closure trickery.
+        $ticketsBySeatId = \App\Models\Ticket::query()
+            ->whereIn('booking_seat_id', $bookedSeats->pluck('id'))
+            ->get(['id', 'booking_id', 'booking_seat_id', 'name', 'phone', 'is_scanned', 'scanned_at'])
+            ->keyBy('booking_seat_id');
+
+        // Stash the matching ticket on each BookingSeat as a transient
+        // attribute so the row-builder can reach it without extra args.
+        foreach ($bookedSeats as $bs) {
+            $bs->setRelation(
+                'matchedTicket',
+                $ticketsBySeatId->get($bs->id)
+            );
+        }
+
+        $booked = $bookedSeats->keyBy(function (BookingSeat $bs) {
             return $this->seatKey($bs->section, $bs->row_letter, (int) $bs->seat_number);
         });
 
@@ -232,7 +249,10 @@ class ManifestController extends Controller
     protected function rowFromBookedSeat(BookingSeat $bs): array
     {
         $booking = $bs->booking;
-        $ticket  = optional($booking)->tickets->first();
+        // Set by buildManifest() via setRelation() so this resolves in
+        // memory without another DB hit. Null = no ticket row was paired
+        // with this seat yet (PR #70 back-fill edge case).
+        $ticket  = $bs->getRelation('matchedTicket');
 
         $status = $booking && $booking->status === 'pending' ? 'pending' : 'approved';
 
