@@ -533,6 +533,130 @@
             color: #e0e7ff;
         }
         [data-anba-form] .step-indicator .line { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(129,140,248,0.35), rgba(255,255,255,0.04)); }
+
+        /* =====================================================================
+           LIGHT THEME — Anba booking form.
+           The dark slate field backgrounds and translucent-white card
+           backgrounds become invisible / harsh on cream, so we redo every
+           surface here with light glass + crisper borders + warmer shadows
+           while preserving the cinematic premium accents (neon gradient
+           seat chips, gold summary pill, indigo seat dots).
+        ===================================================================== */
+        :root[data-pt-theme="light"] [data-anba-form] .seat-chip {
+            background: linear-gradient(135deg, rgba(4,120,87,0.14), rgba(8,145,178,0.10));
+            border-color: rgba(4,120,87,0.45);
+            color: #064e3b;
+            box-shadow: 0 0 12px rgba(4,120,87,0.14), inset 0 1px 0 rgba(255,255,255,0.6);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .seat-chip [data-remove] {
+            background: rgba(15,23,42,0.06);
+            color: #7f1d1d;
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .seat-chip [data-remove]:hover {
+            background: rgba(190,18,60,0.85);
+            color: #fff5f5;
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .add-seats-btn {
+            background: linear-gradient(135deg, rgba(8,145,178,0.12), rgba(124,58,237,0.14));
+            border-color: rgba(79,70,229,0.40);
+            color: #312e81;
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .step-list li {
+            color: var(--prism-text-2);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .step-list li::before {
+            background: linear-gradient(135deg, rgba(8,145,178,0.16), rgba(124,58,237,0.18));
+            border-color: rgba(79,70,229,0.55);
+            color: #312e81;
+            box-shadow: 0 0 10px rgba(79,70,229,0.12);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .attendee-card {
+            background: rgba(255,255,255,0.70);
+            border-color: rgba(15,23,42,0.12);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .attendee-card:focus-within {
+            border-color: rgba(79,70,229,0.55);
+            background: rgba(255,255,255,0.92);
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .attendee-card .seat-pill {
+            background: linear-gradient(180deg, rgba(4,120,87,0.22), rgba(4,120,87,0.10));
+            border-color: rgba(4,120,87,0.50);
+            color: #064e3b;
+            box-shadow: 0 0 10px rgba(4,120,87,0.16), inset 0 1px 0 rgba(255,255,255,0.6);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .field-input {
+            background: #ffffff;
+            border-color: rgba(15,23,42,0.16);
+            color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .field-input:focus {
+            border-color: rgba(79,70,229,0.55);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.14);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .field-input.is-invalid {
+            background: rgba(190,18,60,0.06);
+            border-color: rgba(190,18,60,0.65) !important;
+            box-shadow: 0 0 0 3px rgba(190,18,60,0.16);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .field-input::placeholder {
+            color: rgba(15,23,42,0.40);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .summary-pill {
+            background: linear-gradient(135deg, rgba(180,83,9,0.10), rgba(180,83,9,0.04));
+            border-color: rgba(180,83,9,0.32);
+            color: #78350f;
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .summary-pill .seats-count { color: #0f172a; }
+        :root[data-pt-theme="light"] [data-anba-form] .summary-pill .amount { color: #b45309; }
+        :root[data-pt-theme="light"] [data-anba-form] .summary-pill .dot { background: rgba(180,83,9,0.45); }
+        :root[data-pt-theme="light"] [data-anba-form] .pay-block {
+            background: rgba(255,255,255,0.72);
+            border-color: rgba(15,23,42,0.14);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .pay-block .pay-icon {
+            background: linear-gradient(135deg, rgba(8,145,178,0.14), rgba(124,58,237,0.16));
+            border-color: rgba(79,70,229,0.40);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .pay-block .pay-amount { color: #b45309; }
+        :root[data-pt-theme="light"] [data-anba-form] .pay-block .pay-row {
+            background: rgba(15,23,42,0.04);
+            border-color: rgba(15,23,42,0.10);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .attendee-stack {
+            background: rgba(255,255,255,0.70);
+            border-color: rgba(15,23,42,0.12);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .attendee-stack .attendee-card {
+            border-bottom-color: rgba(15,23,42,0.08);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .attendee-stack .attendee-card:focus-within {
+            background: rgba(79,70,229,0.06);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .reassurance {
+            background: rgba(255,255,255,0.70);
+            border-color: rgba(15,23,42,0.12);
+            color: var(--prism-text-2);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .reassurance .reassurance-icon {
+            background: linear-gradient(135deg, rgba(8,145,178,0.14), rgba(124,58,237,0.16));
+            border-color: rgba(79,70,229,0.40);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .step-indicator .dot {
+            background: rgba(15,23,42,0.05);
+            border-color: rgba(15,23,42,0.14);
+            color: var(--prism-text-4);
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .step-indicator .dot.done,
+        :root[data-pt-theme="light"] [data-anba-form] .step-indicator .dot.cur {
+            background: linear-gradient(135deg, rgba(8,145,178,0.16), rgba(124,58,237,0.18));
+            border-color: rgba(79,70,229,0.55);
+            color: #312e81;
+        }
+        :root[data-pt-theme="light"] [data-anba-form] .step-indicator .line {
+            background: linear-gradient(90deg, rgba(79,70,229,0.40), rgba(15,23,42,0.06));
+        }
     </style>
 
     <div class="space-y-5">

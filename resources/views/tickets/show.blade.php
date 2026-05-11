@@ -57,6 +57,30 @@
 @endphp
 
 @section('content')
+{{-- Light-theme polish for public ticket page: lift dark-mode info card +
+     amber/emerald/rose tinted surfaces so they read properly on cream. --}}
+<style>
+    :root[data-pt-theme="light"] [data-tkt-info] {
+        background: rgba(255,255,255,0.74) !important;
+        border-color: rgba(15,23,42,0.12) !important;
+        box-shadow:
+            0 12px 28px -16px rgba(15,23,42,0.18),
+            inset 0 1px 0 rgba(255,255,255,0.85);
+    }
+    :root[data-pt-theme="light"] [data-tkt-info] .h-px {
+        background: rgba(15,23,42,0.10) !important;
+    }
+    :root[data-pt-theme="light"] [data-tkt-flash-success] {
+        background: rgba(4,120,87,0.10) !important;
+        border-color: rgba(4,120,87,0.40) !important;
+        color: #065f46 !important;
+    }
+    :root[data-pt-theme="light"] [data-tkt-flash-warn] {
+        background: rgba(245,158,11,0.10) !important;
+        border-color: rgba(180,83,9,0.32) !important;
+        color: #92400e !important;
+    }
+</style>
 <section class="max-w-lg mx-auto prism-fade-up">
 
     <div class="prism-glass prism-glow-border p-6 sm:p-8 text-center space-y-5"
@@ -148,13 +172,14 @@
             <div class="rounded-2xl border px-4 py-3 text-xs sm:text-sm {{ $flashTone }}"
                  role="status"
                  data-i18n="{{ $flashI18n }}"
+                 {{ $statusFlash === 'success' ? 'data-tkt-flash-success' : 'data-tkt-flash-warn' }}
                  @if ($statusFlash === 'cooldown' && $cooldownLeft > 0) data-cooldown-left="{{ $cooldownLeft }}" @endif>
                 {{ $flashAr }}
             </div>
         @endif
 
         {{-- Booking summary --}}
-        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-2xl p-4 text-sm space-y-3 pt-rtl-text">
+        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-2xl p-4 text-sm space-y-3 pt-rtl-text" data-tkt-info>
 
             <div class="flex justify-between items-center gap-3">
                 <span class="text-[color:var(--prism-text-3)] text-xs shrink-0"

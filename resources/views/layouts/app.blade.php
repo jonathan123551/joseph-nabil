@@ -507,6 +507,21 @@
         @media (prefers-reduced-motion: reduce) {
             .prism-share-wa:hover { transform: none; }
         }
+        /* Light: dark green pill stays visually green but bumps to a
+           "WhatsApp brand" emerald with proper contrast on cream. */
+        :root[data-pt-theme="light"] .prism-share-wa {
+            color: #064e3b;
+            background: linear-gradient(135deg, rgba(4,120,87,0.16), rgba(5,150,105,0.10));
+            border-color: rgba(4,120,87,0.45);
+            box-shadow: 0 4px 14px -4px rgba(4,120,87,0.32);
+        }
+        :root[data-pt-theme="light"] .prism-share-wa:hover {
+            background: linear-gradient(135deg, rgba(4,120,87,0.24), rgba(5,150,105,0.16));
+            border-color: rgba(4,120,87,0.65);
+        }
+        :root[data-pt-theme="light"] .prism-share-wa .share-wa-icon {
+            color: #047857;
+        }
 
         /* Auto-pick best-seats button (seat picker side panel) */
         .prism-auto-pick {
@@ -2247,14 +2262,14 @@
             --prism-surface-strong: rgba(255, 255, 255, 0.88);
             --prism-surface-soft: rgba(15, 23, 42, 0.04);
 
-            --prism-border: rgba(15, 23, 42, 0.10);
-            --prism-border-strong: rgba(15, 23, 42, 0.18);
+            --prism-border: rgba(15, 23, 42, 0.13);
+            --prism-border-strong: rgba(15, 23, 42, 0.22);
             --prism-border-neon: rgba(99, 102, 241, 0.34);
 
             --prism-text:   #0f172a;
             --prism-text-2: #334155;
             --prism-text-3: #475569;
-            --prism-text-4: #64748b;
+            --prism-text-4: #576779;
 
             --prism-cyan:    #0891b2;
             --prism-indigo:  #4f46e5;
@@ -2286,19 +2301,48 @@
 
         /* Light: glass surfaces */
         :root[data-pt-theme="light"] .prism-glass {
-            background: linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.58));
+            background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.64));
             box-shadow:
-                inset 0 1px 0 rgba(255,255,255,0.85),
-                0 18px 38px -22px rgba(15, 23, 42, 0.18),
-                0 1px 2px rgba(15, 23, 42, 0.04);
+                inset 0 1px 0 rgba(255,255,255,0.90),
+                0 20px 40px -18px rgba(15, 23, 42, 0.26),
+                0 4px 8px -4px rgba(15, 23, 42, 0.10);
         }
         :root[data-pt-theme="light"] .prism-glass-strong {
-            background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(252,250,245,0.88));
+            background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(252,250,245,0.90));
             box-shadow:
-                inset 0 1px 0 rgba(255,255,255,0.95),
-                0 22px 50px -22px rgba(15,23,42,0.22);
+                inset 0 1px 0 rgba(255,255,255,0.97),
+                0 24px 52px -20px rgba(15,23,42,0.28),
+                0 4px 10px -4px rgba(15,23,42,0.10);
         }
         :root[data-pt-theme="light"] .prism-glow-border::before { opacity: 0.7; }
+
+        /* Light: ghost button — the dark-mode 0.04 white bg is invisible on cream */
+        :root[data-pt-theme="light"] .prism-btn-ghost {
+            background: rgba(15,23,42,0.04);
+            border-color: rgba(15,23,42,0.14);
+            color: var(--prism-text-2);
+        }
+        :root[data-pt-theme="light"] .prism-btn-ghost:hover {
+            background: rgba(15,23,42,0.07);
+            border-color: rgba(15,23,42,0.22);
+            color: var(--prism-text);
+        }
+
+        /* Light: primary button — pastel gradient stays, but the indigo
+           drop shadow is too pale on cream; bump it for proper lift. */
+        :root[data-pt-theme="light"] .prism-btn {
+            border-color: rgba(255,255,255,0.85);
+            box-shadow:
+                0 10px 24px -8px rgba(79,70,229,0.42),
+                0 2px 4px -2px rgba(15,23,42,0.12),
+                inset 0 1px 0 rgba(255,255,255,0.85);
+        }
+        :root[data-pt-theme="light"] .prism-btn:hover:not(:disabled) {
+            box-shadow:
+                0 16px 34px -8px rgba(79,70,229,0.58),
+                0 0 22px rgba(8,145,178,0.22),
+                inset 0 1px 0 rgba(255,255,255,0.85);
+        }
 
         /* Light: scrollbar */
         :root[data-pt-theme="light"] ::-webkit-scrollbar-thumb {
@@ -2366,11 +2410,12 @@
                 0 0 22px rgba(129,140,248,0.10);
         }
         :root[data-pt-theme="light"] .pt-topbar {
-            background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.72));
+            background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.76));
+            border-color: rgba(15,23,42,0.10);
             box-shadow:
                 inset 0 1px 0 rgba(255,255,255,0.95),
-                0 18px 38px -22px rgba(15,23,42,0.18),
-                0 1px 2px rgba(15,23,42,0.04);
+                0 18px 38px -22px rgba(15,23,42,0.22),
+                0 2px 4px rgba(15,23,42,0.08);
         }
         .pt-topbar.is-scrolled {
             border-color: rgba(129,140,248,0.32);
@@ -2938,7 +2983,7 @@
             background: rgba(255,255,255,0.04);
             border: 1px solid var(--prism-border);
         }
-        :root[data-pt-theme="light"] .pt-hero-eyebrow { background: rgba(15,23,42,0.05); }
+        :root[data-pt-theme="light"] .pt-hero-eyebrow { background: rgba(15,23,42,0.08); border-color: rgba(15,23,42,0.14); }
         .pt-hero-eyebrow .pt-live-dot {
             width: 7px; height: 7px;
             border-radius: 999px;
@@ -3009,7 +3054,7 @@
             background: rgba(255,255,255,0.03);
             border: 1px solid var(--prism-border);
         }
-        :root[data-pt-theme="light"] .pt-hero-stat { background: rgba(15,23,42,0.03); }
+        :root[data-pt-theme="light"] .pt-hero-stat { background: rgba(15,23,42,0.06); border-color: rgba(15,23,42,0.12); }
         .pt-hero-stat-num {
             font-family: "Space Grotesk", system-ui, sans-serif;
             font-weight: 800;
@@ -3251,7 +3296,7 @@
             display: inline-flex; align-items: center; justify-content: center;
             color: var(--prism-text-2);
         }
-        :root[data-pt-theme="light"] .pt-how-step-icon { background: rgba(15,23,42,0.04); }
+        :root[data-pt-theme="light"] .pt-how-step-icon { background: rgba(15,23,42,0.08); border-color: rgba(15,23,42,0.14); }
 
         /* Section heading */
         .pt-section-head {
@@ -3290,8 +3335,17 @@
             min-height: 320px;
         }
         :root[data-pt-theme="light"] .pt-show-card {
-            background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.70));
-            box-shadow: 0 18px 38px -22px rgba(15,23,42,0.18);
+            background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.76));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                0 22px 46px -22px rgba(15,23,42,0.26),
+                0 4px 10px -4px rgba(15,23,42,0.10);
+        }
+        :root[data-pt-theme="light"] .pt-show-card:hover {
+            border-color: rgba(79,70,229,0.34);
+            box-shadow:
+                0 32px 70px -28px rgba(15,23,42,0.30),
+                0 0 24px rgba(79,70,229,0.16);
         }
         @media (hover: hover) {
             .pt-show-card:hover {
@@ -3375,7 +3429,7 @@
             font-size: 12px;
             color: var(--prism-text-2);
         }
-        :root[data-pt-theme="light"] .pt-show-time { background: rgba(15,23,42,0.04); }
+        :root[data-pt-theme="light"] .pt-show-time { background: rgba(15,23,42,0.06); border-color: rgba(15,23,42,0.12); }
         .pt-show-time-price {
             color: var(--prism-gold);
             font-weight: 700;
@@ -3410,7 +3464,10 @@
                 radial-gradient(ellipse 60% 60% at 0% 100%, rgba(8,145,178,0.10), transparent 60%),
                 radial-gradient(ellipse 60% 60% at 100% 0%, rgba(124,58,237,0.10), transparent 60%),
                 linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.78));
-            box-shadow: 0 22px 50px -24px rgba(15,23,42,0.18);
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                0 24px 52px -22px rgba(15,23,42,0.26),
+                0 4px 10px -4px rgba(15,23,42,0.10);
         }
         @media (min-width: 880px) {
             .pt-featured { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.25fr); padding: 22px; }
@@ -3677,7 +3734,11 @@
             will-change: transform;
         }
         :root[data-pt-theme="light"] .pt-cinema-step {
-            background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.65));
+            background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.72));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                0 26px 56px -22px rgba(15,23,42,0.26),
+                0 4px 10px -4px rgba(15,23,42,0.10);
         }
         @media (min-width: 880px) {
             .pt-cinema-step { padding: 28px 28px 32px; width: min(540px, 92%); }
@@ -4490,6 +4551,10 @@
             background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.6), transparent);
             animation: ptCineCue 2s ease-in-out infinite;
         }
+        :root[data-pt-theme="light"] .pt-cine-scroll-cue { color: var(--prism-text-2); }
+        :root[data-pt-theme="light"] .pt-cine-scroll-cue-line {
+            background: linear-gradient(to bottom, transparent, rgba(15,23,42,0.55), transparent);
+        }
         @keyframes ptCineCue {
             0%, 100% { transform: scaleY(0.5); opacity: 0.4; }
             50%      { transform: scaleY(1);   opacity: 1; }
@@ -4511,6 +4576,14 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
+        }
+        :root[data-pt-theme="light"] .pt-cine-prologue-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(255,255,255,0.62));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                0 30px 80px -28px rgba(15,23,42,0.30),
+                0 6px 14px -6px rgba(15,23,42,0.12),
+                inset 0 1px 0 rgba(255,255,255,0.85);
         }
         @media (min-width: 768px) {
             .pt-cine-prologue-card { padding: 48px 44px; }
@@ -5190,7 +5263,11 @@
                         box-shadow .45s var(--prism-ease);
         }
         :root[data-pt-theme="light"] .pt-time-card {
-            background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.66));
+            background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.72));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                0 20px 40px -22px rgba(15,23,42,0.22),
+                0 4px 8px -4px rgba(15,23,42,0.10);
         }
         @media (max-width: 640px) {
             .pt-time-card { grid-template-columns: auto 1fr; row-gap: 14px; padding: 14px 16px 14px 20px; }
