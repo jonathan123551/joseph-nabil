@@ -1181,9 +1181,26 @@
         border-bottom: 2px solid #000;
         margin-bottom: 8px;
     }
+    .mfst-paper-head .head-title { min-width: 0; }
     .mfst-paper-head .t1 { font-size: 17pt; font-weight: 800; letter-spacing: -.005em; }
     .mfst-paper-head .t2 { font-size: 10pt; color: #555; margin-top: 2px; }
-    .mfst-paper-head .stats { font-size: 9pt; text-align: end; line-height: 1.5; color: #333; }
+    .mfst-paper-head .stats {
+        font-size: 9pt;
+        text-align: right;
+        line-height: 1.5;
+        color: #333;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 1px;
+    }
+    .mfst-paper-head .stats .line {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 6px;
+        white-space: nowrap;
+    }
+    .mfst-paper-head .stats .dot { color: #888; padding: 0 2px; }
     .mfst-paper-head .stats strong { font-weight: 800; color: #000; }
     .mfst-paper-section-head {
         display: grid;
@@ -1231,9 +1248,23 @@
         letter-spacing: .04em;
         text-transform: uppercase;
     }
+    /* Screen (≥820px) column widths via colgroup; print mode overrides these
+       with mm units in the @media print block. */
+    .mfst-paper-table .cg-row   { width: 42px; }
+    .mfst-paper-table .cg-glyph { width: 22px; }
+    .mfst-paper-table .cg-seat  { width: 64px; }
+    .mfst-paper-table .cg-ref   { width: 200px; }
+    .mfst-paper-table .cg-phone { width: 140px; }
+    .mfst-paper-table td.t-rowletter {
+        text-align: center;
+        font-weight: 800;
+        font-size: 14pt;
+        background: #fafafa;
+    }
     .mfst-paper-table td.t-glyph { width: 22px; text-align: center; font-weight: 800; font-size: 12pt; }
     .mfst-paper-table td.t-seat  { width: 64px; text-align: center; font-weight: 800; font-size: 12pt; }
     .mfst-paper-table td.t-name  { font-weight: 700; font-size: 10.5pt; }
+    .mfst-paper-table td.t-name .t-owner { color: #666; font-weight: 400; font-size: 8.5pt; }
     .mfst-paper-table td.t-ref   { white-space: nowrap; }
     .mfst-paper-table td.t-phone { white-space: nowrap; font-family: ui-monospace, monospace; font-size: 9pt; }
     .mfst-paper-table tr.is-blocked td.t-name,
@@ -1424,6 +1455,13 @@
 
     /* ====================================================================
        PRINT RULES — A4 landscape; iPhone Safari preview-safe.
+       Key iOS Safari quirks handled here:
+       - position:absolute + inset:0 picks up the device viewport width,
+         not the @page size, so we force explicit width in mm.
+       - The page-level dir="rtl" is overridden on .mfst-paper via the
+         dir="ltr" attribute on the element itself; this just reinforces it.
+       - table-layout: fixed + class-based column widths in mm prevent the
+         table from overflowing the page width on iOS Safari.
        ==================================================================== */
     @media print {
         @page {
@@ -1436,23 +1474,37 @@
                 font-family: 'IBM Plex Sans Arabic', 'Space Grotesk', sans-serif;
             }
         }
-        body, html { background: #fff !important; color: #000 !important; }
+        html, body {
+            background: #fff !important;
+            color: #000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: auto !important;
+            overflow: visible !important;
+        }
         body.has-bg::before, body.has-bg::after { display: none !important; }
 
         body * { visibility: hidden; }
         .mfst-paper, .mfst-paper * { visibility: visible; }
         .mfst-paper {
             position: absolute;
-            inset: 0;
+            top: 0;
+            left: 0;
             padding: 0;
             margin: 0;
             background: #fff !important;
             color: #000 !important;
             box-shadow: none !important;
             display: block !important;
-            min-width: 0 !important;
-            width: 100% !important;
             box-sizing: border-box;
+            direction: ltr !important;
+            /* A4 landscape content width = 297mm − 8mm × 2 margins = 281mm.
+               Locking this prevents iOS Safari from using the device
+               viewport width (e.g. 390px) as the print body width, which
+               caused the table to overflow + split horizontally. */
+            width: 281mm !important;
+            max-width: 281mm !important;
+            min-width: 0 !important;
         }
         .mfst-paper-scroll {
             display: block !important;
@@ -1460,6 +1512,7 @@
             margin: 0 !important;
             padding: 0 !important;
             min-width: 0 !important;
+            width: auto !important;
         }
 
         /* Force the on-screen mobile preview off during print (iOS Safari
@@ -1468,9 +1521,32 @@
 
         .mfst-paper-section { page-break-inside: auto; break-inside: auto; }
         .mfst-paper-section-head { page-break-after: avoid; break-after: avoid; }
+        .mfst-paper-table {
+            table-layout: fixed !important;
+            width: 100% !important;
+        }
         .mfst-paper-table tr     { page-break-inside: avoid; break-inside: avoid; }
         .mfst-paper-table thead  { display: table-header-group; }
         .mfst-paper-table tfoot  { display: table-footer-group; }
+        /* Explicit mm column widths — sum to ~281mm so the row always fits.
+           Auto layout was letting iOS Safari grow Booking/Phone wider than
+           the page on long ref/phone strings. */
+        .mfst-paper-table th.col-row, .mfst-paper-table td.t-rowletter { width: 12mm; }
+        .mfst-paper-table th.col-glyph, .mfst-paper-table td.t-glyph   { width: 8mm; }
+        .mfst-paper-table th.col-seat, .mfst-paper-table td.t-seat     { width: 18mm; }
+        .mfst-paper-table th.col-name                                  { width: auto; }
+        .mfst-paper-table th.col-ref, .mfst-paper-table td.t-ref       { width: 56mm; }
+        .mfst-paper-table th.col-phone, .mfst-paper-table td.t-phone   { width: 40mm; }
+        .mfst-paper-table td.t-name {
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+        .mfst-paper-table td.t-ref,
+        .mfst-paper-table td.t-phone {
+            white-space: normal !important;
+            word-break: break-all;
+            font-size: 8pt;
+        }
         .mfst-paper-section-head[data-tone="hall"],
         .mfst-paper-section-head[data-tone="balcony"] {
             -webkit-print-color-adjust: exact;
@@ -1774,21 +1850,29 @@
             @endforeach
         </div>
 
-        {{-- Desktop / print A4 sheet --}}
+        {{-- Desktop / print A4 sheet — forced LTR so English stats render
+             correctly (the page-level dir="rtl" otherwise reorders the
+             "<strong>N</strong> Label" runs into "Label · N Label · N…"). --}}
         <div class="mfst-paper-scroll">
-        <div class="mfst-paper">
+        <div class="mfst-paper" dir="ltr">
             <div class="mfst-paper-head">
-                <div>
-                    <div class="t1">{{ $showTitle }}</div>
+                <div class="head-title">
+                    <div class="t1" dir="auto">{{ $showTitle }}</div>
                     <div class="t2">{{ $eventDate }} @if ($eventTime) · {{ $eventTime }} @endif</div>
                 </div>
                 <div class="stats">
-                    <strong>{{ $summary['approved'] }}</strong> Approved &nbsp;·&nbsp;
-                    <strong>{{ $summary['pending'] }}</strong> Pending &nbsp;·&nbsp;
-                    <strong>{{ $summary['blocked'] }}</strong> Blocked
-                    @if ($includeEmpty) &nbsp;·&nbsp; <strong>{{ $summary['empty'] }}</strong> Empty @endif
-                    <br>
-                    <strong>{{ $summary['total'] }}</strong> Total seats
+                    <span class="line">
+                        <strong>{{ $summary['approved'] }}</strong> Approved
+                        <span class="dot">·</span>
+                        <strong>{{ $summary['pending'] }}</strong> Pending
+                        <span class="dot">·</span>
+                        <strong>{{ $summary['blocked'] }}</strong> Blocked
+                        @if ($includeEmpty)
+                            <span class="dot">·</span>
+                            <strong>{{ $summary['empty'] }}</strong> Empty
+                        @endif
+                    </span>
+                    <span class="line"><strong>{{ $summary['total'] }}</strong> Total seats</span>
                 </div>
             </div>
 
@@ -1812,14 +1896,22 @@
                         <span>{{ $secApproved + $secPending }} attendees · {{ $secBlocked }} blocked @if ($includeEmpty) · {{ $secEmpty }} empty @endif</span>
                     </div>
                     <table class="mfst-paper-table">
+                        <colgroup>
+                            <col class="cg-row">
+                            <col class="cg-glyph">
+                            <col class="cg-seat">
+                            <col class="cg-name">
+                            <col class="cg-ref">
+                            <col class="cg-phone">
+                        </colgroup>
                         <thead>
                             <tr>
-                                <th style="width:42px;">Row</th>
-                                <th style="width:22px;"></th>
-                                <th style="width:60px;">Seat</th>
-                                <th>Attendee</th>
-                                <th>Booking</th>
-                                <th style="width:160px;">Phone</th>
+                                <th class="col-row">Row</th>
+                                <th class="col-glyph"></th>
+                                <th class="col-seat">Seat</th>
+                                <th class="col-name">Attendee</th>
+                                <th class="col-ref">Booking</th>
+                                <th class="col-phone">Phone</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1831,7 +1923,7 @@
                                     @endphp
                                     <tr class="is-{{ $s['status'] }} {{ $hue !== null ? 'mfst-hue-' . $hue : '' }}" @if ($hue !== null) data-hue="{{ $hue }}" @endif>
                                         @if ($i === 0)
-                                            <td rowspan="{{ count($seats) }}" style="text-align:center; font-weight:800; font-size:14pt; background:#fafafa;">{{ $rletter }}</td>
+                                            <td class="t-rowletter" rowspan="{{ count($seats) }}">{{ $rletter }}</td>
                                         @endif
                                         <td class="t-glyph">{{ $statusGlyph[$s['status']] ?? '·' }}</td>
                                         <td class="t-seat">{{ $seatLabel }}</td>
@@ -1843,7 +1935,7 @@
                                             @else
                                                 {{ $s['attendee_name'] }}
                                                 @if ($s['booking_owner'] && $s['booking_owner'] !== $s['attendee_name'])
-                                                    <span style="color:#666; font-weight:400; font-size:8.5pt;"> · {{ $s['booking_owner'] }}</span>
+                                                    <span class="t-owner"> · {{ $s['booking_owner'] }}</span>
                                                 @endif
                                             @endif
                                         </td>
