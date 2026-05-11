@@ -186,6 +186,27 @@
             color: #fff;
             background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(192,132,252,0.18));
         }
+
+        /* Light-mode overrides — keep the floating switch in line with the
+           cream admin chrome (white surface, slate strokes, indigo accent). */
+        :root[data-pt-theme="light"] .anba-admin-section-switch {
+            background: rgba(255,255,255,0.92);
+            border-color: rgba(15,23,42,0.12);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                0 18px 36px -18px rgba(15,23,42,0.22);
+        }
+        :root[data-pt-theme="light"] .anba-admin-section-switch a {
+            color: var(--prism-text-2);
+        }
+        :root[data-pt-theme="light"] .anba-admin-section-switch a:hover {
+            color: var(--prism-text);
+            background: rgba(79,70,229,0.08);
+        }
+        :root[data-pt-theme="light"] .anba-admin-section-switch a.is-active {
+            color: var(--prism-text);
+            background: linear-gradient(135deg, rgba(8,145,178,0.16), rgba(79,70,229,0.14));
+        }
     </style>
     <div class="anba-admin-section-switch" role="tablist" aria-label="Section switcher">
         <a href="{{ $sectionToggleUrl('hall') }}"

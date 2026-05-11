@@ -42,8 +42,7 @@
 
     {{-- Success --}}
     @if(session('status'))
-        <div class="rounded-xl px-4 py-3 text-sm prism-fade-up"
-             style="background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.45); color: #6ee7b7;">
+        <div class="pt-alert pt-alert-success prism-fade-up">
             {{ session('status') }}
         </div>
     @endif
@@ -60,7 +59,7 @@
             <div class="overflow-x-auto">
                 <table class="min-w-[720px] w-full text-sm text-[color:var(--prism-text-2)] text-center">
 
-                    <thead style="background: rgba(255,255,255,0.04);">
+                    <thead class="pt-thead-soft">
                         <tr class="text-xs uppercase" style="letter-spacing:.14em; color: var(--prism-text-3);">
                             <th class="px-3 py-3 text-center" data-i18n="adm_times_col_date">التاريخ</th>
                             <th class="px-3 py-3 text-center" data-i18n="adm_times_col_time">الساعة</th>
@@ -81,9 +80,7 @@
                             $isLocked  = $remaining <= 0;
                         @endphp
 
-                        <tr style="border-top: 1px solid rgba(255,255,255,0.06); transition: background .15s ease;"
-                            onmouseover="this.style.background='rgba(129,140,248,0.06)'"
-                            onmouseout="this.style.background=''">
+                        <tr class="pt-time-row">
 
                             <td class="px-3 py-3 text-center align-middle text-[color:var(--prism-text)]">
                                 {{ $time->date->format('d/m/Y') }}
@@ -148,11 +145,8 @@
                                 <div class="flex justify-center items-center gap-2 flex-wrap">
                                     @if($show->theater_type === \App\Models\Show::THEATER_ANBA_RUWEIS)
                                         <a href="{{ route('admin.show-times.seats.index', $time) }}"
-                                           class="px-3 py-1 rounded-full text-xs transition"
-                                           data-i18n="adm_seats"
-                                           style="background: rgba(251,191,36,0.14); border: 1px solid rgba(251,191,36,0.40); color: #fcd34d;"
-                                           onmouseover="this.style.background='rgba(251,191,36,0.22)'; this.style.boxShadow='0 0 16px rgba(251,191,36,0.3)';"
-                                           onmouseout="this.style.background='rgba(251,191,36,0.14)'; this.style.boxShadow='';">
+                                           class="pt-action-pill pt-action-pill-gold"
+                                           data-i18n="adm_seats">
                                             المقاعد
                                         </a>
                                     @endif
@@ -162,16 +156,13 @@
                                          seats so it doubles as a printable seating sheet, for
                                          "Other" venues it lists just the attendees. --}}
                                     <a href="{{ route('admin.show-times.manifest', $time) }}"
-                                       class="px-3 py-1 rounded-full text-xs transition"
-                                       title="Seat occupancy / attendee manifest"
-                                       style="background: rgba(34,211,238,0.14); border: 1px solid rgba(34,211,238,0.40); color: #a5f3fc;"
-                                       onmouseover="this.style.background='rgba(34,211,238,0.22)'; this.style.boxShadow='0 0 16px rgba(34,211,238,0.30)';"
-                                       onmouseout="this.style.background='rgba(34,211,238,0.14)'; this.style.boxShadow='';">
+                                       class="pt-action-pill pt-action-pill-cyan"
+                                       title="Seat occupancy / attendee manifest">
                                         📋 المانيفست
                                     </a>
 
                                     <a href="{{ route('admin.shows.times.edit', [$show, $time]) }}"
-                                       class="prism-btn-ghost text-xs px-3 py-1"
+                                       class="pt-action-pill"
                                        data-i18n="adm_edit">
                                         تعديل
                                     </a>
@@ -180,11 +171,8 @@
                                           onsubmit="return confirm((window.PT && window.PT.lang() === 'en') ? 'Are you sure you want to delete this show time?' : 'متأكد إنك عايز تحذف الموعد؟');">
                                         @csrf
                                         @method('DELETE')
-                                        <button class="px-3 py-1 rounded-full text-xs transition"
-                                                data-i18n="adm_delete"
-                                                style="background: rgba(244,63,94,0.14); border: 1px solid rgba(251,113,133,0.40); color: #fda4af;"
-                                                onmouseover="this.style.background='rgba(244,63,94,0.22)'; this.style.boxShadow='0 0 16px rgba(244,63,94,0.3)';"
-                                                onmouseout="this.style.background='rgba(244,63,94,0.14)'; this.style.boxShadow='';">
+                                        <button class="pt-action-pill pt-action-pill-rose"
+                                                data-i18n="adm_delete">
                                             حذف
                                         </button>
                                     </form>
@@ -219,13 +207,12 @@
                     </div>
 
                     <div class="grid grid-cols-3 text-center text-xs gap-2">
-                        <div class="rounded-lg py-2"
-                             style="background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.32);">
-                            <div class="text-[color:var(--prism-text-3)] text-[10px]"
+                        <div class="pt-mini-card pt-mini-card-gold py-2">
+                            <div class="pt-mini-card-label"
                                  data-i18n="{{ $usesSectionPricing ? 'adm_times_col_price_split' : 'adm_times_col_price' }}">
                                 @if ($usesSectionPricing) صالة / بلكون @else السعر @endif
                             </div>
-                            <div style="color: var(--prism-gold);" class="font-semibold">
+                            <div class="pt-mini-card-value">
                                 @if ($usesSectionPricing)
                                     {{ $sectionPriceLabel }}
                                 @else
@@ -234,16 +221,14 @@
                             </div>
                         </div>
 
-                        <div class="rounded-lg py-2"
-                             style="background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.32);">
-                            <div class="text-[color:var(--prism-text-3)] text-[10px]" data-i18n="adm_times_col_avail_short">المتاح</div>
-                            <div style="color: var(--prism-emerald);" class="font-semibold">{{ $remaining }}</div>
+                        <div class="pt-mini-card pt-mini-card-emerald py-2">
+                            <div class="pt-mini-card-label" data-i18n="adm_times_col_avail_short">المتاح</div>
+                            <div class="pt-mini-card-value">{{ $remaining }}</div>
                         </div>
 
-                        <div class="rounded-lg py-2"
-                             style="background: rgba(255,255,255,0.04); border: 1px solid var(--prism-border);">
-                            <div class="text-[color:var(--prism-text-3)] text-[10px]" data-i18n="adm_times_col_total">الإجمالي</div>
-                            <div class="text-[color:var(--prism-text)] font-semibold">{{ $time->total_tickets }}</div>
+                        <div class="pt-mini-card py-2">
+                            <div class="pt-mini-card-label" data-i18n="adm_times_col_total">الإجمالي</div>
+                            <div class="pt-mini-card-value text-[color:var(--prism-text)]">{{ $time->total_tickets }}</div>
                         </div>
                     </div>
 
@@ -282,25 +267,22 @@
                     <div class="flex gap-2 flex-wrap">
                         @if($show->theater_type === \App\Models\Show::THEATER_ANBA_RUWEIS)
                             <a href="{{ route('admin.show-times.seats.index', $time) }}"
-                               class="flex-1 text-center py-2 rounded-lg text-xs transition"
-                               data-i18n="adm_seats"
-                               style="background: rgba(251,191,36,0.14); border: 1px solid rgba(251,191,36,0.40); color: #fcd34d;">
+                               class="pt-action-pill pt-action-pill-gold flex-1"
+                               data-i18n="adm_seats">
                                 المقاعد
                             </a>
                         @endif
 
                         {{-- Manifest link (mirror of desktop action bar) --}}
                         <a href="{{ route('admin.show-times.manifest', $time) }}"
-                           class="flex-1 text-center py-2 rounded-lg text-xs transition"
-                           title="Seat occupancy / attendee manifest"
-                           style="background: rgba(34,211,238,0.14); border: 1px solid rgba(34,211,238,0.40); color: #a5f3fc;">
+                           class="pt-action-pill pt-action-pill-cyan flex-1"
+                           title="Seat occupancy / attendee manifest">
                             📋 المانيفست
                         </a>
 
                         <a href="{{ route('admin.shows.times.edit', [$show, $time]) }}"
-                           class="flex-1 text-center py-2 rounded-lg text-xs transition"
-                           data-i18n="adm_edit"
-                           style="background: rgba(255,255,255,0.06); border: 1px solid var(--prism-border); color: var(--prism-text);">
+                           class="pt-action-pill flex-1"
+                           data-i18n="adm_edit">
                             تعديل
                         </a>
 
@@ -308,9 +290,8 @@
                               onsubmit="return confirm((window.PT && window.PT.lang() === 'en') ? 'Are you sure you want to delete this show time?' : 'متأكد إنك عايز تحذف الموعد؟');">
                             @csrf
                             @method('DELETE')
-                            <button class="w-full py-2 rounded-lg text-xs transition"
-                                    data-i18n="adm_delete"
-                                    style="background: rgba(244,63,94,0.14); border: 1px solid rgba(251,113,133,0.40); color: #fda4af;">
+                            <button class="pt-action-pill pt-action-pill-rose w-full"
+                                    data-i18n="adm_delete">
                                 حذف
                             </button>
                         </form>

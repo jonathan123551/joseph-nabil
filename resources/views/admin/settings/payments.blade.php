@@ -25,8 +25,7 @@
     </div>
 
     @if (session('status'))
-        <div class="rounded-xl px-4 py-3 text-sm prism-fade-up"
-             style="background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.45); color: #6ee7b7;">
+        <div class="pt-alert pt-alert-success prism-fade-up">
             {{ session('status') }}
         </div>
     @endif

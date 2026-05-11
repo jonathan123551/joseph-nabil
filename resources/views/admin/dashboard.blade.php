@@ -199,18 +199,13 @@
                                 <span class="prism-pill prism-pill-emerald">{{ $time->approved_tickets }}</span>
                             </td>
                             <td class="text-center">
-                                <span class="prism-pill" style="color: var(--prism-gold); border-color: rgba(251,191,36,0.32); background: rgba(251,191,36,0.08);">{{ $time->pending_tickets }}</span>
+                                <span class="prism-pill prism-pill-amber">{{ $time->pending_tickets }}</span>
                             </td>
                             <td class="text-center">
-                                <span class="prism-pill"
-                                      style="
-                                          color: {{ $time->remaining_tickets > 0 ? 'var(--prism-cyan)' : 'var(--prism-rose)' }};
-                                          border-color: {{ $time->remaining_tickets > 0 ? 'rgba(34,211,238,0.32)' : 'rgba(251,113,133,0.32)' }};
-                                          background: {{ $time->remaining_tickets > 0 ? 'rgba(34,211,238,0.08)' : 'rgba(251,113,133,0.08)' }};
-                                      ">{{ $time->remaining_tickets }}</span>
+                                <span class="prism-pill {{ $time->remaining_tickets > 0 ? 'prism-pill-sky' : 'prism-pill-rose' }}">{{ $time->remaining_tickets }}</span>
                             </td>
                             <td class="text-center">
-                                <span class="prism-pill" style="color: var(--prism-gold); border-color: rgba(251,191,36,0.32); background: rgba(251,191,36,0.08);">
+                                <span class="prism-pill prism-pill-amber">
                                     {{ number_format($time->revenue, 0) }} EGP
                                 </span>
                             </td>
@@ -247,44 +242,29 @@
                     {{-- Stats grid --}}
                     <div class="grid grid-cols-2 gap-2 text-xs">
 
-                        <div class="flex justify-between rounded-lg px-3 py-1.5"
-                             style="background: rgba(255,255,255,0.04); border: 1px solid var(--prism-border);">
+                        <div class="pt-mini-card flex justify-between px-3 py-1.5">
                             <span class="text-[color:var(--prism-text-3)]" data-i18n="adm_th_total">إجمالي</span>
                             <span class="text-[color:var(--prism-text)] font-semibold">{{ $time->total_tickets }}</span>
                         </div>
 
-                        <div class="flex justify-between rounded-lg px-3 py-1.5"
-                             style="background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.32);">
-                            <span style="color: var(--prism-emerald);">Approved</span>
-                            <span style="color: var(--prism-emerald);" class="font-semibold">
-                                {{ $time->approved_tickets }}
-                            </span>
+                        <div class="pt-mini-card pt-mini-card-emerald flex justify-between px-3 py-1.5">
+                            <span>Approved</span>
+                            <span class="font-semibold">{{ $time->approved_tickets }}</span>
                         </div>
 
-                        <div class="flex justify-between rounded-lg px-3 py-1.5"
-                             style="background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.32);">
-                            <span style="color: var(--prism-gold);">Pending</span>
-                            <span style="color: var(--prism-gold);" class="font-semibold">
-                                {{ $time->pending_tickets }}
-                            </span>
+                        <div class="pt-mini-card pt-mini-card-gold flex justify-between px-3 py-1.5">
+                            <span>Pending</span>
+                            <span class="font-semibold">{{ $time->pending_tickets }}</span>
                         </div>
 
-                        <div class="flex justify-between rounded-lg px-3 py-1.5"
-                             style="background: {{ $time->remaining_tickets > 0 ? 'rgba(34,211,238,0.08)' : 'rgba(251,113,133,0.08)' }};
-                                    border: 1px solid {{ $time->remaining_tickets > 0 ? 'rgba(34,211,238,0.32)' : 'rgba(251,113,133,0.32)' }};">
-                            <span style="color: {{ $time->remaining_tickets > 0 ? 'var(--prism-cyan)' : 'var(--prism-rose)' }};" data-i18n="adm_th_remaining">المتبقي</span>
-                            <span class="font-semibold"
-                                  style="color: {{ $time->remaining_tickets > 0 ? 'var(--prism-cyan)' : 'var(--prism-rose)' }};">
-                                {{ $time->remaining_tickets }}
-                            </span>
+                        <div class="pt-mini-card {{ $time->remaining_tickets > 0 ? 'pt-mini-card-cyan' : 'pt-mini-card-rose' }} flex justify-between px-3 py-1.5">
+                            <span data-i18n="adm_th_remaining">المتبقي</span>
+                            <span class="font-semibold">{{ $time->remaining_tickets }}</span>
                         </div>
 
-                        <div class="flex justify-between rounded-lg px-3 py-1.5 col-span-2"
-                             style="background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.32);">
-                            <span style="color: var(--prism-gold);">Revenue</span>
-                            <span style="color: var(--prism-gold);" class="font-semibold">
-                                {{ number_format($time->revenue, 0) }} EGP
-                            </span>
+                        <div class="pt-mini-card pt-mini-card-gold flex justify-between px-3 py-1.5 col-span-2">
+                            <span>Revenue</span>
+                            <span class="font-semibold">{{ number_format($time->revenue, 0) }} EGP</span>
                         </div>
 
                     </div>

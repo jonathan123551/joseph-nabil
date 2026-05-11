@@ -34,8 +34,7 @@
 
     {{-- Status Message --}}
     @if(session('status'))
-        <div class="rounded-xl px-4 py-3 text-sm prism-fade-up"
-             style="background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.45); color: #6ee7b7;">
+        <div class="pt-alert pt-alert-success prism-fade-up">
             {{ session('status') }}
         </div>
     @endif
@@ -106,20 +105,14 @@
                     <div class="flex flex-wrap gap-2 text-xs">
 
                         <a href="{{ route('admin.shows.times.index', $show) }}"
-                           class="flex-1 text-center px-3 py-2 rounded-xl transition"
-                           data-i18n="adm_shows_times"
-                           style="background: rgba(192,132,252,0.12); border: 1px solid rgba(192,132,252,0.35); color: #ddd6fe;"
-                           onmouseover="this.style.background='rgba(192,132,252,0.22)'; this.style.boxShadow='0 0 16px rgba(192,132,252,0.3)';"
-                           onmouseout="this.style.background='rgba(192,132,252,0.12)'; this.style.boxShadow='';">
+                           class="pt-action-pill pt-action-pill-violet flex-1"
+                           data-i18n="adm_shows_times">
                             المواعيد
                         </a>
 
                         <a href="{{ route('admin.shows.edit', $show) }}"
-                           class="flex-1 text-center px-3 py-2 rounded-xl transition"
-                           data-i18n="adm_edit"
-                           style="background: rgba(255,255,255,0.06); border: 1px solid var(--prism-border); color: var(--prism-text);"
-                           onmouseover="this.style.background='rgba(129,140,248,0.16)'; this.style.borderColor='rgba(129,140,248,0.4)';"
-                           onmouseout="this.style.background='rgba(255,255,255,0.06)'; this.style.borderColor='var(--prism-border)';">
+                           class="pt-action-pill flex-1"
+                           data-i18n="adm_edit">
                             تعديل
                         </a>
 
@@ -130,11 +123,8 @@
                             @method('DELETE')
 
                             <button type="submit"
-                                    class="w-full px-3 py-2 rounded-xl transition"
-                                    data-i18n="adm_delete"
-                                    style="background: rgba(244,63,94,0.12); border: 1px solid rgba(251,113,133,0.35); color: #fda4af;"
-                                    onmouseover="this.style.background='rgba(244,63,94,0.22)'; this.style.boxShadow='0 0 16px rgba(244,63,94,0.3)';"
-                                    onmouseout="this.style.background='rgba(244,63,94,0.12)'; this.style.boxShadow='';">
+                                    class="pt-action-pill pt-action-pill-rose w-full"
+                                    data-i18n="adm_delete">
                                 حذف
                             </button>
                         </form>
