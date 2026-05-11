@@ -911,97 +911,170 @@
     .mfst-bookings-list .meta .seats { font-weight: 800; color: var(--m-text); }
 
     /* ====================================================================
-       FLOOR MODE (mode=floor) — mobile-first, search-led, dark-forced.
+       FLOOR MODE (mode=floor) — premium mobile-native, iPhone-first.
 
-       Layout rhythm:
-         [topbar] → [hero search, sticky] → [chip strip, sticky just below]
-         → [section banner > row mini-head > cards …]
-       The search lives at the top, not the bottom, so iOS Safari's
-       dynamic URL bar (which expands at the bottom edge while
-       scrolling) never fights it. The Scanner FAB stays at the
-       bottom-right where it's a single-thumb reach.
+       Design goals (per user spec):
+         • CALM. Almost monochrome — only "issues" (pending / blocked)
+           carry colour. Approved is the unmarked baseline.
+         • ROOMY. Generous whitespace, a single 8 / 16 / 24 spacing
+           rhythm, no nested cards-within-cards.
+         • ONE ACCENT AT A TIME. No simultaneous chip + pill + border +
+           accent bar. Status becomes a single 8 px dot ahead of the
+           meta line; nothing else competes with the name.
+         • HIDDEN COMPLEXITY. Family colour, party list, scan link, and
+           extra meta all live in the bottom sheet — never on the list.
+         • THUMB-NATIVE. 56–60 px targets, search and filter pinned
+           where the thumb naturally rests, FAB out of the way.
        ==================================================================== */
     [data-mode="floor"] {
-        --m-bg            : #07070f;
-        --m-border        : rgba(255,255,255,0.08);
-        --m-border-strong : rgba(255,255,255,0.18);
+        --m-bg            : #0a0a12;
+        --m-bg-soft       : rgba(255,255,255,0.025);
+        --m-border        : rgba(255,255,255,0.07);
+        --m-border-strong : rgba(255,255,255,0.16);
         --m-text          : #f5f5f7;
         --m-text-2        : #d4d4d8;
-        --m-text-3        : #8a8a93;
+        --m-text-3        : #8e8e95;
+        --m-text-4        : #5b5b64;
+        --m-accent        : #38bdf8;   /* single accent — used sparingly */
+        --m-issue         : #fbbf24;   /* pending */
+        --m-blocked       : #fb7185;   /* blocked */
+        --m-done          : #34d399;   /* scanned */
         color: var(--m-text);
     }
+    /* Floor mode tones down the global top bar so it reads like a
+       slim status strip, not an admin header. The capacity gauge,
+       big show title and triple-tab switcher are hidden — mode
+       switching is reachable via the ⋯ overflow menu. */
     [data-mode="floor"] .mfst-topbar {
-        background: linear-gradient(180deg, rgba(0,0,0,0.92), rgba(0,0,0,0.65));
-        border-color: rgba(255,255,255,0.06);
-        padding: 10px 14px;
-        border-radius: 16px;
+        position: static;
+        background: linear-gradient(180deg, rgba(10,10,18,0.95), rgba(10,10,18,0.85));
+        border: 0;
+        border-bottom: 1px solid var(--m-border);
+        padding: 12px 16px;
+        border-radius: 0;
+        margin: -16px -16px 0;
+        gap: 10px;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+    /* Hide the capacity gauge bar + date row + 3-tab switcher.
+       Keep the date/time + capacity gauge accessible via a tiny meta
+       line under the title (re-styled below). */
+    [data-mode="floor"] .mfst-topbar .mfst-mode-switch { display: none; }
+    [data-mode="floor"] .mfst-topbar-id { min-width: 0; flex: 1 1 auto; }
+    [data-mode="floor"] .mfst-topbar-title {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: -.005em;
+        gap: 8px;
+        color: var(--m-text);
+    }
+    [data-mode="floor"] .mfst-topbar-meta {
+        font-size: 11.5px;
+        color: var(--m-text-3);
+        gap: 8px;
+        line-height: 1.3;
+        font-weight: 500;
+        letter-spacing: .005em;
+    }
+    [data-mode="floor"] .mfst-topbar-meta .mfst-gauge-bar { display: none; }
+    [data-mode="floor"] .mfst-topbar-meta .mfst-gauge-num {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--m-text-2);
+        font-feature-settings: "tnum" 1;
+    }
+    [data-mode="floor"] .mfst-topbar-meta .js-gauge-checked {
+        color: var(--m-text-3);
+    }
+    [data-mode="floor"] .mfst-topbar-meta .js-gauge-checked .js-checked-num {
+        color: var(--m-text-2);
+    }
+    [data-mode="floor"] .mfst-overflow-btn {
+        width: 38px; height: 38px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.10);
+        color: var(--m-text);
+        font-size: 17px;
     }
 
     .mfst-floor {
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        /* Force a near-black background regardless of theme so a Floor
-           Mode screen doesn't blind an usher in a dim hall. */
-        background: #07070f;
-        margin: -16px -16px 0;
-        padding: 12px 14px calc(100px + env(safe-area-inset-bottom, 0px));
-        min-height: calc(100vh - 80px);
+        background: var(--m-bg);
+        margin: 0 -16px;
+        padding: 0 0 calc(96px + env(safe-area-inset-bottom, 0px));
+        min-height: calc(100vh - 40px);
         color: var(--m-text);
         position: relative;
+        font-feature-settings: "tnum" 1, "cv11" 1;
     }
 
-    /* Hero search — top-anchored, sticky just under the top bar so it
-       stays within thumb reach but never collides with iOS Safari's
-       dynamic chrome at the bottom of the viewport. Bigger touch
-       target than the desktop search; 16px font so iOS doesn't auto-
-       zoom on focus. */
+    /* ---------------------------------------------------------------------
+       Hero search — one big iOS-style field. No kbd hint on mobile, no
+       result-counter chip; the in-field placeholder swap and the empty
+       state below the list narrate match counts instead.
+       --------------------------------------------------------------------- */
     .mfst-floor-search {
         position: sticky;
-        top: calc(64px + env(safe-area-inset-top, 0px) + 4px);
-        z-index: 18;
-        margin: 0 -8px;
-        padding: 6px 8px 8px;
-        background: linear-gradient(180deg, rgba(7,7,15,0.96) 70%, rgba(7,7,15,0));
-        backdrop-filter: blur(10px) saturate(140%);
-        -webkit-backdrop-filter: blur(10px) saturate(140%);
+        top: calc(60px + env(safe-area-inset-top, 0px));
+        z-index: 20;
+        padding: 4px 16px 12px;
+        background: linear-gradient(180deg, rgba(10,10,18,1) 80%, rgba(10,10,18,0));
+        backdrop-filter: blur(14px) saturate(150%);
+        -webkit-backdrop-filter: blur(14px) saturate(150%);
     }
     .mfst-floor-search .mfst-search {
         margin: 0;
-        flex: 1 1 auto;
-        min-width: 0;
+        position: relative;
+        flex: none;
     }
     .mfst-floor-search .mfst-search input {
-        background: rgba(20,22,38,0.92);
-        border-color: rgba(255,255,255,0.10);
+        width: 100%;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
         font-size: 16px;
-        padding: 14px 46px 14px 46px;
-        border-radius: 16px;
-        min-height: 52px;
+        padding: 16px 48px 16px 48px;
+        border-radius: 18px;
+        min-height: 56px;
         color: var(--m-text);
         font-weight: 500;
-        letter-spacing: .01em;
+        letter-spacing: .005em;
+        transition: background .2s var(--m-ease), border-color .2s var(--m-ease), box-shadow .2s var(--m-ease);
+    }
+    .mfst-floor-search .mfst-search input::placeholder {
+        color: var(--m-text-3);
+        font-weight: 500;
     }
     .mfst-floor-search .mfst-search input:focus {
-        background: rgba(28,30,52,1);
-        border-color: rgba(56,189,248,0.55);
-        box-shadow: 0 0 0 3px rgba(56,189,248,0.18);
+        outline: none;
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(56,189,248,0.45);
+        box-shadow: 0 0 0 4px rgba(56,189,248,0.14);
     }
     .mfst-floor-search .mfst-search .icon {
-        font-size: 18px;
-        inset-inline-end: auto;
-        inset-inline-start: 14px;
-        opacity: .55;
-    }
-    .mfst-floor-search .mfst-search .clear {
         position: absolute;
-        inset-inline-end: 10px;
+        inset-inline-start: 18px;
+        inset-inline-end: auto;
         top: 50%;
         transform: translateY(-50%);
-        width: 32px; height: 32px;
+        font-size: 17px;
+        color: var(--m-text-3);
+        opacity: 1;
+    }
+    .mfst-floor-search .mfst-search kbd { display: none; }
+    .mfst-floor-search .mfst-search .clear {
+        position: absolute;
+        inset-inline-end: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 32px;
+        height: 32px;
         border-radius: 999px;
         border: 0;
-        background: rgba(255,255,255,0.10);
+        background: rgba(255,255,255,0.12);
         color: var(--m-text);
         font-size: 13px;
         cursor: pointer;
@@ -1010,347 +1083,350 @@
         justify-content: center;
         transition: background .15s ease, transform .12s ease;
     }
-    .mfst-floor-search .mfst-search .clear:hover { background: rgba(255,255,255,0.16); }
-    .mfst-floor-search .mfst-search .clear:active { transform: translateY(-50%) scale(.94); }
+    .mfst-floor-search .mfst-search .clear:active { transform: translateY(-50%) scale(.92); }
+    /* Match count appears as a tiny line right below the input, with no
+       chip / background. Empty state above 0 is rendered by JS. */
     .mfst-floor-search-hint {
-        margin-top: 6px;
-        padding: 0 6px;
-        font-size: 11.5px;
+        margin: 8px 4px 0;
+        font-size: 12px;
         color: var(--m-text-3);
-        letter-spacing: .02em;
+        letter-spacing: .01em;
         min-height: 14px;
+        font-feature-settings: "tnum" 1;
     }
-    .mfst-floor-search-hint.has-result {
-        color: var(--m-sky);
-    }
+    .mfst-floor-search-hint.has-result { color: var(--m-text-2); }
 
-    /* Status chip strip — sits right below the hero search, sticky so
-       it never scrolls away. Snap on x so swiping reveals all five
-       chips on narrow screens. */
+    /* ---------------------------------------------------------------------
+       Filter — a single horizontal segmented control. Five low-noise
+       tabs (no count badges; counts live in section headers). At rest
+       it's almost invisible, only the active tab carries weight.
+       --------------------------------------------------------------------- */
     .mfst-floor-filters {
         display: flex;
-        gap: 8px;
-        overflow-x: auto;
-        scroll-snap-type: x proximity;
-        -webkit-overflow-scrolling: touch;
-        padding: 4px 4px 10px;
-        margin: -2px -10px 2px;
-        scroll-padding-inline: 14px;
+        gap: 4px;
+        padding: 0 16px 14px;
         position: sticky;
-        top: calc(64px + env(safe-area-inset-top, 0px) + 4px + 78px);
-        z-index: 16;
-        background: linear-gradient(180deg, rgba(7,7,15,1) 60%, rgba(7,7,15,0));
+        top: calc(60px + env(safe-area-inset-top, 0px) + 76px);
+        z-index: 19;
+        background: linear-gradient(180deg, rgba(10,10,18,1) 70%, rgba(10,10,18,0));
+        backdrop-filter: blur(14px) saturate(150%);
+        -webkit-backdrop-filter: blur(14px) saturate(150%);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
     }
     .mfst-floor-filters::-webkit-scrollbar { display: none; }
     .mfst-floor-filters .mfst-chip {
-        scroll-snap-align: start;
+        flex: 1 1 0;
+        min-width: 0;
         white-space: nowrap;
-        font-size: 12.5px;
-        font-weight: 700;
-        padding: 8px 12px;
-        min-height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         gap: 6px;
+        font-size: 12.5px;
+        font-weight: 600;
+        letter-spacing: .005em;
+        padding: 9px 10px;
+        min-height: 36px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        background: rgba(255,255,255,0.04);
+        color: var(--m-text-2);
+        cursor: pointer;
+        transition: background .15s ease, color .15s ease, border-color .15s ease;
     }
-    .mfst-floor-filters .mfst-chip .dot {
-        width: 6px; height: 6px;
-        border-radius: 999px;
-        background: var(--m-chip-color, rgba(255,255,255,0.4));
-        flex: 0 0 6px;
+    .mfst-floor-filters .mfst-chip .count { display: none; }
+    .mfst-floor-filters .mfst-chip .dot { display: none; }
+    .mfst-floor-filters .mfst-chip[aria-pressed="true"] {
+        background: rgba(255,255,255,0.10);
+        color: var(--m-text);
+        border-color: rgba(255,255,255,0.14);
+        box-shadow: none;
     }
-    .mfst-floor-filters .mfst-chip .count {
-        font-size: 10.5px;
-        padding: 1px 7px;
-    }
-    .mfst-floor-filters .mfst-chip:first-child { margin-inline-start: 10px; }
-    .mfst-floor-filters .mfst-chip:last-child  { margin-inline-end:   10px; }
+    .mfst-floor-filters .mfst-chip:active { transform: scale(.97); }
 
-    /* Card list grouped by section → row. Section + row dividers give the
-       usher a constant orientation cue while scanning long lists. */
+    /* ---------------------------------------------------------------------
+       List, section banners, row mini-dividers. Plain typography, no
+       chrome — just hierarchy through type weight and whitespace.
+       --------------------------------------------------------------------- */
     .mfst-floor-list {
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 28px;
+        padding: 6px 16px 24px;
     }
-    .mfst-floor-section { display: flex; flex-direction: column; gap: 6px; }
+    .mfst-floor-section { display: flex; flex-direction: column; gap: 16px; }
     .mfst-floor-section-head {
-        position: sticky;
-        top: calc(64px + env(safe-area-inset-top, 0px) + 4px + 78px + 56px);
-        z-index: 14;
         display: flex;
-        align-items: center;
+        align-items: baseline;
         justify-content: space-between;
         gap: 12px;
-        padding: 8px 12px;
-        border-radius: 12px;
-        background: linear-gradient(180deg, rgba(167,139,250,0.10), rgba(255,255,255,0.02));
-        border: 1px solid rgba(167,139,250,0.22);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-        margin-bottom: 2px;
+        padding: 4px 4px 0;
+        position: sticky;
+        top: calc(60px + env(safe-area-inset-top, 0px) + 126px);
+        z-index: 14;
+        background: linear-gradient(180deg, rgba(10,10,18,1) 65%, rgba(10,10,18,0));
+        padding-block-start: 8px;
+        padding-block-end: 8px;
     }
     .mfst-floor-section-head .t {
-        font-size: 14px;
-        font-weight: 800;
+        font-size: 19px;
+        font-weight: 700;
         color: var(--m-text);
-        letter-spacing: .01em;
+        letter-spacing: -.005em;
+        line-height: 1.2;
     }
     .mfst-floor-section-head .s {
-        font-size: 11.5px;
-        font-weight: 700;
-        color: var(--m-text-2);
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--m-text-3);
+        letter-spacing: .02em;
         font-feature-settings: "tnum" 1;
-        padding: 2px 8px;
-        border-radius: 999px;
-        background: rgba(0,0,0,0.20);
-        border: 1px solid rgba(255,255,255,0.08);
+        white-space: nowrap;
+    }
+    .mfst-floor-section-head .s b {
+        color: var(--m-text);
+        font-weight: 700;
     }
 
     .mfst-floor-rowgroup {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 8px;
     }
-    .mfst-floor-rowgroup + .mfst-floor-rowgroup { margin-top: 4px; }
     .mfst-floor-rowhead {
-        display: grid;
-        grid-template-columns: 26px 1fr auto;
-        gap: 10px;
+        display: flex;
         align-items: center;
-        padding: 2px 8px 2px 4px;
-        opacity: .82;
+        gap: 12px;
+        padding: 0 2px;
+        font-size: 11.5px;
+        font-weight: 600;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: var(--m-text-4);
+        margin-top: 4px;
     }
     .mfst-floor-rowhead .r {
-        font-size: 12px;
-        font-weight: 800;
-        color: var(--m-text-2);
-        text-align: center;
-        letter-spacing: .04em;
+        flex: none;
     }
     .mfst-floor-rowhead .b {
-        position: relative;
-        height: 3px;
-        border-radius: 999px;
-        background: rgba(255,255,255,0.06);
-        overflow: hidden;
-    }
-    .mfst-floor-rowhead .b .fill {
-        position: absolute;
-        inset-inline-start: 0; top: 0; bottom: 0;
-        width: var(--row-pct, 0%);
-        border-radius: 999px;
-        background: linear-gradient(90deg, rgba(52,211,153,0.85), rgba(56,189,248,0.85));
+        flex: 1 1 auto;
+        height: 1px;
+        background: linear-gradient(90deg, rgba(255,255,255,0.10), rgba(255,255,255,0));
     }
     .mfst-floor-rowhead .n {
-        font-size: 10.5px;
+        flex: none;
         color: var(--m-text-3);
         font-feature-settings: "tnum" 1;
-        letter-spacing: .02em;
+        font-weight: 700;
+        letter-spacing: .04em;
     }
     .mfst-floor-rowgroup:not(:has(.mfst-card:not([style*="display: none"]))) .mfst-floor-rowhead {
         display: none;
     }
 
-    /* Floor card — single-line name + meta. Status accent on the
-       leading edge does the heavy lifting; pills are reserved for the
-       atypical cases (pending / blocked / checked-in) so an "approved"
-       card feels calm. */
+    /* ---------------------------------------------------------------------
+       Floor card — the most important UI in the system. Bold, calm,
+       monochrome at rest. Status is communicated by a single dot, scan
+       state by a tiny ✓ next to the seat. Family colour, pending pill,
+       blocked pill — all gone. They live in the sheet instead.
+       --------------------------------------------------------------------- */
     .mfst-card {
-        min-height: 76px;
         display: grid;
-        grid-template-columns: 56px 1fr 22px;
-        gap: 12px;
+        grid-template-columns: 72px 1fr;
+        column-gap: 16px;
         align-items: center;
-        padding: 10px 12px;
-        border-radius: 16px;
+        padding: 16px 18px;
+        min-height: 76px;
+        border-radius: 18px;
         border: 1px solid var(--m-border);
-        background: rgba(255,255,255,0.025);
+        background: rgba(255,255,255,0.022);
         position: relative;
         overflow: hidden;
         cursor: pointer;
-        transition: transform .12s var(--m-ease), border-color .2s var(--m-ease), background .2s var(--m-ease);
+        transition: background .18s var(--m-ease), border-color .18s var(--m-ease), transform .12s var(--m-ease);
     }
-    .mfst-card::after {
-        /* Status accent bar on the leading edge */
-        content: "";
-        position: absolute;
-        inset-block: 10px;
-        inset-inline-end: 0;
-        width: 4px;
-        border-radius: 4px;
-        background: rgba(255,255,255,0.10);
-        transition: background .2s var(--m-ease);
-    }
-    .mfst-card:active { transform: scale(0.985); }
-    .mfst-card.is-approved { border-color: rgba(52,211,153,0.30); background: linear-gradient(90deg, rgba(52,211,153,0.05), rgba(255,255,255,0.018)); }
-    .mfst-card.is-pending  { border-color: rgba(251,191,36,0.40); background: linear-gradient(90deg, rgba(251,191,36,0.06), rgba(255,255,255,0.018)); }
-    .mfst-card.is-blocked  { border-color: rgba(251,113,133,0.40); background: linear-gradient(90deg, rgba(251,113,133,0.06), rgba(255,255,255,0.018)); }
-    .mfst-card.is-empty    { border-color: rgba(255,255,255,0.06); background: rgba(255,255,255,0.012); opacity: .72; }
-    .mfst-card.is-scanned  { border-color: rgba(52,211,153,0.70); background: linear-gradient(90deg, rgba(52,211,153,0.12), rgba(52,211,153,0.04)); }
-    .mfst-card.is-approved::after { background: rgba(52,211,153,0.85); }
-    .mfst-card.is-pending::after  { background: rgba(251,191,36,0.85); }
-    .mfst-card.is-blocked::after  { background: rgba(251,113,133,0.85); }
-    .mfst-card.is-scanned::after  { background: rgba(52,211,153,1);     box-shadow: 0 0 12px rgba(52,211,153,0.55); }
-    .mfst-card.is-empty::after    { background: rgba(255,255,255,0.06); }
+    .mfst-card:active { transform: scale(.985); background: rgba(255,255,255,0.035); }
+    /* Default = approved = monochrome calm. */
+    .mfst-card.is-empty { opacity: .55; }
+    .mfst-card.is-blocked { background: rgba(251,113,133,0.04); border-color: rgba(251,113,133,0.16); }
+    .mfst-card.is-pending { background: rgba(251,191,36,0.04); border-color: rgba(251,191,36,0.18); }
+    .mfst-card.is-scanned { background: rgba(52,211,153,0.04); border-color: rgba(52,211,153,0.20); }
     .mfst-card.is-focused {
-        border-color: var(--m-sky) !important;
-        box-shadow: 0 0 0 2px rgba(56,189,248,0.30), 0 6px 22px rgba(56,189,248,0.18);
+        border-color: rgba(56,189,248,0.55);
+        background: rgba(56,189,248,0.06);
     }
 
-    .mfst-card[data-hue]::before {
-        content: "";
-        position: absolute;
-        inset-block: 12px;
-        inset-inline-start: 0;
-        width: 3px;
-        border-radius: 4px;
-        background: var(--m-hue);
-    }
-    .mfst-card .card-chip {
-        position: relative;
+    /* Seat label is the visual anchor. Big, monospace, tabular-nums.
+       Sits in a fixed-width column so all seats line up vertically. */
+    .mfst-card .seat-block {
         display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 6px 4px;
-        border-radius: 12px;
-        background: rgba(255,255,255,0.045);
-        border: 1px solid rgba(255,255,255,0.08);
-        min-width: 56px;
-        min-height: 56px;
+        align-items: baseline;
+        gap: 6px;
+        min-width: 0;
     }
-    .mfst-card .card-chip .seat {
-        font-size: 18px;
-        font-weight: 800;
-        color: var(--m-text);
+    .mfst-card .seat-block .seat {
+        font-size: 26px;
+        font-weight: 700;
         line-height: 1;
-        letter-spacing: .01em;
+        color: var(--m-text);
+        letter-spacing: -.01em;
         font-feature-settings: "tnum" 1;
     }
-    .mfst-card .card-chip .ck {
-        position: absolute;
-        top: -5px;
-        inset-inline-end: -5px;
-        width: 18px; height: 18px;
-        border-radius: 999px;
-        background: var(--m-emerald);
-        color: #052e23;
-        font-size: 11px;
-        font-weight: 900;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 0 0 2px rgba(7,7,15,1), 0 0 10px rgba(52,211,153,0.6);
-    }
-    .mfst-card.is-approved .card-chip { background: rgba(52,211,153,0.10); border-color: rgba(52,211,153,0.32); }
-    .mfst-card.is-pending  .card-chip { background: rgba(251,191,36,0.14); border-color: rgba(251,191,36,0.40); }
-    .mfst-card.is-blocked  .card-chip { background: rgba(251,113,133,0.14); border-color: rgba(251,113,133,0.40); }
-    .mfst-card.is-scanned  .card-chip { background: rgba(52,211,153,0.20); border-color: rgba(52,211,153,0.62); }
-    .mfst-card.is-empty    .card-chip .seat { color: var(--m-text-3); }
-
-    .mfst-card .card-body { min-width: 0; }
-    .mfst-card .card-name {
-        font-size: 15.5px;
-        font-weight: 700;
-        color: var(--m-text);
-        line-height: 1.25;
-        margin-bottom: 4px;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        letter-spacing: .005em;
-    }
-    .mfst-card .card-name .muted { color: var(--m-text-3); font-weight: 600; font-style: italic; }
-    .mfst-card .card-meta {
-        font-size: 11.5px;
-        color: var(--m-text-3);
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        align-items: center;
-        line-height: 1.3;
-    }
-    .mfst-card .card-meta .phone {
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        font-size: 11.5px;
-        color: var(--m-text-2);
-        letter-spacing: .02em;
-    }
-    .mfst-card .card-meta .ref {
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        font-size: 10.5px;
-        color: var(--m-text-3);
-        letter-spacing: .02em;
-    }
-    .mfst-card .card-meta .tag {
-        padding: 2px 8px;
-        border-radius: 999px;
-        font-size: 9.5px;
-        font-weight: 800;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-        flex: 0 0 auto;
-    }
-    .mfst-card .card-meta .tag.pen { background: rgba(251,191,36,0.16); color: #fcd34d; }
-    .mfst-card .card-meta .tag.blk { background: rgba(251,113,133,0.16); color: #fda4af; }
-    .mfst-card .card-meta .tag.ck  { background: rgba(52,211,153,0.16); color: #6ee7b7; font-family: ui-monospace, monospace; }
-
-    .mfst-card .card-action {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 22px; height: 22px;
-        color: var(--m-text-3);
-        font-size: 20px;
-        font-weight: 700;
+    .mfst-card.is-empty   .seat-block .seat { color: var(--m-text-4); font-weight: 600; }
+    .mfst-card.is-blocked .seat-block .seat { color: var(--m-text-3); }
+    .mfst-card .seat-block .ck {
+        font-size: 14px;
+        color: var(--m-done);
         line-height: 1;
+        margin-inline-start: 2px;
     }
-    [dir="rtl"] .mfst-card .card-action { transform: scaleX(-1); }
 
-    .mfst-floor-empty {
-        text-align: center;
-        padding: 48px 20px;
-        color: var(--m-text-3);
-        font-size: 13px;
-        border: 1px dashed rgba(255,255,255,0.10);
-        border-radius: 18px;
-        background: rgba(255,255,255,0.018);
+    /* Body = identity-first. Name on top in semibold, single quiet
+       line of meta below. Status dot leads the meta. Phone + ref share
+       the line with hairline separators, NOT pills. */
+    .mfst-card .body {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 4px;
+        min-width: 0;
     }
-    .mfst-floor-empty .t { color: var(--m-text); font-weight: 700; font-size: 15px; }
-    .mfst-floor-empty .s { font-size: 12.5px; color: var(--m-text-3); }
+    .mfst-card .name {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--m-text);
+        letter-spacing: -.005em;
+        line-height: 1.25;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .mfst-card.is-blocked .name,
+    .mfst-card.is-empty   .name {
+        color: var(--m-text-4);
+        font-style: italic;
+        font-weight: 500;
+    }
+    .mfst-card .meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12.5px;
+        color: var(--m-text-3);
+        line-height: 1.2;
+        font-feature-settings: "tnum" 1;
+        min-width: 0;
+    }
+    .mfst-card .meta .dot {
+        flex: 0 0 6px;
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.16);
+    }
+    .mfst-card.is-pending  .meta .dot { background: var(--m-issue); box-shadow: 0 0 0 3px rgba(251,191,36,0.10); }
+    .mfst-card.is-blocked  .meta .dot { background: var(--m-blocked); box-shadow: 0 0 0 3px rgba(251,113,133,0.10); }
+    .mfst-card.is-scanned  .meta .dot { background: var(--m-done); box-shadow: 0 0 0 3px rgba(52,211,153,0.10); }
+    .mfst-card .meta .phone {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12.5px;
+        color: var(--m-text-2);
+        letter-spacing: .01em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .mfst-card .meta .sep {
+        width: 3px;
+        height: 3px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.18);
+        flex: none;
+    }
+    .mfst-card .meta .ref {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11.5px;
+        color: var(--m-text-3);
+        letter-spacing: .02em;
+        white-space: nowrap;
+    }
 
-    /* Scanner FAB — fixed bottom-end, single-thumb reach. position:
-       fixed (not sticky) so the safe-area + iOS chrome don't shift it
-       relative to other content while scrolling. */
+    /* Empty state — calm and instructive, not a system error. */
+    .mfst-floor-empty {
+        margin: 32px 16px;
+        text-align: center;
+        padding: 40px 24px;
+        color: var(--m-text-3);
+        font-size: 13px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+    }
+    .mfst-floor-empty .t {
+        color: var(--m-text);
+        font-weight: 600;
+        font-size: 17px;
+        letter-spacing: -.005em;
+    }
+    .mfst-floor-empty .s {
+        font-size: 13px;
+        color: var(--m-text-3);
+        max-width: 30ch;
+        line-height: 1.5;
+    }
+
+    /* ---------------------------------------------------------------------
+       Scanner FAB — calmer. A single dark glass circle with a small
+       accent ring. No bright green-to-sky gradient (was too loud
+       against the otherwise monochrome surface).
+       --------------------------------------------------------------------- */
     .mfst-fab {
         position: fixed;
         inset-inline-end: 18px;
-        bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(22px + env(safe-area-inset-bottom, 0px));
         z-index: 30;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 60px; height: 60px;
-        border-radius: 20px;
-        background: linear-gradient(135deg, var(--m-emerald), var(--m-sky));
-        color: #052e23;
-        font-size: 26px;
-        font-weight: 800;
+        width: 60px;
+        height: 60px;
+        border-radius: 999px;
+        background: rgba(20,22,32,0.92);
+        border: 1px solid rgba(255,255,255,0.10);
+        color: var(--m-text);
+        font-size: 22px;
         text-decoration: none;
         box-shadow:
-            0 14px 36px rgba(52,211,153,0.45),
-            0 4px 12px rgba(0,0,0,0.40),
-            inset 0 1px 0 rgba(255,255,255,0.25);
-        transition: transform .12s var(--m-ease), box-shadow .2s var(--m-ease);
+            0 14px 38px rgba(0,0,0,0.55),
+            0 2px 6px rgba(0,0,0,0.30),
+            inset 0 1px 0 rgba(255,255,255,0.05);
+        backdrop-filter: blur(14px) saturate(160%);
+        -webkit-backdrop-filter: blur(14px) saturate(160%);
+        transition: transform .12s var(--m-ease), background .2s var(--m-ease);
     }
-    .mfst-fab:active { transform: scale(.95); box-shadow: 0 8px 22px rgba(52,211,153,0.40); }
-    .mfst-fab:focus-visible { box-shadow: 0 0 0 3px rgba(56,189,248,0.45), 0 14px 36px rgba(52,211,153,0.45); }
+    .mfst-fab::before {
+        content: "";
+        position: absolute;
+        inset: -1px;
+        border-radius: inherit;
+        padding: 1.5px;
+        background: linear-gradient(135deg, rgba(56,189,248,0.55), rgba(255,255,255,0.06) 50%, rgba(56,189,248,0.10));
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+                mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+                mask-composite: exclude;
+        pointer-events: none;
+    }
+    .mfst-fab:active { transform: scale(.94); }
+    .mfst-fab:focus-visible { box-shadow: 0 0 0 3px rgba(56,189,248,0.40), 0 14px 38px rgba(0,0,0,0.55); }
 
-    /* Bottom sheet — slides up when an usher taps a card. Anchored to
-       the bottom of the viewport so the most important content (seat
-       label, name, scan action) lands in the thumb zone. */
+    /* ---------------------------------------------------------------------
+       Bottom sheet — the seat detail. Bigger seat headline, calmer
+       meta as key/value list, family colour appears only here as
+       small swatches in the party section.
+       --------------------------------------------------------------------- */
     .mfst-sheet {
         position: fixed;
         inset: 0;
@@ -1364,134 +1440,207 @@
         inset: 0;
         background: rgba(0,0,0,0.55);
         opacity: 0;
-        transition: opacity .2s var(--m-ease);
+        transition: opacity .22s var(--m-ease);
     }
     .mfst-sheet.is-open .mfst-sheet-scrim { opacity: 1; }
     .mfst-sheet-card {
         position: absolute;
         inset-inline: 0;
         bottom: 0;
-        max-height: 86vh;
+        max-height: 88vh;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
-        background: linear-gradient(180deg, rgba(15,17,28,0.98), rgba(8,9,18,0.98));
+        background: linear-gradient(180deg, rgba(16,18,28,0.98), rgba(8,9,16,0.98));
         border-top: 1px solid var(--m-border);
-        border-radius: 22px 22px 0 0;
-        padding: 8px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+        border-radius: 24px 24px 0 0;
+        padding: 10px 20px calc(28px + env(safe-area-inset-bottom, 0px));
         transform: translateY(100%);
-        transition: transform .26s var(--m-ease);
-        box-shadow: 0 -18px 40px rgba(0,0,0,0.45);
+        transition: transform .28s cubic-bezier(0.32, 0.72, 0, 1);
+        box-shadow: 0 -22px 50px rgba(0,0,0,0.55);
     }
     .mfst-sheet.is-open .mfst-sheet-card { transform: translateY(0); }
     .mfst-sheet-grip {
-        width: 44px; height: 4px;
+        width: 40px;
+        height: 4px;
         border-radius: 999px;
-        background: rgba(255,255,255,0.14);
-        margin: 6px auto 10px;
+        background: rgba(255,255,255,0.16);
+        margin: 4px auto 14px;
     }
     .mfst-sheet-head {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 8px;
+        gap: 12px;
+        margin-bottom: 4px;
     }
-    .mfst-sheet-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .mfst-sheet-id { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .mfst-sheet-id .sec {
+        font-size: 10.5px;
+        color: var(--m-text-3);
+        letter-spacing: .16em;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
     .mfst-sheet-id .seat {
-        font-size: 30px;
-        font-weight: 800;
-        letter-spacing: -.005em;
+        font-size: 44px;
+        font-weight: 700;
+        letter-spacing: -.02em;
         line-height: 1;
         color: var(--m-text);
         font-feature-settings: "tnum" 1;
     }
-    .mfst-sheet-id .sec {
-        font-size: 11px;
-        color: var(--m-text-3);
-        letter-spacing: .12em;
-        text-transform: uppercase;
+    .mfst-sheet-id .seat .ck {
+        display: inline-flex;
+        margin-inline-start: 8px;
+        font-size: 18px;
+        color: var(--m-done);
+        vertical-align: middle;
+        font-weight: 700;
     }
     .mfst-sheet-close {
-        width: 38px; height: 38px;
-        border-radius: 12px;
+        flex: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
         border: 1px solid var(--m-border);
         background: rgba(255,255,255,0.04);
         color: var(--m-text);
         font-size: 16px;
         cursor: pointer;
     }
-    .mfst-sheet-close:active { transform: scale(.95); }
+    .mfst-sheet-close:active { transform: scale(.94); }
     .mfst-sheet-name {
-        font-size: 19px;
-        font-weight: 700;
+        font-size: 22px;
+        font-weight: 600;
         color: var(--m-text);
-        margin: 4px 0 12px;
+        margin: 18px 0 6px;
         line-height: 1.25;
         word-break: break-word;
+        letter-spacing: -.005em;
     }
+    .mfst-sheet-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: var(--m-text-3);
+    }
+    .mfst-sheet-status .dot {
+        width: 6px; height: 6px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.18);
+    }
+    .mfst-sheet-status[data-tone="approved"] { color: var(--m-text-2); }
+    .mfst-sheet-status[data-tone="pending"]  { color: var(--m-issue); }
+    .mfst-sheet-status[data-tone="pending"] .dot  { background: var(--m-issue);  }
+    .mfst-sheet-status[data-tone="blocked"]  { color: var(--m-blocked); }
+    .mfst-sheet-status[data-tone="blocked"] .dot  { background: var(--m-blocked); }
+    .mfst-sheet-status[data-tone="scanned"]  { color: var(--m-done); }
+    .mfst-sheet-status[data-tone="scanned"] .dot  { background: var(--m-done);    }
+
+    /* Meta as a calm key/value list — no card-in-card. Each row uses
+       a hairline separator instead of a chip background. */
     .mfst-sheet-meta {
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        padding: 12px;
-        border-radius: 14px;
-        border: 1px solid var(--m-border);
-        background: rgba(255,255,255,0.025);
+        margin-top: 20px;
         font-feature-settings: "tnum" 1;
     }
     .mfst-sheet-meta .row {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 10px;
-        font-size: 13px;
+        gap: 16px;
+        padding: 12px 0;
+        font-size: 14px;
         color: var(--m-text);
+        border-bottom: 1px solid rgba(255,255,255,0.05);
     }
+    .mfst-sheet-meta .row:last-child { border-bottom: 0; }
     .mfst-sheet-meta .label {
         color: var(--m-text-3);
         font-size: 11.5px;
         font-weight: 600;
-        letter-spacing: .04em;
+        letter-spacing: .14em;
         text-transform: uppercase;
     }
-    .mfst-sheet-meta .phone {
-        font-family: ui-monospace, monospace;
-        font-size: 13px;
+    .mfst-sheet-meta .value {
+        text-align: end;
+        font-weight: 500;
+        max-width: 60%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .mfst-sheet-meta .value.phone {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 14px;
         color: var(--m-text-2);
     }
+
+    /* Booking party — only shown when a booking spans >1 seat. */
     .mfst-sheet-party {
-        margin-top: 12px;
-        padding: 10px 12px;
-        border-radius: 14px;
-        border: 1px dashed var(--m-border);
-        background: rgba(255,255,255,0.018);
+        margin-top: 20px;
     }
     .mfst-sheet-party .label {
         font-size: 10.5px;
         color: var(--m-text-3);
-        letter-spacing: .08em;
+        letter-spacing: .14em;
         text-transform: uppercase;
-        margin-bottom: 6px;
+        font-weight: 600;
+        margin-bottom: 10px;
     }
     .mfst-sheet-party ul {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 2px;
     }
     .mfst-sheet-party li {
         display: flex;
         align-items: center;
-        gap: 10px;
-        font-size: 13px;
-        padding: 6px 8px;
-        border-radius: 10px;
-        background: rgba(255,255,255,0.03);
+        gap: 12px;
+        font-size: 14px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.022);
     }
-    .mfst-sheet-party li.is-current { background: rgba(56,189,248,0.14); }
-    .mfst-sheet-party li .lbl { font-weight: 800; color: var(--m-text); min-width: 36px; }
-    .mfst-sheet-party li .nm  { color: var(--m-text-2); }
+    .mfst-sheet-party li.is-current {
+        background: rgba(56,189,248,0.10);
+        outline: 1px solid rgba(56,189,248,0.30);
+    }
+    .mfst-sheet-party li .swatch {
+        width: 6px;
+        height: 28px;
+        border-radius: 3px;
+        background: var(--m-hue, rgba(255,255,255,0.18));
+        flex: none;
+    }
+    .mfst-sheet-party li .lbl {
+        font-weight: 700;
+        color: var(--m-text);
+        min-width: 44px;
+        font-feature-settings: "tnum" 1;
+    }
+    .mfst-sheet-party li .nm {
+        color: var(--m-text-2);
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .mfst-sheet-party li .here {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: var(--m-accent);
+    }
+
     .mfst-sheet-actions {
-        margin-top: 14px;
+        margin-top: 24px;
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 10px;
@@ -1500,48 +1649,101 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
-        padding: 14px 12px;
-        border-radius: 14px;
-        font-size: 13.5px;
-        font-weight: 700;
+        gap: 8px;
+        padding: 16px 12px;
+        border-radius: 16px;
+        font-size: 14.5px;
+        font-weight: 600;
         text-decoration: none;
         border: 1px solid var(--m-border);
         color: var(--m-text);
-        background: rgba(255,255,255,0.04);
-        min-height: 48px;
+        background: rgba(255,255,255,0.05);
+        min-height: 52px;
         text-align: center;
-        white-space: nowrap;
+        letter-spacing: -.005em;
     }
-    .mfst-sheet-actions a:first-child {
-        background: linear-gradient(135deg, rgba(52,211,153,0.20), rgba(56,189,248,0.20));
-        border-color: rgba(52,211,153,0.45);
-        color: #ecfdf5;
+    .mfst-sheet-actions a.primary {
+        background: rgba(56,189,248,0.14);
+        border-color: rgba(56,189,248,0.45);
+        color: #e0f2fe;
     }
     .mfst-sheet-actions a:active { transform: scale(.98); }
 
-    /* Tablet / wider: bring the sheet to a centered card so it doesn't
-       look stretched on iPad. */
+    /* Tablet+ — center the sheet so it doesn't stretch edge-to-edge. */
     @media (min-width: 720px) {
         .mfst-sheet-card {
             inset-inline-start: auto;
             inset-inline-end: auto;
             margin: 0 auto;
             max-width: 520px;
-            border-radius: 22px 22px 22px 22px;
-            bottom: 28px;
-            inset-inline: 28px;
+            border-radius: 24px;
+            bottom: 32px;
+            inset-inline: 32px;
         }
-        .mfst-sheet.is-open .mfst-sheet-card { transform: translateY(0); }
     }
 
     @media (prefers-reduced-motion: reduce) {
         .mfst-sheet-card { transition: none; }
     }
-
     /* ====================================================================
        PAPER SHEET (mode=paper) — on-screen preview + print rules
        ==================================================================== */
+    /* Mobile preview banner — explains that this surface is designed
+       for A4 landscape print, and offers a big primary Print button
+       up top so the user doesn't have to scroll through a cramped
+       preview to act on it. Hidden on tablet/desktop where the full
+       preview is comfortably legible. */
+    .mfst-paper-hint {
+        display: none;
+        margin-bottom: 14px;
+        padding: 16px 18px;
+        border-radius: 18px;
+        border: 1px solid var(--m-border);
+        background:
+            radial-gradient(120% 80% at 0% 0%, rgba(167,139,250,0.10), transparent 60%),
+            rgba(255,255,255,0.025);
+        color: var(--m-text);
+        font-feature-settings: "tnum" 1;
+    }
+    .mfst-paper-hint .t {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: -.005em;
+        margin-bottom: 4px;
+    }
+    .mfst-paper-hint .s {
+        font-size: 12.5px;
+        color: var(--m-text-3);
+        line-height: 1.45;
+        margin-bottom: 12px;
+    }
+    .mfst-paper-hint .b {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 12px 18px;
+        border-radius: 12px;
+        border: 1px solid rgba(56,189,248,0.45);
+        background: rgba(56,189,248,0.14);
+        color: #e0f2fe;
+        font-size: 13.5px;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        min-height: 44px;
+    }
+    .mfst-paper-hint .b:active { transform: scale(.98); }
+
+    /* On screens narrower than the A4 landscape preview, allow the
+       paper sheet to retain its original desktop dimensions and let
+       the user pan horizontally. Avoids a squashed, illegible table. */
+    .mfst-paper-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -16px;
+        padding: 0 16px;
+    }
     .mfst-paper {
         background: #fff;
         color: #000;
@@ -1549,6 +1751,14 @@
         border-radius: 14px;
         font-family: 'IBM Plex Sans Arabic', 'Space Grotesk', sans-serif;
         box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+    }
+    @media (max-width: 820px) {
+        .mfst-paper-hint { display: block; }
+        .mfst-paper {
+            min-width: 820px;     /* keep the landscape layout legible */
+            border-radius: 10px;
+            padding: 18px 20px;
+        }
     }
     .mfst-paper-section {
         page-break-inside: auto;
@@ -1743,7 +1953,16 @@
         }
 
         /* Chrome */
-        .mfst-topbar, .mfst-filters, .mfst-paper-actions, .pt-no-print { display: none !important; }
+        .mfst-topbar, .mfst-filters, .mfst-paper-actions, .mfst-paper-hint, .pt-no-print { display: none !important; }
+
+        /* The mobile preview wrapper must not introduce its own scroll
+           context during print; let the page flow as a normal document. */
+        .mfst-paper-scroll {
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .mfst-paper { min-width: 0 !important; }
 
         /* Running header on every page (CSS Paged Media) */
         .mfst-paper-section { page-break-inside: auto; break-inside: auto; }
@@ -1813,6 +2032,8 @@
             <div class="mfst-overflow">
                 <button type="button" class="mfst-overflow-btn js-overflow-toggle" aria-haspopup="true" aria-expanded="false" aria-label="More actions">⋯</button>
                 <div class="mfst-overflow-menu js-overflow-menu" role="menu">
+                    @if ($mode !== 'ops')<a href="{{ $url(['mode' => 'ops']) }}">🎛 Operations console</a>@endif
+                    @if ($mode !== 'floor')<a href="{{ $url(['mode' => 'floor']) }}">📱 Floor mode</a>@endif
                     <a href="{{ $url(['mode' => 'paper']) }}#autoprint" data-autoprint="1">🖨 Print sheet</a>
                     <a href="{{ $csvUrl }}">⬇ Export CSV</a>
                     <hr>
@@ -2022,75 +2243,59 @@
     @endif
 
     {{-- ============================================================
-         FLOOR MODE — mobile-first, search-led, section-anchored.
-
-         Layout, top to bottom:
-           1. Hero search (sticky, top-anchored — iOS-friendly).
-              An inline clear button keeps thumb travel short and a
-              live result counter narrates how many seats match.
-           2. Compact status chip row (horizontal scroll, calm at rest).
-           3. Section-anchored card list ("صالة · Hall — 320/500"),
-              with per-row mini-dividers so the usher always knows
-              which arc/row they're on.
-           4. Scanner FAB pinned to the bottom edge for one-handed
-              thumb use; no bottom search dock (search sits at the
-              top where iOS Safari's chrome doesn't fight it).
-           5. Bottom-sheet detail when tapping a card — full attendee
-              context, booking party, scan / open-on-chart actions.
+         FLOOR MODE — premium mobile-native. Calm by default, single
+         accent only where information needs it. Family colour, party
+         list, scan/chart actions live in the bottom sheet.
          ============================================================ --}}
     @if ($mode === 'floor')
     <div class="mfst-floor" data-floor>
         <div class="mfst-floor-search pt-no-print">
             <label class="mfst-search">
+                <span class="icon" aria-hidden="true">⌕</span>
                 <input type="search"
                        class="js-search-input"
-                       placeholder="ابحث باسم أو رقم مقعد (مثال: A12)"
+                       placeholder="Search seats or attendees"
                        aria-label="Search seats or attendees"
                        autocomplete="off"
                        autocapitalize="off"
                        inputmode="search">
-                <span class="icon" aria-hidden="true">🔍</span>
                 <button type="button" class="clear js-search-clear" aria-label="Clear search" hidden>✕</button>
             </label>
             <div class="mfst-floor-search-hint js-search-hint" aria-live="polite"></div>
         </div>
 
-        <div class="mfst-floor-filters" role="tablist" aria-label="Status filter">
+        <div class="mfst-floor-filters pt-no-print" role="tablist" aria-label="Status filter">
             <button type="button" class="mfst-chip mfst-chip-approved js-filter-chip" data-status="approved" aria-pressed="{{ in_array('approved', $statusFilter) ? 'true' : 'false' }}">
-                <span class="dot" aria-hidden="true"></span>
-                <span>Approved</span><span class="count">{{ $summary['approved'] }}</span>
+                <span>Booked</span>
             </button>
             <button type="button" class="mfst-chip mfst-chip-pending js-filter-chip" data-status="pending" aria-pressed="{{ in_array('pending', $statusFilter) ? 'true' : 'false' }}">
-                <span class="dot" aria-hidden="true"></span>
-                <span>Pending</span><span class="count">{{ $summary['pending'] }}</span>
+                <span>Pending</span>
             </button>
             <button type="button" class="mfst-chip mfst-chip-blocked js-filter-chip" data-status="blocked" aria-pressed="{{ in_array('blocked', $statusFilter) ? 'true' : 'false' }}">
-                <span class="dot" aria-hidden="true"></span>
-                <span>Blocked</span><span class="count">{{ $summary['blocked'] }}</span>
+                <span>Blocked</span>
             </button>
             <button type="button" class="mfst-chip mfst-chip-checked js-filter-chip" data-status="checked_in" aria-pressed="{{ in_array('checked_in', $statusFilter) ? 'true' : 'false' }}">
-                <span class="dot" aria-hidden="true"></span>
-                <span>✓ Checked</span><span class="count js-filter-checked-count">{{ $checkedInCount }}</span>
+                <span>Checked-in</span>
+                <span class="count js-filter-checked-count" aria-hidden="true">{{ $checkedInCount }}</span>
             </button>
             <button type="button" class="mfst-chip mfst-chip-empty js-filter-chip" data-status="empty" aria-pressed="{{ in_array('empty', $statusFilter) ? 'true' : 'false' }}">
-                <span class="dot" aria-hidden="true"></span>
-                <span>Empty</span><span class="count">{{ $summary['empty'] }}</span>
+                <span>Free</span>
             </button>
         </div>
 
         <div class="mfst-floor-list js-floor-list">
             @foreach ($floorRowsBySectionRow as $sectionLabel => $byRow)
                 @php $secStats = $floorSectionStats[$sectionLabel] ?? ['booked' => 0, 'blocked' => 0, 'total' => 0]; @endphp
-                <div class="mfst-floor-section js-floor-section" data-section-key="{{ $sectionLabel }}">
-                    <div class="mfst-floor-section-head">
+                <section class="mfst-floor-section js-floor-section" data-section-key="{{ $sectionLabel }}">
+                    <header class="mfst-floor-section-head">
                         <span class="t">{{ $sectionLabel }}</span>
-                        <span class="s">{{ $secStats['booked'] }}/{{ $secStats['total'] }}</span>
-                    </div>
+                        <span class="s"><b>{{ $secStats['booked'] }}</b> of {{ $secStats['total'] }}</span>
+                    </header>
                     @foreach ($byRow as $rletter => $block)
                         <div class="mfst-floor-rowgroup js-floor-rowgroup" data-row="{{ $rletter }}">
                             <div class="mfst-floor-rowhead" aria-hidden="true">
-                                <span class="r">{{ $rletter }}</span>
-                                <span class="b" style="--row-pct: {{ $block['total'] > 0 ? (int) round(($block['booked'] / $block['total']) * 100) : 0 }}%;"><span class="fill"></span></span>
+                                <span class="r">Row {{ $rletter }}</span>
+                                <span class="b" aria-hidden="true"></span>
                                 <span class="n">{{ $block['booked'] }}/{{ $block['total'] }}</span>
                             </div>
                             @foreach ($block['seats'] as $s)
@@ -2098,7 +2303,7 @@
                                     $seatLabel = $s['row_letter'] . $s['seat_number'];
                                     $hue = $s['booking_id'] ? ($bookingColorIndex[$s['booking_id']] ?? null) : null;
                                 @endphp
-                                <div class="mfst-card is-{{ $s['status'] }} @if($s['is_scanned']) is-scanned @endif {{ $hue !== null ? 'mfst-hue-' . $hue : '' }} js-floor-card"
+                                <article class="mfst-card is-{{ $s['status'] }} @if($s['is_scanned']) is-scanned @endif {{ $hue !== null ? 'mfst-hue-' . $hue : '' }} js-floor-card"
                                      data-seat="{{ $seatLabel }}"
                                      data-status="{{ $s['status'] }}"
                                      data-status-en="{{ $s['status_en'] }}"
@@ -2117,86 +2322,86 @@
                                      data-haystack="{{ strtolower(trim(($s['attendee_name'] ?? '') . ' ' . ($s['booking_owner'] ?? '') . ' ' . ($s['booking_ref'] ?? '') . ' ' . ($s['phone'] ?? '') . ' ' . $seatLabel . ' ' . $s['section_label_ar'])) }}"
                                      role="button"
                                      tabindex="0">
-                                    <div class="card-chip">
+                                    <div class="seat-block">
                                         <span class="seat">{{ $seatLabel }}</span>
                                         @if ($s['is_scanned'])<span class="ck" aria-label="Checked in">✓</span>@endif
                                     </div>
-                                    <div class="card-body">
-                                        <div class="card-name">
+                                    <div class="body">
+                                        <div class="name">
                                             @if ($s['status'] === 'blocked')
-                                                <span class="muted">— محجوب —</span>
+                                                Blocked
                                             @elseif ($s['status'] === 'empty')
-                                                <span class="muted">— فارغ —</span>
+                                                Free
                                             @else
                                                 {{ $s['attendee_name'] ?? '—' }}
                                             @endif
                                         </div>
-                                        <div class="card-meta">
+                                        <div class="meta">
+                                            <span class="dot" aria-hidden="true"></span>
                                             @if ($s['phone'])
                                                 <span class="phone">{{ $maskPhone($s['phone']) }}</span>
+                                            @endif
+                                            @if ($s['phone'] && $s['booking_ref'])
+                                                <span class="sep" aria-hidden="true"></span>
                                             @endif
                                             @if ($s['booking_ref'])
                                                 <span class="ref">{{ $s['booking_ref'] }}</span>
                                             @endif
-                                            @if ($s['status'] === 'pending')<span class="tag pen">Pending</span>@endif
-                                            @if ($s['status'] === 'blocked')<span class="tag blk">Blocked</span>@endif
-                                            @if ($s['is_scanned'] && $s['scanned_at'])<span class="tag ck">{{ $s['scanned_at'] }}</span>@endif
                                         </div>
                                     </div>
-                                    <span class="card-action" aria-hidden="true">›</span>
-                                </div>
+                                </article>
                             @endforeach
                         </div>
                     @endforeach
-                </div>
+                </section>
             @endforeach
         </div>
 
         <div class="mfst-floor-empty js-floor-empty" style="display:none;">
             <div class="t">No matches</div>
-            <div class="s">Try a different name, seat label (A12), or booking ref.</div>
+            <div class="s">Try a different name, seat label (A12), or booking reference.</div>
         </div>
 
         <a href="/admin/scanner" class="mfst-fab pt-no-print" aria-label="Open QR scanner">
-            <span aria-hidden="true">📷</span>
+            <span aria-hidden="true">⌒</span>
         </a>
 
-        {{-- Bottom-sheet — slides up when an usher taps a card. Persists
-             until dismissed via close, tap-outside, or Esc. The
-             "View on chart" link jumps to Operations Console with
-             ?focus= so the same seat is centered on desktop. --}}
+        {{-- Bottom-sheet — slides up when an usher taps a card. --}}
         <div class="mfst-sheet" aria-hidden="true" data-sheet>
             <div class="mfst-sheet-scrim js-sheet-scrim"></div>
             <div class="mfst-sheet-card" role="dialog" aria-modal="true" aria-labelledby="mfst-sheet-title">
                 <div class="mfst-sheet-grip" aria-hidden="true"></div>
                 <div class="mfst-sheet-head">
                     <div class="mfst-sheet-id">
-                        <div class="seat" id="mfst-sheet-title" data-sheet-seat>—</div>
                         <div class="sec" data-sheet-section></div>
+                        <div class="seat" id="mfst-sheet-title">
+                            <span data-sheet-seat>—</span><span class="ck js-sheet-ck" aria-label="Checked in" style="display:none;">✓</span>
+                        </div>
                     </div>
                     <button type="button" class="mfst-sheet-close js-sheet-close" aria-label="Close detail">✕</button>
                 </div>
                 <div class="mfst-sheet-name" data-sheet-name>—</div>
+                <div class="mfst-sheet-status js-sheet-status-pill" data-tone="approved">
+                    <span class="dot" aria-hidden="true"></span><span data-sheet-status>—</span>
+                </div>
                 <div class="mfst-sheet-meta">
-                    <div class="row"><span class="label">Status</span><span data-sheet-status></span></div>
-                    <div class="row"><span class="label">Booking</span><span data-sheet-booking>—</span></div>
-                    <div class="row"><span class="label">Owner</span><span data-sheet-owner>—</span></div>
-                    <div class="row"><span class="label">Phone</span><span class="phone" data-sheet-phone>—</span></div>
-                    <div class="row js-sheet-scan-row" style="display:none;"><span class="label">Checked in</span><span data-sheet-scan></span></div>
+                    <div class="row"><span class="label">Booking</span><span class="value" data-sheet-booking>—</span></div>
+                    <div class="row"><span class="label">Owner</span><span class="value" data-sheet-owner>—</span></div>
+                    <div class="row"><span class="label">Phone</span><span class="value phone" data-sheet-phone>—</span></div>
+                    <div class="row js-sheet-scan-row" style="display:none;"><span class="label">Checked&nbsp;in</span><span class="value" data-sheet-scan>—</span></div>
                 </div>
                 <div class="mfst-sheet-party js-sheet-party" style="display:none;">
                     <div class="label">Booking party</div>
                     <ul class="js-sheet-party-list"></ul>
                 </div>
                 <div class="mfst-sheet-actions">
-                    <a class="js-sheet-scan" href="/admin/scanner">📷 Scan to verify</a>
-                    <a class="js-sheet-chart" href="#">🗺 View on chart</a>
+                    <a class="primary js-sheet-scan" href="/admin/scanner">Scan to verify</a>
+                    <a class="js-sheet-chart" href="#">View on chart</a>
                 </div>
             </div>
         </div>
     </div>
     @endif
-
     {{-- ============================================================
          PAPER SHEET — A4 landscape
          ============================================================ --}}
@@ -2209,6 +2414,17 @@
         <button type="button" class="js-print-now">🖨 Print this sheet</button>
     </div>
 
+    {{-- Mobile-only intro banner. On a phone the rendered A4 sheet
+         is naturally cramped — surface that fact and put the Print
+         button somewhere reachable, then let the user pan the actual
+         layout horizontally at desktop scale below. --}}
+    <div class="mfst-paper-hint pt-no-print">
+        <div class="t">Designed for A4 landscape print</div>
+        <div class="s">This sheet is laid out for paper. Use the button below to print, or pan the preview to scan it before printing.</div>
+        <button type="button" class="b js-print-now">🖨 Print sheet</button>
+    </div>
+
+    <div class="mfst-paper-scroll">
     <div class="mfst-paper">
         <div class="mfst-paper-head">
             <div>
@@ -2317,6 +2533,7 @@
             <span style="margin-inline-start:auto;">Printed {{ now()->format('Y-m-d H:i') }} · Phones masked except last 4 · Family color band = same booking</span>
         </div>
     </div>
+    </div>{{-- /.mfst-paper-scroll --}}
     @endif
 </div>
 @endsection
@@ -2677,14 +2894,25 @@
         $('[data-sheet-section]').textContent = sectionPieces.join(' · ');
 
         let displayName;
-        if (d.status === 'blocked')       displayName = '— محجوب —';
-        else if (d.status === 'empty')    displayName = '— فارغ —';
+        if (d.status === 'blocked')       displayName = 'Blocked seat';
+        else if (d.status === 'empty')    displayName = 'Free seat';
         else                              displayName = d.name || '—';
         $('[data-sheet-name]').textContent    = displayName;
-        $('[data-sheet-status]').textContent  = d.statusEn || '—';
+        $('[data-sheet-status]').textContent  = d.statusEn || (d.status || '—');
         $('[data-sheet-booking]').textContent = d.bookingRef || '—';
         $('[data-sheet-owner]').textContent   = d.owner || '—';
         $('[data-sheet-phone]').textContent   = d.phone || '—';
+
+        // Status pill tone — scanned wins, then status. Drives the
+        // single accent colour used in the sheet header.
+        const statusPill = $('.js-sheet-status-pill');
+        if (statusPill) {
+            const tone = (d.checked === '1') ? 'scanned' : (d.status || 'approved');
+            statusPill.setAttribute('data-tone', tone);
+        }
+        // ✓ next to the seat label when scanned.
+        const sheetCk = $('.js-sheet-ck');
+        if (sheetCk) sheetCk.style.display = (d.checked === '1') ? '' : 'none';
 
         const scanRow = $('.js-sheet-scan-row');
         if (d.checked === '1') {
@@ -2714,17 +2942,42 @@
         if (d.bookingId) {
             const partyCards = document.querySelectorAll('.js-floor-card[data-booking-id="' + d.bookingId + '"]');
             if (partyCards.length > 1) {
+                // Resolve the family hue once (all seats in the booking
+                // share it) so the party rail reads as one family.
+                const FAMILY_HUES = [
+                    'rgba(34,211,238,0.85)',
+                    'rgba(129,140,248,0.85)',
+                    'rgba(244,114,182,0.85)',
+                    'rgba(251,191,36,0.85)',
+                    'rgba(52,211,153,0.85)',
+                    'rgba(251,113,133,0.85)',
+                    'rgba(167,139,250,0.85)',
+                    'rgba(252,165,165,0.85)',
+                ];
+                const hueIdx = parseInt(d.hue, 10);
+                const hueColor = Number.isFinite(hueIdx) ? FAMILY_HUES[hueIdx % FAMILY_HUES.length] : 'rgba(255,255,255,0.20)';
                 partyCards.forEach(p => {
                     const li = document.createElement('li');
                     if (p.dataset.seat === d.seat) li.classList.add('is-current');
+                    li.style.setProperty('--m-hue', hueColor);
+                    const sw = document.createElement('span');
+                    sw.className = 'swatch';
+                    sw.setAttribute('aria-hidden', 'true');
                     const lbl = document.createElement('span');
                     lbl.className = 'lbl';
                     lbl.textContent = p.dataset.seat || '—';
                     const nm = document.createElement('span');
                     nm.className = 'nm';
                     nm.textContent = p.dataset.name || '—';
+                    li.appendChild(sw);
                     li.appendChild(lbl);
                     li.appendChild(nm);
+                    if (p.dataset.seat === d.seat) {
+                        const here = document.createElement('span');
+                        here.className = 'here';
+                        here.textContent = 'Here';
+                        li.appendChild(here);
+                    }
                     partyList.appendChild(li);
                 });
                 partyWrap.style.display = '';
