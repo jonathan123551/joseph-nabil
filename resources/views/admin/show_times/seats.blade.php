@@ -92,6 +92,36 @@
     }
     .prism-admin-toast .pt-toast-body:empty { display: none; }
 
+    /* ---- Light-mode overrides: admin seat-editor save toast ----
+       Fires after every block/unblock save. The dark navy gradient
+       looks pasted-in on the cream admin chrome; swap to a white-cream
+       surface with neutral border, softer shadow, and dampened tonal
+       backgrounds for the success / error icons. */
+    :root[data-pt-theme="light"] .prism-admin-toast .pt-toast-card {
+        background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.98));
+        border-color: rgba(15,23,42,0.12);
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.7),
+            0 24px 48px -22px rgba(15,23,42,0.30),
+            0 0 24px rgba(34,211,238,0.10);
+    }
+    :root[data-pt-theme="light"] .prism-admin-toast .pt-toast-icon {
+        background: rgba(16,185,129,0.10);
+        border-color: rgba(16,185,129,0.50);
+        color: var(--prism-emerald);
+    }
+    :root[data-pt-theme="light"] .prism-admin-toast .pt-toast-card.is-error .pt-toast-icon {
+        background: rgba(244,63,94,0.10);
+        border-color: rgba(244,63,94,0.50);
+        color: var(--prism-rose);
+    }
+    :root[data-pt-theme="light"] .prism-admin-toast .pt-toast-title {
+        color: var(--prism-text);
+    }
+    :root[data-pt-theme="light"] .prism-admin-toast .pt-toast-body {
+        color: var(--prism-text-2);
+    }
+
     /* Direction hint on admin chips: gold for "will block", emerald for
        "will unblock". Customer chips are unaffected (no data-flip attr). */
     [data-anba-root][data-admin-mode="1"] .seat-chip[data-flip="block"] {
