@@ -482,6 +482,34 @@
         border-style: dashed;
         opacity: .8;
     }
+    /* Focus pulse — when the page is loaded with ?focus=A12 (e.g. from
+       a scanner deep-link or a usher-view chip tap), we scroll the
+       matching seat into view and run this 3s glow so the operator
+       can spot it instantly against a packed chart. */
+    .manifest-grid-seat.is-focused {
+        animation: manifest-seat-pulse 1.2s ease-in-out 0s 3;
+        z-index: 5;
+    }
+    @keyframes manifest-seat-pulse {
+        0%   { transform: translateY(-1px); box-shadow: 0 0 0 0 rgba(129,140,248,0.85), 0 0 0 0 rgba(192,132,252,0.45); }
+        50%  { transform: translateY(-2px); box-shadow: 0 0 0 6px rgba(129,140,248,0.55), 0 0 24px 4px rgba(192,132,252,0.40); }
+        100% { transform: translateY(-1px); box-shadow: 0 0 0 0 rgba(129,140,248,0); }
+    }
+
+    /* Usher chip behaves like a link but inherits the chip look. The
+       subtle underline-on-hover hints it's tappable without breaking
+       the chip's rounded silhouette. */
+    .manifest-usher-chip {
+        text-decoration: none;
+        transition: transform .12s ease, box-shadow .15s ease;
+    }
+    .manifest-usher-chip:hover,
+    .manifest-usher-chip:focus {
+        outline: 0;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 14px -8px rgba(0,0,0,0.55);
+    }
+
     .manifest-grid-seat.is-scanned::after {
         content: "✓";
         position: absolute;
@@ -990,10 +1018,16 @@
                 <div class="manifest-usher-row is-{{ $r['status'] }} {{ $r['is_scanned'] ? 'is-scanned' : '' }}"
                      data-haystack="{{ $haystack }}">
                     <div class="seat-block">
-                        <span class="pt-seat-chip pt-seat-chip-{{ $r['section'] === 'balcony' ? 'balcony' : 'hall' }}">
+                        {{-- Tapping the chip jumps to the grid view with
+                             this seat pre-focused (pulse + auto-popover).
+                             Blocked / empty seats also link so operators
+                             can confirm spatially that the row is right. --}}
+                        <a class="pt-seat-chip pt-seat-chip-{{ $r['section'] === 'balcony' ? 'balcony' : 'hall' }} manifest-usher-chip"
+                           href="{{ $url(['view' => 'grid', 'focus' => $seatLabel]) }}"
+                           title="عرض على الخريطة">
                             <span class="pt-seat-chip-section">{{ $r['section_label_ar'] }}</span>
                             <span class="pt-seat-chip-seat" dir="ltr">{{ $seatLabel }}</span>
-                        </span>
+                        </a>
                     </div>
                     <div class="who">
                         <span class="nm">
@@ -1320,6 +1354,43 @@
                         if (e.target.closest('.manifest-grid-seat')) return;
                         hide();
                     });
+
+                    /* ?focus=A12 handling — when the manifest is loaded
+                       via a deep-link (scanner result sheet, usher-view
+                       chip tap), we look up the matching seat, scroll
+                       it into view, pulse it, and auto-open the popover
+                       so the operator confirms the right seat at a
+                       glance. Seat lookup is case-insensitive and
+                       resolves on data-seat="A12". */
+                    try {
+                        const params = new URLSearchParams(window.location.search);
+                        const focus  = (params.get('focus') || '').trim().toUpperCase();
+                        if (focus) {
+                            const target = wrap.querySelector(
+                                '.manifest-grid-seat[data-seat="' + focus + '"]'
+                            );
+                            if (target) {
+                                // Defer to next frame so layout has settled
+                                // (the section gradient + rows are heavy on
+                                // first paint).
+                                requestAnimationFrame(function () {
+                                    target.scrollIntoView({
+                                        behavior: 'smooth',
+                                        block:    'center',
+                                        inline:   'center',
+                                    });
+                                    target.classList.add('is-focused');
+                                    show(target);
+                                    // Remove the pulse class after the
+                                    // animation finishes so it doesn't
+                                    // bleed into hover states.
+                                    setTimeout(function () {
+                                        target.classList.remove('is-focused');
+                                    }, 4200);
+                                });
+                            }
+                        }
+                    } catch (_) { /* malformed query param — ignore */ }
                 })();
             </script>
         @endif

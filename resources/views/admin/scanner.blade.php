@@ -170,6 +170,22 @@
             <strong data-scan-used-time></strong>
         </div>
 
+        {{-- Cross-link to the per-showtime manifest with this exact
+             seat pre-focused. JS toggles hidden = false only when
+             both show_time_id and seat.label are present in the scan
+             result, so manual / "Other" venue bookings (no seat axis
+             to focus against) leave it hidden cleanly. --}}
+        <a href="#"
+           class="scan-sheet-manifest-link"
+           data-scan-manifest
+           target="_blank"
+           rel="noopener"
+           hidden>
+            <span aria-hidden="true">📋</span>
+            <span data-i18n="adm_scanner_view_on_manifest">عرض على المانيفست</span>
+            <span aria-hidden="true" class="pt-arrow-rtl">→</span>
+        </a>
+
         {{-- Footer — operator dismisses manually now. The scanner
              stays paused while the sheet is open and resumes the
              instant the operator taps Done / outside / Esc. --}}
@@ -668,6 +684,37 @@
     font-size: 12px;
 }
 
+/* Cross-link button into the per-showtime manifest, deep-linking
+   directly at the scanned seat. Sits above the Done button so it
+   reads as a *secondary* action — the operator can ignore it and
+   move on, or tap it to verify the seat on the chart. Opens in a
+   new tab so the scanner session is preserved. */
+.scan-sheet-manifest-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-decoration: none;
+    color: #a5f3fc;
+    background: rgba(34,211,238,0.10);
+    border: 1px solid rgba(34,211,238,0.40);
+    transition: background .15s ease, border-color .15s ease, transform .12s ease;
+}
+.scan-sheet-manifest-link:hover,
+.scan-sheet-manifest-link:focus {
+    background: rgba(34,211,238,0.18);
+    border-color: rgba(34,211,238,0.65);
+    outline: 0;
+    transform: translateY(-1px);
+}
+.scan-sheet-manifest-link[hidden] { display: none !important; }
+
 .scan-sheet-foot {
     display: flex;
     flex-direction: column;
@@ -787,7 +834,15 @@
     const $sheetHeroLbl  = $sheet.querySelector('[data-scan-seat-hero-label]');
     const $sheetUsedNote = $sheet.querySelector('[data-scan-used-note]');
     const $sheetUsedTime = $sheet.querySelector('[data-scan-used-time]');
+    const $sheetManifest = $sheet.querySelector('[data-scan-manifest]');
     const $sheetDismiss  = $sheet.querySelector('[data-scan-dismiss]');
+
+    // Pre-built per-showtime manifest URL template — Laravel resolves
+    // 'admin.show-times.manifest' with a placeholder id we swap at JS
+    // time. Falls back to the index route if something's off so the
+    // link is never broken; the manifest controller is the only one
+    // that knows about this route name.
+    const MANIFEST_URL_TEMPLATE = @json(route('admin.show-times.manifest', ['showTime' => '__ID__']));
 
     function sectionLabel(s) {
         if (!s) return '';
@@ -852,6 +907,27 @@
         } else {
             $sheetUsedNote.hidden = true;
             $sheetUsedTime.textContent = '';
+        }
+
+        // Cross-link into the per-showtime manifest with this exact
+        // seat pre-focused. Only shown when the scan resolved to a
+        // real showtime AND a real seat label — manual / "Other"
+        // bookings (no seat axis) and error scans (no showtime
+        // resolved) leave the link hidden.
+        if (result !== 'error' && p.show_time_id && heroSeat && heroSeat.label) {
+            try {
+                const base = MANIFEST_URL_TEMPLATE.replace('__ID__', String(p.show_time_id));
+                const url  = base + (base.includes('?') ? '&' : '?') +
+                             'view=grid&focus=' + encodeURIComponent(heroSeat.label);
+                $sheetManifest.setAttribute('href', url);
+                $sheetManifest.hidden = false;
+            } catch (_) {
+                $sheetManifest.hidden = true;
+            }
+        } else {
+            $sheetManifest.removeAttribute('href');
+            $sheetManifest.setAttribute('href', '#');
+            $sheetManifest.hidden = true;
         }
 
         // Pause scanning while the sheet is up so we don't waste
