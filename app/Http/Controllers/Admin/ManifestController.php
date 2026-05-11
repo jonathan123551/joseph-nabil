@@ -124,36 +124,31 @@ class ManifestController extends Controller
     }
 
     /**
-     * Pick a surface for this request. Explicit `mode` wins; otherwise we
-     * map legacy `view` query strings; otherwise we sniff the User-Agent
-     * for a phone-class device and bias to Floor Mode.
+     * Pick a surface for this request.
+     *
+     * Manifest v3 collapses to exactly two surfaces — Floor (live ops) and
+     * Paper (printable sheet). Anything else (the retired Operations
+     * Console, or any legacy `view=...` query string we used to honor) is
+     * redirected to Floor so old URLs keep working without us shipping a
+     * dashboard surface that nobody asked for.
      */
     protected function resolveMode(Request $request): string
     {
-        $allowed = ['ops', 'floor', 'paper'];
+        $allowed = ['floor', 'paper'];
 
-        $mode = (string) $request->query('mode', '');
+        $mode = strtolower((string) $request->query('mode', ''));
         if (in_array($mode, $allowed, true)) {
             return $mode;
         }
 
-        $legacy = (string) $request->query('view', '');
-        $legacyMap = [
-            'grid' => 'ops',
-            'grouped' => 'ops',
-            'usher' => 'floor',
-            'print' => 'paper',
-        ];
-        if (isset($legacyMap[$legacy])) {
-            return $legacyMap[$legacy];
+        // Legacy aliases — Operations Console and the older `view=` keys
+        // all collapse into Floor. `print` is the only paper alias.
+        $legacy = strtolower((string) $request->query('view', ''));
+        if ($legacy === 'print' || $mode === 'print') {
+            return 'paper';
         }
 
-        $ua = (string) $request->header('User-Agent', '');
-        if ($ua !== '' && preg_match('/Mobi|Android|iPhone|iPod|IEMobile|BlackBerry/i', $ua)) {
-            return 'floor';
-        }
-
-        return 'ops';
+        return 'floor';
     }
 
     /**
