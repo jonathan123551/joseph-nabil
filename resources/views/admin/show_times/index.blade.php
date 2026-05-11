@@ -157,6 +157,19 @@
                                         </a>
                                     @endif
 
+                                    {{-- Read-only seat-occupancy / attendee manifest. Available
+                                         for all showtimes — for seatmap shows it includes empty
+                                         seats so it doubles as a printable seating sheet, for
+                                         "Other" venues it lists just the attendees. --}}
+                                    <a href="{{ route('admin.show-times.manifest', $time) }}"
+                                       class="px-3 py-1 rounded-full text-xs transition"
+                                       title="Seat occupancy / attendee manifest"
+                                       style="background: rgba(34,211,238,0.14); border: 1px solid rgba(34,211,238,0.40); color: #a5f3fc;"
+                                       onmouseover="this.style.background='rgba(34,211,238,0.22)'; this.style.boxShadow='0 0 16px rgba(34,211,238,0.30)';"
+                                       onmouseout="this.style.background='rgba(34,211,238,0.14)'; this.style.boxShadow='';">
+                                        📋 المانيفست
+                                    </a>
+
                                     <a href="{{ route('admin.shows.times.edit', [$show, $time]) }}"
                                        class="prism-btn-ghost text-xs px-3 py-1"
                                        data-i18n="adm_edit">
@@ -266,7 +279,7 @@
                         </label>
                     </form>
 
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 flex-wrap">
                         @if($show->theater_type === \App\Models\Show::THEATER_ANBA_RUWEIS)
                             <a href="{{ route('admin.show-times.seats.index', $time) }}"
                                class="flex-1 text-center py-2 rounded-lg text-xs transition"
@@ -275,6 +288,14 @@
                                 المقاعد
                             </a>
                         @endif
+
+                        {{-- Manifest link (mirror of desktop action bar) --}}
+                        <a href="{{ route('admin.show-times.manifest', $time) }}"
+                           class="flex-1 text-center py-2 rounded-lg text-xs transition"
+                           title="Seat occupancy / attendee manifest"
+                           style="background: rgba(34,211,238,0.14); border: 1px solid rgba(34,211,238,0.40); color: #a5f3fc;">
+                            📋 المانيفست
+                        </a>
 
                         <a href="{{ route('admin.shows.times.edit', [$show, $time]) }}"
                            class="flex-1 text-center py-2 rounded-lg text-xs transition"

@@ -31,10 +31,22 @@
                    aria-label="رجوع">
                     <span aria-hidden="true" class="pt-arrow-rtl">→</span>
                 </a>
-                <span class="prism-pill prism-pill-neon">
-                    <span class="prism-dot prism-dot-emerald"></span>
-                    <span data-i18n="adm_bk_pill_prefix">حجز</span> #{{ $booking->id }}
-                </span>
+                <div class="flex items-center gap-2 flex-wrap justify-end">
+                    {{-- Cross-link to the showtime-level manifest so admins
+                         working a single booking can jump to the full
+                         attendee list for that event without backtracking. --}}
+                    @if ($booking->showTime)
+                        <a href="{{ route('admin.show-times.manifest', $booking->showTime) }}"
+                           class="prism-btn-ghost text-xs"
+                           title="Seat occupancy / attendee manifest for this showtime">
+                            📋 <span>مانيفست العرض</span>
+                        </a>
+                    @endif
+                    <span class="prism-pill prism-pill-neon">
+                        <span class="prism-dot prism-dot-emerald"></span>
+                        <span data-i18n="adm_bk_pill_prefix">حجز</span> #{{ $booking->id }}
+                    </span>
+                </div>
             </div>
 
             <div class="flex items-center justify-between gap-2 mt-1">
