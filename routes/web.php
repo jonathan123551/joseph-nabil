@@ -58,7 +58,23 @@ Route::get('/book/{showTime}/form', [BookingController::class, 'form'])
 Route::post('/book/{showTime}', [BookingController::class, 'store'])
     ->name('bookings.store');
 
-Route::get('/ticket/{reference}', [App\Http\Controllers\Admin\BookingController::class, 'sendTicketsByReference']);
+/*
+|--------------------------------------------------------------------------
+| Public ticket lookup
+|--------------------------------------------------------------------------
+| Customer-facing "look up my booking by reference" page. Reachable
+| without auth so a link from a WhatsApp template / email keeps working.
+| The page itself only renders public-safe info (status, show metadata,
+| masked phone) and offers a "Resend tickets to WhatsApp" action that
+| sends only to the phone already on file, rate-limited to 1/60s.
+|--------------------------------------------------------------------------
+*/
+Route::get('/ticket/{reference}', [AdminBookingController::class, 'sendTicketsByReference'])
+    ->name('tickets.show');
+
+Route::post('/ticket/{reference}/resend', [AdminBookingController::class, 'resendByReference'])
+    ->middleware('throttle:30,1')
+    ->name('tickets.resend');
 
 /*
 |--------------------------------------------------------------------------
