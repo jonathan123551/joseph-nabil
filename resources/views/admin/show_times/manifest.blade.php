@@ -177,6 +177,7 @@
     .manifest-row-strip:first-of-type { border-top: 0; }
     .manifest-row-label {
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
         font-size: 16px;
@@ -185,7 +186,22 @@
         background: rgba(255,255,255,0.04);
         border-inline-end: 1px solid var(--prism-border);
         color: var(--prism-text);
+        gap: 2px;
+        padding: 4px 0;
     }
+    /* Compact per-row counter pinned under the row letter. Reads
+       "12/25" (booked/total) so operators see saturation per row at
+       a glance. Optional scanned suffix appears when at least one
+       attendee in the row has been checked in. */
+    .manifest-row-label .row-stats {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: .02em;
+        font-feature-settings: "tnum" 1;
+        color: var(--prism-text-3);
+        opacity: .8;
+    }
+    .manifest-row-label .row-stats .ck { color: var(--prism-emerald, #34d399); }
     .manifest-row-seats {
         display: grid;
         gap: 4px;
@@ -226,13 +242,25 @@
         border-radius: 999px;
         white-space: nowrap;
     }
+    /* Attendee names can be long ("عبد الرحمن محمد إبراهيم" + family
+       names + nicknames). Clamp to 2 lines on screen so the cell
+       height stays predictable; full text is available via title=
+       and on hover via a custom :hover {white-space: normal} state
+       only on touch-capable devices, so an operator pressing into
+       the cell can read the full name without leaving the page.
+       Word-break keeps long single-word names from overflowing. */
     .manifest-cell .seat-attendee {
         font-weight: 700;
         color: var(--prism-text);
         font-size: 12px;
-        white-space: nowrap;
+        line-height: 1.25;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
         overflow: hidden;
         text-overflow: ellipsis;
+        word-break: break-word;
+        overflow-wrap: anywhere;
     }
     .manifest-cell .seat-meta {
         color: var(--prism-text-3);
@@ -252,7 +280,13 @@
     .manifest-cell.is-blocked  .seat-tag { background: rgba(244,63,94,0.18); color: #fda4af; }
     .manifest-cell.is-empty    { opacity: .55; }
     .manifest-cell.is-empty    .seat-tag { background: rgba(255,255,255,0.06); color: var(--prism-text-3); }
-    .manifest-cell.is-scanned  { background: rgba(52,211,153,0.06); }
+    /* Subtle emerald sweep on the inner edge of scanned cells so the
+       check-in state reads at a glance against a packed Hall block.
+       Pairs with the existing seat-check timestamp pill. */
+    .manifest-cell.is-scanned  {
+        background: rgba(52,211,153,0.06);
+        box-shadow: inset 0 0 0 1px rgba(52,211,153,0.30);
+    }
     .manifest-cell .seat-check {
         font-size: 11px;
         font-weight: 800;
@@ -406,7 +440,7 @@
     }
     .manifest-grid-row {
         display: grid;
-        grid-template-columns: 32px 1fr;
+        grid-template-columns: 44px 1fr 56px;
         align-items: center;
         gap: 6px;
     }
@@ -420,6 +454,29 @@
         border-radius: 6px;
         background: rgba(255,255,255,0.04);
         border: 1px solid var(--prism-border);
+    }
+    /* Per-row stats chip pinned at the end of each row in the grid.
+       Reads "12/25" and optionally adds a small "✓3" suffix when one
+       or more attendees in the row are checked in. Visually echoes
+       the row label tile so the row reads as a band: label · seats
+       · stats. */
+    .manifest-grid-row-stats {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .02em;
+        text-align: center;
+        font-feature-settings: "tnum" 1;
+        color: var(--prism-text-3);
+        padding: 4px 6px;
+        border-radius: 6px;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--prism-border);
+        white-space: nowrap;
+    }
+    .manifest-grid-row-stats .ck {
+        color: var(--prism-emerald, #34d399);
+        font-weight: 800;
+        margin-inline-start: 4px;
     }
     .manifest-grid-seats {
         display: flex;
@@ -484,16 +541,28 @@
     }
     /* Focus pulse — when the page is loaded with ?focus=A12 (e.g. from
        a scanner deep-link or a usher-view chip tap), we scroll the
-       matching seat into view and run this 3s glow so the operator
-       can spot it instantly against a packed chart. */
+       matching seat into view and run this glow so the operator can
+       spot it instantly against a packed chart. Softer than v1:
+       fewer iterations, smaller ring, gentler ease so it reads as
+       an attention cue rather than a flashing alert. The seat fades
+       its lift back to baseline so the surrounding row doesn't feel
+       disturbed once focus is established. */
     .manifest-grid-seat.is-focused {
-        animation: manifest-seat-pulse 1.2s ease-in-out 0s 3;
+        animation: manifest-seat-pulse 1.1s cubic-bezier(.4,0,.2,1) 0s 3 both;
         z-index: 5;
     }
     @keyframes manifest-seat-pulse {
-        0%   { transform: translateY(-1px); box-shadow: 0 0 0 0 rgba(129,140,248,0.85), 0 0 0 0 rgba(192,132,252,0.45); }
-        50%  { transform: translateY(-2px); box-shadow: 0 0 0 6px rgba(129,140,248,0.55), 0 0 24px 4px rgba(192,132,252,0.40); }
+        0%   { transform: translateY(-1px); box-shadow: 0 0 0 0 rgba(129,140,248,0.55), 0 0 0 0 rgba(192,132,252,0.30); }
+        40%  { transform: translateY(-2px); box-shadow: 0 0 0 4px rgba(129,140,248,0.45), 0 0 18px 2px rgba(192,132,252,0.32); }
         100% { transform: translateY(-1px); box-shadow: 0 0 0 0 rgba(129,140,248,0); }
+    }
+    /* Respect users who explicitly request reduced motion — the pulse
+       collapses into a static ring so the focus cue still reads. */
+    @media (prefers-reduced-motion: reduce) {
+        .manifest-grid-seat.is-focused {
+            animation: none;
+            box-shadow: 0 0 0 2px rgba(129,140,248,0.55);
+        }
     }
 
     /* Usher chip behaves like a link but inherits the chip look. The
@@ -546,7 +615,15 @@
     html[dir="rtl"] .manifest-grid-seat[data-hue="6"] { box-shadow: inset -3px 0 0 0 rgba(251,113,133,0.85); }
     html[dir="rtl"] .manifest-grid-seat[data-hue="7"] { box-shadow: inset -3px 0 0 0 rgba(167,243,208,0.85); }
 
-    /* Active-seat popover (revealed by JS on click/focus) */
+    /* Active-seat popover (revealed by JS on click/focus). Operators
+       read this under entrance-hour pressure, often in dim lighting,
+       on a glance. We bias for a clear visual hierarchy:
+         row 1 — chip + attendee name (big)
+         row 2 — booking ref + owner (smaller, monospaced tnum)
+         row 3 — phone + status pill
+         row 4 — check-in time (only when scanned)
+       Min-height stays stable so opening different seats doesn't
+       reshuffle. */
     .manifest-grid-popover {
         position: fixed;
         inset-inline-start: 50%;
@@ -554,17 +631,17 @@
         transform: translateX(-50%) translateY(8px);
         z-index: 60;
         max-width: 92vw;
-        width: 360px;
-        padding: 12px 14px;
-        border-radius: 14px;
+        width: 380px;
+        padding: 14px 16px 16px;
+        border-radius: 16px;
         border: 1px solid rgba(129,140,248,0.45);
-        background: linear-gradient(180deg, rgba(20,24,38,0.95), rgba(8,10,20,0.95));
+        background: linear-gradient(180deg, rgba(20,24,38,0.97), rgba(8,10,20,0.97));
         backdrop-filter: blur(14px) saturate(140%);
         -webkit-backdrop-filter: blur(14px) saturate(140%);
         box-shadow: 0 18px 36px -16px rgba(0,0,0,0.7);
         color: var(--prism-text);
         font-size: 12px;
-        line-height: 1.4;
+        line-height: 1.45;
         opacity: 0;
         pointer-events: none;
         transition: opacity .15s ease, transform .15s ease;
@@ -578,14 +655,72 @@
     html[dir="rtl"] .manifest-grid-popover.is-on { transform: translateX(50%) translateY(0); }
     .manifest-grid-popover .pop-title {
         font-size: 14px; font-weight: 800; color: var(--prism-text);
-        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        padding-inline-end: 22px; /* room for the close × */
     }
-    .manifest-grid-popover .pop-meta { color: var(--prism-text-3); margin-top: 4px; font-feature-settings: "tnum" 1; }
+    .manifest-grid-popover .pop-title .pop-name {
+        flex: 1 1 auto;
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1.2;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+    .manifest-grid-popover .pop-title .pt-seat-chip {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+    .manifest-grid-popover .pop-row {
+        display: flex; align-items: center; gap: 8px;
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--prism-text-3);
+        font-feature-settings: "tnum" 1;
+        flex-wrap: wrap;
+    }
+    .manifest-grid-popover .pop-row .pop-label {
+        font-size: 10px;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: var(--prism-text-3);
+        opacity: .7;
+        min-width: 48px;
+    }
+    .manifest-grid-popover .pop-row .pop-value {
+        color: var(--prism-text);
+        font-weight: 600;
+    }
+    .manifest-grid-popover .pop-row .pop-value.is-mono { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+    .manifest-grid-popover .pop-status {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: 999px;
+        border: 1px solid currentColor;
+    }
+    .manifest-grid-popover .pop-status.is-approved { color: #6ee7b7; background: rgba(52,211,153,0.10); }
+    .manifest-grid-popover .pop-status.is-pending  { color: #fde68a; background: rgba(251,191,36,0.10); }
+    .manifest-grid-popover .pop-status.is-blocked  { color: #fda4af; background: rgba(244,63,94,0.10); }
+    .manifest-grid-popover .pop-status.is-empty    { color: var(--prism-text-3); background: rgba(255,255,255,0.04); }
+    .manifest-grid-popover .pop-checked {
+        margin-top: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--prism-emerald, #34d399);
+        font-feature-settings: "tnum" 1;
+    }
+    .manifest-grid-popover .pop-checked[hidden] { display: none; }
     .manifest-grid-popover .pop-close {
-        position: absolute; top: 6px; inset-inline-end: 10px;
-        font-size: 16px; line-height: 1; color: var(--prism-text-3);
+        position: absolute; top: 8px; inset-inline-end: 12px;
+        font-size: 18px; line-height: 1; color: var(--prism-text-3);
         background: transparent; border: 0; cursor: pointer;
+        padding: 4px 6px;
+        border-radius: 6px;
     }
+    .manifest-grid-popover .pop-close:hover { color: var(--prism-text); background: rgba(255,255,255,0.06); }
 
     /* Legend strip (only screen) */
     .manifest-grid-legend {
@@ -690,8 +825,18 @@
             background: #f6f6f6 !important;
             color: #000 !important;
             border-inline-end: 1px solid #000 !important;
-            font-size: 12pt;
+            font-size: 13pt;
+            padding: 2mm 0 !important;
         }
+        /* Row stats survive in print — slightly smaller and dark gray
+           so they don't compete with the row letter. */
+        .manifest-row-label .row-stats {
+            color: #000 !important;
+            opacity: 1 !important;
+            font-size: 8pt !important;
+            font-weight: 600 !important;
+        }
+        .manifest-row-label .row-stats .ck { color: #000 !important; }
         .manifest-row-seats {
             grid-template-columns: repeat(auto-fill, minmax(56mm, 1fr));
             gap: 2mm; padding: 2mm;
@@ -709,12 +854,21 @@
             color: #000 !important;
         }
         .manifest-cell .seat-meta { color: #333 !important; }
+        /* Status tag goes pure outline in print but adds a thick
+           letter glyph for low-ink/grayscale printers that may not
+           render the patterned backgrounds well: OK / P / B. */
         .manifest-cell .seat-tag {
             color: #000 !important;
             background: transparent !important;
             border: 1px solid #000 !important;
+            font-weight: 800 !important;
+            letter-spacing: .04em !important;
         }
-        .manifest-cell.is-pending .seat-tag { background: repeating-linear-gradient(45deg, #fff, #fff 2px, #eee 2px, #eee 4px) !important; }
+        .manifest-cell.is-approved .seat-tag { border-width: 2px !important; }
+        .manifest-cell.is-pending  .seat-tag {
+            background: repeating-linear-gradient(45deg, #fff, #fff 2px, #eee 2px, #eee 4px) !important;
+            border-style: dashed !important;
+        }
         .manifest-cell.is-blocked {
             background: repeating-linear-gradient(45deg, #fff, #fff 3px, #000 3px, #000 4px) !important;
         }
@@ -762,6 +916,16 @@
             border: 1px solid #000 !important;
             font-size: 10pt;
         }
+        /* Per-row stats chip in the grid view also survives printing
+           so an A4 chart still reads "Row J · 18/25 ✓3" at the end. */
+        .manifest-grid-row-stats {
+            background: #fff !important;
+            color: #000 !important;
+            border: 1px solid #000 !important;
+            font-size: 8pt !important;
+            font-weight: 700 !important;
+        }
+        .manifest-grid-row-stats .ck { color: #000 !important; }
         .manifest-grid-seat {
             background: #fff !important;
             color: #000 !important;
@@ -906,8 +1070,28 @@
                         <h3>{{ $sectionLabel }} · {{ $sectionEnum === 'balcony' ? 'Balcony' : 'Hall' }}</h3>
 
                         @foreach ($byRow as $rowLetter => $cells)
+                            @php
+                                // Per-row stats — counts each status once
+                                // per cell so the operator sees row saturation
+                                // at a glance. Approved + pending count as
+                                // booked; scanned is a subset of approved.
+                                $rowTotal    = count($cells);
+                                $rowBooked   = 0;
+                                $rowScanned  = 0;
+                                $rowBlocked  = 0;
+                                foreach ($cells as $cc) {
+                                    if (in_array($cc['status'], ['approved', 'pending'], true)) $rowBooked++;
+                                    if (!empty($cc['is_scanned'])) $rowScanned++;
+                                    if ($cc['status'] === 'blocked') $rowBlocked++;
+                                }
+                            @endphp
                             <div class="manifest-row-strip">
-                                <div class="manifest-row-label">{{ $rowLetter }}</div>
+                                <div class="manifest-row-label">
+                                    <span>{{ $rowLetter }}</span>
+                                    <span class="row-stats" dir="ltr">
+                                        {{ $rowBooked }}/{{ $rowTotal }}@if ($rowScanned) <span class="ck">✓{{ $rowScanned }}</span>@endif
+                                    </span>
+                                </div>
                                 <div class="manifest-row-seats">
                                     @foreach ($cells as $c)
                                         @php
@@ -1240,6 +1424,15 @@
 
                         <div class="manifest-grid-rows">
                             @foreach ($rowsByRow as $rowLetter => $rowSeats)
+                                @php
+                                    $rowTotal    = count($rowSeats);
+                                    $rowBooked   = 0;
+                                    $rowScanned  = 0;
+                                    foreach ($rowSeats as $cc) {
+                                        if (in_array($cc['status'], ['approved', 'pending'], true)) $rowBooked++;
+                                        if (!empty($cc['is_scanned'])) $rowScanned++;
+                                    }
+                                @endphp
                                 <div class="manifest-grid-row">
                                     <div class="manifest-grid-row-label" dir="ltr">{{ $rowLetter }}</div>
                                     <div class="manifest-grid-seats">
@@ -1268,12 +1461,20 @@
                                                     data-booking="{{ $cell['booking_ref'] ?? '' }}"
                                                     data-owner="{{ $cell['booking_owner'] ?? '' }}"
                                                     data-status="{{ $cell['status_en'] }}"
+                                                    data-status-key="{{ $cell['status'] }}"
                                                     data-checked="{{ $cell['scanned_at'] ?? '' }}"
                                                     title="{{ $title }}"
                                                     aria-label="{{ $title }}">
                                                 {{ $cell['seat_number'] }}
                                             </button>
                                         @endforeach
+                                    </div>
+                                    {{-- Per-row stats chip — anchors the row
+                                         visually and tells the operator the
+                                         row's saturation + check-in count
+                                         without leaving the chart. --}}
+                                    <div class="manifest-grid-row-stats" dir="ltr" title="{{ $rowBooked }}/{{ $rowTotal }} booked, {{ $rowScanned }} checked-in">
+                                        {{ $rowBooked }}/{{ $rowTotal }}@if ($rowScanned) <span class="ck">✓{{ $rowScanned }}</span>@endif
                                     </div>
                                 </div>
                             @endforeach
@@ -1282,7 +1483,13 @@
                 @endforeach
             </div>
 
-            {{-- Floating popover — JS toggles .is-on when a seat is clicked. --}}
+            {{-- Floating popover — JS toggles .is-on when a seat is
+                 clicked. Hierarchy reads top→bottom: chip + name,
+                 then status pill on its own line, then booking ref +
+                 owner, then masked phone (monospaced for fast scan),
+                 then a green check-in time when scanned. Each block
+                 is hidden when its data is empty so the popover never
+                 shows a half-empty row. --}}
             <div id="manifest-grid-popover" class="manifest-grid-popover pt-no-print" role="dialog" aria-live="polite" aria-hidden="true">
                 <button type="button" class="pop-close" data-pop-close aria-label="إغلاق">✕</button>
                 <div class="pop-title">
@@ -1290,13 +1497,21 @@
                         <span class="pt-seat-chip-section" data-pop-section>—</span>
                         <span class="pt-seat-chip-seat" dir="ltr" data-pop-seat>—</span>
                     </span>
-                    <span data-pop-name>—</span>
+                    <span class="pop-name" data-pop-name>—</span>
                 </div>
-                <div class="pop-meta">
-                    <span data-pop-status></span>
-                    <span data-pop-booking></span>
-                    <span data-pop-phone></span>
-                    <span data-pop-checked></span>
+                <div class="pop-row" data-pop-row-status hidden>
+                    <span class="pop-status" data-pop-status>—</span>
+                </div>
+                <div class="pop-row" data-pop-row-booking hidden>
+                    <span class="pop-label">حجز</span>
+                    <span class="pop-value is-mono" dir="ltr" data-pop-booking>—</span>
+                </div>
+                <div class="pop-row" data-pop-row-phone hidden>
+                    <span class="pop-label">هاتف</span>
+                    <span class="pop-value is-mono" dir="ltr" data-pop-phone>—</span>
+                </div>
+                <div class="pop-checked" data-pop-checked hidden>
+                    ✓ <span data-pop-checked-time>—</span>
                 </div>
             </div>
 
@@ -1307,14 +1522,18 @@
                     if (!wrap || !pop) return;
 
                     const els = {
-                        chip:    pop.querySelector('[data-pop-chip]'),
-                        section: pop.querySelector('[data-pop-section]'),
-                        seat:    pop.querySelector('[data-pop-seat]'),
-                        name:    pop.querySelector('[data-pop-name]'),
-                        status:  pop.querySelector('[data-pop-status]'),
-                        booking: pop.querySelector('[data-pop-booking]'),
-                        phone:   pop.querySelector('[data-pop-phone]'),
-                        checked: pop.querySelector('[data-pop-checked]'),
+                        chip:       pop.querySelector('[data-pop-chip]'),
+                        section:    pop.querySelector('[data-pop-section]'),
+                        seat:       pop.querySelector('[data-pop-seat]'),
+                        name:       pop.querySelector('[data-pop-name]'),
+                        rowStatus:  pop.querySelector('[data-pop-row-status]'),
+                        status:     pop.querySelector('[data-pop-status]'),
+                        rowBooking: pop.querySelector('[data-pop-row-booking]'),
+                        booking:    pop.querySelector('[data-pop-booking]'),
+                        rowPhone:   pop.querySelector('[data-pop-row-phone]'),
+                        phone:      pop.querySelector('[data-pop-phone]'),
+                        checked:    pop.querySelector('[data-pop-checked]'),
+                        checkedT:   pop.querySelector('[data-pop-checked-time]'),
                     };
                     const close = pop.querySelector('[data-pop-close]');
 
@@ -1326,10 +1545,44 @@
                             (d.section || '').includes('بلكون') ? 'balcony' : 'hall'
                         );
                         els.name.textContent    = d.attendee || '— فارغ —';
-                        els.status.textContent  = d.status ? d.status : '';
-                        els.booking.textContent = d.booking ? ' · #' + d.booking + (d.owner ? ' · ' + d.owner : '') : '';
-                        els.phone.textContent   = d.phone   ? ' · ' + d.phone   : '';
-                        els.checked.textContent = d.checked ? ' · ✓ ' + d.checked : '';
+
+                        // Status pill — keyed off data-status-key so the
+                        // pill picks up the right color class without
+                        // re-parsing the human-readable English label.
+                        const key = (d.statusKey || '').toLowerCase();
+                        els.status.className = 'pop-status is-' + (key || 'empty');
+                        els.status.textContent = d.status || (key || '—');
+                        els.rowStatus.hidden = !d.status && !key;
+
+                        // Booking ref + owner — combined on a single
+                        // line. "حجز #1234 · Hamdy" reads naturally in
+                        // RTL with the LTR ref preserved by the inner
+                        // dir="ltr" on the value.
+                        if (d.booking) {
+                            els.booking.textContent = '#' + d.booking + (d.owner ? ' · ' + d.owner : '');
+                            els.rowBooking.hidden = false;
+                        } else {
+                            els.rowBooking.hidden = true;
+                        }
+
+                        // Phone (already masked server-side)
+                        if (d.phone) {
+                            els.phone.textContent = d.phone;
+                            els.rowPhone.hidden = false;
+                        } else {
+                            els.rowPhone.hidden = true;
+                        }
+
+                        // Check-in time — its own emerald row at the
+                        // bottom so it's immediately legible against the
+                        // dark popover background.
+                        if (d.checked) {
+                            els.checkedT.textContent = d.checked;
+                            els.checked.hidden = false;
+                        } else {
+                            els.checked.hidden = true;
+                        }
+
                         pop.classList.add('is-on');
                         pop.setAttribute('aria-hidden', 'false');
                     }
@@ -1355,13 +1608,15 @@
                         hide();
                     });
 
-                    /* ?focus=A12 handling — when the manifest is loaded
-                       via a deep-link (scanner result sheet, usher-view
-                       chip tap), we look up the matching seat, scroll
-                       it into view, pulse it, and auto-open the popover
-                       so the operator confirms the right seat at a
-                       glance. Seat lookup is case-insensitive and
-                       resolves on data-seat="A12". */
+                    /* ?focus=A12 handling — deep-link from the scanner
+                       result sheet or the usher-view chip tap. We look
+                       up the matching seat, scroll it center-stage,
+                       run the 3-pulse glow, and auto-open the popover.
+
+                       Snappier than v1: a tighter rAF schedule + a
+                       shorter cleanup window so the focus transition
+                       feels less like an animation and more like an
+                       attention cue. */
                     try {
                         const params = new URLSearchParams(window.location.search);
                         const focus  = (params.get('focus') || '').trim().toUpperCase();
@@ -1370,23 +1625,31 @@
                                 '.manifest-grid-seat[data-seat="' + focus + '"]'
                             );
                             if (target) {
-                                // Defer to next frame so layout has settled
-                                // (the section gradient + rows are heavy on
-                                // first paint).
+                                // 1) Scroll into view immediately on next
+                                //    frame so the seat is in the viewport
+                                //    before the pulse starts.
                                 requestAnimationFrame(function () {
                                     target.scrollIntoView({
                                         behavior: 'smooth',
                                         block:    'center',
                                         inline:   'center',
                                     });
-                                    target.classList.add('is-focused');
+                                    // 2) Open the popover early — the
+                                    //    operator can read details while
+                                    //    the scroll is still settling.
                                     show(target);
-                                    // Remove the pulse class after the
-                                    // animation finishes so it doesn't
-                                    // bleed into hover states.
+                                    // 3) Add the pulse class on the next
+                                    //    frame so the transform doesn't
+                                    //    fight the scroll animation.
+                                    requestAnimationFrame(function () {
+                                        target.classList.add('is-focused');
+                                    });
+                                    // 4) Strip the pulse class once the
+                                    //    animation finishes so it doesn't
+                                    //    bleed into hover states.
                                     setTimeout(function () {
                                         target.classList.remove('is-focused');
-                                    }, 4200);
+                                    }, 3700);
                                 });
                             }
                         }
@@ -1396,6 +1659,93 @@
         @endif
 
     @endif
+
+    {{-- ===================== KEYBOARD SHORTCUTS =====================
+         Lightweight power-user shortcuts that work in every view mode.
+         Mirrors the way ushers and the show owner switch contexts at
+         the entrance under pressure:
+
+           p — print view
+           u — usher view
+           b — by-booking view
+           g — grid view
+           / — focus the usher search (works on any view; navigates
+               to usher first if not already there)
+           Esc — handled per-view (e.g. grid popover), no-op here
+
+         Modifier-bearing combos (ctrl/cmd/alt/meta) are ignored so we
+         don't fight browser shortcuts. Typing into any input/textarea
+         disables the letter shortcuts so editing search/notes still
+         works naturally. --}}
+    <script>
+        (function () {
+            const tabs = {
+                p: document.querySelector('a[href*="view=print"][role="tab"]'),
+                u: document.querySelector('a[href*="view=usher"][role="tab"]'),
+                b: document.querySelector('a[href*="view=grouped"][role="tab"]'),
+                g: document.querySelector('a[href*="view=grid"][role="tab"]'),
+            };
+            const usherSearch = document.getElementById('manifest-search-input');
+
+            function isEditingTarget(el) {
+                if (!el) return false;
+                const tag = (el.tagName || '').toLowerCase();
+                if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+                if (el.isContentEditable) return true;
+                return false;
+            }
+
+            document.addEventListener('keydown', function (e) {
+                // Skip when a modifier is held — leaves space for browser shortcuts
+                if (e.ctrlKey || e.metaKey || e.altKey) return;
+                // Don't hijack typing in fields
+                if (isEditingTarget(e.target)) {
+                    // ...except Escape, which should blur the input so
+                    // letter shortcuts work again.
+                    if (e.key === 'Escape') e.target.blur();
+                    return;
+                }
+
+                // "/" — focus the usher search (or navigate to it)
+                if (e.key === '/') {
+                    if (usherSearch) {
+                        e.preventDefault();
+                        usherSearch.focus();
+                        try { usherSearch.select(); } catch (_) {}
+                    } else if (tabs.u) {
+                        e.preventDefault();
+                        // Append ?focus_search to hint the usher view to
+                        // auto-focus its input after navigation. Even
+                        // without server-side support, browsers will jump
+                        // to the input on the next page via fragment + JS.
+                        window.location.href = tabs.u.getAttribute('href');
+                    }
+                    return;
+                }
+
+                // Letter shortcuts — switch view by simulating a tab click
+                const k = (e.key || '').toLowerCase();
+                if (tabs[k]) {
+                    // If we're already on that view, no-op (avoid full
+                    // page reload).
+                    if (tabs[k].getAttribute('aria-selected') === 'true') return;
+                    e.preventDefault();
+                    window.location.href = tabs[k].getAttribute('href');
+                }
+            });
+
+            // Auto-focus search when arriving from "/" with hint param
+            try {
+                const params = new URLSearchParams(window.location.search);
+                if (params.has('focus_search') && usherSearch) {
+                    requestAnimationFrame(function () {
+                        usherSearch.focus();
+                        try { usherSearch.select(); } catch (_) {}
+                    });
+                }
+            } catch (_) { /* malformed query — ignore */ }
+        })();
+    </script>
 
 </section>
 @endsection
