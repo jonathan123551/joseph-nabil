@@ -444,6 +444,13 @@
     pointer-events: none;
     transition: opacity .2s cubic-bezier(.2,.7,.2,1);
 }
+/* Light-mode override: soften the scrim so the cream scanner chrome
+   isn't darkened too aggressively. The result card itself stays dark
+   (intentional — operators need it readable at venue entrances under
+   harsh / glare lighting). */
+:root[data-pt-theme="light"] .scan-sheet {
+    background: rgba(15,23,42,0.32);
+}
 .scan-sheet[data-state="visible"] {
     opacity: 1;
     pointer-events: auto;

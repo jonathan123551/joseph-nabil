@@ -900,6 +900,48 @@
             .anba-modal-backdrop,
             .anba-modal-card { transition: none; }
         }
+        /* ---- Light-mode overrides: auto-pick chip-count modal ----
+           Fired from the auto-pick FAB. The dark amber-on-navy card looks
+           pasted-in on cream; swap to a white-cream card with amber
+           accent, neutral cancel button, and a softer scrim.
+           NB: the modal is rendered OUTSIDE [data-anba-root] (a sibling
+           of the picker), so the `--p-*` tokens don't cascade to it.
+           We use the global `--prism-*` tokens instead. */
+        :root[data-pt-theme="light"] .anba-modal-backdrop {
+            background: rgba(15,23,42,0.32);
+        }
+        :root[data-pt-theme="light"] .anba-modal-card {
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.98));
+            border-color: rgba(245,158,11,0.45);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.7),
+                0 24px 60px -12px rgba(15,23,42,0.28),
+                0 0 24px rgba(245,158,11,0.16);
+            color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] .anba-modal-eyebrow {
+            color: var(--prism-gold);
+        }
+        :root[data-pt-theme="light"] .anba-modal-title {
+            color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] .anba-modal-chip {
+            background: rgba(245,158,11,0.10);
+            border-color: rgba(245,158,11,0.45);
+            color: var(--prism-gold);
+        }
+        :root[data-pt-theme="light"] .anba-modal-chip:hover {
+            background: rgba(245,158,11,0.20);
+            border-color: rgba(245,158,11,0.65);
+        }
+        :root[data-pt-theme="light"] .anba-modal-cancel {
+            border-color: rgba(15,23,42,0.12);
+            color: var(--prism-text-3);
+        }
+        :root[data-pt-theme="light"] .anba-modal-cancel:hover {
+            background: rgba(15,23,42,0.04);
+            color: var(--prism-text);
+        }
 
         /* =====================================================================
            LIGHT THEME — seat picker chrome.

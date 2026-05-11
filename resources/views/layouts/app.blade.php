@@ -1351,6 +1351,54 @@
         }
         @keyframes ptSpin { to { transform: rotate(360deg); } }
 
+        /* ---- Light-mode overrides: premium confirmation modal ----
+           The singleton .pt-modal-root fires on customer booking confirm
+           AND on every admin approve / reject / delete-booking. The dark
+           navy card looks pasted-in on cream; we swap to a white-cream
+           card with neutral border and dampened tonal glow so it integrates
+           with the rest of the light theme. Backdrop scrim opacity matches
+           the mobile drawer for consistency. */
+        :root[data-pt-theme="light"] .pt-modal-backdrop {
+            background: radial-gradient(ellipse 70% 60% at 50% 30%, rgba(99,102,241,0.06), transparent 60%),
+                        rgba(15,23,42,0.28);
+        }
+        :root[data-pt-theme="light"] .pt-modal-card {
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.98));
+            border-color: rgba(15,23,42,0.12);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.7),
+                0 36px 70px -20px rgba(15,23,42,0.32),
+                0 0 40px rgba(99,102,241,0.10);
+        }
+        :root[data-pt-theme="light"] .pt-modal-icon {
+            background: rgba(99,102,241,0.10);
+            border-color: rgba(99,102,241,0.45);
+            color: var(--prism-indigo);
+            box-shadow: 0 0 24px rgba(99,102,241,0.18);
+        }
+        :root[data-pt-theme="light"] .pt-modal-icon.tone-success {
+            background: rgba(16,185,129,0.10);
+            border-color: rgba(16,185,129,0.50);
+            color: var(--prism-emerald);
+            box-shadow: 0 0 24px rgba(16,185,129,0.20);
+        }
+        :root[data-pt-theme="light"] .pt-modal-icon.tone-error {
+            background: rgba(244,63,94,0.10);
+            border-color: rgba(244,63,94,0.50);
+            color: var(--prism-rose);
+            box-shadow: 0 0 24px rgba(244,63,94,0.20);
+        }
+        :root[data-pt-theme="light"] .pt-modal-icon.tone-warn {
+            background: rgba(245,158,11,0.12);
+            border-color: rgba(245,158,11,0.50);
+            color: var(--prism-gold);
+            box-shadow: 0 0 24px rgba(245,158,11,0.18);
+        }
+        :root[data-pt-theme="light"] .pt-modal-spinner {
+            border-color: rgba(99,102,241,0.18);
+            border-top-color: var(--prism-indigo);
+        }
+
         /* Generic in-button loading state. Add `.is-loading` to ANY button
            and an inline 14px spinner will appear before its text via a
            ::before pseudo-element. Cursor turns wait, pointer events are
@@ -1402,6 +1450,38 @@
         .pt-toast.is-on {
             opacity: 1;
             transform: translate(-50%, 0);
+        }
+        /* ---- Light-mode override: small flash pill ----
+           Used by PT.toast() — favorites, etc. Swap dark navy pill for a
+           white-cream surface with neutral border and soft shadow so it
+           reads as a "subtle confirmation" rather than a dark intrusion. */
+        :root[data-pt-theme="light"] .pt-toast {
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.98));
+            border-color: rgba(99,102,241,0.32);
+            color: var(--prism-text);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.7),
+                0 12px 32px -10px rgba(15,23,42,0.22),
+                0 0 22px rgba(99,102,241,0.10);
+        }
+
+        /* ---- Light-mode override: /ticket/{ref} flash banner ----
+           The inline banner in tickets/show.blade.php uses hardcoded
+           Tailwind `*-200` text on `*-500/0.10` bg — emerald-200 / amber-200
+           are light text colors meant for dark backgrounds, so they wash
+           out on cream. We swap to deeper tones via the existing tokens.
+           Targets the stable data attributes already set on the element
+           so the view markup stays unchanged. Specificity (0,3,0) beats
+           the Tailwind utility class (0,1,0) without needing !important. */
+        :root[data-pt-theme="light"] [data-tkt-flash-success] {
+            background: rgba(16,185,129,0.10);
+            border-color: rgba(16,185,129,0.40);
+            color: var(--prism-emerald);
+        }
+        :root[data-pt-theme="light"] [data-tkt-flash-warn] {
+            background: rgba(245,158,11,0.10);
+            border-color: rgba(245,158,11,0.40);
+            color: var(--prism-gold);
         }
 
         /* ------------- Page transition -------------
