@@ -2316,6 +2316,135 @@
         }
         :root[data-pt-theme="light"] .prism-glow-border::before { opacity: 0.7; }
 
+        /* Light: KPI / stat cards. Dark slate gradient is invisible on cream;
+           switch to light glass with proper drop shadow so the admin
+           dashboard reads cleanly. is-primary / is-positive / is-attention
+           accent colours are preserved via border tints. */
+        :root[data-pt-theme="light"] .prism-stat {
+            background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(252,250,245,0.88));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                0 22px 44px -22px rgba(15,23,42,0.20),
+                0 4px 10px -4px rgba(15,23,42,0.10);
+        }
+        :root[data-pt-theme="light"] .prism-stat:hover {
+            border-color: rgba(79,70,229,0.42);
+        }
+        :root[data-pt-theme="light"] .prism-stat.is-primary {
+            border-color: rgba(180,83,9,0.45);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                0 28px 56px -22px rgba(180,83,9,0.30),
+                0 0 28px rgba(245,158,11,0.18);
+        }
+        :root[data-pt-theme="light"] .prism-stat.is-primary .prism-stat-label {
+            color: #92400e;
+        }
+        :root[data-pt-theme="light"] .prism-stat.is-positive {
+            border-color: rgba(4,120,87,0.42);
+        }
+        :root[data-pt-theme="light"] .prism-stat.is-positive .prism-stat-value {
+            color: #047857;
+        }
+        :root[data-pt-theme="light"] .prism-stat.is-attention {
+            border-color: rgba(8,145,178,0.45);
+        }
+        :root[data-pt-theme="light"] .prism-stat.is-attention .prism-stat-value {
+            color: #0e7490;
+        }
+
+        /* Light: quick-action card (admin dashboard "Manage shows / showtimes
+           / bookings" tiles). */
+        :root[data-pt-theme="light"] .prism-quick-action {
+            background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(252,250,245,0.86));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                0 22px 44px -22px rgba(15,23,42,0.22),
+                0 4px 10px -4px rgba(15,23,42,0.10);
+        }
+        :root[data-pt-theme="light"] .prism-quick-action:hover {
+            border-color: rgba(79,70,229,0.45);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                0 30px 60px -22px rgba(79,70,229,0.36),
+                0 0 28px rgba(8,145,178,0.18);
+        }
+        :root[data-pt-theme="light"] .prism-quick-action-arrow {
+            background: rgba(15,23,42,0.05);
+            border-color: rgba(15,23,42,0.16);
+            color: var(--prism-text-2);
+        }
+        :root[data-pt-theme="light"] .prism-quick-action:hover .prism-quick-action-arrow {
+            background: rgba(79,70,229,0.14);
+            border-color: rgba(79,70,229,0.45);
+            color: var(--prism-text);
+        }
+
+        /* Light: clean tables (admin bookings list, shows list, etc).
+           Dark-mode thead bg `rgba(13,16,28,0.92)` and indigo-tinted row
+           hover are jarring on cream. */
+        :root[data-pt-theme="light"] .prism-table-clean thead {
+            background: rgba(252,250,245,0.95);
+        }
+        :root[data-pt-theme="light"] .prism-table-clean thead th {
+            color: var(--prism-text-3);
+            border-bottom-color: rgba(15,23,42,0.18);
+        }
+        :root[data-pt-theme="light"] .prism-table-clean tbody td {
+            border-bottom-color: rgba(15,23,42,0.10);
+        }
+        :root[data-pt-theme="light"] .prism-table-clean tbody tr:hover td {
+            background: rgba(79,70,229,0.06);
+        }
+
+        /* Light: floating action bar (admin booking approve/reject, anba
+           seat picker mobile, etc). Dark slate gradient + transparent
+           white chip backgrounds break on cream. */
+        :root[data-pt-theme="light"] .pt-action-bar-inner {
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(252,250,245,0.92));
+            border-color: rgba(79,70,229,0.32);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                0 -16px 60px -22px rgba(15,23,42,0.22),
+                0 0 36px rgba(79,70,229,0.14);
+        }
+        :root[data-pt-theme="light"] .pt-action-bar .pt-bar-chip {
+            background: rgba(15,23,42,0.05);
+            border-color: rgba(79,70,229,0.22);
+            color: var(--prism-text-2);
+        }
+        :root[data-pt-theme="light"] .pt-action-bar .pt-bar-chip-gold {
+            background: linear-gradient(135deg, rgba(245,158,11,0.16), rgba(245,158,11,0.06));
+            border-color: rgba(180,83,9,0.45);
+            color: #92400e;
+        }
+        :root[data-pt-theme="light"] .pt-action-bar .pt-bar-chip-muted {
+            color: var(--prism-text-3);
+            border-color: rgba(15,23,42,0.14);
+        }
+
+        /* Light: back chevron + ticket row (admin booking detail). */
+        :root[data-pt-theme="light"] .pt-back-chevron {
+            background: rgba(15,23,42,0.05);
+            border-color: rgba(15,23,42,0.14);
+            color: var(--prism-text-2);
+        }
+        :root[data-pt-theme="light"] .pt-back-chevron:hover {
+            background: rgba(79,70,229,0.10);
+            border-color: rgba(79,70,229,0.45);
+            color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] .pt-ticket-row {
+            background: rgba(15,23,42,0.03);
+            border-color: rgba(15,23,42,0.10);
+        }
+        :root[data-pt-theme="light"] .pt-ticket-row:hover {
+            background: rgba(79,70,229,0.06);
+            border-color: rgba(79,70,229,0.32);
+        }
+
         /* Light: ghost button — the dark-mode 0.04 white bg is invisible on cream */
         :root[data-pt-theme="light"] .prism-btn-ghost {
             background: rgba(15,23,42,0.04);

@@ -900,6 +900,129 @@
             .anba-modal-backdrop,
             .anba-modal-card { transition: none; }
         }
+
+        /* =====================================================================
+           LIGHT THEME — seat picker chrome.
+           The canvas itself stays dark (it represents the theater stage) but
+           the wrapping glass panels, side panel, zoom bar, legend pills,
+           attendee cards, field inputs and transfer instructions all need
+           light overrides — the dark slate surfaces look pasted-in on cream
+           and the bg-white/[0.04] tinted info pills become invisible.
+           Dark mode is untouched.
+        ===================================================================== */
+        :root[data-pt-theme="light"] [data-anba-root] .glass {
+            background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(252,250,245,0.86));
+            border-color: rgba(15,23,42,0.14);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                0 24px 52px -22px rgba(15,23,42,0.26),
+                0 4px 10px -4px rgba(15,23,42,0.10);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .ambient {
+            /* Keep the soft cyan / violet halo, but drop the dark slate base
+               so the wrapping glass stays light around the dark canvas. */
+            background:
+                radial-gradient(ellipse 120% 60% at 50% -10%, rgba(34,211,238,0.10), transparent 60%),
+                radial-gradient(ellipse 80% 50% at 50% 110%, rgba(192,132,252,0.10), transparent 60%);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .zoom-bar {
+            background: rgba(255,255,255,0.85);
+            border-color: rgba(79,70,229,0.30);
+            box-shadow:
+                0 4px 14px -6px rgba(79,70,229,0.25),
+                inset 0 1px 0 rgba(255,255,255,0.95);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .zoom-btn {
+            color: #3730a3;
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .zoom-btn:hover {
+            background: rgba(79,70,229,0.10);
+            color: #312e81;
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .zoom-btn + .zoom-btn {
+            border-right-color: rgba(79,70,229,0.20);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .legend-pill {
+            background: rgba(15,23,42,0.04);
+            border-color: rgba(15,23,42,0.14);
+            color: var(--prism-text-2);
+        }
+        /* Available swatch needs a different gradient on cream so it doesn't
+           collide with the slate-on-slate dark look. */
+        :root[data-pt-theme="light"] [data-anba-root] .legend-swatch {
+            border-color: rgba(15,23,42,0.20);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .legend-swatch.avail {
+            background: linear-gradient(180deg, #cbd5e1, #94a3b8);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .attendee-card {
+            background: rgba(255,255,255,0.92);
+            border-color: rgba(15,23,42,0.12);
+            box-shadow:
+                0 8px 18px -10px rgba(15,23,42,0.16),
+                inset 0 1px 0 rgba(255,255,255,0.85);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .field-input {
+            background: #ffffff;
+            border-color: rgba(15,23,42,0.16);
+            color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .field-input:focus {
+            border-color: rgba(79,70,229,0.55);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.14);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .seat-chip {
+            background: linear-gradient(135deg, rgba(4,120,87,0.14), rgba(8,145,178,0.10));
+            border-color: rgba(4,120,87,0.45);
+            color: #064e3b;
+            box-shadow: 0 0 12px rgba(4,120,87,0.14), inset 0 1px 0 rgba(255,255,255,0.6);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .seat-chip [data-remove] {
+            background: rgba(15,23,42,0.10);
+            color: #7f1d1d;
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .seat-chip [data-remove]:hover {
+            background: rgba(244,63,94,0.20);
+            color: #7f1d1d;
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .cta-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #7c3aed 50%, #8b5cf6 100%);
+            color: #ffffff;
+            border-color: rgba(255,255,255,0.85);
+            box-shadow:
+                0 10px 24px -8px rgba(79,70,229,0.45),
+                0 2px 4px -2px rgba(15,23,42,0.12),
+                inset 0 1px 0 rgba(255,255,255,0.30);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .cta-primary:hover:not(:disabled) {
+            box-shadow:
+                0 14px 32px -8px rgba(79,70,229,0.65),
+                0 0 24px rgba(124,58,237,0.30),
+                inset 0 1px 0 rgba(255,255,255,0.30);
+        }
+        :root[data-pt-theme="light"] [data-anba-root] .cta-primary:disabled {
+            background: linear-gradient(180deg, rgba(148,163,184,0.45), rgba(100,116,139,0.40));
+            color: rgba(15,23,42,0.55);
+        }
+        /* Transfer instructions inline-style override (the inline
+           rgba(8,10,20,0.55) is too dark on cream). */
+        :root[data-pt-theme="light"] [data-anba-root] [data-anba-transfer] {
+            background: rgba(255,255,255,0.78) !important;
+            border-color: rgba(79,70,229,0.22) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.95);
+        }
+        /* The wallet / insta info chips use bg-white/[0.04] which is invisible
+           on cream; mark them so we can lift them in light mode. */
+        :root[data-pt-theme="light"] [data-anba-root] [data-anba-payinfo] {
+            background: rgba(15,23,42,0.04) !important;
+            border-color: rgba(15,23,42,0.12) !important;
+        }
+        /* The "view more / less attendees" stack toggle. */
+        :root[data-pt-theme="light"] [data-anba-root] .attendee-stack {
+            background: rgba(15,23,42,0.04);
+            border-color: rgba(15,23,42,0.14);
+        }
     </style>
 
     <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr),360px] gap-5 fs-grid">
@@ -1042,6 +1165,7 @@
             {{-- transfer instructions — customer flow only --}}
             @if (!$adminMode && (!empty($transferWallet) || !empty($transferInsta)))
                 <div class="rounded-2xl p-3 space-y-2"
+                     data-anba-transfer
                      style="background: rgba(8,10,20,0.55); border: 1px solid rgba(129,140,248,0.18);">
                     <h4 class="text-[11px] font-semibold"
                         style="background: linear-gradient(135deg,#22d3ee,#818cf8,#c084fc); -webkit-background-clip: text; background-clip: text; color: transparent;"
@@ -1049,13 +1173,13 @@
                         خطوة 1 · حوّل قيمة الحجز
                     </h4>
                     @if (!empty($transferWallet))
-                        <div class="bg-white/[0.04] border border-[color:var(--p-border)] rounded-xl px-3 py-2">
+                        <div class="bg-white/[0.04] border border-[color:var(--p-border)] rounded-xl px-3 py-2" data-anba-payinfo>
                             <p class="text-[9px] text-[color:var(--p-text-3)] mb-0.5" data-i18n="pay_wallet">📱 محفظة</p>
                             <p class="text-xs font-bold text-[color:var(--p-text)]" dir="ltr">{{ $transferWallet }}</p>
                         </div>
                     @endif
                     @if (!empty($transferInsta))
-                        <div class="bg-white/[0.04] border border-[color:var(--p-border)] rounded-xl px-3 py-2">
+                        <div class="bg-white/[0.04] border border-[color:var(--p-border)] rounded-xl px-3 py-2" data-anba-payinfo>
                             <p class="text-[9px] text-[color:var(--p-text-3)] mb-0.5" data-i18n="pay_insta">⚡ InstaPay</p>
                             <p class="text-xs font-bold text-[color:var(--p-text)]" dir="ltr">{{ $transferInsta }}</p>
                         </div>
