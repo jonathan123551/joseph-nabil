@@ -5986,6 +5986,11 @@
             .pt-show-stickybar { transition: none !important; }
         }
     </style>
+
+    {{-- Per-page styles. Views can push <style> blocks here via
+         @push('styles') ... @endpush without having to inline them
+         inside @section('content'). --}}
+    @stack('styles')
 </head>
 <body class="prism-stage min-h-screen @yield('body_class')">
 

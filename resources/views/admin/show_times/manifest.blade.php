@@ -1137,7 +1137,11 @@
                     </a>
                     <a href="/admin/scanner">📷 Open QR Scanner</a>
                     <hr>
-                    <a href="{{ route('admin.show-times.index') }}">← Back to show-times</a>
+                    @if ($show)
+                        <a href="{{ route('admin.shows.times.index', $show) }}">← Back to show-times</a>
+                    @else
+                        <a href="{{ route('admin.dashboard') }}">← Back to dashboard</a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -1257,7 +1261,7 @@
                                             data-status-en="{{ $s['status_en'] }}"
                                             data-checked="{{ $s['is_scanned'] ? '1' : '0' }}"
                                             data-scanned-at="{{ $s['scanned_at'] ?? '' }}"
-                                            data-haystack="@php echo strtolower(trim(($s['attendee_name'] ?? '') . ' ' . ($s['booking_owner'] ?? '') . ' ' . ($s['booking_ref'] ?? '') . ' ' . ($s['phone'] ?? '') . ' ' . $seatLabel . ' ' . $s['section_label_ar'])); @endphp"
+                                            data-haystack="{{ strtolower(trim(($s['attendee_name'] ?? '') . ' ' . ($s['booking_owner'] ?? '') . ' ' . ($s['booking_ref'] ?? '') . ' ' . ($s['phone'] ?? '') . ' ' . $seatLabel . ' ' . $s['section_label_ar'])) }}"
                                             aria-label="Seat {{ $seatLabel }} ({{ $s['status_en'] }})">
                                         <span>{{ $s['seat_number'] }}</span>
                                     </button>
@@ -1314,7 +1318,7 @@
                              data-booking-id="{{ $b['id'] }}"
                              data-booking-ref="{{ $b['ref'] }}"
                              data-seats="{{ implode(',', $b['seat_labels']) }}"
-                             data-haystack="@php echo strtolower(($b['owner'] ?? '') . ' ' . ($b['ref'] ?? '') . ' ' . ($b['phone'] ?? '')); @endphp">
+                             data-haystack="{{ strtolower(($b['owner'] ?? '') . ' ' . ($b['ref'] ?? '') . ' ' . ($b['phone'] ?? '')) }}">
                             <span class="dot" aria-hidden="true"></span>
                             <div class="body">
                                 <div class="l1">{{ $b['owner'] ?? '—' }}</div>
@@ -1369,7 +1373,7 @@
                      data-status="{{ $s['status'] }}"
                      data-checked="{{ $s['is_scanned'] ? '1' : '0' }}"
                      @if ($hue !== null) data-hue="{{ $hue }}" @endif
-                     data-haystack="@php echo strtolower(trim(($s['attendee_name'] ?? '') . ' ' . ($s['booking_owner'] ?? '') . ' ' . ($s['booking_ref'] ?? '') . ' ' . ($s['phone'] ?? '') . ' ' . $seatLabel . ' ' . $s['section_label_ar'])); @endphp"
+                     data-haystack="{{ strtolower(trim(($s['attendee_name'] ?? '') . ' ' . ($s['booking_owner'] ?? '') . ' ' . ($s['booking_ref'] ?? '') . ' ' . ($s['phone'] ?? '') . ' ' . $seatLabel . ' ' . $s['section_label_ar'])) }}"
                      role="button"
                      tabindex="0">
                     <div class="card-chip">
