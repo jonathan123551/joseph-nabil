@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 |--------------------------------------------------------------------------
 */
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ManifestController;
 use App\Http\Controllers\Admin\ScannerController;
 use App\Http\Controllers\Admin\SeatBlockController;
 use App\Http\Controllers\Admin\SettingsController;
@@ -190,6 +191,16 @@ Route::middleware('admin')
             ->name('show-times.seats.toggle');
         Route::post('/show-times/{showTime}/seats/bulk-toggle', [SeatBlockController::class, 'bulkToggle'])
             ->name('show-times.seats.bulk-toggle');
+
+        // 📋 Seat Occupancy / Attendee Manifest (read-only event-day view).
+        // One page per showtime that maps every physical seat to its
+        // attendee. Three view modes share the same Blade and the same
+        // single eager-loaded query (booked seats + admin blocks + full
+        // venue layout). CSV export streams the same shape to disk.
+        Route::get('/show-times/{showTime}/manifest', [ManifestController::class, 'show'])
+            ->name('show-times.manifest');
+        Route::get('/show-times/{showTime}/manifest/export.csv', [ManifestController::class, 'exportCsv'])
+            ->name('show-times.manifest.csv');
 
         // Payments
         Route::get('/settings/payments', [SettingsController::class, 'editPayments'])
