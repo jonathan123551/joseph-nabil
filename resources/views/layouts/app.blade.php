@@ -6560,7 +6560,7 @@
                             <span class="pt-brand-tag" data-i18n="brand_tag">TICKETS · STAGE</span>
                         </span>
                     </a>
-                    <p class="pt-footer-brand-text mt-3" data-i18n="foot_about">منصة حجز تذاكر مسرح مصرية، مصممة لتجربة فاخرة وسريعة على الموبايل والديسكتوب.</p>
+                    
                 </div>
 
                 {{-- Quick links --}}
@@ -6586,7 +6586,7 @@
             <div class="mt-8 pt-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs"
                  style="border-top: 1px solid var(--prism-border); color: var(--prism-text-3);">
                 <div>© {{ now()->year }} <span class="prism-wordmark text-[11px]" data-i18n="brand">PREMIUM</span></div>
-                <div class="opacity-70">v2.0 · {{ config('app.env') === 'production' ? 'live' : config('app.env') }}</div>
+               
             </div>
         </div>
     </footer>
@@ -8423,7 +8423,7 @@
             });
             // HTML content (for strings that include inline tags / line breaks)
             document.querySelectorAll('[data-i18n-html]').forEach(el => {
-                const k = el.getAttribute('data-i18n-html');
+                const k = el.getAttribute('data-i18n-html'); 
                 if (dict[k] !== undefined) el.innerHTML = interp(dict[k], readVars(el));
             });
             // Attribute translation. Encode as `data-i18n-attr="placeholder:key,title:key2"`.
@@ -8478,6 +8478,7 @@
         // thing we ever needed on resize. Wrapped in rAF so a burst
         // of resize events (Gboard appearance animation) collapses
         // to a single layout read per frame.
+        
         function repositionLangThumbs() {
             const cur = document.documentElement.getAttribute('data-pt-lang') || 'ar';
             document.querySelectorAll('.pt-lang-toggle').forEach(group => moveThumbForGroup(group, cur));
