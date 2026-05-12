@@ -683,9 +683,10 @@
 <script>
 
 let count = 1;
-const maxTickets = {{ max(0, $showTime->total_tickets - $showTime->bookings()
-    ->whereIn('status',['approved','pending'])
-    ->sum('tickets_count')) }};
+// `effectiveRemainingTickets()` already subtracts both customer bookings
+// (pending + approved) AND any admin-blocked seats, so the stepper can
+// never offer a count the seat picker / store would refuse.
+const maxTickets = {{ (int) $showTime->effectiveRemainingTickets() }};
 
 const namesContainer = document.getElementById('namesContainer');
 const ticketsInput = document.getElementById('tickets_count');

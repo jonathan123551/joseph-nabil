@@ -124,6 +124,25 @@ class ShowTime extends Model
     }
 
     /**
+     * Number of seats admin-blocked for this show time. Blocked seats are
+     * operationally unavailable (kept out of the customer seat picker and
+     * subtracted from remaining inventory) but are NOT paid tickets — they
+     * never contribute to revenue or ticket-sale totals.
+     *
+     * Always returns 0 for non-seatmap shows ("Other" theater type) since
+     * there is no seat layout to block against.
+     */
+    public function blockedSeatsCount(): int
+    {
+        $this->loadMissing('show');
+        if (! $this->show || ! $this->show->usesSeatMap()) {
+            return 0;
+        }
+
+        return (int) $this->seatBlocks()->count();
+    }
+
+    /**
      * Customer-facing remaining-ticket count.
      *
      * Subtracts both customer bookings (pending + approved) and, for
@@ -139,12 +158,6 @@ class ShowTime extends Model
             ->whereIn('status', ['approved', 'pending'])
             ->sum('tickets_count');
 
-        $blocked = 0;
-        $this->loadMissing('show');
-        if ($this->show && $this->show->usesSeatMap()) {
-            $blocked = (int) $this->seatBlocks()->count();
-        }
-
-        return max(0, (int) $this->total_tickets - $reserved - $blocked);
+        return max(0, (int) $this->total_tickets - $reserved - $this->blockedSeatsCount());
     }
 }

@@ -73,10 +73,12 @@
                     <tbody>
                     @foreach($times as $time)
                         @php
-                            $reserved = $time->bookings()
-                                ->whereIn('status', ['approved','pending'])
-                                ->sum('tickets_count');
-                            $remaining = max(0, $time->total_tickets - $reserved);
+                            // Single source of truth — subtracts customer
+                            // bookings (pending + approved) AND admin-blocked
+                            // seats. The blocked count drives the small
+                            // "blocked" chip next to the availability pill.
+                            $blocked   = $time->blockedSeatsCount();
+                            $remaining = $time->effectiveRemainingTickets();
                             $isLocked  = $remaining <= 0;
                         @endphp
 
@@ -101,10 +103,20 @@
                             </td>
 
                             <td class="px-3 py-3 text-center align-middle">
-                                <span class="prism-pill">
-                                    <span class="font-semibold" style="color: var(--prism-emerald);">{{ $remaining }}</span>
-                                    <span class="opacity-60">/ {{ $time->total_tickets }}</span>
-                                </span>
+                                <div class="inline-flex items-center gap-1.5 flex-wrap justify-center">
+                                    <span class="prism-pill">
+                                        <span class="font-semibold" style="color: var(--prism-emerald);">{{ $remaining }}</span>
+                                        <span class="opacity-60">/ {{ $time->total_tickets }}</span>
+                                    </span>
+                                    @if($blocked > 0)
+                                        <span class="prism-pill prism-pill-rose" style="font-size:10px;"
+                                              title="{{ $blocked }} blocked seats (not counted in revenue)"
+                                              data-i18n-html="adm_times_blocked_chip"
+                                              data-i18n-vars='{"n": {{ $blocked }}}'>
+                                            🚫 {{ $blocked }} محجوب
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
 
                             {{-- PRISM SWITCH --}}
@@ -190,10 +202,8 @@
 
             @foreach($times as $time)
                 @php
-                    $reserved = $time->bookings()
-                        ->whereIn('status', ['approved','pending'])
-                        ->sum('tickets_count');
-                    $remaining = max(0, $time->total_tickets - $reserved);
+                    $blocked   = $time->blockedSeatsCount();
+                    $remaining = $time->effectiveRemainingTickets();
                     $isLocked  = $remaining <= 0;
                 @endphp
 
@@ -231,6 +241,17 @@
                             <div class="pt-mini-card-value text-[color:var(--prism-text)]">{{ $time->total_tickets }}</div>
                         </div>
                     </div>
+
+                    @if($blocked > 0)
+                        <div class="flex items-center justify-center">
+                            <span class="prism-pill prism-pill-rose" style="font-size:10px;"
+                                  title="{{ $blocked }} blocked seats (not counted in revenue)"
+                                  data-i18n-html="adm_times_blocked_chip"
+                                  data-i18n-vars='{"n": {{ $blocked }}}'>
+                                🚫 {{ $blocked }} محجوب
+                            </span>
+                        </div>
+                    @endif
 
                     {{-- SWITCH MOBILE --}}
                     <form action="{{ route('admin.shows.times.toggle', [$show, $time]) }}" method="POST">

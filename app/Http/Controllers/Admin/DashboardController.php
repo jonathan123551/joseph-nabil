@@ -23,14 +23,12 @@ class DashboardController extends Controller
         $bookedPendingApproved = Booking::whereIn('status', ['pending', 'approved'])
             ->sum('tickets_count');
 
-        // التذاكر المتبقية على مستوى كل المواعيد
-        $ticketsRemaining = max($totalTicketsAllTimes - $bookedPendingApproved, 0);
-
         // إجمالي التذاكر المعتمدة
         $totalTicketsApproved = Booking::where('status', 'approved')
             ->sum('tickets_count');
 
-        // إجمالي الفلوس من الحجوزات المعتمدة
+        // إجمالي الفلوس من الحجوزات المعتمدة. Blocked seats are NOT paid
+        // bookings — they never contribute to revenue.
         $totalRevenue = Booking::where('status', 'approved')
             ->sum('total_price');
 
@@ -44,6 +42,11 @@ class DashboardController extends Controller
             ->orderBy('time')
             ->get();
 
+        // Running total used by the platform-wide "Blocked" KPI card.
+        // Computed alongside the per-showtime stats so we only walk the
+        // seat_blocks table once per dashboard render.
+        $totalBlockedSeats = 0;
+
         foreach ($showTimesStats as $time) {
             // عدد التذاكر المعتمدة للميعاد ده
             $approved = Booking::where('show_time_id', $time->id)
@@ -55,15 +58,20 @@ class DashboardController extends Controller
                 ->where('status', 'pending')
                 ->sum('tickets_count');
 
-            // التذاكر المتبقية في الميعاد ده
-            $remaining = $time->total_tickets - ($approved + $pending);
-            if ($remaining < 0) {
-                $remaining = 0;
-            }
+            // المقاعد المحجوبة (admin-only). Always 0 for non-seatmap
+            // shows because there's no seat layout to block against.
+            $blocked = $time->blockedSeatsCount();
+            $totalBlockedSeats += $blocked;
+
+            // التذاكر المتبقية في الميعاد ده — blocked seats are
+            // operationally unavailable, so they reduce remaining
+            // inventory just like booked seats do.
+            $remaining = max(0, (int) $time->total_tickets - $approved - $pending - $blocked);
 
             // نضيف القيم دي كخصائص على الموديل عشان نستخدمها في الـ Blade
-            $time->approved_tickets = $approved;
-            $time->pending_tickets = $pending;
+            $time->approved_tickets  = $approved;
+            $time->pending_tickets   = $pending;
+            $time->blocked_tickets   = $blocked;
             $time->remaining_tickets = $remaining;
 
             // إيرادات الميعاد ده = sum(total_price) للحجوزات المعتمدة المرتبطة
@@ -74,6 +82,11 @@ class DashboardController extends Controller
                 ->sum('total_price');
         }
 
+        // التذاكر المتبقية على مستوى كل المواعيد — also subtracts blocked
+        // seats so the "Remaining" KPI matches what the seat picker is
+        // actually willing to sell.
+        $ticketsRemaining = max(0, $totalTicketsAllTimes - $bookedPendingApproved - $totalBlockedSeats);
+
         // 🔹 بيانات التحويل (محفوظة في جدول settings)
         $transferWallet = Setting::get('transfer_wallet', '');
         $transferInsta = Setting::get('transfer_insta', '');
@@ -83,6 +96,7 @@ class DashboardController extends Controller
             'totalShowTimes',
             'ticketsRemaining',
             'totalTicketsApproved',
+            'totalBlockedSeats',
             'totalRevenue',
             'pendingBookings',
             'rejectedBookings',

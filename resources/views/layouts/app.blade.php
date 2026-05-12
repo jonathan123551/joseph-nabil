@@ -7295,6 +7295,8 @@
                 adm_kpi_showtimes_caption: 'مواعيد عرض مفعلة',
                 adm_kpi_remaining: 'تذاكر متبقية',
                 adm_kpi_remaining_caption: 'متاح للحجز الآن',
+                adm_kpi_blocked: 'المقاعد المحجوبة',
+                adm_kpi_blocked_caption: 'مقاعد محجوزة إداريًا — مش متاحة للحجز ولا بتتحسب في الإيرادات.',
 
                 /* ===== admin: status pills ===== */
                 adm_status_pending: 'قيد المراجعة',
@@ -7380,6 +7382,8 @@
                 adm_th_show: 'العرض',
                 adm_th_total: 'إجمالي',
                 adm_th_remaining: 'المتبقي',
+                adm_th_blocked: 'المحجوب',
+                adm_times_blocked_chip: '🚫 {n} محجوب',
 
                 /* ===== admin: show time form (create / edit) ===== */
                 adm_time_new_pill: 'موعد جديد',
@@ -8101,6 +8105,8 @@
                 adm_kpi_showtimes_caption: 'Active scheduled times',
                 adm_kpi_remaining: 'Remaining tickets',
                 adm_kpi_remaining_caption: 'Available for booking now',
+                adm_kpi_blocked: 'Blocked seats',
+                adm_kpi_blocked_caption: 'Admin-held seats — unavailable to customers and never counted toward revenue.',
 
                 /* ===== admin: status pills ===== */
                 adm_status_pending: 'Pending',
@@ -8186,6 +8192,8 @@
                 adm_th_show: 'Show',
                 adm_th_total: 'Total',
                 adm_th_remaining: 'Remaining',
+                adm_th_blocked: 'Blocked',
+                adm_times_blocked_chip: '🚫 {n} blocked',
 
                 /* ===== admin: show time form (create / edit) ===== */
                 adm_time_new_pill: 'New show time',
