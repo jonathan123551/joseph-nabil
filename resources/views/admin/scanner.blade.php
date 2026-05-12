@@ -750,6 +750,267 @@
     text-align: center;
 }
 
+/* =========================================================
+   LIGHT MODE POLISH — scanner page chrome + result sheet
+   =========================================================
+   The default scanner palette was tuned for the dark theme.
+   Several surfaces relied on Prism tokens (--prism-text /
+   --prism-text-2 / --prism-text-3 / --prism-border) which
+   flip to DARK slate in light mode and disappear against
+   the scanner's dark chrome — that's the "washed-out / hard
+   to read" feeling operators reported on bright-light /
+   daylight venue setups.
+
+   Strategy:
+   1. Scanner page chrome (status pill / loading scrim /
+      zoom chip / flash button) gets light-glass surfaces so
+      it reads cleanly against the cream page background.
+   2. The result sheet card switches to a premium cream
+      glass surface for native light-theme parity. State
+      accents (ok / used / error) keep their semantic
+      colors but become darker, more confident shades that
+      sit well on cream.
+   3. Every text inside the card gets pinned to a fixed
+      dark-slate color so prism-token bleed-through can't
+      erase contrast.
+   ========================================================= */
+
+/* --- Scanner page chrome ------------------------------- */
+
+/* Status pill — ready state on the dark video viewport
+   reads fine, but the pill sits ABOVE the camera viewport
+   so its surrounding context is the cream page chrome on
+   light mode. Promote it to a confident light glass so the
+   ready / scanning / ok / used / error states all read
+   crisply from across the room. */
+:root[data-pt-theme="light"] .scanner-status {
+    background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(252,250,245,0.88));
+    border-color: rgba(15,23,42,0.18);
+    color: #1f2937;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.97),
+        0 12px 28px -14px rgba(15,23,42,0.28);
+}
+:root[data-pt-theme="light"] .scanner-status.state-ready { color: #334155; }
+/* scanning / ok / used / error already paint their own
+   high-contrast surface + text colors and stay legible on
+   the cream page chrome — leaving those rules untouched. */
+
+/* Loading scrim — soft cream wash + darker label so the
+   "starting camera" copy doesn't disappear into the page. */
+:root[data-pt-theme="light"] .scanner-loading {
+    background: rgba(244,241,234,0.94);
+    color: #334155;
+}
+:root[data-pt-theme="light"] .prism-spinner {
+    border: 3px solid rgba(79,70,229,0.22);
+    border-top-color: rgba(79,70,229,0.95);
+}
+
+/* Live zoom indicator chip — flip to light glass + dark
+   label so the "1.6×" text is readable when the camera is
+   pointed at a bright surface (which is when zoom typically
+   engages — operators framing a small distant QR). */
+:root[data-pt-theme="light"] .scan-zoom-chip {
+    background: rgba(255,255,255,0.94);
+    border: 1px solid rgba(15,23,42,0.18);
+    color: #334155;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.97),
+        0 6px 14px -8px rgba(15,23,42,0.22);
+}
+
+/* Flash button — torch active state */
+:root[data-pt-theme="light"] .scanner-controls .prism-btn-ghost.is-on {
+    background: linear-gradient(135deg, rgba(245,158,11,0.22), rgba(245,158,11,0.10));
+    border-color: rgba(180,83,9,0.55);
+    color: #92400e;
+}
+/* Flash button — low-light suggest pulse: the gold halo
+   stays gold (universal "tap me for light"), but text
+   color flips to dark amber so the label reads on the
+   cream surface. */
+:root[data-pt-theme="light"] .scanner-controls .prism-btn-ghost.is-suggest:not(.is-on) {
+    border-color: rgba(180,83,9,0.55);
+    color: #92400e;
+}
+
+/* --- Result sheet (premium cream surface) -------------- */
+
+/* The dark-card-for-glare default served the operator at
+   night-time entrances but felt washed-out in light mode
+   because every text token rendered dark-on-dark. Switch
+   to a confident cream glass surface in light mode — the
+   per-result outline (ok / used / error) still rings the
+   card so an operator across the venue sees the verdict
+   from peripheral vision. */
+:root[data-pt-theme="light"] .scan-sheet-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(252,250,245,0.94));
+    border-color: rgba(15,23,42,0.18);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.97),
+        0 28px 56px -22px rgba(15,23,42,0.30),
+        0 8px 18px -8px rgba(15,23,42,0.14);
+}
+:root[data-pt-theme="light"] .scan-sheet[data-result="ok"]    .scan-sheet-card {
+    border-color: rgba(4,120,87,0.55);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.97),
+        0 28px 56px -22px rgba(4,120,87,0.32),
+        0 0 36px rgba(16,185,129,0.20);
+}
+:root[data-pt-theme="light"] .scan-sheet[data-result="used"]  .scan-sheet-card {
+    border-color: rgba(180,83,9,0.60);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.97),
+        0 28px 56px -22px rgba(180,83,9,0.32),
+        0 0 36px rgba(245,158,11,0.22);
+}
+:root[data-pt-theme="light"] .scan-sheet[data-result="error"] .scan-sheet-card {
+    border-color: rgba(190,18,60,0.60);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.97),
+        0 28px 56px -22px rgba(190,18,60,0.32),
+        0 0 36px rgba(244,63,94,0.22);
+}
+
+/* Sheet scrim — slightly stronger in light mode so the
+   card lifts off the cream page without feeling murky. */
+:root[data-pt-theme="light"] .scan-sheet {
+    background: rgba(15,23,42,0.38);
+}
+
+/* Top badge — saturated semantic chip with dark label. */
+:root[data-pt-theme="light"] .scan-sheet[data-result="ok"]    .scan-sheet-badge {
+    background: rgba(16,185,129,0.16);
+    border-color: rgba(4,120,87,0.55);
+    color: #065f46;
+}
+:root[data-pt-theme="light"] .scan-sheet[data-result="ok"]    .scan-sheet-badge-icon {
+    background: rgba(16,185,129,0.96);
+    color: #ffffff;
+}
+:root[data-pt-theme="light"] .scan-sheet[data-result="used"]  .scan-sheet-badge {
+    background: rgba(245,158,11,0.18);
+    border-color: rgba(180,83,9,0.55);
+    color: #92400e;
+}
+:root[data-pt-theme="light"] .scan-sheet[data-result="used"]  .scan-sheet-badge-icon {
+    background: rgba(245,158,11,0.96);
+    color: #1b1208;
+}
+:root[data-pt-theme="light"] .scan-sheet[data-result="error"] .scan-sheet-badge {
+    background: rgba(244,63,94,0.16);
+    border-color: rgba(190,18,60,0.55);
+    color: #9f1239;
+}
+:root[data-pt-theme="light"] .scan-sheet[data-result="error"] .scan-sheet-badge-icon {
+    background: rgba(244,63,94,0.96);
+    color: #fff1f2;
+}
+
+/* Headline (attendee name) + booking reference — pinned
+   to fixed dark slate so prism token bleed can't erase
+   contrast on the cream card. */
+:root[data-pt-theme="light"] .scan-sheet-name { color: #0f172a; }
+:root[data-pt-theme="light"] .scan-sheet-ref  { color: #64748b; }
+
+/* Show / time rows — soft slate wash on cream so each
+   row visibly separates from the card without yelling. */
+:root[data-pt-theme="light"] .scan-sheet-row {
+    background: rgba(15,23,42,0.045);
+    border-color: rgba(15,23,42,0.14);
+    color: #1f2937;
+}
+:root[data-pt-theme="light"] .scan-sheet-row-text { color: #0f172a; }
+:root[data-pt-theme="light"] .scan-sheet-row-icon { opacity: 1; }
+
+/* Big seat hero — keep the spotlight, but on cream with
+   a darker semantic gradient label so the seat number
+   reads from across the entrance. */
+:root[data-pt-theme="light"] .scan-seat-hero {
+    background:
+        radial-gradient(circle at 50% 0%, rgba(15,23,42,0.08), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,0.97), rgba(248,245,239,0.94));
+    border-color: rgba(79,70,229,0.40);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.97),
+        0 18px 36px -20px rgba(15,23,42,0.24),
+        0 0 28px rgba(79,70,229,0.12);
+}
+:root[data-pt-theme="light"] .scan-seat-hero-section { color: #475569; }
+:root[data-pt-theme="light"] .scan-seat-hero-label {
+    background: linear-gradient(135deg, #78350f 5%, #b45309 50%, #f59e0b 95%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+    text-shadow: none;
+}
+:root[data-pt-theme="light"] .scan-sheet[data-result="ok"] .scan-seat-hero {
+    border-color: rgba(4,120,87,0.55);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.97),
+        0 18px 36px -20px rgba(4,120,87,0.26),
+        0 0 28px rgba(16,185,129,0.16);
+}
+:root[data-pt-theme="light"] .scan-sheet[data-result="ok"] .scan-seat-hero-label {
+    background: linear-gradient(135deg, #065f46 5%, #047857 50%, #10b981 95%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+    text-shadow: none;
+}
+:root[data-pt-theme="light"] .scan-sheet[data-result="used"] .scan-seat-hero {
+    border-color: rgba(180,83,9,0.55);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.97),
+        0 18px 36px -20px rgba(180,83,9,0.26),
+        0 0 28px rgba(245,158,11,0.16);
+}
+:root[data-pt-theme="light"] .scan-sheet[data-result="used"] .scan-seat-hero-label {
+    background: linear-gradient(135deg, #78350f 5%, #92400e 50%, #b45309 95%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+    text-shadow: none;
+}
+:root[data-pt-theme="light"] .scan-sheet[data-result="error"] .scan-seat-hero {
+    border-color: rgba(190,18,60,0.55);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.97),
+        0 18px 36px -20px rgba(190,18,60,0.26),
+        0 0 28px rgba(244,63,94,0.16);
+}
+:root[data-pt-theme="light"] .scan-sheet[data-result="error"] .scan-seat-hero-label {
+    background: linear-gradient(135deg, #881337 5%, #be123c 50%, #f43f5e 95%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+    text-shadow: none;
+}
+
+/* Seats group (label + chips) on cream */
+:root[data-pt-theme="light"] .scan-sheet-seats {
+    background: rgba(15,23,42,0.045);
+    border-color: rgba(15,23,42,0.14);
+}
+:root[data-pt-theme="light"] .scan-sheet-seats-label { color: #475569; }
+:root[data-pt-theme="light"] .scan-seat-chip {
+    background: rgba(245,158,11,0.16);
+    border-color: rgba(180,83,9,0.50);
+    color: #92400e;
+}
+
+/* "Already used at HH:MM" amber note */
+:root[data-pt-theme="light"] .scan-sheet-used-note {
+    background: rgba(245,158,11,0.16);
+    border-color: rgba(180,83,9,0.50);
+    color: #92400e;
+}
+
+/* Dismiss hint at the bottom */
+:root[data-pt-theme="light"] .scan-sheet-hint { color: #64748b; }
+
 @media (prefers-reduced-motion: reduce) {
     .reticle-line,
     .scan-sheet-card,
