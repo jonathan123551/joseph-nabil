@@ -64,7 +64,6 @@ class ManifestController extends Controller
 
         $mode = $this->resolveMode($request);
 
-        $showFullPhone = (bool) $request->query('full_phone', false);
         $includeEmpty = (bool) $request->query('include_empty', false);
 
         // Comma-separated allow-list of status filters; defaults to the
@@ -88,7 +87,6 @@ class ManifestController extends Controller
 
         return view('admin.show_times.manifest', array_merge($data, [
             'mode' => $mode,
-            'showFullPhone' => $showFullPhone,
             'includeEmpty' => $includeEmpty,
             'statusFilter' => $statusFilter,
             'focusSeat' => $focusSeat,
@@ -231,13 +229,13 @@ class ManifestController extends Controller
     /**
      * Stream the manifest as a CSV file. Always exports the seat-major
      * ordering (one row per seat) which is the most useful shape for
-     * reconciliation / offline review. PII (full phone) is gated behind
-     * an explicit query flag so an accidental click doesn't leak it.
+     * reconciliation / offline review. Phones export in full — the
+     * masking toggle was removed per user request because operators
+     * need the full number during events.
      */
     public function exportCsv(ShowTime $showTime, Request $request): StreamedResponse
     {
         $data = $this->buildManifest($showTime);
-        $showFullPhone = (bool) $request->query('full_phone', false);
 
         $filename = sprintf(
             'manifest-%s-%s.csv',
@@ -245,7 +243,7 @@ class ManifestController extends Controller
             $showTime->id
         );
 
-        return response()->streamDownload(function () use ($data, $showFullPhone) {
+        return response()->streamDownload(function () use ($data) {
             $out = fopen('php://output', 'w');
 
             // BOM so Excel opens UTF-8 cleanly with the Arabic names.
@@ -264,10 +262,6 @@ class ManifestController extends Controller
             ]);
 
             foreach ($data['rows'] as $r) {
-                $phoneCsv = '';
-                if ($r['phone']) {
-                    $phoneCsv = $showFullPhone ? $r['phone'] : $this->maskPhone($r['phone']);
-                }
                 fputcsv($out, [
                     $r['section_label_en'],
                     $r['row_letter'],
@@ -275,7 +269,7 @@ class ManifestController extends Controller
                     $r['attendee_name'] ?? '',
                     $r['booking_ref'] ?? '',
                     $r['booking_owner'] ?? '',
-                    $phoneCsv,
+                    $r['phone'] ?? '',
                     $r['status_en'],
                     $r['scanned_at'] ?? '',
                 ]);
@@ -506,24 +500,5 @@ class ManifestController extends Controller
             'is_scanned' => false,
             'scanned_at' => null,
         ];
-    }
-
-    /**
-     * Mask all but the first 2 and last 4 digits of a phone number so
-     * the printed manifest is operationally useful (operator can confirm
-     * "is the last 4 digits 1234?") without exposing the full number.
-     */
-    protected function maskPhone(string $phone): string
-    {
-        $digits = preg_replace('/\D+/', '', $phone);
-        $len = strlen($digits);
-        if ($len <= 6) {
-            return $phone;
-        }
-        $prefix = substr($digits, 0, 2);
-        $suffix = substr($digits, -4);
-        $maskedLen = max(0, $len - 6);
-
-        return $prefix.str_repeat('●', $maskedLen).$suffix;
     }
 }

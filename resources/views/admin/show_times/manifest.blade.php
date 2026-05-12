@@ -25,15 +25,10 @@
     $eventTime = $showTime->time ? \Carbon\Carbon::parse($showTime->time)->format('g:i A') : '';
     $showTitle = optional($show)->title ?? '—';
 
-    // Phone masking lives in the view so the row payload stays canonical and
-    // the same data drives the CSV export.
-    $maskPhone = function (?string $phone) use ($showFullPhone) {
-        if (!$phone) return '';
-        if ($showFullPhone) return $phone;
-        $digits = preg_replace('/\D+/', '', $phone);
-        $len = strlen($digits);
-        if ($len <= 6) return $phone;
-        return substr($digits, 0, 2) . str_repeat('●', max(0, $len - 6)) . substr($digits, -4);
+    // Phones display in full — the show/hide toggle was removed per user
+    // request because operators need the full number quickly during events.
+    $displayPhone = function (?string $phone) {
+        return $phone ?: '';
     };
 
     // Group rows by section → row letter. Used by both surfaces. The
@@ -66,11 +61,10 @@
     $capacity    = $summary['total'] ?: 1;
 
     // URL helper preserves common query keys; pass null to remove one.
-    $url = function ($params = []) use ($showTime, $showFullPhone, $mode, $includeEmpty) {
+    $url = function ($params = []) use ($showTime, $mode, $includeEmpty) {
         $base = route('admin.show-times.manifest', $showTime);
         $q    = array_merge(
             [
-                'full_phone'    => $showFullPhone ? 1 : 0,
                 'mode'          => $mode,
                 'include_empty' => $includeEmpty ? 1 : 0,
             ],
@@ -80,8 +74,7 @@
         return $base . '?' . http_build_query($q);
     };
 
-    $csvUrl  = route('admin.show-times.manifest.csv', $showTime)
-        . '?' . http_build_query(['full_phone' => $showFullPhone ? 1 : 0]);
+    $csvUrl = route('admin.show-times.manifest.csv', $showTime);
 
     // Paper-mode row blocks. Empties are filtered out unless ?include_empty=1.
     $paperRowsBySectionRow = [];
@@ -337,85 +330,106 @@
     }
     .mfst-search-hint.has-result { color: var(--m-sky); }
 
-    /* Controls row — status chips on the start, density toggle on the end.
-       The density toggle is visually distinct so it doesn't read as a chip. */
+    /* Controls row — soft segmented bar: status chips and the density
+       toggle live inside a single neutral surface so the area reads as
+       one quiet control, not four competing dashboard pills. */
     .mfst-controls {
         display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-top: 4px;
+        align-items: stretch;
+        gap: 8px;
+        margin-top: 6px;
+        flex-wrap: wrap;
     }
     .mfst-chips {
-        flex: 1;
-        display: flex;
-        gap: 8px;
+        display: inline-flex;
+        gap: 2px;
+        padding: 3px;
+        border-radius: 12px;
+        border: 1px solid var(--m-border);
+        background: rgba(255,255,255,0.035);
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
-        padding: 2px 0 6px;
+        min-width: 0;
     }
     .mfst-chips::-webkit-scrollbar { display: none; }
     .mfst-chip {
+        position: relative;
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        padding: 8px 14px;
-        border-radius: 999px;
-        border: 1px solid var(--m-border);
-        background: rgba(255,255,255,0.04);
-        color: var(--m-text-2);
+        padding: 7px 12px;
+        border-radius: 9px;
+        border: 0;
+        background: transparent;
+        color: var(--m-text-3);
         font-size: 12.5px;
         font-weight: 600;
+        letter-spacing: .005em;
         white-space: nowrap;
         min-height: 36px;
         cursor: pointer;
         flex-shrink: 0;
-        transition: background .15s var(--m-ease), border-color .15s var(--m-ease), color .15s var(--m-ease);
+        transition: background .15s var(--m-ease), color .15s var(--m-ease);
         -webkit-tap-highlight-color: transparent;
+    }
+    .mfst-chip::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--m-chip-dot, rgba(148,163,184,0.5));
+        flex-shrink: 0;
+        transition: background .15s var(--m-ease), box-shadow .15s var(--m-ease);
     }
     .mfst-chip .count {
         font-size: 11px;
         font-weight: 700;
-        opacity: .75;
-        padding: 0 4px;
+        opacity: .55;
+        font-feature-settings: "tnum" 1;
     }
     .mfst-chip[aria-pressed="true"] {
-        background: var(--m-chip-bg, rgba(56,189,248,0.14));
-        border-color: var(--m-chip-color, rgba(56,189,248,0.55));
+        background: rgba(255,255,255,0.08);
         color: var(--m-text);
     }
-    .mfst-chip-approved   { --m-chip-color: rgba(52,211,153,0.65);  --m-chip-bg: rgba(52,211,153,0.12);  }
-    .mfst-chip-pending    { --m-chip-color: rgba(251,191,36,0.65);  --m-chip-bg: rgba(251,191,36,0.12);  }
-    .mfst-chip-blocked    { --m-chip-color: rgba(251,113,133,0.65); --m-chip-bg: rgba(251,113,133,0.12); }
+    .mfst-chip[aria-pressed="true"]::before {
+        background: var(--m-chip-dot, rgba(56,189,248,0.9));
+        box-shadow: 0 0 0 3px rgba(255,255,255,0.04);
+    }
+    .mfst-chip[aria-pressed="true"] .count { opacity: 1; }
+    .mfst-chip-approved { --m-chip-dot: rgba(52,211,153,0.95); }
+    .mfst-chip-pending  { --m-chip-dot: rgba(251,191,36,0.95); }
+    .mfst-chip-blocked  { --m-chip-dot: rgba(251,113,133,0.95); }
 
-    /* Density toggle — segmented, two states, sits outside the chip row. */
+    /* Density toggle — same surface treatment as chips for visual unity. */
     .mfst-density {
         flex-shrink: 0;
         display: inline-flex;
         align-items: center;
         padding: 3px;
-        gap: 0;
-        border-radius: 999px;
+        gap: 2px;
+        border-radius: 12px;
         border: 1px solid var(--m-border);
-        background: rgba(255,255,255,0.04);
+        background: rgba(255,255,255,0.035);
     }
     .mfst-density button {
         appearance: none;
         border: 0;
         background: transparent;
         color: var(--m-text-3);
-        font-size: 11.5px;
-        font-weight: 700;
-        letter-spacing: .02em;
-        padding: 7px 12px;
-        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: .01em;
+        padding: 8px 14px;
+        border-radius: 9px;
         cursor: pointer;
         min-height: 30px;
+        white-space: nowrap;
         -webkit-tap-highlight-color: transparent;
         transition: background .15s var(--m-ease), color .15s var(--m-ease);
     }
     .mfst-density button[aria-pressed="true"] {
-        background: rgba(255,255,255,0.10);
+        background: rgba(255,255,255,0.08);
         color: var(--m-text);
     }
 
@@ -905,6 +919,48 @@
     }
 
     /* ====================================================================
+       PHONE-ONLY POLISH (≤640px) — calm, one-handed, low visual noise
+       ==================================================================== */
+    @media (max-width: 640px) {
+        /* Header trims. Title is enough on small screens — the "32 / 32
+           booked" line is redundant once the chips show counts below. */
+        .mfst-head { padding: 14px 4px 2px; gap: 4px; }
+        .mfst-head .title { font-size: 16px; }
+        .mfst-head .meta { font-size: 12px; }
+
+        /* Section heads scroll naturally on phones. Sticky offset math was
+           brittle (search bar height varies with chip wrap), and a roaming
+           sticky band stacked on top of a sticky search bar reads as two
+           competing surfaces. Tone colour on each card carries the section
+           identity through the scroll, so the head is allowed to scroll off. */
+        .mfst-section-head {
+            position: static;
+            top: auto;
+            padding: 16px 4px 6px;
+            background: transparent;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+        }
+
+        /* Card: drop the status text label entirely. The coloured dot at
+           the right edge + the tone tint of the row already conveys status.
+           Reclaiming this column gives the attendee name + phone meaningful
+           breathing room on a 390px viewport. */
+        .mfst-card { grid-template-columns: 52px 1fr 14px; gap: 10px; padding: 11px 12px; }
+        .mfst-card .seat-block { justify-content: flex-start; }
+        .mfst-card .seat { font-size: 16px; }
+        .mfst-card .status { font-size: 0; gap: 0; padding: 0; }
+        .mfst-card .status .dot {
+            width: 10px;
+            height: 10px;
+        }
+
+        /* Compact rowhead — less visual weight before each row. */
+        .mfst-rowhead { padding: 4px 4px 0; font-size: 10.5px; }
+        .mfst-rowhead .r { font-size: 11px; }
+    }
+
+    /* ====================================================================
        PAPER MODE — A4 sheet + mobile dossier preview
        ==================================================================== */
     .mfst-paper-bar {
@@ -948,6 +1004,18 @@
         color: #02212d;
         box-shadow: 0 10px 26px rgba(34,211,238,0.28);
     }
+    /* On phones the bar's "Print sheet" button is redundant — the cover
+       card has its own large CTA in the thumb zone. Hide the duplicate
+       and keep the bar to just the navigational essentials. */
+    @media (max-width: 640px) {
+        .mfst-paper-bar .primary { display: none; }
+        .mfst-paper-bar { gap: 6px; padding: 10px 4px 0; margin-bottom: 12px; }
+        .mfst-paper-bar a, .mfst-paper-bar button {
+            padding: 8px 12px;
+            min-height: 38px;
+            font-size: 12px;
+        }
+    }
 
     /* Mobile preview — clean dossier, replaces the cramped A4 table.
        Hidden on tablet+ in favour of the real A4 sheet. */
@@ -963,6 +1031,19 @@
         background:
             radial-gradient(140% 80% at 100% 0%, rgba(167,139,250,0.10), transparent 60%),
             rgba(255,255,255,0.025);
+    }
+    .mfst-paper-cover .kicker {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: var(--m-text-3);
+        padding: 4px 9px;
+        border-radius: 999px;
+        border: 1px solid var(--m-border);
+        background: rgba(255,255,255,0.04);
+        margin-bottom: 14px;
     }
     .mfst-paper-cover .t {
         font-size: 18px;
@@ -1587,14 +1668,11 @@
                     <span><b>{{ $totalBooked }}</b> / {{ $capacity }} booked</span>
                 </div>
                 <div class="mfst-head-actions">
-                    <a href="{{ $url(['mode' => 'paper']) }}">🖨 Paper sheet</a>
-                    <a href="{{ $url(['full_phone' => $showFullPhone ? 0 : 1]) }}">
-                        {{ $showFullPhone ? '🙈 Mask phones' : '👁 Full phones' }}
-                    </a>
+                    <a href="{{ $url(['mode' => 'paper']) }}" class="primary">Paper sheet</a>
                     @if ($show)
-                        <a href="{{ route('admin.shows.times.index', $show) }}">← Back</a>
+                        <a href="{{ route('admin.shows.times.index', $show) }}">Back</a>
                     @else
-                        <a href="{{ route('admin.dashboard') }}">← Back</a>
+                        <a href="{{ route('admin.dashboard') }}">Back</a>
                     @endif
                 </div>
             </header>
@@ -1682,7 +1760,7 @@
                                          data-seat-num="{{ $s['seat_number'] }}"
                                          data-name="{{ $s['attendee_name'] ?? '' }}"
                                          data-owner="{{ $s['booking_owner'] ?? '' }}"
-                                         data-phone="{{ $s['phone'] ? $maskPhone($s['phone']) : '' }}"
+                                         data-phone="{{ $s['phone'] ? $displayPhone($s['phone']) : '' }}"
                                          data-booking-id="{{ $s['booking_id'] ?? '' }}"
                                          data-booking-ref="{{ $s['booking_ref'] ?? '' }}"
                                          @if ($hue !== null) data-hue="{{ $hue }}" @endif
@@ -1703,7 +1781,7 @@
                                                 @endif
                                             </div>
                                             <div class="meta">
-                                                @if ($s['phone'])<span class="phone">{{ $maskPhone($s['phone']) }}</span>@endif
+                                                @if ($s['phone'])<span class="phone">{{ $displayPhone($s['phone']) }}</span>@endif
                                                 @if ($s['phone'] && $s['booking_ref'])<span class="sep"></span>@endif
                                                 @if ($s['booking_ref'])<span class="ref">{{ $s['booking_ref'] }}</span>@endif
                                             </div>
@@ -1777,11 +1855,11 @@
         {{-- Mobile-only readable preview --}}
         <div class="mfst-paper-preview pt-no-print">
             <div class="mfst-paper-cover">
+                <span class="kicker">Preview · prints as A4 landscape</span>
                 <div class="t">{{ $showTitle }}</div>
                 <div class="d">
                     {{ $eventDate }}
                     @if ($eventTime) · {{ $eventTime }} @endif
-                    · A4 landscape sheet
                 </div>
                 <div class="stats">
                     <div class="s is-approved"><b>{{ $summary['approved'] }}</b><span>Approved</span></div>
@@ -1839,7 +1917,7 @@
                                         <div class="sub">
                                             @if ($s['booking_ref'])<span class="ref">{{ $s['booking_ref'] }}</span>@endif
                                             @if ($s['booking_ref'] && $s['phone']) · @endif
-                                            @if ($s['phone'])<span class="phone">{{ $maskPhone($s['phone']) }}</span>@endif
+                                            @if ($s['phone'])<span class="phone">{{ $displayPhone($s['phone']) }}</span>@endif
                                         </div>
                                     @endif
                                 </div>
@@ -1940,7 +2018,7 @@
                                             @endif
                                         </td>
                                         <td class="t-ref">{{ $s['booking_ref'] ?: '—' }}</td>
-                                        <td class="t-phone">{{ $maskPhone($s['phone']) }}</td>
+                                        <td class="t-phone">{{ $displayPhone($s['phone']) }}</td>
                                     </tr>
                                 @endforeach
                             @endforeach
@@ -1962,7 +2040,7 @@
                 <span><span class="g">●</span> Approved</span>
                 <span><span class="g">◐</span> Pending</span>
                 <span><span class="g">✕</span> Blocked</span>
-                <span style="margin-inline-start:auto;">Printed {{ now()->format('Y-m-d H:i') }} · Phones masked except last 4 · Coloured band = same booking</span>
+                <span style="margin-inline-start:auto;">Printed {{ now()->format('Y-m-d H:i') }} · Coloured band = same booking</span>
             </div>
         </div>
         </div>{{-- /.mfst-paper-scroll --}}
