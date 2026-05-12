@@ -6574,7 +6574,7 @@
 
                 {{-- Trust signals --}}
                 <div>
-                    <div class="pt-footer-col-title" data-i18n="foot_legal">الدعم</div>
+                    
                     <div class="flex flex-wrap gap-2">
                         <span class="prism-pill" data-i18n="foot_fast">حجز فوري</span>
                         <span class="prism-pill" data-i18n="foot_secure">دفع آمن</span>
