@@ -8369,6 +8369,13 @@
         // scanner, ...) can build dynamic strings in the active language.
         window.PT_I18N = I18N;
         window.PT_T    = ptT;
+        // Tracks whether applyLang has completed at least one full
+        // translation pass. The first call must always run end-to-end
+        // (even when lang == prevLang) because the static markup ships
+        // in Arabic but a returning English user has data-pt-lang="en"
+        // pre-set by the head boot script — without this guard the
+        // page would stay Arabic for EN users.
+        let __ptLangInitialized = false;
         function applyLang(lang) {
             const dict = I18N[lang] || I18N.ar;
             // Only fire pt:langchange and rewrite document attributes if
@@ -8387,8 +8394,9 @@
             document.documentElement.setAttribute('data-pt-lang', lang);
             document.documentElement.lang = lang;
             document.documentElement.dir  = (lang === 'en') ? 'ltr' : 'rtl';
-            if (!langChanged) {
-                // Already in this language — skip the heavy DOM rewrite
+            if (!langChanged && __ptLangInitialized) {
+                // Already in this language AND we've already done the
+                // initial translation pass — skip the heavy DOM rewrite
                 // and the pt:langchange dispatch. Keep the thumb position
                 // fresh because the resize that triggered us may have
                 // changed the toggle's measured width.
@@ -8396,6 +8404,7 @@
                 window.PT_LANG = lang;
                 return;
             }
+            __ptLangInitialized = true;
             // Read optional `data-i18n-vars='{"n": 5}'` JSON for placeholder
             // substitution in {n}-style templates. Returns an empty object on
             // missing/invalid JSON so the raw template still renders cleanly.
