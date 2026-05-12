@@ -2200,6 +2200,18 @@
        Bottom sheet — open card → fill detail. No scan/check-in.
        ==================================================================== */
     const sheet = document.querySelector('[data-sheet]');
+
+    // Portal the sheet to <body> so position: fixed actually anchors to the
+    // viewport. Without this it lives inside <main class="pt-page">, which
+    // has a CSS transform creating a containing block, and the sheet ends
+    // up anchored to the bottom of main (past the page fold) — the site
+    // footer then bleeds through the sheet card. Same root cause + fix as
+    // the checkout dock (#32), the admin action bar (#37), and the resend
+    // toast (#41).
+    if (sheet && sheet.parentElement !== document.body) {
+        document.body.appendChild(sheet);
+    }
+
     const sheetScrim = document.querySelector('.js-sheet-scrim');
     const sheetClose = document.querySelector('.js-sheet-close');
     let lastFocusedCard = null;
