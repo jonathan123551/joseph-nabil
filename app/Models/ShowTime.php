@@ -30,6 +30,66 @@ class ShowTime extends Model
         return $this->belongsTo(Show::class);
     }
 
+    /**
+     * Canonical "when does this showtime start, as a UTC timestamp".
+     *
+     * The DB stores the local date and local time as two separate columns
+     * (`date` cast as a Carbon date, `time` as a raw string from a HTML5
+     * `<input type="time">`). Different code paths used to glue those
+     * pieces together inline — usually as
+     * `Carbon::parse($s->date->format('Y-m-d') . ' ' . $s->time)` — but
+     * each call site handled edge cases slightly differently:
+     *   - the `time` column comes back as `'19:00'` from a Postgres
+     *     timestamp-without-tz column on Railway, but as `'19:00:00'`
+     *     from the historical seeder, and Carbon parses both happily —
+     *     unless someone passes the raw value into JS;
+     *   - some call sites forgot to pin the parse to `Africa/Cairo`, so
+     *     the resulting Carbon picked up whatever `app.timezone` was at
+     *     boot (or the server's, on stale opcache);
+     *   - missing/null values blew up the view with an Exception before
+     *     the try/catch could fire.
+     *
+     * Centralising the computation here means the thank-you countdown,
+     * the show-detail ETA chips, and any future surface (calendar
+     * exports, scheduled push reminders, …) all read the *same* UTC
+     * Carbon. Returns `null` on any unparseable input so callers can
+     * skip rendering the countdown block instead of crashing.
+     */
+    public function getStartsAtUtcAttribute(): ?\Carbon\Carbon
+    {
+        if (! $this->date || ! $this->time) {
+            return null;
+        }
+
+        $dateStr = $this->date instanceof \DateTimeInterface
+            ? $this->date->format('Y-m-d')
+            : (string) $this->date;
+
+        // Normalise the time string: strip microsecond / timezone tails
+        // some drivers append (`19:00:00.000000`, `19:00:00+03`), and
+        // pad short forms so Carbon's strict parsers stay happy.
+        $rawTime = trim((string) $this->time);
+        $rawTime = preg_replace('/[.+\-].*$/', '', $rawTime) ?: $rawTime;
+        if (preg_match('/^\d{1,2}:\d{2}$/', $rawTime)) {
+            $rawTime .= ':00';
+        }
+
+        try {
+            return \Carbon\Carbon::parse(
+                $dateStr.' '.$rawTime,
+                config('app.timezone', 'Africa/Cairo')
+            )->utc();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('ShowTime::startsAtUtc parse failed', [
+                'show_time_id' => $this->id,
+                'date'         => $dateStr,
+                'time'         => $rawTime,
+                'error'        => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
     // 👈 دي اللي ناقصاك: كل الحجوزات المرتبطة بالميعاد ده
     public function bookings()
     {
