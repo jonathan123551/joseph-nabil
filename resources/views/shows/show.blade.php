@@ -23,13 +23,15 @@
         $remaining  = $time->effectiveRemainingTickets();
         $isSoldOut  = $time->is_sold_out || $remaining <= 0;
         $fewTickets = $remaining > 0 && $remaining <= 10;
-        $startsAt   = \Carbon\Carbon::parse($time->date->format('Y-m-d') . ' ' . $time->time);
+        // Single canonical parser — see ShowTime::getStartsAtUtcAttribute.
+        $startsAt   = $time->starts_at_utc;
         return [
             'time'       => $time,
             'remaining'  => $remaining,
             'isSoldOut'  => $isSoldOut,
             'fewTickets' => $fewTickets,
-            'iso'        => $startsAt->toIso8601String(),
+            'iso'        => $startsAt ? $startsAt->toIso8601String() : '',
+            'ms'         => $startsAt ? $startsAt->getTimestamp() * 1000 : 0,
         ];
     });
 
@@ -136,7 +138,9 @@
                                     {{ \Carbon\Carbon::parse($time->time)->format('g:i') }}<span class="pt-time-time-meridian">{{ \Carbon\Carbon::parse($time->time)->format('A') }}</span>
                                 </span>
 
-                                <span class="pt-time-eta" data-pt-eta="{{ $c['iso'] }}">
+                                <span class="pt-time-eta"
+                                      data-pt-eta="{{ $c['iso'] }}"
+                                      data-pt-eta-ms="{{ $c['ms'] }}">
                                     <span data-pt-eta-text>—</span>
                                 </span>
 
@@ -230,10 +234,17 @@
     }
     function tickETA() {
         document.querySelectorAll('[data-pt-eta]').forEach(function (chip) {
-            var iso = chip.getAttribute('data-pt-eta');
             var txt = chip.querySelector('[data-pt-eta-text]');
-            if (!iso || !txt) return;
-            var t = Date.parse(iso);
+            if (!txt) return;
+            // Prefer unix-ms (unambiguous everywhere); fall back to ISO
+            // and rewrite trailing `+00:00` → `Z` for old WebKit.
+            var t = parseInt(chip.getAttribute('data-pt-eta-ms'), 10);
+            if (!isFinite(t) || t <= 0) {
+                var iso = chip.getAttribute('data-pt-eta');
+                if (!iso) return;
+                t = Date.parse(iso);
+                if (isNaN(t)) t = Date.parse(iso.replace(/\+00:00$/, 'Z'));
+            }
             if (!isFinite(t)) return;
             txt.textContent = fmtETA(t);
         });

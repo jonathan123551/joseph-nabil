@@ -8,24 +8,17 @@
 @php
     // Build calendar metadata once on the server. Show start = date + time;
     // we estimate a 3h end. UTC ISO is required for the .ics VEVENT block.
-    $showTime = $booking->showTime ?? null;
-    $show     = $showTime ? ($showTime->show ?? null) : null;
-    $startAt  = null;
-    $endAt    = null;
+    //
+    // Both old (seeded) and newly-admin-created showtimes go through the
+    // same ShowTime::startsAtUtc accessor now, so the countdown,
+    // calendar export, and any future scheduled reminder all share one
+    // canonical parser — no more "works for old shows, fails for new
+    // ones" drift.
+    $showTime  = $booking->showTime ?? null;
+    $show      = $showTime ? ($showTime->show ?? null) : null;
+    $startAt   = $showTime ? $showTime->starts_at_utc : null;
+    $endAt     = $startAt ? $startAt->copy()->addHours(3) : null;
     $showTitle = $show ? $show->title : '';
-    if ($showTime && $showTime->date && $showTime->time) {
-        try {
-            $start = \Carbon\Carbon::parse(
-                $showTime->date->format('Y-m-d') . ' ' . $showTime->time,
-                config('app.timezone', 'Africa/Cairo')
-            );
-            $startAt = $start->copy()->utc();
-            $endAt   = $start->copy()->addHours(3)->utc();
-        } catch (\Throwable $e) {
-            $startAt = null;
-            $endAt = null;
-        }
-    }
     $calLabel   = $showTitle !== '' ? $showTitle : 'Premium Tickets';
     $calDetails = 'Reference: ' . $booking->reference_code;
     // Build a real RFC-5545 .ics VEVENT body. We embed the bytes in a
@@ -168,8 +161,13 @@
                 <div class="h-px bg-[color:var(--prism-border)]"></div>
                 <div class="flex justify-between items-center gap-3">
                     <span class="text-[color:var(--prism-text-3)] text-xs shrink-0" data-i18n="thx_countdown_label">يبدأ العرض خلال</span>
+                    {{-- Emit unix MS as the primary attribute and ISO as a
+                         fallback. Some Safari versions choke on ISO8601
+                         strings that omit the `Z` zulu shorthand, but
+                         unix MS is unambiguous everywhere. --}}
                     <span class="font-semibold text-sm text-[color:var(--prism-text)] whitespace-nowrap tabular-nums"
                           data-pt-countdown
+                          data-target-ms="{{ $startAt->getTimestamp() * 1000 }}"
                           data-target-iso="{{ $startAt->toIso8601String() }}"
                           aria-live="polite">—</span>
                 </div>
@@ -300,12 +298,27 @@
         return parts.join(' ');
     }
 
+    function readTargetMs(el) {
+        // Prefer the explicit unix-ms attribute — unambiguous in every
+        // browser. Fall back to parsing the ISO string; some Safari
+        // versions reject ISO8601 strings that use `+00:00` instead of
+        // `Z`, which is exactly what `Carbon::toIso8601String()` emits.
+        var ms = parseInt(el.getAttribute('data-target-ms'), 10);
+        if (isFinite(ms) && ms > 0) return ms;
+        var iso = el.getAttribute('data-target-iso');
+        if (!iso) return NaN;
+        var parsed = Date.parse(iso);
+        if (isNaN(parsed)) {
+            // Last-ditch retry: rewrite `+00:00` → `Z` for old WebKit.
+            parsed = Date.parse(iso.replace(/\+00:00$/, 'Z'));
+        }
+        return parsed;
+    }
+
     function tick() {
         nodes.forEach(function (el) {
-            var iso = el.getAttribute('data-target-iso');
-            if (!iso) return;
-            var target = Date.parse(iso);
-            if (isNaN(target)) return;
+            var target = readTargetMs(el);
+            if (!isFinite(target)) return;
             el.textContent = fmt(target - Date.now());
         });
     }
