@@ -71,6 +71,14 @@
         {{-- Camera mount. html5-qrcode injects its <video> here. --}}
         <div id="qr-reader" class="scanner-video"></div>
 
+        {{-- Stage 2: live zoom indicator. Only shows when zoom > 1.0×
+             via the is-visible class. Sits outside #qr-reader so it
+             survives the innerHTML wipe Path A / Path B do at mount
+             time. --}}
+        <div id="scan-zoom-chip" class="scan-zoom-chip" aria-hidden="true">
+            <span data-zoom-text>1.0×</span>
+        </div>
+
         {{-- Reticle frame + corner brackets + scan line. Pointer-events:
              none so taps fall through to the camera. --}}
         <div class="scanner-overlay" aria-hidden="true">
@@ -428,6 +436,52 @@
     background: linear-gradient(135deg, rgba(251,191,36,0.18), rgba(251,191,36,0.04));
     border-color: rgba(253,224,71,0.45);
     color: #fef3c7;
+}
+
+/* =========================================================
+   STAGE 2 — low-light flash suggest pulse + zoom indicator
+   =========================================================
+   The flash button pulses softly when the watchdog detects
+   prolonged low ambient luminance AND the device exposes a
+   torch capability AND the operator hasn't already turned
+   the flash on. We never auto-toggle the torch — the visual
+   suggest respects operator preference. */
+.scanner-controls .prism-btn-ghost.is-suggest:not(.is-on) {
+    animation: scanner-flash-suggest 1.4s ease-in-out infinite;
+    border-color: rgba(253,224,71,0.55);
+    color: #fef3c7;
+}
+@keyframes scanner-flash-suggest {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(253,224,71,0.45); }
+    50%      { box-shadow: 0 0 0 6px rgba(253,224,71,0.00); }
+}
+
+/* Live zoom indicator chip, used by both the pinch-to-zoom
+   handler and the auto-zoom recovery logic so the operator
+   knows the camera is currently zoomed in. */
+.scanner-stage { position: relative; }
+.scan-zoom-chip {
+    position: absolute;
+    top: 12px;
+    inset-inline-start: 12px;
+    z-index: 5;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(2,4,12,0.55);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: #fef3c7;
+    font: 600 11px/1 ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: 0.02em;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: opacity .18s ease, transform .18s ease;
+}
+.scan-zoom-chip.is-visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 /* =========================================================
@@ -1072,6 +1126,328 @@
        ============================================================ */
     let activeTrack = null;       // MediaStreamTrack for the live camera
 
+    /* ============================================================
+       Stage 2 — advanced detection / reliability scaffolding
+
+       These helpers layer ON TOP of the bootstrapped decode path
+       (A native / B ZXing / C html5-qrcode) once a camera is live.
+       Each feature is INDEPENDENTLY GATED on either a track
+       capability or an operator gesture, so on iPhone Safari
+       builds that don't expose `zoom` or `torch` the relevant code
+       paths quietly no-op rather than regress the scanner.
+
+       Concerns implemented here:
+         • luminance helpers (packLuminance, meanLuminance) reused
+           across Path B's multi-pass decode AND the low-light
+           torch watchdog
+         • image-preprocessing transforms used in Path B's miss
+           recovery (adaptive threshold, invert, center-ROI 2×
+           upscale) for compressed / inverted / small QRs
+         • capability cache populated by updateCapabilities(track)
+           so the rest of the system can cheaply check what the
+           camera actually supports
+         • zoom helpers (setZoom + pinch-to-zoom) for operator
+           gestures AND auto-recovery
+         • low-light watchdog that pulses the flash button when
+           ambient luminance is genuinely dim AND torch is supported
+           AND the operator hasn't already turned the torch on
+
+       Every effect here is best-effort: applyConstraints failures,
+       missing capabilities, or unexpected exceptions all degrade
+       silently to baseline behaviour.
+       ============================================================ */
+
+    /* --- Luminance helpers --------------------------------------- */
+
+    // Pack RGBA pixel buffer down to a single-channel luminance
+    // array using the same Rec. 601 weights ZXing.RGBLuminanceSource
+    // uses internally. Inlined here so we can also feed it to the
+    // miss-recovery passes (threshold / invert / upscale) without
+    // rebuilding it on every pass.
+    function packLuminance(rgbaData) {
+        const len = rgbaData.length >>> 2;
+        const out = new Uint8ClampedArray(len);
+        for (let i = 0, j = 0; i < rgbaData.length; i += 4, j++) {
+            out[j] = (
+                rgbaData[i]     * 0.299 +
+                rgbaData[i + 1] * 0.587 +
+                rgbaData[i + 2] * 0.114
+            ) | 0;
+        }
+        return out;
+    }
+
+    // Sampled mean luminance — stride 16 keeps this <1ms even on
+    // 1280×720. Good enough for an ambient-light estimate.
+    function meanLuminance(lum) {
+        if (!lum || lum.length === 0) return 255;
+        let sum = 0, count = 0;
+        for (let i = 0; i < lum.length; i += 16) {
+            sum += lum[i];
+            count++;
+        }
+        return count > 0 ? (sum / count) | 0 : 255;
+    }
+
+    // Adaptive threshold pass — push borderline pixels hard to
+    // black/white based on the global mean. Helps WhatsApp-compressed
+    // JPEG QR codes where the white background isn't really white
+    // anymore.
+    function thresholdLuminance(lum, mean) {
+        const t = mean;
+        const out = new Uint8ClampedArray(lum.length);
+        for (let i = 0; i < lum.length; i++) {
+            out[i] = lum[i] >= t ? 255 : 0;
+        }
+        return out;
+    }
+
+    // Invert pass — for QRs that are printed light-on-dark (digital
+    // tickets with dark themes, some sticker stocks, etc).
+    function invertLuminance(lum) {
+        const out = new Uint8ClampedArray(lum.length);
+        for (let i = 0; i < lum.length; i++) {
+            out[i] = 255 - lum[i];
+        }
+        return out;
+    }
+
+    // Bilinear upscale of the center 50% of the frame to the full
+    // canvas. Operates on the single-channel luminance buffer so we
+    // skip a canvas roundtrip. Helps when the QR is small or far
+    // from the camera and the operator hasn't pinched / zoomed yet.
+    function centerRoiUpscale(lum, w, h) {
+        const x0 = w >> 2;
+        const y0 = h >> 2;
+        const rw = w >> 1;
+        const rh = h >> 1;
+        const ow = w;
+        const oh = h;
+        const out = new Uint8ClampedArray(ow * oh);
+        const sx = rw / ow;
+        const sy = rh / oh;
+        const xLast = x0 + rw - 1;
+        const yLast = y0 + rh - 1;
+        for (let y = 0; y < oh; y++) {
+            const fy = y * sy + y0;
+            const iy = fy | 0;
+            const ay = fy - iy;
+            const iyn = iy + 1 < yLast ? iy + 1 : yLast;
+            const rowA = iy  * w;
+            const rowB = iyn * w;
+            const outRow = y * ow;
+            for (let x = 0; x < ow; x++) {
+                const fx = x * sx + x0;
+                const ix = fx | 0;
+                const ax = fx - ix;
+                const ixn = ix + 1 < xLast ? ix + 1 : xLast;
+                const p00 = lum[rowA + ix ];
+                const p10 = lum[rowA + ixn];
+                const p01 = lum[rowB + ix ];
+                const p11 = lum[rowB + ixn];
+                const top = p00 + (p10 - p00) * ax;
+                const bot = p01 + (p11 - p01) * ax;
+                out[outRow + x] = (top + (bot - top) * ay) | 0;
+            }
+        }
+        return out;
+    }
+
+    // Wrapper around ZXing.MultiFormatReader.decode() that handles
+    // the constructor-signature drift across @zxing/library builds.
+    // Returns either a Result or null. Used by Path B's main pass
+    // AND each miss-recovery pass.
+    function tryZXingDecode(lum, w, h, mfr, hints) {
+        if (!lum || !mfr) return null;
+        let lumSource;
+        try {
+            lumSource = new ZXing.RGBLuminanceSource(lum, w, h);
+        } catch (_) {
+            try { lumSource = new ZXing.RGBLuminanceSource(w, h, lum); }
+            catch (__) { return null; }
+        }
+        let result = null;
+        try {
+            const binarizer = new ZXing.HybridBinarizer(lumSource);
+            const bitmap    = new ZXing.BinaryBitmap(binarizer);
+            result = mfr.decode(bitmap, hints || undefined);
+        } catch (_) {
+            // NotFoundException is the common case — no QR in frame.
+            result = null;
+        } finally {
+            try { mfr.reset(); } catch (_) {}
+        }
+        return result;
+    }
+
+    /* --- Capability cache + zoom / torch / pinch ----------------- */
+
+    const capability = {
+        torch:    false,
+        zoom:     false,
+        zoomMin:  1,
+        zoomMax:  1,
+        zoomStep: 0.1,
+    };
+    let zoomCurrent     = 1;
+    let zoomBaseAtTouch = 1;
+    let pinchStartDist  = 0;
+    let lastLuminance   = 255;     // updated by Path B's tick + low-light watchdog
+    let lowLightTimer   = null;
+    let pinchAttachedTo = null;    // host element pinch handlers are bound to
+
+    const $zoomChip      = document.getElementById('scan-zoom-chip');
+    const $zoomChipText  = $zoomChip ? $zoomChip.querySelector('[data-zoom-text]') : null;
+
+    function setZoomChip(level) {
+        if (!$zoomChip || !$zoomChipText) return;
+        if (level > 1.05) {
+            $zoomChipText.textContent = level.toFixed(1) + '×';
+            $zoomChip.classList.add('is-visible');
+        } else {
+            $zoomChip.classList.remove('is-visible');
+        }
+    }
+
+    function updateCapabilities(track) {
+        try {
+            if (!track || typeof track.getCapabilities !== 'function') return;
+            const caps = track.getCapabilities();
+            capability.torch = !!('torch' in caps);
+            // Some browsers expose `zoom` as either a MediaSettingsRange
+            // object ({min, max, step}) or a plain number. Treat both.
+            if (caps.zoom) {
+                if (typeof caps.zoom === 'object') {
+                    capability.zoom     = true;
+                    capability.zoomMin  = caps.zoom.min  || 1;
+                    capability.zoomMax  = caps.zoom.max  || 1;
+                    capability.zoomStep = caps.zoom.step || 0.1;
+                } else if (typeof caps.zoom === 'number') {
+                    capability.zoom    = true;
+                    capability.zoomMin = 1;
+                    capability.zoomMax = caps.zoom;
+                }
+            }
+            // Only register a true zoom capability if the range is
+            // actually useful (Safari sometimes reports min==max==1).
+            if (capability.zoomMax <= capability.zoomMin) {
+                capability.zoom = false;
+            }
+        } catch (_) {}
+    }
+
+    async function setZoom(level) {
+        if (!capability.zoom || !activeTrack ||
+            typeof activeTrack.applyConstraints !== 'function') {
+            return false;
+        }
+        const clamped = Math.max(
+            capability.zoomMin,
+            Math.min(capability.zoomMax, level || 1)
+        );
+        try {
+            await activeTrack.applyConstraints({ advanced: [{ zoom: clamped }] });
+            zoomCurrent = clamped;
+            setZoomChip(clamped);
+            return true;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function touchDistance(touches) {
+        if (!touches || touches.length < 2) return 0;
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.hypot(dx, dy);
+    }
+
+    // Pinch-to-zoom — only wired when the live track exposes a
+    // meaningful `zoom` capability. We use passive listeners so we
+    // don't fight the operator scrolling the page or interacting with
+    // the result sheet; the only thing we ever block is the default
+    // touchmove behaviour for two-finger gestures (so iPhone Safari
+    // doesn't try to page-zoom on top of our camera zoom).
+    function attachPinchZoom(host) {
+        if (!host || !capability.zoom) return;
+        if (pinchAttachedTo === host) return;
+        pinchAttachedTo = host;
+
+        host.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                pinchStartDist  = touchDistance(e.touches);
+                zoomBaseAtTouch = zoomCurrent;
+            }
+        }, { passive: true });
+
+        host.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && pinchStartDist > 0) {
+                // Prevent the default Safari page-zoom on a two-finger
+                // gesture, but ONLY for two-finger touches inside the
+                // camera host. Single-finger scrolling / tapping is
+                // untouched.
+                try { e.preventDefault(); } catch (_) {}
+                const newDist = touchDistance(e.touches);
+                if (newDist > 0) {
+                    const scale = newDist / pinchStartDist;
+                    setZoom(zoomBaseAtTouch * scale);
+                }
+            }
+        }, { passive: false });
+
+        host.addEventListener('touchend', () => {
+            pinchStartDist  = 0;
+            zoomBaseAtTouch = zoomCurrent;
+        }, { passive: true });
+
+        host.addEventListener('touchcancel', () => {
+            pinchStartDist  = 0;
+            zoomBaseAtTouch = zoomCurrent;
+        }, { passive: true });
+    }
+
+    // Low-light watchdog. Pulses the flash button (CSS class
+    // .is-suggest) when ambient luminance has been dim for a while
+    // AND the device has a torch AND the operator hasn't already
+    // turned the torch on. We NEVER auto-toggle the torch — some
+    // operators prefer to keep it off for spectator-comfort reasons,
+    // and silently flipping a strobe on them is exactly the wrong UX.
+    function startLowLightWatchdog() {
+        if (lowLightTimer) return; // idempotent
+        lowLightTimer = setInterval(() => {
+            try {
+                const $btn = document.getElementById('flashBtn');
+                if (!$btn) return;
+                // If flash is already on, or device doesn't support it,
+                // clear the suggest state and bail.
+                if (!capability.torch || flashOn) {
+                    $btn.classList.remove('is-suggest');
+                    return;
+                }
+                // <60 on the 0–255 scale reads as genuinely dim, not
+                // just dim-but-readable. Tuned empirically against an
+                // iPhone front-camera-as-test-device baseline.
+                if (lastLuminance < 60) {
+                    $btn.classList.add('is-suggest');
+                } else {
+                    $btn.classList.remove('is-suggest');
+                }
+            } catch (_) {}
+        }, 1000);
+    }
+
+    // Single entry-point each decode path calls once the camera is
+    // live. Refreshes capabilities, wires zoom / pinch if available,
+    // starts the low-light watchdog if torch is available.
+    function setupCapabilityFeatures(track, hostEl) {
+        if (!track) return;
+        updateCapabilities(track);
+        if (capability.zoom && hostEl) attachPinchZoom(hostEl);
+        // Torch watchdog runs always (cheap interval); the per-tick
+        // guard inside handles the missing-capability case.
+        startLowLightWatchdog();
+    }
+
     /**
      * Stop every track on a stream and null out activeTrack if it
      * matches. Used by every null-return path below so we never leak
@@ -1165,6 +1541,10 @@
                     ],
                 });
             } catch (_) {}
+
+            // Stage 2 — wire capability-gated features (torch suggest,
+            // pinch-to-zoom) on top of the native decode path.
+            try { setupCapabilityFeatures(track, video); } catch (_) {}
 
             let detector;
             try {
@@ -1385,10 +1765,28 @@
                 }
             };
 
+            // Stage 2 — wire capability-gated features (torch suggest,
+            // pinch-to-zoom) on top of Path B. Has to come AFTER
+            // applyConstraints so getCapabilities() reflects the
+            // settled track state.
+            try { setupCapabilityFeatures(track, video); } catch (_) {}
+
+            // Miss-recovery state machine — we only spend extra CPU
+            // on the enhanced passes (threshold / invert / center-ROI
+            // upscale) when the fast normal pass has been MISSING for
+            // a while. Steady-state scan-and-go workflows keep the
+            // CPU footprint the same as scanner engine v5.
+            let lastSuccessAt   = Date.now();
+            let lastLumSampleAt = 0;
+            let autoZoomActive  = false;
+
             // Decode budget — we cap each ZXing.decode() call to one
             // attempt per frame. On iPhone Safari this is ~30 attempts
             // per second which is more than enough; TRY_HARDER does
-            // the heavy lifting per attempt.
+            // the heavy lifting per attempt. Miss-recovery passes
+            // (Stage 2 item C) add 2–3 extra decode calls per frame
+            // BUT ONLY when the fast normal pass missed AND we've
+            // been missing for longer than a per-pass threshold.
             const tick = () => {
                 if (stopped) return;
                 if (paused || sheetOpen || video.readyState < 2) {
@@ -1417,54 +1815,93 @@
                         }
                         ctx.drawImage(video, 0, 0, cw, ch);
                         const img = ctx.getImageData(0, 0, cw, ch);
+                        const luminances = packLuminance(img.data);
 
-                        // Build a Luminance source from the RGBA pixel
-                        // buffer. ZXing.RGBLuminanceSource expects a
-                        // 32-bit packed array, so we pack on the fly.
-                        const len = img.data.length / 4;
-                        const luminances = new Uint8ClampedArray(len);
-                        for (let i = 0, j = 0; i < img.data.length; i += 4, j++) {
-                            // Standard luminance weights — same as
-                            // ZXing's own RGBLuminanceSource does
-                            // internally, but precomputed here so we
-                            // avoid a per-pixel function call.
-                            luminances[j] = (
-                                img.data[i]     * 0.299 +
-                                img.data[i + 1] * 0.587 +
-                                img.data[i + 2] * 0.114
-                            ) | 0;
+                        const now    = Date.now();
+                        const missMs = now - lastSuccessAt;
+
+                        // Pass 1 — fast normal decode. ZXing already
+                        // runs an internal HybridBinarizer so most
+                        // well-lit, well-framed QRs resolve here.
+                        let result = tryZXingDecode(luminances, cw, ch, mfr, hints);
+
+                        // Sample mean luminance once every ~750ms.
+                        // The low-light watchdog reads `lastLuminance`
+                        // from this. Sampling per-frame would be
+                        // wasteful and would flicker the suggest UI.
+                        if (now - lastLumSampleAt > 750) {
+                            lastLuminance   = meanLuminance(luminances);
+                            lastLumSampleAt = now;
                         }
 
-                        try {
-                            // The exact RGBLuminanceSource constructor
-                            // signature varies across builds — older
-                            // builds want (width, height, pixels) and
-                            // newer ones want (pixels, width, height).
-                            // We try the newer form first and fall back.
-                            let lum;
-                            try {
-                                lum = new ZXing.RGBLuminanceSource(luminances, cw, ch);
-                            } catch (_) {
-                                lum = new ZXing.RGBLuminanceSource(cw, ch, luminances);
+                        // Pass 2 — adaptive threshold. Triggered after
+                        // >=250ms of misses. Helps WhatsApp-compressed
+                        // QR screenshots whose whites have drifted
+                        // grey, and dim-but-not-dark frames where the
+                        // HybridBinarizer's local threshold is off.
+                        if (!result && missMs > 250) {
+                            const mean = meanLuminance(luminances);
+                            const thr  = thresholdLuminance(luminances, mean);
+                            result = tryZXingDecode(thr, cw, ch, mfr, hints);
+                        }
+
+                        // Pass 3 — inverted. Triggered after >=400ms
+                        // of misses. Covers light-QR-on-dark-print
+                        // tickets that the ALSO_INVERTED hint can
+                        // sometimes still miss when combined with
+                        // a difficult angle.
+                        if (!result && missMs > 400) {
+                            const inv = invertLuminance(luminances);
+                            result = tryZXingDecode(inv, cw, ch, mfr, hints);
+                        }
+
+                        // Pass 4 — center ROI 2× upscale. Triggered
+                        // after >=600ms of misses. Helps when the QR
+                        // is held farther from the camera and is
+                        // simply too small for ZXing to lock on at
+                        // the native resolution.
+                        if (!result && missMs > 600) {
+                            const up = centerRoiUpscale(luminances, cw, ch);
+                            result = tryZXingDecode(up, cw, ch, mfr, hints);
+                        }
+
+                        // Auto-zoom recovery — after >=1000ms of
+                        // misses AND track exposes a usable zoom
+                        // capability AND we're not already mid-bump,
+                        // try a 2× zoom (clamped to capability) for
+                        // ~1.6s. Reverts to 1× if still no decode.
+                        // Idempotent: autoZoomActive guards against
+                        // re-firing while a bump is in progress.
+                        if (!result && capability.zoom && !autoZoomActive &&
+                            missMs > 1000 && Math.abs(zoomCurrent - 1) < 0.05) {
+                            autoZoomActive = true;
+                            const target = Math.min(2, capability.zoomMax);
+                            setZoom(target).then((ok) => {
+                                if (!ok) {
+                                    autoZoomActive = false;
+                                    return;
+                                }
+                                setTimeout(() => {
+                                    autoZoomActive = false;
+                                    // Only revert to 1× if we still
+                                    // haven't decoded — if a scan
+                                    // landed at 2×, the operator
+                                    // gets to keep the zoom.
+                                    if (Date.now() - lastSuccessAt > 800) {
+                                        setZoom(capability.zoomMin);
+                                    }
+                                }, 1600);
+                            });
+                        }
+
+                        if (result) {
+                            let text = '';
+                            try { text = (typeof result.getText === 'function') ? result.getText() : (result.text || ''); }
+                            catch (_) { text = ''; }
+                            if (text) {
+                                lastSuccessAt = now;
+                                onScanSuccess(text);
                             }
-                            const binarizer = new ZXing.HybridBinarizer(lum);
-                            const bitmap    = new ZXing.BinaryBitmap(binarizer);
-                            let result;
-                            try {
-                                result = mfr.decode(bitmap, hints || undefined);
-                            } finally {
-                                try { mfr.reset(); } catch (_) {}
-                            }
-                            if (result) {
-                                let text = '';
-                                try { text = (typeof result.getText === 'function') ? result.getText() : (result.text || ''); }
-                                catch (_) { text = ''; }
-                                if (text) onScanSuccess(text);
-                            }
-                        } catch (_) {
-                            // ZXing throws NotFoundException when there
-                            // is no QR in the frame. That's the common
-                            // case — silently move on.
                         }
                     }
                 } catch (_) { /* per-frame errors are transient */ }
@@ -1563,6 +2000,12 @@
                             activeTrack = s.getVideoTracks()[0] || null;
                         }
                     } catch (_) {}
+                    // Stage 2 — wire capability-gated features (torch
+                    // suggest, pinch-to-zoom) on top of Path C. Same
+                    // entry point as Path A / Path B so the operator
+                    // gets uniform UX regardless of which engine
+                    // bootstrapped.
+                    try { setupCapabilityFeatures(activeTrack, v); } catch (_) {}
                 }
             } catch (_) {}
             try {
@@ -1695,10 +2138,15 @@
             flashOn = !flashOn;
             await activeTrack.applyConstraints({ advanced: [{ torch: flashOn }] });
             $flashBtn.classList.toggle('is-on', flashOn);
+            // Once the operator interacts with the torch, suppress the
+            // low-light suggest pulse for this session — they've made
+            // their preference clear and we shouldn't keep nagging.
+            $flashBtn.classList.remove('is-suggest');
         } catch (_) {
             alert(tt('adm_scanner_no_torch', 'الفلاش غير مدعوم'));
             flashOn = false;
             $flashBtn.classList.remove('is-on');
+            $flashBtn.classList.remove('is-suggest');
         }
     });
     document.getElementById('restartBtn').addEventListener('click', () => location.reload());
