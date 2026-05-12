@@ -750,6 +750,17 @@
     text-align: center;
 }
 
+/* First-scan success is intentionally calm: no warning chrome, no
+   instructional dismiss-hint. The big green ✓ badge + name + seat
+   + show is the whole story. We only keep the dismiss-hint visible
+   on `used` and `error` results, where the operator may need the
+   "tap to close" reminder before the next attendee. The used-note
+   is `hidden` from JS on OK too — these CSS rules are belt-and-
+   braces so an OK first-scan can NEVER surface duplicate-scan
+   chrome. */
+.scan-sheet[data-result="ok"] .scan-sheet-used-note { display: none !important; }
+.scan-sheet[data-result="ok"] .scan-sheet-hint      { display: none !important; }
+
 /* =========================================================
    LIGHT MODE POLISH — scanner page chrome + result sheet
    =========================================================
