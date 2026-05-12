@@ -83,7 +83,7 @@
                 <span class="prism-eyebrow">OVERVIEW</span>
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 prism-stagger pt-reveal pt-reveal-stagger">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 prism-stagger pt-reveal pt-reveal-stagger">
 
                 <div class="prism-stat prism-fade-up">
                     <span class="prism-stat-label" data-i18n="adm_kpi_shows">عدد العروض</span>
@@ -108,7 +108,24 @@
                     <span class="prism-stat-value">{{ $ticketsRemaining }}</span>
                     <span class="prism-stat-caption" data-i18n-html="adm_kpi_remaining_caption">
                         إجمالي التذاكر ناقص الحجوزات
-                        <span style="color: var(--prism-emerald);">(pending + approved)</span>.
+                        <span style="color: var(--prism-emerald);">(pending + approved)</span>
+                        ناقص المحجوب.
+                    </span>
+                </div>
+
+                {{-- Blocked seats are operationally unavailable (reduce
+                     remaining inventory and never show up in the seat
+                     picker) but are NOT paid tickets — they never appear
+                     in revenue or approved-ticket totals. --}}
+                <div class="prism-stat prism-fade-up col-span-2 md:col-span-1"
+                     style="border-color: rgba(244,63,94,0.32); background: linear-gradient(180deg, rgba(244,63,94,0.06), rgba(244,63,94,0.02));">
+                    <span class="prism-stat-label" style="color: #fda4af;">
+                        <span class="prism-dot" style="background: #fb7185; box-shadow: 0 0 8px rgba(251,113,133,.55);"></span>
+                        <span data-i18n="adm_kpi_blocked">المقاعد المحجوبة</span>
+                    </span>
+                    <span class="prism-stat-value" style="color: #fda4af;">{{ $totalBlockedSeats }}</span>
+                    <span class="prism-stat-caption" data-i18n="adm_kpi_blocked_caption">
+                        مقاعد محجوزة إداريًا — مش متاحة للحجز ولا بتتحسب في الإيرادات.
                     </span>
                 </div>
             </div>
@@ -180,6 +197,7 @@
                             <th class="text-center" data-i18n="adm_th_total">إجمالي</th>
                             <th class="text-center" style="color: var(--prism-emerald);">Approved</th>
                             <th class="text-center" style="color: var(--prism-gold);">Pending</th>
+                            <th class="text-center" style="color: #fda4af;" data-i18n="adm_th_blocked">المحجوب</th>
                             <th class="text-center" style="color: var(--prism-cyan);" data-i18n="adm_th_remaining">المتبقي</th>
                             <th class="text-center" style="color: var(--prism-gold);">Revenue</th>
                         </tr>
@@ -200,6 +218,13 @@
                             </td>
                             <td class="text-center">
                                 <span class="prism-pill prism-pill-amber">{{ $time->pending_tickets }}</span>
+                            </td>
+                            <td class="text-center">
+                                @if(($time->blocked_tickets ?? 0) > 0)
+                                    <span class="prism-pill prism-pill-rose">{{ $time->blocked_tickets }}</span>
+                                @else
+                                    <span class="prism-pill" style="opacity:.45;">0</span>
+                                @endif
                             </td>
                             <td class="text-center">
                                 <span class="prism-pill {{ $time->remaining_tickets > 0 ? 'prism-pill-sky' : 'prism-pill-rose' }}">{{ $time->remaining_tickets }}</span>
@@ -257,7 +282,15 @@
                             <span class="font-semibold">{{ $time->pending_tickets }}</span>
                         </div>
 
-                        <div class="pt-mini-card {{ $time->remaining_tickets > 0 ? 'pt-mini-card-cyan' : 'pt-mini-card-rose' }} flex justify-between px-3 py-1.5">
+                        @if(($time->blocked_tickets ?? 0) > 0)
+                            <div class="pt-mini-card pt-mini-card-rose flex justify-between px-3 py-1.5">
+                                <span data-i18n="adm_th_blocked">المحجوب</span>
+                                <span class="font-semibold">{{ $time->blocked_tickets }}</span>
+                            </div>
+                        @endif
+
+                        <div class="pt-mini-card {{ $time->remaining_tickets > 0 ? 'pt-mini-card-cyan' : 'pt-mini-card-rose' }} flex justify-between px-3 py-1.5
+                                    {{ ($time->blocked_tickets ?? 0) > 0 ? '' : 'col-span-1' }}">
                             <span data-i18n="adm_th_remaining">المتبقي</span>
                             <span class="font-semibold">{{ $time->remaining_tickets }}</span>
                         </div>
