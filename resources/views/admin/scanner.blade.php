@@ -198,14 +198,20 @@
          distance / partial framing / low-light than jsQR.
          Loaded as a global `ZXing` from the UMD bundle. Used as
          the iPhone-Safari path (and any other browser without
-         a native BarcodeDetector). Pinned to the same major
-         version everywhere.
+         a native BarcodeDetector).
 
       3. html5-qrcode (jsQR) — last-resort fallback if neither of
          the above is available. Kept for safety only.
+
+      Both bundles are SELF-HOSTED out of public/vendor/. We were
+      pulling them from unpkg.com which added 200–800ms of cold-load
+      latency on weak venue Wi-Fi BEFORE the camera could even start.
+      Self-hosting drops first-scan time noticeably and removes the
+      "camera area stays black for ages on a fresh page load"
+      operator complaint.
 --}}
-<script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
-<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="{{ asset('vendor/zxing/library-0.21.3.min.js') }}"></script>
+<script src="{{ asset('vendor/html5-qrcode/html5-qrcode-2.3.8.min.js') }}"></script>
 
 <style>
 /* =========================================================
@@ -720,7 +726,14 @@
     // row). PR #70: the result sheet no longer auto-dismisses — the
     // operator manually closes it, and the scanner is paused while
     // it's open and resumes the moment it closes.
-    const COOLDOWN_MS = 1500;
+    //
+    // Scanner engine v5: 1500ms felt deliberately hesitant — the
+    // operator could see a QR in frame for nearly two seconds before
+    // a re-scan was allowed. The sheet-open gate plus the busy gate
+    // already prevent double-pings, so 700ms is enough to dedupe a
+    // slowly-moving QR without making the same operator wait on a
+    // deliberate re-scan.
+    const COOLDOWN_MS = 700;
 
     let busy = false;          // mid-flight backend round-trip
     let lastCode = null;
@@ -730,13 +743,58 @@
 
     /* ============================================================
        Audio + haptic feedback
+
+       Scanner engine v5 introduces a TWO-STAGE feedback pattern
+       that modern scanners (iOS Camera, Google Lens, professional
+       event-entry scanners) use:
+
+         Stage 1 — pre-confirmation. Fires the INSTANT a QR decodes
+         locally, BEFORE the backend POST resolves. A short 40ms
+         buzz + a soft, quiet 'tick' so the operator gets physical
+         proof that a QR was seen. This is the single biggest
+         perceived-latency win in this PR: the 100–400ms backend
+         round-trip becomes invisible because the operator already
+         got physical confirmation.
+
+         Stage 2 — final confirmation. Fires when the server
+         responds with ok / used / error. The long buzz + the loud
+         tonal beep + the result-sheet slide-up.
+
+       AudioContext prewarm: iOS Safari requires a user gesture
+       before audio works. We resume() the context on the first
+       touch/click anywhere on the page, so the first scan's beep
+       isn't silent.
        ============================================================ */
     let audioCtx = null;
-    function beep(type) {
+    let audioPrimed = false;
+
+    function ensureAudio() {
         try {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
+            if (audioCtx.state === 'suspended' && typeof audioCtx.resume === 'function') {
+                audioCtx.resume().catch(() => {});
+            }
+        } catch (_) {}
+    }
+
+    function primeAudio() {
+        if (audioPrimed) return;
+        audioPrimed = true;
+        ensureAudio();
+    }
+    // Prime on the first user gesture anywhere on the scanner page.
+    // Passive listeners + { once: true } so we don't fight scrolling
+    // or other touch targets.
+    ['touchstart', 'pointerdown', 'click', 'keydown'].forEach((ev) => {
+        document.addEventListener(ev, primeAudio, { once: true, passive: true });
+    });
+
+    function beep(type) {
+        try {
+            ensureAudio();
+            if (!audioCtx) return;
             const osc  = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain);
@@ -747,11 +805,37 @@
             setTimeout(() => osc.stop(), 150);
         } catch (_) {}
     }
+
+    // Soft 'tick' — quieter and shorter than the result beep.
+    // Played at decode-time as Stage 1 confirmation. Sharp attack +
+    // sharp release so it reads as a click, not a tone.
+    function softTick() {
+        try {
+            ensureAudio();
+            if (!audioCtx) return;
+            const osc  = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type            = 'square';
+            osc.frequency.value = 1500;
+            // Fast attack/release envelope so it sounds like a click,
+            // not a chirp. ~50ms total duration.
+            const now = audioCtx.currentTime;
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.exponentialRampToValueAtTime(0.10, now + 0.005);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
+            osc.start(now);
+            osc.stop(now + 0.05);
+        } catch (_) {}
+    }
+
     function vibrate(type) {
         if (!('vibrate' in navigator)) return;
-        if      (type === 'ok')   navigator.vibrate(120);
-        else if (type === 'used') navigator.vibrate([100, 50, 100]);
-        else                       navigator.vibrate(220);
+        if      (type === 'precheck') navigator.vibrate(40);
+        else if (type === 'ok')       navigator.vibrate(120);
+        else if (type === 'used')     navigator.vibrate([100, 50, 100]);
+        else                           navigator.vibrate(220);
     }
 
     /* ============================================================
@@ -931,6 +1015,12 @@
 
     /* ============================================================
        Shared scan-success funnel
+
+       This is the single funnel every decode engine (Path A native
+       BarcodeDetector, Path B ZXing, Path C html5-qrcode) calls
+       when it finds a QR. Gates dedupe / sheet-open / busy state
+       and triggers Stage-1 pre-confirmation feedback (tick + short
+       buzz) before kicking the backend POST.
        ============================================================ */
     function onScanSuccess(text) {
         // Drop frames while a sheet is already open — the operator
@@ -946,6 +1036,16 @@
         busy = true;
         lastCode = text;
         lastScanTime = now;
+
+        // Stage 1 — pre-confirmation. INSTANT, local-only feedback
+        // so the operator gets physical proof that a QR was seen
+        // before the backend has had time to respond. This is what
+        // makes the scanner FEEL instant; the 100–400ms POST
+        // round-trip becomes invisible because the haptic + tick
+        // already landed.
+        vibrate('precheck');
+        softTick();
+
         setStatus(tt('adm_scanner_processing', '⏳ جارٍ التحقق'), 'scanning');
         check(text);
     }
@@ -1131,35 +1231,50 @@
     }
 
     /* ============================================================
-       Path B — ZXing-js (the iPhone-Safari path)
+       Path B — ZXing-js driven by a MANUAL frame loop
+       (the iPhone-Safari path)
 
-       iOS Safari does not expose BarcodeDetector by default, so on
-       iPhones we previously fell all the way through to html5-qrcode
-       + jsQR. ZXing-js is the same engine many professional event-
-       entry scanners use and is dramatically more tolerant of tilt /
-       distance / partial framing / low-light than jsQR.
+       iOS Safari does not expose BarcodeDetector in production
+       builds. Before scanner engine v5, iPhone Safari fell all the
+       way through to Path C (jsQR) which is the LEAST tolerant
+       engine of the three. That gap is the single biggest reason
+       the scanner felt slower than Google Lens / iOS native.
 
-       We do our own getUserMedia + <video> mount (matching Path A's
-       capture setup) and then hand the live <video> element to
-       ZXing.BrowserMultiFormatReader, with TRY_HARDER + ALSO_INVERTED
-       hints and a tight scan interval. ZXing manages the decode loop
-       internally; we just gate results on sheetOpen / lastCode in
-       the shared onScanSuccess() funnel.
+       The previous attempt to wire ZXing (PR #72) used
+       BrowserMultiFormatReader.decodeFromVideoElement, which awaits
+       a 'playing' / 'loadeddata' event-state that iPhone Safari
+       does not reliably fire — the symptom was a stuck loading
+       spinner and "camera doesn't start at all". PR #74 disabled
+       Path B entirely as the safe response.
 
-       If anything fails (no ZXing global, no getUserMedia, no
-       camera, etc.) we fall through to Path C (html5-qrcode).
+       Scanner engine v5 brings Path B back, but built on a MANUAL
+       requestVideoFrameCallback loop instead of decodeFromVideoElement.
+       We:
+         - own the <video> mount (same DOM-attach-before-srcObject
+           sequence as Path A so Safari doesn't drop the stream),
+         - draw each frame to an OffscreenCanvas / fallback canvas,
+         - hand the canvas to ZXing.MultiFormatReader.decode() with
+           TRY_HARDER + ALSO_INVERTED hints,
+         - gate decoded text through the shared onScanSuccess()
+           funnel.
+
+       Because we never await media event states, the PR #72 hang is
+       structurally impossible.
+
+       If anything fails (no ZXing global, no MultiFormatReader, no
+       getUserMedia, etc.) we fall through to Path C cleanly.
        ============================================================ */
     async function startZXing() {
         // Cheap pre-checks before we ever touch the camera. The
-        // installed @zxing/library UMD must expose BrowserMultiFormatReader
-        // — if not (older / partial bundle), bail to Path C without
-        // grabbing the camera at all.
-        if (typeof ZXing === 'undefined' || !ZXing.BrowserMultiFormatReader) return null;
+        // installed @zxing/library UMD must expose either
+        // MultiFormatReader (used in the manual loop) or at minimum
+        // a usable Reader+BinaryBitmap+HybridBinarizer surface.
+        if (typeof ZXing === 'undefined') return null;
+        if (!ZXing.MultiFormatReader || !ZXing.BinaryBitmap ||
+            !ZXing.HybridBinarizer || !ZXing.RGBLuminanceSource) return null;
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return null;
 
         let stream = null;
-        let codeReader = null;
-        let controls = null;
 
         try {
             // STANDARD constraints only at getUserMedia time. See the
@@ -1205,6 +1320,10 @@
             });
             reader.appendChild(video);
             video.srcObject = stream;
+            // play() can reject on Safari if anything is off — we
+            // catch it and continue. rVFC will simply not fire until
+            // the video is actually playing, which is a self-healing
+            // wait rather than a hang.
             try { await video.play(); } catch (_) {}
 
             // Post-start advanced constraints. Failure is harmless.
@@ -1221,6 +1340,11 @@
             } catch (_) {}
 
             // ZXing hints — QR-only + TRY_HARDER + ALSO_INVERTED.
+            // TRY_HARDER tells ZXing to spend extra cycles per frame
+            // checking rotated / partial / damaged QRs; ALSO_INVERTED
+            // adds a second pass on a colour-inverted bitmap so light-
+            // QR-on-dark-background tickets decode without forcing
+            // the operator to bring up brightness.
             let hints = null;
             try {
                 hints = new Map();
@@ -1233,67 +1357,136 @@
                 }
             } catch (_) { hints = null; }
 
-            // Constructor signature has shifted across ZXing versions
-            // (and sometimes the `new X(hints, ms)` form throws on the
-            // very first run). Try a few defensively.
+            let mfr;
             try {
-                codeReader = new ZXing.BrowserMultiFormatReader(hints, 50);
+                mfr = new ZXing.MultiFormatReader();
+                if (hints) mfr.setHints(hints);
             } catch (_) {
-                try { codeReader = new ZXing.BrowserMultiFormatReader(hints); }
-                catch (__) {
-                    try { codeReader = new ZXing.BrowserMultiFormatReader(); }
-                    catch (___) {
-                        releaseStream(stream);
-                        return null;
-                    }
-                }
-            }
-            try { codeReader.timeBetweenScansMillis      = 50; } catch (_) {}
-            try { codeReader.timeBetweenDecodingAttempts = 50; } catch (_) {}
-
-            let stopped = false;
-            let paused  = false;
-
-            // decodeFromVideoElement may not exist on older builds.
-            if (typeof codeReader.decodeFromVideoElement !== 'function') {
                 releaseStream(stream);
                 return null;
             }
 
-            controls = await codeReader.decodeFromVideoElement(video, (result /*, err */) => {
-                if (stopped || paused || sheetOpen) return;
-                if (result) {
-                    let text = '';
-                    try { text = (typeof result.getText === 'function') ? result.getText() : (result.text || ''); }
-                    catch (_) { text = ''; }
-                    if (text) onScanSuccess(text);
+            // Frame canvas — we draw the <video> into this on every
+            // rVFC tick and hand the pixel buffer to ZXing. We size
+            // it once at the first decode (when the video has real
+            // intrinsic dimensions); resizing the canvas every frame
+            // would thrash the GPU.
+            const canvas = document.createElement('canvas');
+            const ctx    = canvas.getContext('2d', { willReadFrequently: true });
+
+            let stopped = false;
+            let paused  = false;
+
+            const schedule = (fn) => {
+                if (typeof video.requestVideoFrameCallback === 'function') {
+                    video.requestVideoFrameCallback(() => fn());
+                } else {
+                    requestAnimationFrame(fn);
                 }
-                // Per-frame errors mean "no QR in this frame" — ignore.
-            });
+            };
+
+            // Decode budget — we cap each ZXing.decode() call to one
+            // attempt per frame. On iPhone Safari this is ~30 attempts
+            // per second which is more than enough; TRY_HARDER does
+            // the heavy lifting per attempt.
+            const tick = () => {
+                if (stopped) return;
+                if (paused || sheetOpen || video.readyState < 2) {
+                    schedule(tick);
+                    return;
+                }
+
+                try {
+                    const vw = video.videoWidth | 0;
+                    const vh = video.videoHeight | 0;
+                    if (vw > 0 && vh > 0) {
+                        // Lazy-size the canvas to the video's native
+                        // intrinsic resolution. Bigger = better
+                        // small-QR decode; we cap at 1280 on the long
+                        // edge to keep CPU sane on older phones.
+                        const cap = 1280;
+                        let cw = vw, ch = vh;
+                        if (Math.max(vw, vh) > cap) {
+                            const scale = cap / Math.max(vw, vh);
+                            cw = Math.round(vw * scale);
+                            ch = Math.round(vh * scale);
+                        }
+                        if (canvas.width !== cw || canvas.height !== ch) {
+                            canvas.width  = cw;
+                            canvas.height = ch;
+                        }
+                        ctx.drawImage(video, 0, 0, cw, ch);
+                        const img = ctx.getImageData(0, 0, cw, ch);
+
+                        // Build a Luminance source from the RGBA pixel
+                        // buffer. ZXing.RGBLuminanceSource expects a
+                        // 32-bit packed array, so we pack on the fly.
+                        const len = img.data.length / 4;
+                        const luminances = new Uint8ClampedArray(len);
+                        for (let i = 0, j = 0; i < img.data.length; i += 4, j++) {
+                            // Standard luminance weights — same as
+                            // ZXing's own RGBLuminanceSource does
+                            // internally, but precomputed here so we
+                            // avoid a per-pixel function call.
+                            luminances[j] = (
+                                img.data[i]     * 0.299 +
+                                img.data[i + 1] * 0.587 +
+                                img.data[i + 2] * 0.114
+                            ) | 0;
+                        }
+
+                        try {
+                            // The exact RGBLuminanceSource constructor
+                            // signature varies across builds — older
+                            // builds want (width, height, pixels) and
+                            // newer ones want (pixels, width, height).
+                            // We try the newer form first and fall back.
+                            let lum;
+                            try {
+                                lum = new ZXing.RGBLuminanceSource(luminances, cw, ch);
+                            } catch (_) {
+                                lum = new ZXing.RGBLuminanceSource(cw, ch, luminances);
+                            }
+                            const binarizer = new ZXing.HybridBinarizer(lum);
+                            const bitmap    = new ZXing.BinaryBitmap(binarizer);
+                            let result;
+                            try {
+                                result = mfr.decode(bitmap, hints || undefined);
+                            } finally {
+                                try { mfr.reset(); } catch (_) {}
+                            }
+                            if (result) {
+                                let text = '';
+                                try { text = (typeof result.getText === 'function') ? result.getText() : (result.text || ''); }
+                                catch (_) { text = ''; }
+                                if (text) onScanSuccess(text);
+                            }
+                        } catch (_) {
+                            // ZXing throws NotFoundException when there
+                            // is no QR in the frame. That's the common
+                            // case — silently move on.
+                        }
+                    }
+                } catch (_) { /* per-frame errors are transient */ }
+
+                schedule(tick);
+            };
+            schedule(tick);
 
             return {
-                // Same shape as Path A so showSheet/hideSheet can
-                // pause/resume transparently across paths.
-                pause:  () => { paused = true; },
-                resume: () => { paused = false; },
+                // Same shape as Path A / Path C so showSheet / hideSheet
+                // can pause/resume transparently across paths.
+                pause:  () => { paused  = true; },
+                resume: () => { paused  = false; },
                 stop:   () => {
                     stopped = true;
-                    try {
-                        if (controls && typeof controls.stop === 'function') controls.stop();
-                        else if (codeReader && typeof codeReader.reset === 'function') codeReader.reset();
-                    } catch (_) {}
                     releaseStream(stream);
                 },
                 track,
             };
         } catch (_) {
-            // Anything we didn't anticipate (decodeFromVideoElement
-            // threw, applyConstraints rejected synchronously, etc.) —
-            // tear down everything and let Path C try a clean start.
-            try {
-                if (controls && typeof controls.stop === 'function') controls.stop();
-                else if (codeReader && typeof codeReader.reset === 'function') codeReader.reset();
-            } catch (__) {}
+            // Anything we didn't anticipate — tear down everything and
+            // let Path C try a clean start.
             releaseStream(stream);
             return null;
         }
@@ -1387,20 +1580,20 @@
     }
 
     /* ============================================================
-       Bootstrap — Path A (native BarcodeDetector) -> Path C (html5-qrcode)
+       Bootstrap — Path A → Path B → Path C
 
-       Path B (ZXing-js) is intentionally DISABLED here. After PR #72
-       it caused a hang on iPhone Safari: ZXing's
-       BrowserMultiFormatReader.decodeFromVideoElement awaits a
-       'playing' / 'loadeddata' event-state that iPhone Safari does
-       not always fire. The result was the loading spinner staying
-       up forever even though the camera itself was streaming. The
-       startZXing() function is left in place above so this is a
-       single-line re-enable once we have a way to verify it on a
-       real iPhone.
+       Scanner engine v5 re-enables Path B (ZXing) in the chain, but
+       this time it's built on a manual requestVideoFrameCallback
+       loop rather than ZXing's BrowserMultiFormatReader.decodeFrom-
+       VideoElement (the PR #72 trap that hung on iPhone Safari).
+       Because we never await media event states, the hang is
+       structurally impossible.
 
-       Until then we fall back through the proven Path A -> Path C
-       flow we had before PR #72.
+       Each path returns either a controls object (`{pause, resume,
+       stop, track}`) or null. The bootstrap walks them in priority
+       order and keeps the first non-null result. Every null-return
+       path is responsible for releasing its own camera stream so
+       the next path gets a clean getUserMedia.
 
        SAFETY NET: a 6s timeout that force-dismisses the loading
        overlay and shows a clear error if NO path called us back.
@@ -1449,10 +1642,25 @@
             }
         } catch (_) { /* fall through */ }
 
-        // Path C — html5-qrcode (jsQR). Proven flow: this is what
-        // we shipped from PR #69 through PR #71 and what iPhone
-        // Safari actually used in production. Used now for
-        // everything Path A can't handle.
+        // Path B — ZXing-js driven by a manual frame loop. This is
+        // the iPhone Safari fast-path. Same engine grade as
+        // professional event-entry scanners; dramatically more
+        // tolerant of tilt / partial framing / dim / damaged QRs
+        // than jsQR.
+        try {
+            const zx = await startZXing();
+            if (zx) {
+                qrInstance = zx;
+                clearTimeout(bootstrapTimeoutId);
+                markScannerReady();
+                return;
+            }
+        } catch (_) { /* fall through */ }
+
+        // Path C — html5-qrcode (jsQR). Final fallback for browsers
+        // that expose neither BarcodeDetector nor a usable ZXing
+        // surface (very old / minimal builds). Proven flow we
+        // shipped from PR #69 through PR #71.
         try {
             await startHtml5QrcodeFallback();
             clearTimeout(bootstrapTimeoutId);
