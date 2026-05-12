@@ -167,8 +167,29 @@
                     </span>
                     <span class="pt-file-zone-title" data-i18n="adm_show_poster_pick">اضغط لاختيار صورة البوستر</span>
                     <span class="pt-file-zone-sub" data-i18n="adm_show_poster_hint">PNG / JPG · ينصح بنسبة عمودية (2:3)</span>
-                    <input type="file" name="poster" accept="image/*">
+                    <input type="file" name="poster" id="posterInput" accept="image/*">
                 </label>
+
+                {{-- Inline preview — appears as soon as the operator picks
+                     a file so they can sanity-check crop / orientation /
+                     readability before saving. Hidden until a file is
+                     chosen. --}}
+                <div class="pt-image-preview" data-poster-preview hidden>
+                    <div class="pt-image-preview-frame">
+                        <img class="pt-image-preview-img"
+                             alt=""
+                             data-poster-preview-img
+                             src="">
+                        <div class="pt-image-preview-fallback" data-poster-preview-fallback hidden>
+                            <span class="pt-image-preview-fallback-icon" aria-hidden="true">🖼️</span>
+                            <span data-i18n="adm_show_poster_preview_load_err">تعذّر عرض الصورة</span>
+                        </div>
+                    </div>
+                    <div class="pt-image-preview-meta">
+                        <span class="pt-image-preview-meta-label" data-i18n="adm_show_poster_preview_label">معاينة</span>
+                        <span class="pt-image-preview-meta-detail" data-poster-preview-meta></span>
+                    </div>
+                </div>
             </div>
 
             {{-- Section: ticket template + QR designer --}}
@@ -485,6 +506,54 @@
 
             window.addEventListener('resize', function () {
                 recalcScaleAndPositionFromInputs();
+            });
+        });
+    </script>
+
+    {{-- Inline poster preview — instant visual confirmation after the
+         operator picks a file. Revokes prior object URLs to avoid leaks,
+         and falls back to a hatched "could not display" card if the
+         browser fails to load the image. --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const input    = document.getElementById('posterInput');
+            const preview  = document.querySelector('[data-poster-preview]');
+            if (!input || !preview) return;
+
+            const img      = preview.querySelector('[data-poster-preview-img]');
+            const fallback = preview.querySelector('[data-poster-preview-fallback]');
+            const meta     = preview.querySelector('[data-poster-preview-meta]');
+
+            function fmtBytes(n) {
+                if (n < 1024) return n + ' B';
+                if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+                return (n / 1048576).toFixed(1) + ' MB';
+            }
+
+            img.addEventListener('error', function () { fallback.hidden = false; });
+            img.addEventListener('load',  function () { fallback.hidden = true;  });
+
+            input.addEventListener('change', function () {
+                const file = this.files && this.files[0];
+                if (!file) {
+                    preview.hidden = true;
+                    if (img.dataset.blob === '1' && img.src) {
+                        try { URL.revokeObjectURL(img.src); } catch (_) {}
+                    }
+                    img.removeAttribute('src');
+                    return;
+                }
+
+                if (img.dataset.blob === '1' && img.src) {
+                    try { URL.revokeObjectURL(img.src); } catch (_) {}
+                }
+
+                const url = URL.createObjectURL(file);
+                img.dataset.blob = '1';
+                img.src = url;
+                fallback.hidden = true;
+                meta.textContent = file.name + ' · ' + fmtBytes(file.size);
+                preview.hidden = false;
             });
         });
     </script>

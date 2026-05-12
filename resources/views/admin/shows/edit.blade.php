@@ -161,19 +161,6 @@
                 <span class="pt-form-section-head-title" data-i18n="adm_show_poster">بوستر العرض</span>
             </div>
 
-            @if($show->poster_path)
-                @php
-                    $posterUrl = str_starts_with($show->poster_path, 'http')
-                        ? $show->poster_path
-                        : $show->poster_path;
-                @endphp
-
-                <img id="posterPreview"
-                     src="{{ $posterUrl }}"
-                     class="w-full max-h-60 object-contain rounded-xl p-2"
-                     style="background: var(--prism-surface-soft); border: 1px solid var(--prism-border);">
-            @endif
-
             <label class="pt-file-zone">
                 <span class="pt-file-zone-icon" aria-hidden="true">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
@@ -184,6 +171,38 @@
                 <span class="pt-file-zone-sub" data-i18n="adm_show_poster_hint">PNG / JPG · ينصح بنسبة عمودية (2:3)</span>
                 <input type="file" name="poster" id="posterInput" accept="image/*">
             </label>
+
+            {{-- Inline preview — pre-populated with the existing poster
+                 on edit, swapped to a blob URL the instant the operator
+                 picks a new file. Hatched fallback handles dead/expired
+                 CDN URLs cleanly so we never render a broken-image
+                 glyph. --}}
+            <div class="pt-image-preview"
+                 data-poster-preview
+                 @if(!$show->poster_path) hidden @endif>
+                <div class="pt-image-preview-frame">
+                    <img class="pt-image-preview-img"
+                         alt=""
+                         data-poster-preview-img
+                         @if($show->poster_path) src="{{ $show->poster_path }}" @else src="" @endif>
+                    <div class="pt-image-preview-fallback" data-poster-preview-fallback hidden>
+                        <span class="pt-image-preview-fallback-icon" aria-hidden="true">🖼️</span>
+                        <span data-i18n="adm_show_poster_preview_load_err">تعذّر عرض الصورة</span>
+                    </div>
+                </div>
+                <div class="pt-image-preview-meta">
+                    <span class="pt-image-preview-meta-label"
+                          data-poster-preview-label
+                          @if($show->poster_path)
+                              data-i18n="adm_show_poster_preview_current"
+                          @else
+                              data-i18n="adm_show_poster_preview_label"
+                          @endif>
+                        @if($show->poster_path) البوستر الحالي @else معاينة @endif
+                    </span>
+                    <span class="pt-image-preview-meta-detail" data-poster-preview-meta></span>
+                </div>
+            </div>
         </div>
 
         {{-- Section: ticket template + QR --}}
@@ -505,18 +524,61 @@
         <script>
 /* 🔥 LIVE PREVIEW */
 
-// Poster Preview
-document.getElementById('posterInput')?.addEventListener('change', function(e){
-    const file = e.target.files[0];
-    if(!file) return;
+// Poster Preview — wires the file input to the .pt-image-preview frame,
+// swaps the "Current poster" caption to "Preview" the moment a new file
+// is picked, and handles broken-image fallback for the existing poster
+// URL (e.g. expired Cloudinary signature).
+(function () {
+    const input    = document.getElementById('posterInput');
+    const preview  = document.querySelector('[data-poster-preview]');
+    if (!input || !preview) return;
 
-    const url = URL.createObjectURL(file);
-    const img = document.getElementById('posterPreview');
+    const img      = preview.querySelector('[data-poster-preview-img]');
+    const fallback = preview.querySelector('[data-poster-preview-fallback]');
+    const label    = preview.querySelector('[data-poster-preview-label]');
+    const meta     = preview.querySelector('[data-poster-preview-meta]');
 
-    if(img){
-        img.src = url;
+    function fmtBytes(n) {
+        if (n < 1024) return n + ' B';
+        if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+        return (n / 1048576).toFixed(1) + ' MB';
     }
-});
+    function applyI18n(el, key) {
+        if (!el || !key) return;
+        el.setAttribute('data-i18n', key);
+        // Trigger the layout's i18n applier if it's available so the
+        // copy refreshes immediately. Safe to call even if it's not.
+        if (typeof window.applyLang === 'function') {
+            try { window.applyLang(); } catch (_) {}
+        }
+    }
+
+    img.addEventListener('error', function () { fallback.hidden = false; });
+    img.addEventListener('load',  function () { fallback.hidden = true;  });
+
+    // If the pre-rendered src is empty or already failed (e.g. cached
+    // 404), surface the fallback right away.
+    if (img.src && img.complete && img.naturalWidth === 0) {
+        fallback.hidden = false;
+    }
+
+    input.addEventListener('change', function () {
+        const file = this.files && this.files[0];
+        if (!file) return;
+
+        if (img.dataset.blob === '1' && img.src) {
+            try { URL.revokeObjectURL(img.src); } catch (_) {}
+        }
+
+        const url = URL.createObjectURL(file);
+        img.dataset.blob = '1';
+        img.src = url;
+        fallback.hidden = true;
+        applyI18n(label, 'adm_show_poster_preview_label');
+        meta.textContent = file.name + ' · ' + fmtBytes(file.size);
+        preview.hidden = false;
+    });
+})();
 
 // Ticket Preview
 document.getElementById('ticketInput')?.addEventListener('change', function(e){

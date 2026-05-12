@@ -2750,6 +2750,106 @@
             border-color: rgba(79,70,229,0.40);
         }
 
+        /* Image preview card. Sits next to a .pt-file-zone and gives
+           the operator an instant framed preview of the image they
+           just picked (or the existing one on edit forms). Handles
+           broken-image / load-error states inline with a hatched
+           fallback so a dead CDN URL doesn't render a sad <img>. */
+        .pt-image-preview {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 16px;
+            background: rgba(8,10,20,0.45);
+            border: 1px solid var(--prism-border);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+        }
+        .pt-image-preview[hidden] { display: none; }
+        .pt-image-preview-frame {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(0,0,0,0.45);
+            aspect-ratio: 2 / 3;
+            max-height: 360px;
+        }
+        .pt-image-preview-img {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            object-fit: contain;
+            background: transparent;
+            transition: opacity .2s var(--prism-ease);
+        }
+        .pt-image-preview-fallback {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 8px;
+            color: var(--prism-text-3);
+            font-size: 12px;
+            text-align: center;
+            padding: 16px;
+            background:
+                repeating-linear-gradient(
+                    45deg,
+                    rgba(255,255,255,0.02),
+                    rgba(255,255,255,0.02) 8px,
+                    transparent 8px,
+                    transparent 16px
+                ),
+                rgba(8,10,20,0.65);
+        }
+        .pt-image-preview-fallback[hidden] { display: none; }
+        .pt-image-preview-fallback-icon { font-size: 28px; opacity: .85; }
+        .pt-image-preview-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 11px;
+            color: var(--prism-text-3);
+            letter-spacing: .04em;
+        }
+        .pt-image-preview-meta-label {
+            color: var(--prism-text-2);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+        .pt-image-preview-meta-detail {
+            font-variant-numeric: tabular-nums;
+            opacity: .85;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 60%;
+        }
+        :root[data-pt-theme="light"] .pt-image-preview {
+            background: rgba(255,255,255,0.92);
+            border-color: rgba(15,23,42,0.12);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                0 6px 18px -12px rgba(15,23,42,0.15);
+        }
+        :root[data-pt-theme="light"] .pt-image-preview-frame {
+            background: rgba(15,23,42,0.04);
+        }
+        :root[data-pt-theme="light"] .pt-image-preview-fallback {
+            color: #475569;
+            background:
+                repeating-linear-gradient(
+                    45deg,
+                    rgba(15,23,42,0.04),
+                    rgba(15,23,42,0.04) 8px,
+                    transparent 8px,
+                    transparent 16px
+                ),
+                rgba(255,255,255,0.95);
+        }
+
         /* =====================================================================
            Reusable admin utilities — replace repeated inline-styled patterns
            with semantic classes so they look right in BOTH themes.
@@ -7347,6 +7447,9 @@
                 adm_show_poster_pick: 'اختر صورة',
                 adm_show_poster_replace: 'تغيير الصورة',
                 adm_show_poster_hint: 'PNG / JPG · أفضل أبعاد 1200×1600',
+                adm_show_poster_preview_label: 'معاينة',
+                adm_show_poster_preview_current: 'البوستر الحالي',
+                adm_show_poster_preview_load_err: 'تعذّر عرض الصورة',
                 adm_show_ticket_design: 'تصميم التذكرة',
                 adm_show_ticket_design_helper: 'صورة الخلفية اللي بتطلع عليها بيانات التذكرة وكود QR.',
                 adm_show_ticket_template_file: 'قالب التذكرة',
@@ -8157,6 +8260,9 @@
                 adm_show_poster_pick: 'Choose image',
                 adm_show_poster_replace: 'Replace image',
                 adm_show_poster_hint: 'PNG / JPG · ideal size 1200×1600',
+                adm_show_poster_preview_label: 'Preview',
+                adm_show_poster_preview_current: 'Current poster',
+                adm_show_poster_preview_load_err: 'Could not display this image',
                 adm_show_ticket_design: 'Ticket design',
                 adm_show_ticket_design_helper: 'The background image used to render ticket details and the QR code.',
                 adm_show_ticket_template_file: 'Ticket template',
