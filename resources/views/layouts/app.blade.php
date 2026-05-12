@@ -8371,9 +8371,31 @@
         window.PT_T    = ptT;
         function applyLang(lang) {
             const dict = I18N[lang] || I18N.ar;
+            // Only fire pt:langchange and rewrite document attributes if
+            // the language actually changed. Callers used to invoke
+            // applyLang(currentLang) on resize/load purely to re-position
+            // the language-toggle thumb, but that re-dispatched
+            // `pt:langchange`, which on Android Chrome (where every
+            // keyboard open/close fires a `resize`) destroyed booking
+            // form inputs mid-typing via their innerHTML='' rebuild and
+            // collapsed the on-screen keyboard. Guard the heavy work
+            // here so passive same-lang calls become cheap no-ops; the
+            // dedicated repositionLangThumbs() handler below covers the
+            // legitimate "viewport changed" use case.
+            const prevLang = document.documentElement.getAttribute('data-pt-lang') || '';
+            const langChanged = prevLang !== lang;
             document.documentElement.setAttribute('data-pt-lang', lang);
             document.documentElement.lang = lang;
             document.documentElement.dir  = (lang === 'en') ? 'ltr' : 'rtl';
+            if (!langChanged) {
+                // Already in this language — skip the heavy DOM rewrite
+                // and the pt:langchange dispatch. Keep the thumb position
+                // fresh because the resize that triggered us may have
+                // changed the toggle's measured width.
+                document.querySelectorAll('.pt-lang-toggle').forEach(group => moveThumbForGroup(group, lang));
+                window.PT_LANG = lang;
+                return;
+            }
             // Read optional `data-i18n-vars='{"n": 5}'` JSON for placeholder
             // substitution in {n}-style templates. Returns an empty object on
             // missing/invalid JSON so the raw template still renders cleanly.
@@ -8436,9 +8458,28 @@
         let initLang = 'ar';
         try { initLang = localStorage.getItem('pt-lang') || 'ar'; } catch(_){}
         applyLang(initLang);
-        // re-position thumb after fonts load + on resize
-        window.addEventListener('load', () => applyLang(document.documentElement.getAttribute('data-pt-lang') || 'ar'));
-        window.addEventListener('resize', () => applyLang(document.documentElement.getAttribute('data-pt-lang') || 'ar'));
+        // Re-position the language-toggle thumb after fonts load + on
+        // resize. This previously called applyLang(currentLang), but
+        // Android Chrome's on-screen keyboard fires `resize` every
+        // time it opens / closes, and applyLang used to dispatch
+        // pt:langchange + walk every data-i18n element on each call.
+        // Booking form listeners on pt:langchange rebuild their
+        // attendee inputs via innerHTML='', which destroyed the
+        // input the user was actively typing into and collapsed the
+        // keyboard. The cheap thumb-reposition below is the only
+        // thing we ever needed on resize. Wrapped in rAF so a burst
+        // of resize events (Gboard appearance animation) collapses
+        // to a single layout read per frame.
+        function repositionLangThumbs() {
+            const cur = document.documentElement.getAttribute('data-pt-lang') || 'ar';
+            document.querySelectorAll('.pt-lang-toggle').forEach(group => moveThumbForGroup(group, cur));
+        }
+        window.addEventListener('load', repositionLangThumbs);
+        let __ptResizeRaf = 0;
+        window.addEventListener('resize', () => {
+            if (__ptResizeRaf) cancelAnimationFrame(__ptResizeRaf);
+            __ptResizeRaf = requestAnimationFrame(repositionLangThumbs);
+        });
 
         // ---------- theme toggle ----------
         function applyTheme(theme, persist) {

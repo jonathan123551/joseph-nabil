@@ -747,7 +747,33 @@ function renderNames() {
 // Re-render placeholders when the language toggle fires so AR/EN
 // switch live — `applyLang()` in layouts/app.blade.php dispatches
 // `pt:langchange` on `document` after rewriting the dictionary.
-document.addEventListener('pt:langchange', renderNames);
+//
+// Focus + caret position are captured before the rebuild and
+// restored afterwards so toggling the language while typing on
+// Android Chrome doesn't drop the input or collapse Gboard. The
+// inputs don't have unique ids (they live by index inside
+// `namesContainer`), so we identify the focused one by its
+// position within the container's input list.
+document.addEventListener('pt:langchange', () => {
+    const active = document.activeElement;
+    let focusIdx = -1, selStart = null, selEnd = null;
+    if (active && namesContainer.contains(active) && active.matches('input')) {
+        const all = Array.from(namesContainer.querySelectorAll('input'));
+        focusIdx = all.indexOf(active);
+        try { selStart = active.selectionStart; selEnd = active.selectionEnd; } catch (_) {}
+    }
+    renderNames();
+    if (focusIdx >= 0) {
+        const all = Array.from(namesContainer.querySelectorAll('input'));
+        const next = all[focusIdx];
+        if (next) {
+            try { next.focus({ preventScroll: true }); } catch (_) { try { next.focus(); } catch (_) {} }
+            if (selStart != null && selEnd != null) {
+                try { next.setSelectionRange(selStart, selEnd); } catch (_) {}
+            }
+        }
+    }
+});
 
 function changeCount(val) {
     count += val;
