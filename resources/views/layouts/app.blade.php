@@ -12,29 +12,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#05060d" id="pt-theme-color">
 
+    {{-- First-paint dark guarantee. This block paints the document
+         shell dark before ANY external CSS resolves (Tailwind CDN,
+         Google Fonts, the big Prism <style> further down). Without
+         it, slow networks can flash the UA white default for a few
+         frames before the inline Prism CSS is parsed. The whole
+         site defaults to dark + Arabic so this matches the rest of
+         the platform identity. --}}
+    <style>
+        html { background: #05060d; color: #f1f5fb; color-scheme: dark; }
+        :root[data-pt-theme="light"] html,
+        :root[data-pt-theme="light"] { color-scheme: light; }
+    </style>
+
     {{-- Inline SVG favicon — neutral premium identity --}}
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2322d3ee'/><stop offset='0.5' stop-color='%23818cf8'/><stop offset='1' stop-color='%23c084fc'/></linearGradient></defs><path d='M32 6 L56 20 L46 56 L18 56 L8 20 Z' fill='none' stroke='url(%23g)' stroke-width='3' stroke-linejoin='round'/><path d='M32 6 L32 56 M8 20 L56 20 M18 56 L46 56' stroke='url(%23g)' stroke-width='1.5' opacity='0.6'/></svg>">
 
-    {{-- Theme + language bootstrap (runs before paint to avoid FOUC / RTL flash) --}}
+    {{-- Theme + language bootstrap (runs synchronously BEFORE paint
+         so there's no FOUC / RTL flash / theme flicker).
+
+         Platform default = DARK + ARABIC. First-time visitors get
+         dark mode and Arabic regardless of their OS color scheme
+         preference, browser language, or User-Agent locale. The
+         OS prefers-color-scheme hint is intentionally ignored —
+         if an operator wants light mode they pick it once via the
+         theme toggle and the choice persists in localStorage from
+         then on. Same for English.
+
+         Returning visitors keep whatever theme + lang they had
+         picked previously. The localStorage keys are pt-theme
+         ('dark' | 'light') and pt-lang ('ar' | 'en'). Any stored
+         value outside those expected sets falls back to the
+         platform default. --}}
     <script>
         (function () {
             try {
                 var stored = localStorage.getItem('pt-theme');
-                var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-                var theme = stored === 'light' || stored === 'dark'
-                    ? stored
-                    : (prefersLight ? 'light' : 'dark');
+                var theme = (stored === 'light' || stored === 'dark') ? stored : 'dark';
                 document.documentElement.setAttribute('data-pt-theme', theme);
                 var meta = document.getElementById('pt-theme-color') || document.querySelector('meta[name="theme-color"]');
                 if (meta) meta.setAttribute('content', theme === 'light' ? '#f4f1ea' : '#05060d');
-            } catch (e) { /* keep dark default */ }
+            } catch (e) { /* keep dark default baked into <html> */ }
             try {
                 var lang = localStorage.getItem('pt-lang');
                 if (lang !== 'ar' && lang !== 'en') lang = 'ar';
                 document.documentElement.setAttribute('data-pt-lang', lang);
                 document.documentElement.setAttribute('lang', lang);
                 document.documentElement.setAttribute('dir', lang === 'en' ? 'ltr' : 'rtl');
-            } catch (e) { /* keep AR default */ }
+            } catch (e) { /* keep AR default baked into <html> */ }
         })();
     </script>
 
@@ -8441,15 +8466,10 @@
         });
         // Sync segment with currently-active theme on load (the early bootstrap script already set the attribute)
         applyTheme(document.documentElement.getAttribute('data-pt-theme') || 'dark', false);
-        // React to system pref changes only when user has not explicitly picked one
-        try {
-            const mq = window.matchMedia('(prefers-color-scheme: light)');
-            const onMQ = (e) => {
-                if (!localStorage.getItem('pt-theme')) applyTheme(e.matches ? 'light' : 'dark', false);
-            };
-            if (mq.addEventListener) mq.addEventListener('change', onMQ);
-            else if (mq.addListener) mq.addListener(onMQ);
-        } catch(_) {}
+        // Platform default is dark — the OS prefers-color-scheme hint
+        // is intentionally NOT wired up to applyTheme(). First-time
+        // visitors always land on dark; if they want light they pick
+        // it via the toggle and the choice persists in localStorage.
 
         // ---------- mobile drawer ----------
         const drawer = document.getElementById('pt-drawer');
