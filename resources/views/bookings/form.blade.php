@@ -1050,9 +1050,31 @@
     // Re-render attendee cards + chips when language toggles so AR/EN
     // labels stay in sync — `applyLang()` in layouts/app.blade.php
     // dispatches `pt:langchange` on `document` after rewriting the dict.
+    //
+    // Focus + caret position are captured before the rebuild and
+    // restored afterwards, so toggling the language while typing on
+    // Android Chrome doesn't drop the input or collapse Gboard.
+    // (Same-language calls are already a no-op upstream so this path
+    // only fires on a genuine AR↔EN toggle, but the restoration is
+    // cheap and keeps the experience seamless regardless.)
     document.addEventListener('pt:langchange', () => {
+        const active = document.activeElement;
+        let focusId = null, selStart = null, selEnd = null;
+        if (active && attendees.contains(active) && active.id) {
+            focusId = active.id;
+            try { selStart = active.selectionStart; selEnd = active.selectionEnd; } catch (_) {}
+        }
         renderChips();
         renderAttendees();
+        if (focusId) {
+            const next = document.getElementById(focusId);
+            if (next) {
+                try { next.focus({ preventScroll: true }); } catch (_) { try { next.focus(); } catch (_) {} }
+                if (selStart != null && selEnd != null) {
+                    try { next.setSelectionRange(selStart, selEnd); } catch (_) {}
+                }
+            }
+        }
     });
 
     // Clear invalid styling on any input/edit so the user gets immediate
