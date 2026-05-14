@@ -372,46 +372,85 @@
         </p>
     </div>
 
-    {{-- Cast rail v3. Lessons learned from previous passes:
-         * `scroll-snap-stop: always` + `mandatory` snap together made
-           iOS feel "stuck" on every flick — each card forces a hard
-           stop and momentum dies. Replaced with `proximity` snap and
-           no snap-stop, so iOS native momentum survives intact.
-         * `content-visibility: auto` was causing visible jank on
-           snap-back because cards re-rendered mid-snap. Removed.
-         * JS-toggled fade overlays added complexity for a fade that
-           still read as ambiguous. Replaced with a single permanent
-           pure-CSS end-edge mask on the wrap (won't fight snap) + a
-           pulsing chevron hint. Less moving parts, clearer
-           "there's more →" affordance.
+    {{-- Cast rail v4. Lessons learned from previous passes:
+         * Mandatory snap + snap-stop:always killed iOS native momentum
+           (every flick forced a hard stop). Replaced with proximity
+           snap so iOS coasts naturally and settles softly. v3.
+         * The CSS `mask-image` edge fade was visually CLIPPING the
+           edge cards to transparency — users read this as "cards
+           are cut off". Removed entirely in v4. Cards now reach
+           the literal edge of the scroller at full opacity. The
+           rail's own padding handles breathing room.
+         * Desktop had ZERO discoverable affordance — no arrows,
+           no drag, no wheel-to-horizontal. v4 adds:
+             - Gold circular nav arrows (hover-revealed, auto-
+               disabled at ends, RTL-aware).
+             - Mouse drag-to-scroll (pointer-fine only; touch keeps
+               native momentum untouched).
+             - Vertical wheel → horizontal scroll (passes through
+               to the page at rail edges so page-scroll still
+               works).
+             - cursor: grab / grabbing cursors.
+           All wired in setupCastRailInteractions IIFE in app layout.
+         * Active-card emphasis: IntersectionObserver flags any
+           fully-visible card with .is-centered for a subtle scale
+           + glow boost.
 
-         The peek of the next card (now intentionally ~32% of viewport
-         on mobile) does the heavy lifting for "more cards exist" —
-         that's the only affordance a cinematic carousel needs. --}}
-    <div class="pt-alebad-cast-rail-wrap pt-cine-stagger">
-        <ul class="pt-alebad-cast-rail" role="list">
-            @foreach($cast as $i => $member)
-                <li class="pt-alebad-cast-card" role="listitem" style="--i: {{ $i }}">
-                    <span class="pt-alebad-cast-poster">
-                        <img src="{{ asset($member['src']) }}"
-                             alt="{{ $member['role'] }} {{ $member['name'] }} — فيلم العابد"
-                             loading="lazy"
-                             decoding="async">
-                        <span class="pt-alebad-cast-veil" aria-hidden="true"></span>
-                        <span class="pt-alebad-cast-glow" aria-hidden="true"></span>
-                    </span>
-                    <span class="pt-alebad-cast-caption">
-                        <span class="pt-alebad-cast-role">{{ $member['role'] }}</span>
-                        <span class="pt-alebad-cast-name">{{ $member['name'] }}</span>
-                    </span>
-                </li>
-            @endforeach
-        </ul>
+         Markup notes:
+         * Arrow buttons sit INSIDE the wrap but OUTSIDE the
+           pt-cine-stagger so they don't get the stagger's
+           opacity-toggle (they manage their own hover-reveal).
+         * `data-pt-cast-rail-wrap` / `data-pt-cast-rail` /
+           `data-pt-cast-arrow` are stable JS hooks. --}}
+    <div class="pt-alebad-cast-rail-wrap" data-pt-cast-rail-wrap>
+        <button type="button"
+                class="pt-alebad-cast-arrow pt-alebad-cast-arrow-prev"
+                data-pt-cast-arrow="prev"
+                aria-label="السابق"
+                aria-controls="pt-alebad-cast-rail-list">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none"
+                 stroke="currentColor" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+        </button>
+        <button type="button"
+                class="pt-alebad-cast-arrow pt-alebad-cast-arrow-next"
+                data-pt-cast-arrow="next"
+                aria-label="التالي"
+                aria-controls="pt-alebad-cast-rail-list">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none"
+                 stroke="currentColor" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+        </button>
 
-        <span class="pt-alebad-cast-rail-hint" aria-hidden="true">
-            <span class="pt-alebad-cast-rail-hint-chevron">←</span>
-            <span>اسحب لاكتشاف باقي النجوم</span>
-        </span>
+        <div class="pt-alebad-cast-rail-inner pt-cine-stagger">
+            <ul id="pt-alebad-cast-rail-list" class="pt-alebad-cast-rail" role="list" data-pt-cast-rail>
+                @foreach($cast as $i => $member)
+                    <li class="pt-alebad-cast-card" role="listitem" style="--i: {{ $i }}">
+                        <span class="pt-alebad-cast-poster">
+                            <img src="{{ asset($member['src']) }}"
+                                 alt="{{ $member['role'] }} {{ $member['name'] }} — فيلم العابد"
+                                 loading="lazy"
+                                 decoding="async">
+                            <span class="pt-alebad-cast-veil" aria-hidden="true"></span>
+                            <span class="pt-alebad-cast-glow" aria-hidden="true"></span>
+                        </span>
+                        <span class="pt-alebad-cast-caption">
+                            <span class="pt-alebad-cast-role">{{ $member['role'] }}</span>
+                            <span class="pt-alebad-cast-name">{{ $member['name'] }}</span>
+                        </span>
+                    </li>
+                @endforeach
+            </ul>
+
+            <span class="pt-alebad-cast-rail-hint" aria-hidden="true">
+                <span class="pt-alebad-cast-rail-hint-chevron">←</span>
+                <span>اسحب لاكتشاف باقي النجوم</span>
+            </span>
+        </div>
     </div>
 </section>
 
