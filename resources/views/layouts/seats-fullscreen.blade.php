@@ -8,12 +8,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#05060d">
 
-    {{-- JN monogram favicon. See public/brand/ for the full set; this
-         fullscreen layout only needs the SVG variant since fullscreen
-         contexts don't render in tab strips that would benefit from
-         the .ico fallback. --}}
-    <link rel="icon" type="image/svg+xml" href="{{ asset('brand/favicon.svg') }}">
+    {{-- JN monogram favicon. The brand mark is now the painted artwork
+         (gold / teal / violet), so we serve the pre-rendered favicon
+         plates rather than an inline SVG. See public/brand/ for the
+         full asset set. --}}
+    <link rel="icon" type="image/png" sizes="48x48" href="{{ asset('brand/favicon-48.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('brand/favicon-32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('brand/favicon-16.png') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('brand/apple-touch-icon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
 
     <script src="https://cdn.tailwindcss.com"></script>
 
