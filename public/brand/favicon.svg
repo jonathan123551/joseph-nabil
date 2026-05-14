@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  JN MONOGRAM · favicon (compact, optimized for ≤32 px)
+  ========================================================
+  Same composition as jn-monogram.svg, but with thicker strokes and
+  a tighter viewBox so the mark fills more of the canvas at tab-icon
+  size. Designed to stay crisp from 16×16 (browser tab) up to 192×192
+  (Android home screen).
+  Includes a subtle rounded-square plate so the icon reads on both
+  light and dark browser chrome — bookmark bars often render favicons
+  against a near-black or near-white background and a bare gradient
+  stroke can disappear against either.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="JN">
+  <defs>
+    <linearGradient id="jnGrad" x1="6" y1="8" x2="58" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0"    stop-color="#3cb6c9"/>
+      <stop offset="0.25" stop-color="#e8c476"/>
+      <stop offset="0.55" stop-color="#d4a64e"/>
+      <stop offset="0.82" stop-color="#a566c4"/>
+      <stop offset="1"    stop-color="#7d4ba8"/>
+    </linearGradient>
+    <linearGradient id="jnPlate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#13182a"/>
+      <stop offset="1" stop-color="#080a14"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Plate: rounded-square so the icon has consistent silhouette on
+       any browser chrome. -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#jnPlate)"/>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="none" stroke="rgba(255,255,255,0.06)"/>
+
+  <g stroke="url(#jnGrad)" fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <!-- J: top serif + stem + curl -->
+    <path d="M 12 16 H 26"/>
+    <path d="M 22 16 V 38 C 22 47.5 16 52 11 49 C 7 46.5 8 41.5 13 41.5"/>
+
+    <!-- N: serifs + stems + diagonal -->
+    <path d="M 28 16 H 40"/>
+    <path d="M 47 16 H 58"/>
+    <path d="M 33 16 V 50"/>
+    <path d="M 52 16 V 50"/>
+    <path d="M 33 16 L 52 50"/>
+  </g>
+</svg>
