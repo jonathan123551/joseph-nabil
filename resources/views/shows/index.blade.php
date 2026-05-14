@@ -84,7 +84,7 @@
     //                         requested but browsers gate it until the
     //                         user gestures (which the click already is).
     $trailerUrl      = 'https://www.facebook.com/share/v/18nkB77H6t/';
-    $trailerEmbedUrl = 'https://www.facebook.com/plugins/video.php'
+    $trailerEmbedUrl = 'https://www.facebook.com/share/v/1CadihMbXo/?mibextid=wwXIfr'
         . '?href=' . rawurlencode($trailerUrl)
         . '&show_text=false&autoplay=true&t=0';
 
@@ -196,7 +196,7 @@
     <div class="pt-alebad-hero-content pt-cine-stagger">
         <span class="pt-cine-eyebrow pt-alebad-eyebrow">
             <span class="pt-live-dot pt-live-dot-gold"></span>
-            <span>تحت رعاية البابا تواضروس الثاني · بطريركية الكرازة المرقسية</span>
+            <span>تحت رعاية البابا تواضروس الثاني · بطريرك الكرازة المرقسية</span>
         </span>
 
         <h1 id="pt-alebad-hero-title" class="pt-alebad-hero-title">
