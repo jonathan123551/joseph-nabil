@@ -26,17 +26,21 @@
     </style>
 
     {{-- ================= JN MONOGRAM · BRAND IDENTITY =================
-         Single source of truth for the platform mark. Five flavors live
-         under public/brand/:
-           - favicon.svg          (gradient mark + dark plate, optimized for tab icons)
-           - jn-monogram.svg      (gradient mark, no plate, for in-page brand blocks)
-           - jn-monogram-mono.svg (currentColor, for theme-inheriting contexts)
-           - apple-touch-icon.png (180x180, iOS home-screen)
-           - android-chrome-{192,512}.png + favicon-{16,32,48}.png + favicon.ico
-           - og-image.png         (1200x630, social/OG card)
-         All assets are checked in to the repo so they're always served
-         by Railway without a build step. --}}
-    <link rel="icon" type="image/svg+xml" href="{{ asset('brand/favicon.svg') }}">
+         The mark is the painted JN artwork (gold / teal / violet on
+         transparent background) — a single PNG sized so it ships crisp
+         from 24 px navbar marks up to 1024 px hero / OG renders.
+         Pre-rendered favicon plates (logo on rounded-square dark plate)
+         live in three sizes for the browser tab and iOS home-screen.
+         All assets live under public/brand/ and are checked in so
+         Railway serves them with no build step.
+           - jn-monogram.png         (1024×1024, transparent — navbar / drawer / footer / hero)
+           - apple-touch-icon.png    (180×180, painted mark on dark plate — iOS home-screen)
+           - android-chrome-192.png
+           - android-chrome-512.png
+           - favicon-{16,32,48}.png  (browser tab — dark plate)
+           - favicon.ico             (16+32+48 multi-res)
+           - og-image.png            (1200×630 — social / OG card) --}}
+    <link rel="icon" type="image/png" sizes="48x48" href="{{ asset('brand/favicon-48.png') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('brand/favicon-32.png') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('brand/favicon-16.png') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('brand/apple-touch-icon.png') }}">
@@ -3200,6 +3204,31 @@
             box-shadow: inset 0 1px 0 rgba(255,255,255,0.92), 0 0 24px rgba(79,70,229,0.14);
         }
         .pt-brand-logo svg { position: relative; z-index: 1; }
+        /* Painted JN PNG mark — replaces the legacy inline SVG in the
+           navbar / drawer / footer brand chip. `display:block` keeps it
+           from inheriting the default `inline` baseline gap. `z-index:1`
+           keeps it above the .pt-brand-orb glow but below any future
+           overlays. The image already has its color identity baked in,
+           so no `fill` / `currentColor` plumbing is needed — but we
+           lean on the chip's `box-shadow` to give it the same lifted
+           feel the SVG used to have. */
+        .pt-brand-logo .pt-brand-mark-img {
+            position: relative;
+            z-index: 1;
+            display: block;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            /* On light surfaces the painted strokes look a touch washed
+               out next to the dark navbar version (the chip background
+               flips from #~141928 to ~#f1f3f8). A barely-there shadow
+               restores the painted-on-paper feel without making the
+               mark look heavy. */
+            filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+        }
+        :root[data-pt-theme="light"] .pt-brand-logo .pt-brand-mark-img {
+            filter: drop-shadow(0 1px 1px rgba(20, 18, 40, 0.18));
+        }
         .pt-brand-orb {
             position: absolute;
             inset: -25%;
@@ -7660,32 +7689,21 @@
             {{-- Brand block --}}
             <a href="{{ route('shows.index') }}" class="pt-brand group" aria-label="Premium Tickets">
                 <span class="pt-brand-logo" aria-hidden="true">
-                    {{-- JN monogram (gradient). 64x64 viewBox so the container
-                         CSS (.pt-brand-logo) keeps the existing 40x40 frame.
-                         Same gradient stops used everywhere via the
-                         pt-grad-nav linearGradient defined here — keep IDs
-                         unique per block so multiple JN marks on the same
-                         page (nav + drawer + footer) don't collide. --}}
-                    <svg width="24" height="24" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-                        <defs>
-                            <linearGradient id="pt-grad-nav" x1="6" y1="8" x2="58" y2="56" gradientUnits="userSpaceOnUse">
-                                <stop offset="0"    stop-color="#3cb6c9"/>
-                                <stop offset="0.25" stop-color="#e8c476"/>
-                                <stop offset="0.55" stop-color="#d4a64e"/>
-                                <stop offset="0.82" stop-color="#a566c4"/>
-                                <stop offset="1"    stop-color="#7d4ba8"/>
-                            </linearGradient>
-                        </defs>
-                        <g stroke="url(#pt-grad-nav)" fill="none" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M 12 14 H 26"/>
-                            <path d="M 22 14 V 38 C 22 47.5 16 52 11 49 C 7 46.5 8 41 13 41.5"/>
-                            <path d="M 28 14 H 40"/>
-                            <path d="M 47 14 H 58"/>
-                            <path d="M 33 14 V 50"/>
-                            <path d="M 52 14 V 50"/>
-                            <path d="M 33 14 L 52 50"/>
-                        </g>
-                    </svg>
+                    {{-- JN monogram — painted artwork, rendered as a 28×28
+                         transparent PNG inside the existing 40×40 brand
+                         chip. The artwork already has gold / teal / violet
+                         coloring baked in, so it does NOT inherit theme
+                         color — it carries its own identity on both dark
+                         and light surfaces. The brand chip's soft glow
+                         (.pt-brand-orb behind, .pt-brand-logo shadow) is
+                         what gives it lift; the PNG just sits on top. --}}
+                    <img src="{{ asset('brand/jn-monogram.png') }}"
+                         alt=""
+                         width="28"
+                         height="28"
+                         class="pt-brand-mark-img"
+                         loading="eager"
+                         decoding="async">
                     <span class="pt-brand-orb" aria-hidden="true"></span>
                 </span>
                 <span class="pt-brand-text">
@@ -7763,26 +7781,13 @@
         <div class="pt-drawer-head">
             <div class="pt-drawer-brand">
                 <span class="pt-brand-logo" aria-hidden="true" style="width:36px;height:36px;">
-                    <svg width="22" height="22" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-                        <defs>
-                            <linearGradient id="pt-grad-drawer" x1="6" y1="8" x2="58" y2="56" gradientUnits="userSpaceOnUse">
-                                <stop offset="0"    stop-color="#3cb6c9"/>
-                                <stop offset="0.25" stop-color="#e8c476"/>
-                                <stop offset="0.55" stop-color="#d4a64e"/>
-                                <stop offset="0.82" stop-color="#a566c4"/>
-                                <stop offset="1"    stop-color="#7d4ba8"/>
-                            </linearGradient>
-                        </defs>
-                        <g stroke="url(#pt-grad-drawer)" fill="none" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M 12 14 H 26"/>
-                            <path d="M 22 14 V 38 C 22 47.5 16 52 11 49 C 7 46.5 8 41 13 41.5"/>
-                            <path d="M 28 14 H 40"/>
-                            <path d="M 47 14 H 58"/>
-                            <path d="M 33 14 V 50"/>
-                            <path d="M 52 14 V 50"/>
-                            <path d="M 33 14 L 52 50"/>
-                        </g>
-                    </svg>
+                    <img src="{{ asset('brand/jn-monogram.png') }}"
+                         alt=""
+                         width="26"
+                         height="26"
+                         class="pt-brand-mark-img"
+                         loading="eager"
+                         decoding="async">
                 </span>
                 <div class="pt-drawer-brand-text">
                     <div class="prism-wordmark" style="font-size:14px;" data-i18n="brand">PREMIUM</div>
@@ -7865,26 +7870,13 @@
                 <div>
                     <a href="{{ route('shows.index') }}" class="pt-brand" aria-label="Premium Tickets" style="padding: 0;">
                         <span class="pt-brand-logo" aria-hidden="true">
-                            <svg width="24" height="24" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-                                <defs>
-                                    <linearGradient id="pt-grad-foot" x1="6" y1="8" x2="58" y2="56" gradientUnits="userSpaceOnUse">
-                                        <stop offset="0"    stop-color="#3cb6c9"/>
-                                        <stop offset="0.25" stop-color="#e8c476"/>
-                                        <stop offset="0.55" stop-color="#d4a64e"/>
-                                        <stop offset="0.82" stop-color="#a566c4"/>
-                                        <stop offset="1"    stop-color="#7d4ba8"/>
-                                    </linearGradient>
-                                </defs>
-                                <g stroke="url(#pt-grad-foot)" fill="none" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M 12 14 H 26"/>
-                                    <path d="M 22 14 V 38 C 22 47.5 16 52 11 49 C 7 46.5 8 41 13 41.5"/>
-                                    <path d="M 28 14 H 40"/>
-                                    <path d="M 47 14 H 58"/>
-                                    <path d="M 33 14 V 50"/>
-                                    <path d="M 52 14 V 50"/>
-                                    <path d="M 33 14 L 52 50"/>
-                                </g>
-                            </svg>
+                            <img src="{{ asset('brand/jn-monogram.png') }}"
+                                 alt=""
+                                 width="28"
+                                 height="28"
+                                 class="pt-brand-mark-img"
+                                 loading="lazy"
+                                 decoding="async">
                         </span>
                         <span class="pt-brand-text">
                             <span class="pt-brand-wordmark" data-i18n="brand">PREMIUM</span>
