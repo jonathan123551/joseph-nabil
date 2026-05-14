@@ -73,20 +73,39 @@
         ],
     ];
 
-    // Trailer (Facebook reel). We embed it inline via the Facebook video
-    // plugin (no FB SDK script needed), but click-to-load so the iframe
-    // only mounts when the user actually taps play — keeps the iPhone
+    // Trailer (Facebook video). We embed it inline via the Facebook
+    // video plugin (no FB SDK script needed) and click-to-load so the
+    // iframe only mounts when the user taps play — keeps the iPhone
     // Safari first paint fast and avoids a ~200KB SDK on initial load.
     //
-    // `$trailerUrl`         = canonical share URL, used as the fallback
-    //                         "open on Facebook" link if the embed fails.
-    // `$trailerEmbedUrl`    = FB video plugin iframe src. Autoplay is
-    //                         requested but browsers gate it until the
-    //                         user gestures (which the click already is).
-    $trailerUrl      = 'https://www.facebook.com/share/v/18nkB77H6t/';
-    $trailerEmbedUrl = 'https://www.facebook.com/share/v/1CadihMbXo/?mibextid=wwXIfr'
+    // IMPORTANT: the FB Video Plugin (`/plugins/video.php`) needs the
+    // canonical `/watch/?v=<id>` form for the `href` query param.
+    // Short share-links like `/share/v/<short>/` do NOT reliably
+    // resolve inside the plugin iframe — they 30x off-site, the
+    // plugin bails, and the trailer never plays inside the page.
+    // That bug is why the previous embed appeared broken.
+    //
+    // Note: the base iframe URL is ALWAYS the plugin endpoint
+    // (`/plugins/video.php`). It is NOT a /share/v/ URL — those are
+    // only redirects to a canonical /watch URL and cannot host the
+    // embedded player themselves. Setting the base to a /share/v/
+    // URL produces a URL with two `?` separators (syntax error) and
+    // a non-embeddable target.
+    //
+    // `$trailerUrl`      = canonical /watch URL, user-facing
+    //                      fallback ("افتح في فيسبوك").
+    // `$trailerEmbedUrl` = FB video plugin iframe src. Width is
+    //                      requested at 1280 so the player renders
+    //                      at full size inside our 16:9 frame. Plugin
+    //                      docs only honour `href`, `show_text`,
+    //                      `width`, `appId` — other params are
+    //                      ignored (autoplay/mute are SDK methods,
+    //                      not plugin params).
+    $trailerVideoId  = '1816698382142571';
+    $trailerUrl      = 'https://www.facebook.com/watch/?v=' . $trailerVideoId;
+    $trailerEmbedUrl = 'https://www.facebook.com/plugins/video.php'
         . '?href=' . rawurlencode($trailerUrl)
-        . '&show_text=false&autoplay=true&t=0';
+        . '&show_text=false&width=1280';
 
     // Compute aggregate "selling fast" / "last N seats" / "trending" hint
     // per show using already-loaded showTimes. We sum total_tickets and
@@ -141,21 +160,17 @@
         ];
     };
 
-    // Booking target for the hero "احجز الآن" CTA. We prefer the featured
-    // show's first upcoming showtime so the user lands directly on the
-    // seat / form flow; if there's no available time we fall back to the
-    // show details page, and as a last resort we anchor-scroll to the
-    // showtimes section so the page still works with zero data.
-    $heroBookHref   = '#shows-grid';
-    $heroBookLabel  = 'احجز الآن';
-    if ($featured) {
-        $firstTime = $featured->showTimes->first();
-        if ($firstTime) {
-            $heroBookHref = route('bookings.create', $firstTime);
-        } else {
-            $heroBookHref = route('shows.show', $featured);
-        }
-    }
+    // Booking target for the hero "احجز الآن" CTA. We deliberately route
+    // through the cinematic show-details page BEFORE the user picks a
+    // showtime — the show page provides emotional context (poster,
+    // synopsis, cast) so the booking decision feels intentional rather
+    // than transactional. Only when there's no featured show at all do
+    // we fall back to anchor-scrolling to the showtimes grid so the
+    // homepage still works with zero data.
+    //
+    // Flow: Homepage → Show page → Choose showtime → Booking.
+    $heroBookHref  = $featured ? route('shows.show', $featured) : '#shows-grid';
+    $heroBookLabel = 'احجز الآن';
 @endphp
 
 <div class="pt-cine pt-alebad" data-pt-cine>
@@ -357,28 +372,24 @@
         </p>
     </div>
 
-    {{-- Cast rail. The wrap controls two things the rail itself can't
-         do cleanly inside a single overflow container:
-         (1) edge-fade overlays (`pt-alebad-cast-rail-fade-*`) that
-             communicate "there's more →" via a soft gradient, and
-             toggle their `is-on` class via JS based on scroll position
-             (off when the rail is at that edge).
-         (2) a small chevron affordance on mobile that further
-             signals scrollability without dominating the layout.
+    {{-- Cast rail v3. Lessons learned from previous passes:
+         * `scroll-snap-stop: always` + `mandatory` snap together made
+           iOS feel "stuck" on every flick — each card forces a hard
+           stop and momentum dies. Replaced with `proximity` snap and
+           no snap-stop, so iOS native momentum survives intact.
+         * `content-visibility: auto` was causing visible jank on
+           snap-back because cards re-rendered mid-snap. Removed.
+         * JS-toggled fade overlays added complexity for a fade that
+           still read as ambiguous. Replaced with a single permanent
+           pure-CSS end-edge mask on the wrap (won't fight snap) + a
+           pulsing chevron hint. Less moving parts, clearer
+           "there's more →" affordance.
 
-         The rail itself is start-snap on every breakpoint (NOT
-         center-snap) — start-snap always parks a card flush against
-         the scene's lead edge, which is much cleaner than mobile's
-         old center-snap where a card landed in the middle with two
-         half-cards peeking off both sides. --}}
-    <div class="pt-alebad-cast-rail-wrap pt-cine-stagger"
-         data-pt-cast-rail-wrap>
-        <span class="pt-alebad-cast-rail-fade pt-alebad-cast-rail-fade-start"
-              aria-hidden="true"></span>
-        <span class="pt-alebad-cast-rail-fade pt-alebad-cast-rail-fade-end is-on"
-              aria-hidden="true"></span>
-
-        <ul class="pt-alebad-cast-rail" role="list" data-pt-cast-rail>
+         The peek of the next card (now intentionally ~32% of viewport
+         on mobile) does the heavy lifting for "more cards exist" —
+         that's the only affordance a cinematic carousel needs. --}}
+    <div class="pt-alebad-cast-rail-wrap pt-cine-stagger">
+        <ul class="pt-alebad-cast-rail" role="list">
             @foreach($cast as $i => $member)
                 <li class="pt-alebad-cast-card" role="listitem" style="--i: {{ $i }}">
                     <span class="pt-alebad-cast-poster">

@@ -6341,77 +6341,104 @@
             .pt-alebad-cast-head { padding: 0 64px; margin-bottom: 28px; }
         }
 
+        /* Cast rail v3 — full rebuild for iOS Safari smoothness.
+           Design goals:
+             1. Native iOS momentum survives every flick (no `mandatory`
+                snap, no `snap-stop: always` — both kill momentum).
+             2. The next card is ALWAYS partially visible as a peek so
+                "scroll right for more" is obvious without any extra UI.
+             3. A single soft end-edge fade (pure CSS, no JS, no
+                scroll-listener) reinforces the affordance.
+             4. No content-visibility (caused render-during-snap jank).
+             5. No will-change on the scroller (was triggering layer
+                promotion that costs more than it saves on iOS). */
         .pt-alebad-cast-rail-wrap {
             position: relative;
             z-index: 2;
+            /* End-edge mask: a soft fade on the trailing edge of the
+               rail container, anchored OUTSIDE the scroll container so
+               it doesn't interfere with snap calculations. Symmetric
+               leading-edge fade is intentionally NOT applied — the
+               leading edge is the scene's logical "start" and a fade
+               there reads as content being clipped, not "more coming".
+               Logical-property friendly (works in both RTL & LTR). */
+            -webkit-mask-image: linear-gradient(to var(--pt-cast-mask-dir, left),
+                transparent 0%, #000 8%);
+                    mask-image: linear-gradient(to var(--pt-cast-mask-dir, left),
+                transparent 0%, #000 8%);
         }
+        html[dir="rtl"] .pt-alebad-cast-rail-wrap {
+            --pt-cast-mask-dir: right;
+        }
+        html[dir="ltr"] .pt-alebad-cast-rail-wrap {
+            --pt-cast-mask-dir: left;
+        }
+
         .pt-alebad-cast-rail {
             list-style: none;
             margin: 0;
-            /* Symmetric inline padding gives the rail breathing room at
-               both ends and matches scroll-padding-inline (below) so a
-               snapped card lands flush with the scene edge instead of
-               half-off-screen. Larger bottom padding lets card shadows
-               glow downward without clipping. */
+            /* Inline padding matches `scroll-padding-inline` so the
+               start-snapped card lands flush against the scene's lead
+               edge with breathing room rather than touching it. */
             padding: 12px 20px 32px;
             display: flex;
-            gap: 18px;
+            gap: 16px;
             overflow-x: auto;
             overflow-y: hidden;
-            scroll-snap-type: x mandatory;
-            /* Both inline edges are padded so start AND end snap behave
-               symmetrically. Without this, swiping past the last card
-               on RTL/LTR rebounds inconsistently. */
+            /* `proximity` (NOT `mandatory`) is the magic snap mode for
+               iOS — it only snaps when the scroll velocity slows on
+               its own, NEVER fights momentum. Combined with no
+               `scroll-snap-stop` on the cards, a flick coasts
+               naturally and lands wherever momentum takes it, then
+               settles softly onto the nearest card. Feels like a
+               native iOS Photos carousel. */
+            scroll-snap-type: x proximity;
             scroll-padding-inline: 20px;
-            /* `scroll-snap-stop: always` on the card stops a fast flick
-               from blowing past 2-3 cards at once — feels much more
-               tactile / "collectible" on iPhone. */
+            /* Native iOS momentum — REQUIRED on iOS Safari for the
+               rubber-band / coast behavior we want. */
             -webkit-overflow-scrolling: touch;
-            /* Horizontal containment: a hard left/right flick should
-               stay inside the rail, not trigger the browser's
+            /* Horizontal containment so a hard flick at the rail's end
+               doesn't bubble up and trigger the browser's
                back/forward swipe or rubber-band the whole page. */
             overscroll-behavior-inline: contain;
+            /* Tell iOS this element scrolls horizontally only — stops
+               iOS from interpreting tiny vertical wobble as page
+               scroll mid-flick. */
+            touch-action: pan-x;
             scrollbar-width: none;
-            /* Hint to the compositor that this element will scroll —
-               cuts main-thread work during fast swipes on iOS. */
-            will-change: scroll-position;
         }
         @media (min-width: 768px) {
-            .pt-alebad-cast-rail { padding: 12px 64px 36px; gap: 22px; scroll-padding-inline: 64px; }
+            .pt-alebad-cast-rail {
+                padding: 12px 64px 36px;
+                gap: 20px;
+                scroll-padding-inline: 64px;
+            }
         }
         .pt-alebad-cast-rail::-webkit-scrollbar { display: none; }
 
         .pt-alebad-cast-card {
             flex: 0 0 auto;
-            /* Narrowed from the previous `clamp(220px, 78vw, 280px)` so
-               on a 390px viewport the card is ~265px wide, leaving a
-               ~110px peek of the next card that unambiguously says
-               "there's more to the right". The old 78vw made the card
-               eat almost the whole viewport, which is what caused the
-               "broken slider" feel — there was no peek of the next
-               card to motivate the swipe. */
-            width: clamp(208px, 68vw, 260px);
+            /* Card width sized so a deliberate ~30-35% peek of the
+               next card is always visible on a 390px viewport
+               (390 - 20*2 padding - 16 gap = 334px of "rail viewport";
+               card at ~62vw = 242px leaves ~92px = 28% peek). The
+               peek is the affordance — no extra UI needed. */
+            width: clamp(208px, 62vw, 252px);
             /* `start` snap parks the card flush against the scene's
-               lead edge (RTL: right edge / LTR: left edge). MUCH
-               cleaner than the previous `center` snap on mobile,
-               which landed cards in the middle with half-cards
-               peeking off both sides — a layout that visually
-               competes with itself. */
+               lead edge so the layout reads cleanly. `proximity` (set
+               on the parent) makes this a SOFT suggestion, not a
+               hard requirement, so iOS momentum is preserved. */
             scroll-snap-align: start;
-            scroll-snap-stop: always;
             border-radius: 18px;
             overflow: hidden;
             background: var(--prism-surface);
             border: 1px solid rgba(255,255,255,0.08);
             box-shadow: 0 20px 50px rgba(0,0,0,0.4);
-            transition: transform .3s var(--prism-ease), box-shadow .3s var(--prism-ease), border-color .3s var(--prism-ease);
+            transition:
+                transform .3s var(--prism-ease),
+                box-shadow .3s var(--prism-ease),
+                border-color .3s var(--prism-ease);
             transition-delay: calc(var(--i, 0) * 0ms);
-            /* Skip rendering for off-screen cards in long rails — keeps
-               iPhone Safari's compositor from re-painting all 8 cards
-               on every horizontal flick. `contain-intrinsic-size`
-               reserves the layout slot so the snap math still works. */
-            content-visibility: auto;
-            contain-intrinsic-size: 260px 380px;
         }
         @media (min-width: 768px) {
             .pt-alebad-cast-card { width: 280px; }
@@ -6483,58 +6510,6 @@
             font-weight: 700;
             color: var(--prism-text);
             letter-spacing: -0.01em;
-        }
-
-        /* Edge-fade overlays. Replace the previous broken "side fade /
-           peek" feel with two slim gradient veils anchored to the
-           start and end edges of the rail. JS toggles `.is-on` based
-           on `scrollLeft` so the start veil hides when the rail is
-           parked at the start (no "phantom" gradient that suggests
-           hidden content where there isn't any), and the end veil
-           hides at the end. */
-        .pt-alebad-cast-rail-fade {
-            position: absolute;
-            top: 12px;            /* match rail's vertical padding */
-            bottom: 32px;
-            width: 44px;
-            pointer-events: none;
-            z-index: 3;
-            opacity: 0;
-            transition: opacity .25s var(--prism-ease);
-        }
-        @media (min-width: 768px) {
-            .pt-alebad-cast-rail-fade { width: 80px; bottom: 36px; }
-        }
-        .pt-alebad-cast-rail-fade.is-on { opacity: 1; }
-        .pt-alebad-cast-rail-fade-start {
-            inset-inline-start: 0;
-            background: linear-gradient(to right, var(--prism-bg) 0%, rgba(15,17,26,0.6) 35%, transparent 100%);
-        }
-        .pt-alebad-cast-rail-fade-end {
-            inset-inline-end: 0;
-            background: linear-gradient(to left, var(--prism-bg) 0%, rgba(15,17,26,0.6) 35%, transparent 100%);
-        }
-        /* Logical-property gradient direction needs flipping under RTL
-           so the gradient still fades toward the inside of the rail. */
-        html[dir="rtl"] .pt-alebad-cast-rail-fade-start {
-            background: linear-gradient(to left, var(--prism-bg) 0%, rgba(15,17,26,0.6) 35%, transparent 100%);
-        }
-        html[dir="rtl"] .pt-alebad-cast-rail-fade-end {
-            background: linear-gradient(to right, var(--prism-bg) 0%, rgba(15,17,26,0.6) 35%, transparent 100%);
-        }
-        :root[data-pt-theme="light"] .pt-alebad-cast-rail-fade-start {
-            background: linear-gradient(to right, var(--prism-bg) 0%, rgba(255,255,255,0.55) 35%, transparent 100%);
-        }
-        :root[data-pt-theme="light"] .pt-alebad-cast-rail-fade-end {
-            background: linear-gradient(to left, var(--prism-bg) 0%, rgba(255,255,255,0.55) 35%, transparent 100%);
-        }
-        :root[data-pt-theme="light"] html[dir="rtl"] .pt-alebad-cast-rail-fade-start,
-        html[dir="rtl"] :root[data-pt-theme="light"] .pt-alebad-cast-rail-fade-start {
-            background: linear-gradient(to left, var(--prism-bg) 0%, rgba(255,255,255,0.55) 35%, transparent 100%);
-        }
-        :root[data-pt-theme="light"] html[dir="rtl"] .pt-alebad-cast-rail-fade-end,
-        html[dir="rtl"] :root[data-pt-theme="light"] .pt-alebad-cast-rail-fade-end {
-            background: linear-gradient(to right, var(--prism-bg) 0%, rgba(255,255,255,0.55) 35%, transparent 100%);
         }
 
         .pt-alebad-cast-rail-hint {
@@ -9930,60 +9905,6 @@
                 scenes.forEach((s) => s.classList.add('is-active'));
                 document.body.classList.remove('has-cine-intro-active');
             }
-        })();
-
-        // ---------- Cast rail edge-fade toggle ----------
-        // Toggles the start/end gradient overlays based on scrollLeft so
-        // the fade only shows on the side that actually has more cards.
-        // Uses RTL-safe scrollLeft semantics: in RTL, scrollLeft can be
-        // negative (Firefox/Safari) or positive (Chromium). We normalise
-        // with `Math.abs` and the rail's `scrollWidth - clientWidth`.
-        (function setupCastRailEdgeFade() {
-            const wraps = document.querySelectorAll('[data-pt-cast-rail-wrap]');
-            if (!wraps.length) return;
-
-            wraps.forEach((wrap) => {
-                const rail = wrap.querySelector('[data-pt-cast-rail]');
-                if (!rail) return;
-                const fadeStart = wrap.querySelector('.pt-alebad-cast-rail-fade-start');
-                const fadeEnd   = wrap.querySelector('.pt-alebad-cast-rail-fade-end');
-
-                const update = () => {
-                    const max = rail.scrollWidth - rail.clientWidth;
-                    if (max <= 4) {
-                        // Rail fits entirely — no fades needed at all.
-                        if (fadeStart) fadeStart.classList.remove('is-on');
-                        if (fadeEnd)   fadeEnd.classList.remove('is-on');
-                        return;
-                    }
-                    // Normalise scroll position to 0..max regardless of
-                    // RTL implementation quirks.
-                    const pos = Math.abs(rail.scrollLeft);
-                    const atStart = pos < 8;
-                    const atEnd   = pos > max - 8;
-                    if (fadeStart) fadeStart.classList.toggle('is-on', !atStart);
-                    if (fadeEnd)   fadeEnd.classList.toggle('is-on', !atEnd);
-                };
-
-                // Throttle scroll handler via rAF so we don't burn CPU
-                // during fast iPhone flicks. `passive` so we never block
-                // the compositor's scroll thread.
-                let ticking = false;
-                rail.addEventListener('scroll', () => {
-                    if (ticking) return;
-                    ticking = true;
-                    requestAnimationFrame(() => {
-                        update();
-                        ticking = false;
-                    });
-                }, { passive: true });
-
-                // Recompute on resize (orientation change, dynamic viewport).
-                window.addEventListener('resize', update, { passive: true });
-
-                // Initial state.
-                update();
-            });
         })();
 
         // ---------- Trailer click-to-load embed ----------
