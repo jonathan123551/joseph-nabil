@@ -5057,6 +5057,10 @@
             padding: 96px 22px 80px;
             overflow: hidden;
             isolation: isolate;
+            /* Anchor-scroll buffer so the floating top-bar (~76-80px)
+               doesn't clip the section's eyebrow / heading when a CTA
+               like "تفاصيل العرض" jumps the user here via `#hash`. */
+            scroll-margin-top: 96px;
         }
         @supports not (height: 100svh) {
             .pt-cine-scene { min-height: 100vh; }
@@ -6039,22 +6043,80 @@
             color: inherit;
         }
 
+        /* The card itself now hosts the ambient cinematic glow that sits
+           BEHIND the frame so the trailer reads as a piece of light
+           rather than a pasted-in iframe. Two soft radial fills (warm
+           gold above, cool cyan below) bloom outside the frame's
+           rounded edges. */
+        .pt-alebad-trailer-card::before {
+            content: '';
+            position: absolute;
+            inset: -8% -6%;
+            z-index: 0;
+            background:
+                radial-gradient(60% 50% at 50% 0%, rgba(251,191,36,0.22) 0%, rgba(251,191,36,0) 70%),
+                radial-gradient(70% 60% at 50% 100%, rgba(34,211,238,0.18) 0%, rgba(34,211,238,0) 70%);
+            filter: blur(36px);
+            opacity: 0.85;
+            pointer-events: none;
+            transition: opacity .6s var(--prism-ease), transform .6s var(--prism-ease);
+        }
+        .pt-alebad-trailer-card.is-playing::before {
+            opacity: 1;
+            transform: scale(1.04);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .pt-alebad-trailer-card::before { transition: none; }
+        }
+
         .pt-alebad-trailer-frame {
             position: relative;
+            z-index: 1; /* sit above the card's ambient glow ::before */
             display: block;
             aspect-ratio: 16 / 9;
             border-radius: 22px;
             overflow: hidden;
             border: 1px solid rgba(255,255,255,0.12);
             background: #060810;
-            box-shadow: 0 32px 80px rgba(0,0,0,0.5), 0 0 60px rgba(34,211,238,0.06);
-            transition: transform .3s var(--prism-ease), box-shadow .3s var(--prism-ease), border-color .3s var(--prism-ease);
+            box-shadow:
+                0 32px 80px rgba(0,0,0,0.55),
+                0 0 0 1px rgba(255,255,255,0.03),
+                0 0 60px rgba(251,191,36,0.10);
+            transition:
+                transform .35s cubic-bezier(.2, 1.2, .2, 1),
+                box-shadow .35s var(--prism-ease),
+                border-color .35s var(--prism-ease);
             will-change: transform;
+            /* The frame is the click target — make that obvious to
+               users on every input modality (mouse, touch, keyboard). */
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
         }
-        .pt-alebad-trailer-card:hover .pt-alebad-trailer-frame {
-            transform: translateY(-3px) scale(1.005);
-            box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 80px rgba(251,191,36,0.16);
-            border-color: rgba(251,191,36,0.32);
+        .pt-alebad-trailer-frame:focus-visible {
+            outline: 2px solid rgba(251,191,36,0.85);
+            outline-offset: 4px;
+        }
+        .pt-alebad-trailer-frame:hover {
+            transform: translateY(-4px) scale(1.008);
+            box-shadow:
+                0 44px 110px rgba(0,0,0,0.65),
+                0 0 0 1px rgba(251,191,36,0.18),
+                0 0 100px rgba(251,191,36,0.20);
+            border-color: rgba(251,191,36,0.36);
+        }
+        @media (hover: none) {
+            .pt-alebad-trailer-frame:hover { transform: none; }
+        }
+        /* While loading / playing: lock down the springy hover so the
+           card doesn't fight the iframe's own UI. */
+        .pt-alebad-trailer-card.is-playing .pt-alebad-trailer-frame {
+            transform: none;
+            cursor: default;
+            border-color: rgba(251,191,36,0.20);
+            box-shadow:
+                0 50px 130px rgba(0,0,0,0.75),
+                0 0 0 1px rgba(251,191,36,0.14),
+                0 0 120px rgba(251,191,36,0.18);
         }
 
         .pt-alebad-trailer-thumb {
@@ -6063,9 +6125,9 @@
             background-size: cover;
             background-position: 50% 30%;
             filter: saturate(1.05) contrast(1.05) brightness(0.78);
-            transition: transform .6s var(--prism-ease), filter .3s var(--prism-ease);
+            transition: transform .6s var(--prism-ease), filter .3s var(--prism-ease), opacity .4s var(--prism-ease);
         }
-        .pt-alebad-trailer-card:hover .pt-alebad-trailer-thumb {
+        .pt-alebad-trailer-frame:hover .pt-alebad-trailer-thumb {
             transform: scale(1.04);
             filter: saturate(1.1) contrast(1.05) brightness(0.85);
         }
@@ -6076,6 +6138,7 @@
             background:
                 radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,0) 30%, rgba(0,0,0,0.55) 100%),
                 linear-gradient(180deg, rgba(0,0,0,0) 60%, rgba(0,0,0,0.55) 100%);
+            transition: opacity .4s var(--prism-ease);
         }
 
         .pt-alebad-trailer-play {
@@ -6091,16 +6154,16 @@
             justify-content: center;
             padding-left: 4px;
             box-shadow: 0 24px 50px rgba(0,0,0,0.45), 0 0 0 4px rgba(251,191,36,0.18);
-            transition: transform .25s var(--prism-ease), box-shadow .25s var(--prism-ease);
+            transition: transform .25s var(--prism-ease), box-shadow .25s var(--prism-ease), opacity .3s var(--prism-ease);
         }
         @media (min-width: 768px) {
             .pt-alebad-trailer-play { width: 116px; height: 116px; }
         }
-        .pt-alebad-trailer-card:hover .pt-alebad-trailer-play {
+        .pt-alebad-trailer-frame:hover .pt-alebad-trailer-play {
             transform: translate(-50%, -50%) scale(1.06);
             box-shadow: 0 32px 70px rgba(0,0,0,0.55), 0 0 0 8px rgba(251,191,36,0.22);
         }
-        .pt-alebad-trailer-card:active .pt-alebad-trailer-play {
+        .pt-alebad-trailer-frame:active .pt-alebad-trailer-play {
             transform: translate(-50%, -50%) scale(0.96);
         }
 
@@ -6113,6 +6176,7 @@
             border: 2px solid rgba(251,191,36,0.4);
             animation: alebadTrailerPulse 2.4s ease-out infinite;
             pointer-events: none;
+            transition: opacity .3s var(--prism-ease);
         }
         @media (min-width: 768px) {
             .pt-alebad-trailer-pulse { width: 116px; height: 116px; }
@@ -6121,11 +6185,85 @@
             0%   { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
             100% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); }
         }
+        @media (prefers-reduced-motion: reduce) {
+            .pt-alebad-trailer-pulse { animation: none; opacity: 0.3; }
+        }
+
+        /* Loading state: spinner + caption ("...جارٍ التحميل") that
+           overlays the frame while the FB plugin iframe is mounting.
+           Hidden until JS adds `.is-loading`, hidden again once
+           `.is-playing` (iframe has fired its load event). */
+        .pt-alebad-trailer-loading {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: rgba(6,8,16,0.65);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            color: var(--prism-text-2);
+            font-size: 13px;
+            letter-spacing: 0.06em;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .3s var(--prism-ease), visibility .3s;
+            z-index: 4;
+        }
+        .pt-alebad-trailer-card.is-loading .pt-alebad-trailer-loading {
+            opacity: 1;
+            visibility: visible;
+        }
+        .pt-alebad-trailer-spinner {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid rgba(251,191,36,0.18);
+            border-top-color: rgba(251,191,36,0.95);
+            animation: alebadTrailerSpin .8s linear infinite;
+        }
+        @keyframes alebadTrailerSpin {
+            to { transform: rotate(360deg); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .pt-alebad-trailer-spinner { animation: none; }
+        }
+
+        /* Inline iframe: covers the whole frame, sits above the
+           thumb/play/pulse layers. Fades in over .35s so the
+           "poster → trailer" transition reads as cinematic rather
+           than abrupt. */
+        .pt-alebad-trailer-frame > iframe {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            opacity: 0;
+            transition: opacity .35s var(--prism-ease);
+            z-index: 5;
+        }
+        .pt-alebad-trailer-card.is-playing .pt-alebad-trailer-frame > iframe {
+            opacity: 1;
+        }
+        /* Once playing, fade out the poster/play/pulse/veil so the
+           frame is uncluttered around the FB player chrome. */
+        .pt-alebad-trailer-card.is-playing .pt-alebad-trailer-thumb,
+        .pt-alebad-trailer-card.is-playing .pt-alebad-trailer-veil,
+        .pt-alebad-trailer-card.is-playing .pt-alebad-trailer-play,
+        .pt-alebad-trailer-card.is-playing .pt-alebad-trailer-pulse {
+            opacity: 0;
+            pointer-events: none;
+        }
 
         .pt-alebad-trailer-meta {
+            position: relative;
+            z-index: 1;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 12px;
             padding: 14px 6px 0;
             font-size: 13px;
             color: var(--prism-text-3);
@@ -6138,12 +6276,45 @@
             opacity: 0.7;
         }
         .pt-alebad-trailer-meta-arrow {
-            font-size: 16px;
+            font-size: 14px;
             transition: transform .2s var(--prism-ease);
         }
-        .pt-alebad-trailer-card:hover .pt-alebad-trailer-meta-arrow {
-            transform: translate(2px, -2px);
+        /* Fallback link reads as a low-emphasis "if the embed didn't
+           work, here's the FB share URL" lifeline. Underline-on-hover
+           reinforces it's a link (the meta strip otherwise has no
+           other links). */
+        .pt-alebad-trailer-fallback {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--prism-text-3);
+            text-decoration: none;
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.10);
+            background: rgba(255,255,255,0.02);
+            transition: color .2s var(--prism-ease), border-color .2s var(--prism-ease), background-color .2s var(--prism-ease);
+        }
+        .pt-alebad-trailer-fallback:hover,
+        .pt-alebad-trailer-fallback:focus-visible {
             color: #fbbf24;
+            border-color: rgba(251,191,36,0.36);
+            background: rgba(251,191,36,0.06);
+            outline: none;
+        }
+        .pt-alebad-trailer-fallback:hover .pt-alebad-trailer-meta-arrow,
+        .pt-alebad-trailer-fallback:focus-visible .pt-alebad-trailer-meta-arrow {
+            transform: translate(2px, -2px);
+        }
+        /* If the FB embed never fires `load` within 6s, the JS sets
+           `.is-stalled` on the card. We emphasise the fallback link so
+           the user can still reach the trailer on Facebook directly. */
+        .pt-alebad-trailer-card.is-stalled .pt-alebad-trailer-fallback {
+            color: #fbbf24;
+            border-color: rgba(251,191,36,0.36);
+            background: rgba(251,191,36,0.08);
         }
 
         /* ---------- Scene 3 — Cast rail ---------- */
@@ -6177,25 +6348,57 @@
         .pt-alebad-cast-rail {
             list-style: none;
             margin: 0;
-            padding: 12px 20px 28px;
+            /* Symmetric inline padding gives the rail breathing room at
+               both ends and matches scroll-padding-inline (below) so a
+               snapped card lands flush with the scene edge instead of
+               half-off-screen. Larger bottom padding lets card shadows
+               glow downward without clipping. */
+            padding: 12px 20px 32px;
             display: flex;
-            gap: 16px;
+            gap: 18px;
             overflow-x: auto;
             overflow-y: hidden;
             scroll-snap-type: x mandatory;
-            scroll-padding-inline-start: 20px;
+            /* Both inline edges are padded so start AND end snap behave
+               symmetrically. Without this, swiping past the last card
+               on RTL/LTR rebounds inconsistently. */
+            scroll-padding-inline: 20px;
+            /* `scroll-snap-stop: always` on the card stops a fast flick
+               from blowing past 2-3 cards at once — feels much more
+               tactile / "collectible" on iPhone. */
             -webkit-overflow-scrolling: touch;
+            /* Horizontal containment: a hard left/right flick should
+               stay inside the rail, not trigger the browser's
+               back/forward swipe or rubber-band the whole page. */
+            overscroll-behavior-inline: contain;
             scrollbar-width: none;
+            /* Hint to the compositor that this element will scroll —
+               cuts main-thread work during fast swipes on iOS. */
+            will-change: scroll-position;
         }
         @media (min-width: 768px) {
-            .pt-alebad-cast-rail { padding: 12px 64px 32px; gap: 20px; scroll-padding-inline-start: 64px; }
+            .pt-alebad-cast-rail { padding: 12px 64px 36px; gap: 22px; scroll-padding-inline: 64px; }
         }
         .pt-alebad-cast-rail::-webkit-scrollbar { display: none; }
 
         .pt-alebad-cast-card {
             flex: 0 0 auto;
-            width: clamp(220px, 78vw, 280px);
-            scroll-snap-align: center;
+            /* Narrowed from the previous `clamp(220px, 78vw, 280px)` so
+               on a 390px viewport the card is ~265px wide, leaving a
+               ~110px peek of the next card that unambiguously says
+               "there's more to the right". The old 78vw made the card
+               eat almost the whole viewport, which is what caused the
+               "broken slider" feel — there was no peek of the next
+               card to motivate the swipe. */
+            width: clamp(208px, 68vw, 260px);
+            /* `start` snap parks the card flush against the scene's
+               lead edge (RTL: right edge / LTR: left edge). MUCH
+               cleaner than the previous `center` snap on mobile,
+               which landed cards in the middle with half-cards
+               peeking off both sides — a layout that visually
+               competes with itself. */
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
             border-radius: 18px;
             overflow: hidden;
             background: var(--prism-surface);
@@ -6203,9 +6406,15 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.4);
             transition: transform .3s var(--prism-ease), box-shadow .3s var(--prism-ease), border-color .3s var(--prism-ease);
             transition-delay: calc(var(--i, 0) * 0ms);
+            /* Skip rendering for off-screen cards in long rails — keeps
+               iPhone Safari's compositor from re-painting all 8 cards
+               on every horizontal flick. `contain-intrinsic-size`
+               reserves the layout slot so the snap math still works. */
+            content-visibility: auto;
+            contain-intrinsic-size: 260px 380px;
         }
         @media (min-width: 768px) {
-            .pt-alebad-cast-card { width: 280px; scroll-snap-align: start; }
+            .pt-alebad-cast-card { width: 280px; }
         }
         @media (min-width: 1024px) {
             .pt-alebad-cast-card { width: 300px; }
@@ -6276,16 +6485,94 @@
             letter-spacing: -0.01em;
         }
 
+        /* Edge-fade overlays. Replace the previous broken "side fade /
+           peek" feel with two slim gradient veils anchored to the
+           start and end edges of the rail. JS toggles `.is-on` based
+           on `scrollLeft` so the start veil hides when the rail is
+           parked at the start (no "phantom" gradient that suggests
+           hidden content where there isn't any), and the end veil
+           hides at the end. */
+        .pt-alebad-cast-rail-fade {
+            position: absolute;
+            top: 12px;            /* match rail's vertical padding */
+            bottom: 32px;
+            width: 44px;
+            pointer-events: none;
+            z-index: 3;
+            opacity: 0;
+            transition: opacity .25s var(--prism-ease);
+        }
+        @media (min-width: 768px) {
+            .pt-alebad-cast-rail-fade { width: 80px; bottom: 36px; }
+        }
+        .pt-alebad-cast-rail-fade.is-on { opacity: 1; }
+        .pt-alebad-cast-rail-fade-start {
+            inset-inline-start: 0;
+            background: linear-gradient(to right, var(--prism-bg) 0%, rgba(15,17,26,0.6) 35%, transparent 100%);
+        }
+        .pt-alebad-cast-rail-fade-end {
+            inset-inline-end: 0;
+            background: linear-gradient(to left, var(--prism-bg) 0%, rgba(15,17,26,0.6) 35%, transparent 100%);
+        }
+        /* Logical-property gradient direction needs flipping under RTL
+           so the gradient still fades toward the inside of the rail. */
+        html[dir="rtl"] .pt-alebad-cast-rail-fade-start {
+            background: linear-gradient(to left, var(--prism-bg) 0%, rgba(15,17,26,0.6) 35%, transparent 100%);
+        }
+        html[dir="rtl"] .pt-alebad-cast-rail-fade-end {
+            background: linear-gradient(to right, var(--prism-bg) 0%, rgba(15,17,26,0.6) 35%, transparent 100%);
+        }
+        :root[data-pt-theme="light"] .pt-alebad-cast-rail-fade-start {
+            background: linear-gradient(to right, var(--prism-bg) 0%, rgba(255,255,255,0.55) 35%, transparent 100%);
+        }
+        :root[data-pt-theme="light"] .pt-alebad-cast-rail-fade-end {
+            background: linear-gradient(to left, var(--prism-bg) 0%, rgba(255,255,255,0.55) 35%, transparent 100%);
+        }
+        :root[data-pt-theme="light"] html[dir="rtl"] .pt-alebad-cast-rail-fade-start,
+        html[dir="rtl"] :root[data-pt-theme="light"] .pt-alebad-cast-rail-fade-start {
+            background: linear-gradient(to left, var(--prism-bg) 0%, rgba(255,255,255,0.55) 35%, transparent 100%);
+        }
+        :root[data-pt-theme="light"] html[dir="rtl"] .pt-alebad-cast-rail-fade-end,
+        html[dir="rtl"] :root[data-pt-theme="light"] .pt-alebad-cast-rail-fade-end {
+            background: linear-gradient(to right, var(--prism-bg) 0%, rgba(255,255,255,0.55) 35%, transparent 100%);
+        }
+
         .pt-alebad-cast-rail-hint {
-            display: block;
-            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 4px 20px 0;
             text-align: center;
             color: var(--prism-text-4);
             font-size: 11.5px;
             letter-spacing: 0.06em;
         }
+        .pt-alebad-cast-rail-hint-chevron {
+            display: inline-block;
+            color: #fbbf24;
+            font-weight: 700;
+            font-size: 14px;
+            /* Subtle "go" pulse on the chevron so the affordance feels
+               alive but not nagging. Reduced-motion override below. */
+            animation: alebadCastHintPulse 1.8s ease-in-out infinite;
+        }
+        @keyframes alebadCastHintPulse {
+            0%, 100% { transform: translateX(0); opacity: 0.7; }
+            50%      { transform: translateX(-4px); opacity: 1; }
+        }
+        html[dir="rtl"] .pt-alebad-cast-rail-hint-chevron {
+            animation-name: alebadCastHintPulseRtl;
+        }
+        @keyframes alebadCastHintPulseRtl {
+            0%, 100% { transform: translateX(0); opacity: 0.7; }
+            50%      { transform: translateX(4px); opacity: 1; }
+        }
         @media (min-width: 1024px) {
             .pt-alebad-cast-rail-hint { display: none; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .pt-alebad-cast-rail-hint-chevron { animation: none; }
         }
 
         /* ---------- Scene 4 — Story ---------- */
@@ -9643,6 +9930,123 @@
                 scenes.forEach((s) => s.classList.add('is-active'));
                 document.body.classList.remove('has-cine-intro-active');
             }
+        })();
+
+        // ---------- Cast rail edge-fade toggle ----------
+        // Toggles the start/end gradient overlays based on scrollLeft so
+        // the fade only shows on the side that actually has more cards.
+        // Uses RTL-safe scrollLeft semantics: in RTL, scrollLeft can be
+        // negative (Firefox/Safari) or positive (Chromium). We normalise
+        // with `Math.abs` and the rail's `scrollWidth - clientWidth`.
+        (function setupCastRailEdgeFade() {
+            const wraps = document.querySelectorAll('[data-pt-cast-rail-wrap]');
+            if (!wraps.length) return;
+
+            wraps.forEach((wrap) => {
+                const rail = wrap.querySelector('[data-pt-cast-rail]');
+                if (!rail) return;
+                const fadeStart = wrap.querySelector('.pt-alebad-cast-rail-fade-start');
+                const fadeEnd   = wrap.querySelector('.pt-alebad-cast-rail-fade-end');
+
+                const update = () => {
+                    const max = rail.scrollWidth - rail.clientWidth;
+                    if (max <= 4) {
+                        // Rail fits entirely — no fades needed at all.
+                        if (fadeStart) fadeStart.classList.remove('is-on');
+                        if (fadeEnd)   fadeEnd.classList.remove('is-on');
+                        return;
+                    }
+                    // Normalise scroll position to 0..max regardless of
+                    // RTL implementation quirks.
+                    const pos = Math.abs(rail.scrollLeft);
+                    const atStart = pos < 8;
+                    const atEnd   = pos > max - 8;
+                    if (fadeStart) fadeStart.classList.toggle('is-on', !atStart);
+                    if (fadeEnd)   fadeEnd.classList.toggle('is-on', !atEnd);
+                };
+
+                // Throttle scroll handler via rAF so we don't burn CPU
+                // during fast iPhone flicks. `passive` so we never block
+                // the compositor's scroll thread.
+                let ticking = false;
+                rail.addEventListener('scroll', () => {
+                    if (ticking) return;
+                    ticking = true;
+                    requestAnimationFrame(() => {
+                        update();
+                        ticking = false;
+                    });
+                }, { passive: true });
+
+                // Recompute on resize (orientation change, dynamic viewport).
+                window.addEventListener('resize', update, { passive: true });
+
+                // Initial state.
+                update();
+            });
+        })();
+
+        // ---------- Trailer click-to-load embed ----------
+        // First paint shows the cinematic poster-frame. Tap (or Enter/Space)
+        // mounts an iframe pointing at the Facebook video plugin so the
+        // trailer plays INLINE — never opens externally on the primary
+        // path. The fallback link below the frame stays as the lifeline
+        // if the embed silently fails. We add a 6s "loading watchdog":
+        // if the iframe never fires `load`, we surface the fallback as
+        // a more prominent visual hint (the loading caption itself
+        // becomes the call-to-action).
+        (function setupTrailerClickToLoad() {
+            const cards = document.querySelectorAll('[data-pt-trailer-card]');
+            if (!cards.length) return;
+
+            cards.forEach((card) => {
+                const frame    = card.querySelector('[data-pt-trailer-frame]');
+                const embedUrl = card.getAttribute('data-pt-trailer-embed');
+                if (!frame || !embedUrl) return;
+
+                const play = () => {
+                    if (card.dataset.loaded === '1') return;
+                    card.dataset.loaded = '1';
+                    card.classList.add('is-loading');
+
+                    const iframe = document.createElement('iframe');
+                    iframe.src   = embedUrl;
+                    iframe.title = 'برومو مسرحية العباد';
+                    iframe.setAttribute('allow', 'autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share');
+                    iframe.setAttribute('allowfullscreen', 'true');
+                    iframe.setAttribute('frameborder', '0');
+                    iframe.setAttribute('scrolling', 'no');
+                    iframe.setAttribute('loading', 'eager');
+
+                    iframe.addEventListener('load', () => {
+                        card.classList.remove('is-loading');
+                        card.classList.add('is-playing');
+                    }, { once: true });
+
+                    // Watchdog: if the FB plugin never fires `load` (ad
+                    // blocker, region block, private post, etc.) we let
+                    // the loading veil persist but visually surface the
+                    // fallback link beneath so the user is never
+                    // stranded. 6s is conservative — FB's plugin
+                    // normally fires `load` within 1-2s on broadband.
+                    setTimeout(() => {
+                        if (!card.classList.contains('is-playing')) {
+                            card.classList.remove('is-loading');
+                            card.classList.add('is-stalled');
+                        }
+                    }, 6000);
+
+                    frame.appendChild(iframe);
+                };
+
+                frame.addEventListener('click', play);
+                frame.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        play();
+                    }
+                });
+            });
         })();
     })();
 

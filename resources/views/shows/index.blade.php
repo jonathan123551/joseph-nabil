@@ -73,11 +73,20 @@
         ],
     ];
 
-    // External trailer link (Facebook reel). Opens in a new tab; we render
-    // a premium poster-frame instead of embedding because the FB iframe
-    // plugin needs a canonical post URL and adds ~200KB of SDK weight,
-    // which trashes the iPhone Safari opening render.
-    $trailerUrl = 'https://www.facebook.com/share/v/18nkB77H6t/';
+    // Trailer (Facebook reel). We embed it inline via the Facebook video
+    // plugin (no FB SDK script needed), but click-to-load so the iframe
+    // only mounts when the user actually taps play — keeps the iPhone
+    // Safari first paint fast and avoids a ~200KB SDK on initial load.
+    //
+    // `$trailerUrl`         = canonical share URL, used as the fallback
+    //                         "open on Facebook" link if the embed fails.
+    // `$trailerEmbedUrl`    = FB video plugin iframe src. Autoplay is
+    //                         requested but browsers gate it until the
+    //                         user gestures (which the click already is).
+    $trailerUrl      = 'https://www.facebook.com/share/v/18nkB77H6t/';
+    $trailerEmbedUrl = 'https://www.facebook.com/plugins/video.php'
+        . '?href=' . rawurlencode($trailerUrl)
+        . '&show_text=false&autoplay=true&t=0';
 
     // Compute aggregate "selling fast" / "last N seats" / "trending" hint
     // per show using already-loaded showTimes. We sum total_tickets and
@@ -223,13 +232,19 @@
                 <span>شاهد البرومو</span>
             </a>
 
-            @if($featured)
-                <a href="{{ route('shows.show', $featured) }}"
-                   class="pt-alebad-cta pt-alebad-cta-ghost">
-                    <span>تفاصيل العرض</span>
-                    <span class="pt-arrow-rtl" aria-hidden="true">←</span>
-                </a>
-            @endif
+            {{-- "تفاصيل العرض" now anchor-scrolls to the story/cast/credits
+                 section instead of jumping off to /shows/{id}. The user
+                 stays in the cinematic homepage flow: trailer → cast →
+                 story → credits, and only operational booking sends them
+                 deeper. The scroll uses the existing
+                 `data-pt-smooth-anchor` smooth-scroll hook and accounts
+                 for the sticky topbar via the section's `scroll-margin-top`. --}}
+            <a href="#pt-alebad-story"
+               class="pt-alebad-cta pt-alebad-cta-ghost"
+               data-pt-smooth-anchor>
+                <span>تفاصيل العرض</span>
+                <span class="pt-arrow-rtl" aria-hidden="true">←</span>
+            </a>
         </div>
 
         <span class="pt-cine-scroll-cue pt-alebad-scroll-cue" aria-hidden="true">
@@ -269,12 +284,21 @@
         </p>
     </div>
 
-    <a href="{{ $trailerUrl }}"
-       class="pt-alebad-trailer-card pt-cine-stagger"
-       target="_blank"
-       rel="noopener noreferrer"
-       aria-label="شاهد برومو مسرحية العباد على فيسبوك">
-        <span class="pt-alebad-trailer-frame">
+    {{-- Trailer card is a click-to-load embed (NOT a link). The first
+         paint is the cinematic poster-frame; tapping the play button
+         swaps in an <iframe> pointing at the Facebook video plugin so
+         the trailer plays INLINE inside the homepage. A separate
+         "افتح في فيسبوك ↗" fallback link is rendered below the frame
+         so users are never stranded if the iframe fails to load
+         (private video, region block, ad-blocker, etc.). --}}
+    <div class="pt-alebad-trailer-card pt-cine-stagger"
+         data-pt-trailer-card
+         data-pt-trailer-embed="{{ $trailerEmbedUrl }}">
+        <div class="pt-alebad-trailer-frame"
+             data-pt-trailer-frame
+             role="button"
+             tabindex="0"
+             aria-label="انقر لتشغيل برومو مسرحية العباد">
             <span class="pt-alebad-trailer-thumb"
                   style="background-image:url('{{ asset('images/al-abed/cast/01-father-boulos.jpg') }}')"
                   aria-hidden="true"></span>
@@ -285,12 +309,23 @@
                 </svg>
             </span>
             <span class="pt-alebad-trailer-pulse" aria-hidden="true"></span>
-        </span>
-        <span class="pt-alebad-trailer-meta">
-            <span class="pt-alebad-trailer-meta-label">برومو رسمي · فيسبوك</span>
-            <span class="pt-alebad-trailer-meta-arrow" aria-hidden="true">↗</span>
-        </span>
-    </a>
+            <span class="pt-alebad-trailer-loading" aria-hidden="true">
+                <span class="pt-alebad-trailer-spinner"></span>
+                <span>...جارٍ التحميل</span>
+            </span>
+        </div>
+        <div class="pt-alebad-trailer-meta">
+            <span class="pt-alebad-trailer-meta-label">برومو رسمي · انقر للتشغيل</span>
+            <a class="pt-alebad-trailer-fallback"
+               href="{{ $trailerUrl }}"
+               target="_blank"
+               rel="noopener noreferrer"
+               aria-label="افتح البرومو في فيسبوك (إذا لم يبدأ التشغيل)">
+                <span>افتح في فيسبوك</span>
+                <span class="pt-alebad-trailer-meta-arrow" aria-hidden="true">↗</span>
+            </a>
+        </div>
+    </div>
 </section>
 
 {{-- =====================================================================
@@ -322,8 +357,28 @@
         </p>
     </div>
 
-    <div class="pt-alebad-cast-rail-wrap pt-cine-stagger">
-        <ul class="pt-alebad-cast-rail" role="list">
+    {{-- Cast rail. The wrap controls two things the rail itself can't
+         do cleanly inside a single overflow container:
+         (1) edge-fade overlays (`pt-alebad-cast-rail-fade-*`) that
+             communicate "there's more →" via a soft gradient, and
+             toggle their `is-on` class via JS based on scroll position
+             (off when the rail is at that edge).
+         (2) a small chevron affordance on mobile that further
+             signals scrollability without dominating the layout.
+
+         The rail itself is start-snap on every breakpoint (NOT
+         center-snap) — start-snap always parks a card flush against
+         the scene's lead edge, which is much cleaner than mobile's
+         old center-snap where a card landed in the middle with two
+         half-cards peeking off both sides. --}}
+    <div class="pt-alebad-cast-rail-wrap pt-cine-stagger"
+         data-pt-cast-rail-wrap>
+        <span class="pt-alebad-cast-rail-fade pt-alebad-cast-rail-fade-start"
+              aria-hidden="true"></span>
+        <span class="pt-alebad-cast-rail-fade pt-alebad-cast-rail-fade-end is-on"
+              aria-hidden="true"></span>
+
+        <ul class="pt-alebad-cast-rail" role="list" data-pt-cast-rail>
             @foreach($cast as $i => $member)
                 <li class="pt-alebad-cast-card" role="listitem" style="--i: {{ $i }}">
                     <span class="pt-alebad-cast-poster">
@@ -343,7 +398,8 @@
         </ul>
 
         <span class="pt-alebad-cast-rail-hint" aria-hidden="true">
-            <span>اسحب للجانب →</span>
+            <span class="pt-alebad-cast-rail-hint-chevron">←</span>
+            <span>اسحب لاكتشاف باقي النجوم</span>
         </span>
     </div>
 </section>
