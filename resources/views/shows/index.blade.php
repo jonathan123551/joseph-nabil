@@ -1,11 +1,15 @@
 @extends('layouts.app')
 
-@section('title', 'العروض المتاحة · Premium Tickets')
+@section('title', 'العباد · مسرحية الراهب القمص بولس المقاري')
 @section('headMeta')
     <meta name="pt-title-i18n" content="page_title_shows">
+    {{-- Above-the-fold hero preload — Safari + Chrome will start the
+         download as soon as the HTML lands instead of after the layout
+         pass. Cuts visible "no backdrop" time on iPhone Safari. --}}
+    <link rel="preload" as="image" href="{{ asset('images/al-abed/hero.jpg') }}" fetchpriority="high">
 @endsection
 
-@section('body_class', 'is-pt-cine')
+@section('body_class', 'is-pt-cine is-pt-alebad')
 
 @section('content')
 
@@ -17,6 +21,63 @@
     });
     $featured = $shows->first();
     $rest     = $shows->slice(1)->values();
+
+    // Cast / credits for العباد. Cast is intentionally a static array in
+    // the view (not a DB table) — it's tightly coupled to the production,
+    // the same content for every visitor, and editable in one place. The
+    // photo files live in public/images/al-abed/cast/.
+    //
+    // Each entry: file path, actor display name, role short-label. The
+    // poster artwork itself already names the actor; the `role` is the
+    // emotional/narrative position for the rail caption.
+    $cast = [
+        [
+            'src'   => 'images/al-abed/cast/02-lotfy-labib.jpg',
+            'name'  => 'لطفي لبيب',
+            'role'  => 'الفنان القدير',
+        ],
+        [
+            'src'   => 'images/al-abed/cast/03-ahmed-halawa.jpg',
+            'name'  => 'أحمد حلاوة',
+            'role'  => 'الفنان القدير',
+        ],
+        [
+            'src'   => 'images/al-abed/cast/05-hanan-soliman.jpg',
+            'name'  => 'حنان سليمان',
+            'role'  => 'الفنانة القديرة',
+        ],
+        [
+            'src'   => 'images/al-abed/cast/08-nagy-saad.jpg',
+            'name'  => 'ناجي سعد',
+            'role'  => 'الفنان القدير',
+        ],
+        [
+            'src'   => 'images/al-abed/cast/07-fotouh-ahmed.jpg',
+            'name'  => 'فتوح أحمد',
+            'role'  => 'الفنان القدير',
+        ],
+        [
+            'src'   => 'images/al-abed/cast/04-mohamed-radwan.jpg',
+            'name'  => 'محمد رضوان',
+            'role'  => 'بطولة',
+        ],
+        [
+            'src'   => 'images/al-abed/cast/06-ahmed-halawany.jpg',
+            'name'  => 'أحمد الحلواني',
+            'role'  => 'بطولة',
+        ],
+        [
+            'src'   => 'images/al-abed/cast/01-father-boulos.jpg',
+            'name'  => 'الراهب القمص بولس المقاري',
+            'role'  => 'صاحب القصة',
+        ],
+    ];
+
+    // External trailer link (Facebook reel). Opens in a new tab; we render
+    // a premium poster-frame instead of embedding because the FB iframe
+    // plugin needs a canonical post URL and adds ~200KB of SDK weight,
+    // which trashes the iPhone Safari opening render.
+    $trailerUrl = 'https://www.facebook.com/share/v/18nkB77H6t/';
 
     // Compute aggregate "selling fast" / "last N seats" / "trending" hint
     // per show using already-loaded showTimes. We sum total_tickets and
@@ -70,241 +131,291 @@
             'starts_from' => $startsFrom,
         ];
     };
+
+    // Booking target for the hero "احجز الآن" CTA. We prefer the featured
+    // show's first upcoming showtime so the user lands directly on the
+    // seat / form flow; if there's no available time we fall back to the
+    // show details page, and as a last resort we anchor-scroll to the
+    // showtimes section so the page still works with zero data.
+    $heroBookHref   = '#shows-grid';
+    $heroBookLabel  = 'احجز الآن';
+    if ($featured) {
+        $firstTime = $featured->showTimes->first();
+        if ($firstTime) {
+            $heroBookHref = route('bookings.create', $firstTime);
+        } else {
+            $heroBookHref = route('shows.show', $featured);
+        }
+    }
 @endphp
 
-<div class="pt-cine" data-pt-cine>
+<div class="pt-cine pt-alebad" data-pt-cine>
 
 {{-- =====================================================================
-     Scene 1 — Cinematic intro
-     Full-screen opener. No header on this scene; the floating nav fades
-     in once the user scrolls past it.
+     Scene 1 — Cinematic hero · العباد
+     Full-screen opener built around the production: a large atmospheric
+     backdrop (the priest poster, already preloaded), dramatic typography,
+     and three premium CTAs. The booking system is the secondary CTA; the
+     primary feeling is "this is a real show".
 ===================================================================== --}}
-<section class="pt-cine-scene is-scene-intro"
-         data-cine-scene="intro"
-         aria-labelledby="pt-cine-intro-title">
-    <div class="pt-cine-bg" aria-hidden="true">
-        <span class="pt-cine-orb pt-cine-orb-a"></span>
-        <span class="pt-cine-orb pt-cine-orb-b"></span>
-        <span class="pt-cine-orb pt-cine-orb-c"></span>
+<section class="pt-cine-scene is-scene-intro pt-alebad-hero"
+         data-cine-scene="hero"
+         aria-labelledby="pt-alebad-hero-title">
+
+    {{-- Backdrop. The hero image is intentionally a real <img> (not a
+         CSS background-image) so the browser can apply preload + lazy
+         decoding hints, and so screen readers can ignore it cleanly. --}}
+    <div class="pt-alebad-hero-bg" aria-hidden="true">
+        <img class="pt-alebad-hero-img"
+             src="{{ asset('images/al-abed/hero.jpg') }}"
+             alt=""
+             loading="eager"
+             decoding="async"
+             fetchpriority="high">
+        <span class="pt-alebad-hero-veil"></span>
+        <span class="pt-alebad-hero-vignette"></span>
         <span class="pt-cine-grain"></span>
     </div>
 
-    <div class="pt-cine-particles" aria-hidden="true">
-        <span></span><span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span><span></span>
+    {{-- Ambient orbs reuse the existing cine palette. Aria-hidden so they
+         don't pollute the accessibility tree. --}}
+    <div class="pt-cine-bg pt-alebad-hero-orbs" aria-hidden="true">
+        <span class="pt-cine-orb pt-cine-orb-a"></span>
+        <span class="pt-cine-orb pt-cine-orb-b"></span>
     </div>
 
-    <div class="pt-cine-intro-content pt-cine-stagger">
-        <span class="pt-cine-brand-mark" aria-hidden="true">
-            <svg width="44" height="44" viewBox="0 0 64 64" fill="none">
-                <defs>
-                    <linearGradient id="pt-cine-mark" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0" stop-color="#22d3ee"/>
-                        <stop offset="0.5" stop-color="#818cf8"/>
-                        <stop offset="1" stop-color="#c084fc"/>
-                    </linearGradient>
-                </defs>
-                <path d="M32 6 L56 20 L46 56 L18 56 L8 20 Z" fill="none" stroke="url(#pt-cine-mark)" stroke-width="2.4" stroke-linejoin="round"/>
-                <circle cx="32" cy="34" r="6" fill="url(#pt-cine-mark)" opacity="0.7"/>
-            </svg>
+    <div class="pt-alebad-hero-content pt-cine-stagger">
+        <span class="pt-cine-eyebrow pt-alebad-eyebrow">
+            <span class="pt-live-dot pt-live-dot-gold"></span>
+            <span>تحت رعاية البابا تواضروس الثاني · بطريركية الكرازة المرقسية</span>
         </span>
 
-        <span class="pt-cine-eyebrow">
-            <span class="pt-live-dot"></span>
-            <span data-i18n="cine_intro_eyebrow">PREMIUM TICKETS</span>
-        </span>
-
-        <h1 id="pt-cine-intro-title" class="pt-cine-intro-title">
-            <span class="pt-cine-line" data-i18n="cine_intro_line_a">اكتشف</span>
-            <span class="pt-cine-line pt-cine-grad" data-i18n="cine_intro_line_b">حجز التذاكر</span>
-            <span class="pt-cine-line" data-i18n="cine_intro_line_c">بشكل مختلف.</span>
+        <h1 id="pt-alebad-hero-title" class="pt-alebad-hero-title">
+            <span class="pt-alebad-hero-titletext">العَبَّاد</span>
+            <span class="pt-alebad-hero-sub">الراهب القمص بولس المقاري</span>
         </h1>
 
-        <p class="pt-cine-intro-sub" data-i18n="cine_intro_sub">
-            تجربة سينمائية للحجز على الموبايل · من اختيار العرض حتى تذكرة الـQR على واتساب.
+        <p class="pt-alebad-hero-credit">
+            <span class="pt-alebad-hero-credit-label">إخراج</span>
+            <span class="pt-alebad-hero-credit-name">جوزيف نبيل</span>
         </p>
 
-        <span class="pt-cine-scroll-cue" aria-hidden="true">
-            <span data-i18n="cine_scroll_cue">اسحب للأسفل</span>
+        <p class="pt-alebad-hero-tagline">
+            رحلة روحية مستوحاة من سيرة الراهب القمص بولس المقاري — صلاة، صحراء، وعبور إلى السماء.
+        </p>
+
+        <div class="pt-alebad-hero-cta">
+            <a href="{{ $heroBookHref }}"
+               class="pt-alebad-cta pt-alebad-cta-primary prism-btn prism-btn-gold pt-cinema-magnet"
+               data-i18n="btn_book_now">
+                <span>{{ $heroBookLabel }}</span>
+                <span class="pt-arrow-rtl" aria-hidden="true">←</span>
+            </a>
+
+            <a href="#pt-alebad-trailer"
+               class="pt-alebad-cta pt-alebad-cta-ghost pt-alebad-cta-play"
+               data-pt-smooth-anchor>
+                <span class="pt-alebad-cta-play-glyph" aria-hidden="true">
+                    <svg width="14" height="16" viewBox="0 0 14 16" fill="none">
+                        <path d="M1 1.5v13L13 8 1 1.5Z" fill="currentColor"/>
+                    </svg>
+                </span>
+                <span>شاهد البرومو</span>
+            </a>
+
+            @if($featured)
+                <a href="{{ route('shows.show', $featured) }}"
+                   class="pt-alebad-cta pt-alebad-cta-ghost">
+                    <span>تفاصيل العرض</span>
+                    <span class="pt-arrow-rtl" aria-hidden="true">←</span>
+                </a>
+            @endif
+        </div>
+
+        <span class="pt-cine-scroll-cue pt-alebad-scroll-cue" aria-hidden="true">
+            <span>اسحب للأسفل</span>
             <span class="pt-cine-scroll-cue-line"></span>
         </span>
     </div>
-
-    {{-- Skip-to-shows pill — hidden by default, revealed when JS detects
-         this is a return visit (visit_count >= 2 in localStorage). --}}
-    <a href="#shows-grid"
-       class="prism-skip-pill"
-       data-pt-skip-shows
-       data-i18n="shows_skip_pill">تخطّي إلى العروض ↓</a>
 </section>
 
 {{-- =====================================================================
-     Scene 2 — Prologue / side-entering glass message
+     Scene 2 — Trailer / promo card
+     Premium poster-frame that opens the Facebook reel in a new tab. We
+     deliberately don't embed the FB SDK iframe (heavy, unreliable on
+     iPhone Safari, depends on post permalink). The frame uses a still
+     from the production's hero poster as a thumbnail; the play button
+     + ambient glow + glass border do the cinematic lifting.
 ===================================================================== --}}
-<section class="pt-cine-scene is-scene-prologue"
-         data-cine-scene="prologue"
-         aria-labelledby="pt-cine-prologue-title">
+<section class="pt-cine-scene pt-alebad-trailer"
+         id="pt-alebad-trailer"
+         data-cine-scene="trailer"
+         aria-labelledby="pt-alebad-trailer-title">
+
     <div class="pt-cine-bg" aria-hidden="true">
         <span class="pt-cine-orb pt-cine-orb-d"></span>
+    </div>
+
+    <div class="pt-alebad-trailer-head pt-cine-stagger">
+        <span class="pt-cine-eyebrow">
+            <span class="pt-live-dot pt-live-dot-gold"></span>
+            <span>البرومو الرسمي</span>
+        </span>
+        <h2 id="pt-alebad-trailer-title" class="pt-alebad-section-title">
+            <span class="pt-alebad-section-title-grad">شاهد البرومو</span>
+        </h2>
+        <p class="pt-alebad-section-sub">
+            دقيقة من الأجواء، الموسيقى، وشخصيات المسرحية — قبل ما تحجز.
+        </p>
+    </div>
+
+    <a href="{{ $trailerUrl }}"
+       class="pt-alebad-trailer-card pt-cine-stagger"
+       target="_blank"
+       rel="noopener noreferrer"
+       aria-label="شاهد برومو مسرحية العباد على فيسبوك">
+        <span class="pt-alebad-trailer-frame">
+            <span class="pt-alebad-trailer-thumb"
+                  style="background-image:url('{{ asset('images/al-abed/cast/01-father-boulos.jpg') }}')"
+                  aria-hidden="true"></span>
+            <span class="pt-alebad-trailer-veil" aria-hidden="true"></span>
+            <span class="pt-alebad-trailer-play" aria-hidden="true">
+                <svg width="34" height="40" viewBox="0 0 34 40" fill="none">
+                    <path d="M2 2.5v35L32 20 2 2.5Z" fill="currentColor"/>
+                </svg>
+            </span>
+            <span class="pt-alebad-trailer-pulse" aria-hidden="true"></span>
+        </span>
+        <span class="pt-alebad-trailer-meta">
+            <span class="pt-alebad-trailer-meta-label">برومو رسمي · فيسبوك</span>
+            <span class="pt-alebad-trailer-meta-arrow" aria-hidden="true">↗</span>
+        </span>
+    </a>
+</section>
+
+{{-- =====================================================================
+     Scene 3 — Cast rail
+     Horizontally-scrollable cinematic poster rail. CSS-only on mobile:
+     `scroll-snap-type: x mandatory` ensures swipes always land on a
+     card. Each card lazy-loads its poster and surfaces actor + role in
+     a discreet caption that doesn't fight the poster artwork.
+===================================================================== --}}
+<section class="pt-cine-scene pt-alebad-cast"
+         id="pt-alebad-cast"
+         data-cine-scene="cast"
+         aria-labelledby="pt-alebad-cast-title">
+
+    <div class="pt-cine-bg" aria-hidden="true">
         <span class="pt-cine-orb pt-cine-orb-e"></span>
     </div>
 
-    <div class="pt-cine-prologue-card pt-cine-stagger">
+    <div class="pt-alebad-cast-head pt-cine-stagger">
         <span class="pt-cine-eyebrow">
             <span class="pt-live-dot"></span>
-            <span data-i18n="cine_prologue_eyebrow">أهلا بك</span>
+            <span>طاقم العمل</span>
+        </span>
+        <h2 id="pt-alebad-cast-title" class="pt-alebad-section-title">
+            <span class="pt-alebad-section-title-grad">نجوم المسرحية</span>
+        </h2>
+        <p class="pt-alebad-section-sub">
+            مجموعة من ألمع نجوم المسرح والدراما المصرية يجتمعون في عمل واحد.
+        </p>
+    </div>
+
+    <div class="pt-alebad-cast-rail-wrap pt-cine-stagger">
+        <ul class="pt-alebad-cast-rail" role="list">
+            @foreach($cast as $i => $member)
+                <li class="pt-alebad-cast-card" role="listitem" style="--i: {{ $i }}">
+                    <span class="pt-alebad-cast-poster">
+                        <img src="{{ asset($member['src']) }}"
+                             alt="{{ $member['role'] }} {{ $member['name'] }} — مسرحية العباد"
+                             loading="lazy"
+                             decoding="async">
+                        <span class="pt-alebad-cast-veil" aria-hidden="true"></span>
+                        <span class="pt-alebad-cast-glow" aria-hidden="true"></span>
+                    </span>
+                    <span class="pt-alebad-cast-caption">
+                        <span class="pt-alebad-cast-role">{{ $member['role'] }}</span>
+                        <span class="pt-alebad-cast-name">{{ $member['name'] }}</span>
+                    </span>
+                </li>
+            @endforeach
+        </ul>
+
+        <span class="pt-alebad-cast-rail-hint" aria-hidden="true">
+            <span>اسحب للجانب →</span>
+        </span>
+    </div>
+</section>
+
+{{-- =====================================================================
+     Scene 4 — Story
+     Centered quote-style block. Deliberately short, evocative, and
+     scoped to a single sentence + supporting paragraph so the section
+     reads as cinematic copy, not a marketing pitch. The decorative
+     cross-bar dividers echo the production's religious aesthetic.
+===================================================================== --}}
+<section class="pt-cine-scene pt-alebad-story"
+         id="pt-alebad-story"
+         data-cine-scene="story"
+         aria-labelledby="pt-alebad-story-title">
+
+    <div class="pt-cine-bg" aria-hidden="true">
+        <span class="pt-cine-orb pt-cine-orb-shows-a"></span>
+        <span class="pt-cine-orb pt-cine-orb-shows-b"></span>
+    </div>
+
+    <div class="pt-alebad-story-content pt-cine-stagger">
+        <span class="pt-cine-eyebrow">
+            <span class="pt-live-dot pt-live-dot-gold"></span>
+            <span>القصة</span>
         </span>
 
-        <h2 id="pt-cine-prologue-title" class="pt-cine-prologue-title">
-            <span class="pt-cine-line pt-cine-grad" data-i18n="cine_prologue_title_a">حجز</span>
-            <span class="pt-cine-line" data-i18n="cine_prologue_title_b">من نوع تاني.</span>
+        <h2 id="pt-alebad-story-title" class="pt-alebad-story-title">
+            <span class="pt-alebad-story-quote-mark" aria-hidden="true">”</span>
+            في صحراءٍ ما، عاش رجلٌ تركَ الدنيا كلَّها ليبحثَ عن الله.
         </h2>
 
-        <p class="pt-cine-prologue-body" data-i18n="cine_prologue_body">
-            اختر العرض، احجز مقعدك من الخريطة المباشرة، ادفع بأمان،
-            وتسلّم تذكرتك بكود QR على واتساب — كل ده من الموبايل.
+        <span class="pt-alebad-story-divider" aria-hidden="true">
+            <span class="pt-alebad-story-divider-bar"></span>
+            <span class="pt-alebad-story-divider-mark">✦</span>
+            <span class="pt-alebad-story-divider-bar"></span>
+        </span>
+
+        <p class="pt-alebad-story-body">
+            "العَبَّاد" مسرحية مستوحاة من سيرة الراهب القمص بولس المقاري — قصة عبور
+            من ضوضاء العالم إلى صمت السماء، ومن انكسار الإنسان إلى عظمة الإيمان.
+            عملٌ سينمائي على المسرح، يجمع نخبة من أعظم نجوم الدراما المصرية
+            في رحلة روحية لا تُنسى.
         </p>
 
-        <div class="pt-cine-prologue-tags" role="list">
-            <span class="pt-cine-prologue-tag" role="listitem" data-i18n="cine_prologue_tag_1">سينمائي</span>
-            <span class="pt-cine-prologue-tag" role="listitem" data-i18n="cine_prologue_tag_2">مباشر</span>
-            <span class="pt-cine-prologue-tag" role="listitem" data-i18n="cine_prologue_tag_3">آمن</span>
+        <div class="pt-alebad-story-credits">
+            <span class="pt-alebad-story-credit">
+                <span class="pt-alebad-story-credit-label">إخراج</span>
+                <span class="pt-alebad-story-credit-value">جوزيف نبيل</span>
+            </span>
+            <span class="pt-alebad-story-credit-sep" aria-hidden="true">·</span>
+            <span class="pt-alebad-story-credit">
+                <span class="pt-alebad-story-credit-label">سيناريو وحوار</span>
+                <span class="pt-alebad-story-credit-value">فريد النفراشي · رامي إبراهيم</span>
+            </span>
+            <span class="pt-alebad-story-credit-sep" aria-hidden="true">·</span>
+            <span class="pt-alebad-story-credit">
+                <span class="pt-alebad-story-credit-label">موسيقى</span>
+                <span class="pt-alebad-story-credit-value">عمانوئيل سعد</span>
+            </span>
         </div>
     </div>
 </section>
 
 {{-- =====================================================================
-     Scenes 3–6 — Four step cards (full-screen each)
-     Visual mocks (posters / seats / upload / QR) reuse the v2 motion
-     classes so we don't re-define keyframes.
-===================================================================== --}}
-
-{{-- Scene 3 — Step 01 · Choose your event --}}
-<section class="pt-cine-scene is-scene-step is-step-1"
-         data-cine-scene="step1"
-         aria-labelledby="pt-cine-step-1-title">
-    <div class="pt-cine-bg" aria-hidden="true">
-        <span class="pt-cine-orb pt-cine-orb-step-a"></span>
-    </div>
-
-    <div class="pt-cine-step-num pt-cine-step-num-bg" aria-hidden="true">01</div>
-
-    <div class="pt-cine-step-stage pt-cine-mock-host" aria-hidden="true">
-        <div class="pt-cinema-mock-posters">
-            <span class="pt-cinema-mock-poster is-p1"></span>
-            <span class="pt-cinema-mock-poster is-p2"></span>
-            <span class="pt-cinema-mock-poster is-p3"></span>
-        </div>
-    </div>
-
-    <div class="pt-cine-step-content pt-cine-stagger">
-        <span class="pt-cine-step-eyebrow">
-            <span class="pt-cine-step-emoji" aria-hidden="true">🎭</span>
-            <span data-i18n="cine_step_eyebrow_1">الخطوة الأولى</span>
-        </span>
-        <h2 id="pt-cine-step-1-title" class="pt-cine-step-title" data-i18n="cine_1_t">اختر عرضك</h2>
-        <p class="pt-cine-step-body" data-i18n="cine_1_b">تصفح العروض المباشرة واختر الموعد اللي يناسبك بلمسة واحدة.</p>
-    </div>
-</section>
-
-{{-- Scene 4 — Step 02 · Pick your seats --}}
-<section class="pt-cine-scene is-scene-step is-step-2"
-         data-cine-scene="step2"
-         aria-labelledby="pt-cine-step-2-title">
-    <div class="pt-cine-bg" aria-hidden="true">
-        <span class="pt-cine-orb pt-cine-orb-step-b"></span>
-    </div>
-
-    <div class="pt-cine-step-num pt-cine-step-num-bg" aria-hidden="true">02</div>
-
-    <div class="pt-cine-step-stage pt-cine-mock-host" aria-hidden="true">
-        <div class="pt-cinema-mock-seats">
-            @for ($i = 0; $i < 40; $i++)
-                @php
-                    $row = intdiv($i, 10);
-                    $col = $i % 10;
-                    $isPick = ($row === 2 && $col >= 3 && $col <= 7);
-                @endphp
-                <span @if($isPick) class="is-pick" @endif></span>
-            @endfor
-        </div>
-    </div>
-
-    <div class="pt-cine-step-content pt-cine-stagger">
-        <span class="pt-cine-step-eyebrow">
-            <span class="pt-cine-step-emoji" aria-hidden="true">🪑</span>
-            <span data-i18n="cine_step_eyebrow_2">الخطوة الثانية</span>
-        </span>
-        <h2 id="pt-cine-step-2-title" class="pt-cine-step-title" data-i18n="cine_2_t">اختر مقعدك</h2>
-        <p class="pt-cine-step-body" data-i18n="cine_2_b">خريطة مباشرة للصالة توريلك المتاح لحظة بلحظة عشان تحجز مقعدك بثقة.</p>
-    </div>
-</section>
-
-{{-- Scene 5 — Step 03 · Upload transfer --}}
-<section class="pt-cine-scene is-scene-step is-step-3"
-         data-cine-scene="step3"
-         aria-labelledby="pt-cine-step-3-title">
-    <div class="pt-cine-bg" aria-hidden="true">
-        <span class="pt-cine-orb pt-cine-orb-step-c"></span>
-    </div>
-
-    <div class="pt-cine-step-num pt-cine-step-num-bg" aria-hidden="true">03</div>
-
-    <div class="pt-cine-step-stage pt-cine-mock-host" aria-hidden="true">
-        <div class="pt-cinema-mock-upload">
-            <div class="pt-cinema-mock-upload-bar"></div>
-            <div class="pt-cinema-mock-upload-check">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12 L10 17 L19 7"/></svg>
-            </div>
-        </div>
-    </div>
-
-    <div class="pt-cine-step-content pt-cine-stagger">
-        <span class="pt-cine-step-eyebrow">
-            <span class="pt-cine-step-emoji" aria-hidden="true">📲</span>
-            <span data-i18n="cine_step_eyebrow_3">الخطوة الثالثة</span>
-        </span>
-        <h2 id="pt-cine-step-3-title" class="pt-cine-step-title" data-i18n="cine_3_t">ارفع التحويل</h2>
-        <p class="pt-cine-step-body" data-i18n="cine_3_b">حوّل على المحفظة أو InstaPay وارفع صورة التحويل بثواني داخل تدفق آمن وأنيق.</p>
-    </div>
-</section>
-
-{{-- Scene 6 — Step 04 · Receive QR ticket --}}
-<section class="pt-cine-scene is-scene-step is-step-4"
-         data-cine-scene="step4"
-         aria-labelledby="pt-cine-step-4-title">
-    <div class="pt-cine-bg" aria-hidden="true">
-        <span class="pt-cine-orb pt-cine-orb-step-d"></span>
-    </div>
-
-    <div class="pt-cine-step-num pt-cine-step-num-bg" aria-hidden="true">04</div>
-
-    <div class="pt-cine-step-stage pt-cine-mock-host" aria-hidden="true">
-        <div class="pt-cinema-mock-qr">
-            <div class="pt-cinema-mock-qr-grid">
-                @for ($i = 0; $i < 32; $i++)
-                    <span style="animation-delay: {{ ($i % 8) * 0.06 + (intdiv($i, 8)) * 0.12 }}s;"></span>
-                @endfor
-            </div>
-            <span class="pt-cinema-mock-qr-sweep" aria-hidden="true"></span>
-        </div>
-    </div>
-
-    <div class="pt-cine-step-content pt-cine-stagger">
-        <span class="pt-cine-step-eyebrow">
-            <span class="pt-cine-step-emoji" aria-hidden="true">🎟️</span>
-            <span data-i18n="cine_step_eyebrow_4">الخطوة الرابعة</span>
-        </span>
-        <h2 id="pt-cine-step-4-title" class="pt-cine-step-title" data-i18n="cine_4_t">استلم تذكرتك</h2>
-        <p class="pt-cine-step-body" data-i18n="cine_4_b">تذكرة QR توصلك على واتساب فور الاعتماد · جاهزة للمسح عند البوابة.</p>
-    </div>
-</section>
-
-{{-- =====================================================================
-     Scene 7 — Hand-off into the available shows / booking surface
+     Scene 5 — Hand-off into the available shows / booking surface
+     Same data plumbing as before (featured + grid), only the eyebrow
+     copy is re-keyed for the new flow so the section reads as "pick
+     your showtime" instead of generic "browse shows".
 ===================================================================== --}}
 <section id="shows-grid"
-         class="pt-cine-scene is-scene-shows"
+         class="pt-cine-scene is-scene-shows pt-alebad-shows"
          data-cine-scene="shows"
          aria-labelledby="pt-cine-shows-title">
     <div class="pt-cine-bg" aria-hidden="true">
@@ -315,12 +426,12 @@
     <div class="pt-cine-shows-head pt-cine-stagger">
         <span class="pt-cine-eyebrow">
             <span class="pt-live-dot pt-live-dot-emerald"></span>
-            <span data-i18n="cine_shows_eyebrow">العروض المباشرة الآن</span>
+            <span data-i18n="cine_shows_eyebrow">المواعيد المتاحة الآن</span>
         </span>
-        <h2 id="pt-cine-shows-title" class="pt-cine-shows-title">
-            <span class="pt-cine-line" data-i18n="shows_title">العروض المتاحة</span>
+        <h2 id="pt-cine-shows-title" class="pt-cine-shows-title pt-alebad-section-title">
+            <span class="pt-alebad-section-title-grad" data-i18n="shows_title">احجز مقعدك</span>
         </h2>
-        <p class="pt-cine-shows-sub" data-i18n="shows_sub">اختر عرضك وابدأ الحجز.</p>
+        <p class="pt-cine-shows-sub" data-i18n="shows_sub">اختر العرض والموعد المناسب لك.</p>
 
         <div class="pt-cine-shows-stats" role="list">
             <div class="pt-cine-shows-stat" role="listitem">
@@ -481,7 +592,60 @@
     @endif
 </section>
 
-</div>{{-- /.pt-cine --}}
+{{-- =====================================================================
+     Scene 6 — How it works (condensed)
+     The old onboarding (4 full-screen step scenes) collapsed into one
+     compact strip. Same emotional beats — choose / pick / pay / QR —
+     but emotionally subordinate to the show, where it belongs.
+===================================================================== --}}
+<section class="pt-cine-scene pt-alebad-howto"
+         id="pt-alebad-howto"
+         data-cine-scene="howto"
+         aria-labelledby="pt-alebad-howto-title">
+
+    <div class="pt-cine-bg" aria-hidden="true">
+        <span class="pt-cine-orb pt-cine-orb-step-a"></span>
+    </div>
+
+    <div class="pt-alebad-howto-head pt-cine-stagger">
+        <span class="pt-cine-eyebrow">
+            <span class="pt-live-dot"></span>
+            <span>طريقة الحجز</span>
+        </span>
+        <h2 id="pt-alebad-howto-title" class="pt-alebad-section-title">
+            <span class="pt-alebad-section-title-grad">أربع خطوات سريعة</span>
+        </h2>
+    </div>
+
+    <ol class="pt-alebad-howto-grid pt-cine-stagger" role="list">
+        <li class="pt-alebad-howto-step">
+            <span class="pt-alebad-howto-num">01</span>
+            <span class="pt-alebad-howto-emoji" aria-hidden="true">🎭</span>
+            <span class="pt-alebad-howto-title-lbl">اختر العرض</span>
+            <span class="pt-alebad-howto-desc">اختر الموعد الذي يناسبك من قائمة المواعيد المتاحة.</span>
+        </li>
+        <li class="pt-alebad-howto-step">
+            <span class="pt-alebad-howto-num">02</span>
+            <span class="pt-alebad-howto-emoji" aria-hidden="true">🪑</span>
+            <span class="pt-alebad-howto-title-lbl">احجز مقعدك</span>
+            <span class="pt-alebad-howto-desc">اختر مقعدك مباشرة من خريطة المسرح التفاعلية.</span>
+        </li>
+        <li class="pt-alebad-howto-step">
+            <span class="pt-alebad-howto-num">03</span>
+            <span class="pt-alebad-howto-emoji" aria-hidden="true">💳</span>
+            <span class="pt-alebad-howto-title-lbl">أكّد الحجز</span>
+            <span class="pt-alebad-howto-desc">ادفع بأمان وارفع إثبات التحويل في خطوة واحدة.</span>
+        </li>
+        <li class="pt-alebad-howto-step">
+            <span class="pt-alebad-howto-num">04</span>
+            <span class="pt-alebad-howto-emoji" aria-hidden="true">🎟️</span>
+            <span class="pt-alebad-howto-title-lbl">تذكرة QR</span>
+            <span class="pt-alebad-howto-desc">تستلم تذكرتك بكود QR على واتساب فوراً بعد الاعتماد.</span>
+        </li>
+    </ol>
+</section>
+
+</div>{{-- /.pt-cine.pt-alebad --}}
 
 @endsection
 
@@ -507,11 +671,15 @@
         }
     } catch (e) { /* ignore */ }
 
-    // Smooth scroll for the skip pill (anchor still works without JS).
+    // Smooth scroll for any in-page anchor on this page (skip pill, hero
+    // "watch trailer" button, etc.). Falls back to default anchor jump if
+    // reduced motion is requested.
     document.addEventListener('click', function (e) {
-        var pill = e.target.closest('[data-pt-skip-shows]');
-        if (!pill) return;
-        var target = document.getElementById('shows-grid');
+        var anchor = e.target.closest('[data-pt-smooth-anchor], [data-pt-skip-shows]');
+        if (!anchor) return;
+        var href = anchor.getAttribute('href') || '';
+        if (!href.startsWith('#')) return;
+        var target = document.querySelector(href);
         if (!target) return;
         e.preventDefault();
         var prefersReduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
