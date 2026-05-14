@@ -6341,37 +6341,29 @@
             .pt-alebad-cast-head { padding: 0 64px; margin-bottom: 28px; }
         }
 
-        /* Cast rail v3 — full rebuild for iOS Safari smoothness.
-           Design goals:
-             1. Native iOS momentum survives every flick (no `mandatory`
-                snap, no `snap-stop: always` — both kill momentum).
-             2. The next card is ALWAYS partially visible as a peek so
-                "scroll right for more" is obvious without any extra UI.
-             3. A single soft end-edge fade (pure CSS, no JS, no
-                scroll-listener) reinforces the affordance.
-             4. No content-visibility (caused render-during-snap jank).
-             5. No will-change on the scroller (was triggering layer
-                promotion that costs more than it saves on iOS). */
+        /* Cast rail v4 — desktop interaction + remove edge mask.
+           v3 design retained where it worked (iOS proximity snap,
+           native momentum), v4 fixes:
+             1. Edge mask removed — was visually clipping the first
+                and last card to transparency, reading as "cut off".
+             2. Desktop now has visible nav arrows, mouse drag-to-
+                scroll, vertical wheel → horizontal conversion,
+                grab/grabbing cursors.
+             3. Active-card .is-centered emphasis (fully-visible
+                cards get a subtle scale + glow boost).
+           See setupCastRailInteractions IIFE in app layout for the
+           desktop wiring. Mobile path is untouched. */
         .pt-alebad-cast-rail-wrap {
             position: relative;
             z-index: 2;
-            /* End-edge mask: a soft fade on the trailing edge of the
-               rail container, anchored OUTSIDE the scroll container so
-               it doesn't interfere with snap calculations. Symmetric
-               leading-edge fade is intentionally NOT applied — the
-               leading edge is the scene's logical "start" and a fade
-               there reads as content being clipped, not "more coming".
-               Logical-property friendly (works in both RTL & LTR). */
-            -webkit-mask-image: linear-gradient(to var(--pt-cast-mask-dir, left),
-                transparent 0%, #000 8%);
-                    mask-image: linear-gradient(to var(--pt-cast-mask-dir, left),
-                transparent 0%, #000 8%);
         }
-        html[dir="rtl"] .pt-alebad-cast-rail-wrap {
-            --pt-cast-mask-dir: right;
-        }
-        html[dir="ltr"] .pt-alebad-cast-rail-wrap {
-            --pt-cast-mask-dir: left;
+
+        /* Inner stagger container — wraps the ul + hint so the cine
+           stagger fades them in together. Arrows live OUTSIDE this
+           inner so the stagger doesn't toggle their opacity (they
+           manage their own hover-reveal). */
+        .pt-alebad-cast-rail-inner {
+            position: relative;
         }
 
         .pt-alebad-cast-rail {
@@ -6548,6 +6540,152 @@
         }
         @media (prefers-reduced-motion: reduce) {
             .pt-alebad-cast-rail-hint-chevron { animation: none; }
+        }
+
+        /* -- Cast rail arrows (v4). Positioned absolute inside the
+              wrap, hover-revealed on `pointer: fine` devices, fully
+              hidden on touch (touch uses native momentum + the
+              pulsing "swipe" hint instead). RTL-aware: position
+              flips via inset-inline-* and icon flips via scaleX(-1).
+              `.is-disabled` is JS-toggled when the rail is at start
+              or end so the affordance doesn't lie. -- */
+        .pt-alebad-cast-arrow {
+            position: absolute;
+            /* Vertical center against the poster (not the whole card
+               including caption). On desktop the wrap is roughly
+               padding-top 12 + poster 350 + caption ~60 + padding-
+               bottom 36 ≈ 458px and the poster center is ~187px =
+               ~41% of wrap height — 40% lands the button center
+               1-2px above poster center, visually correct. */
+            top: 40%;
+            transform: translateY(-50%);
+            z-index: 5;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background: rgba(15, 17, 26, 0.78);
+            -webkit-backdrop-filter: blur(10px) saturate(140%);
+                    backdrop-filter: blur(10px) saturate(140%);
+            border: 1px solid rgba(251, 191, 36, 0.32);
+            color: #fbbf24;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .35s var(--prism-ease),
+                        transform .2s var(--prism-ease),
+                        background-color .2s var(--prism-ease),
+                        border-color .2s var(--prism-ease),
+                        box-shadow .2s var(--prism-ease);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.06);
+            padding: 0;
+            appearance: none;
+            -webkit-appearance: none;
+            outline: none;
+        }
+        @media (min-width: 1024px) {
+            .pt-alebad-cast-arrow { width: 52px; height: 52px; }
+        }
+        /* Hover-reveal: only on fine pointers. Touch never sees these. */
+        @media (pointer: fine) {
+            .pt-alebad-cast-rail-wrap:hover .pt-alebad-cast-arrow,
+            .pt-alebad-cast-arrow:focus-visible {
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+        @media (pointer: coarse) {
+            .pt-alebad-cast-arrow { display: none; }
+        }
+        .pt-alebad-cast-arrow:hover {
+            transform: translateY(-50%) scale(1.08);
+            background: rgba(251, 191, 36, 0.16);
+            border-color: rgba(251, 191, 36, 0.6);
+            box-shadow: 0 16px 36px rgba(0,0,0,0.55), 0 0 32px rgba(251,191,36,0.34);
+        }
+        .pt-alebad-cast-arrow:active {
+            transform: translateY(-50%) scale(0.94);
+        }
+        .pt-alebad-cast-arrow:focus-visible {
+            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.45),
+                        0 16px 36px rgba(0,0,0,0.55);
+        }
+        .pt-alebad-cast-arrow.is-disabled {
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        /* Logical positioning — LTR puts prev on left, next on right;
+           RTL flips both automatically. */
+        .pt-alebad-cast-arrow-prev { inset-inline-start: 12px; }
+        .pt-alebad-cast-arrow-next { inset-inline-end: 12px; }
+        @media (min-width: 1024px) {
+            .pt-alebad-cast-arrow-prev { inset-inline-start: 24px; }
+            .pt-alebad-cast-arrow-next { inset-inline-end: 24px; }
+        }
+        /* Icon orientation. Base SVG (the polyline) points LEFT.
+           - LTR prev: leave default (←).
+           - LTR next: flip to (→).
+           - RTL prev: flip to (→).
+           - RTL next: leave default (←). */
+        .pt-alebad-cast-arrow svg {
+            transition: transform .2s var(--prism-ease);
+        }
+        .pt-alebad-cast-arrow-next svg { transform: scaleX(-1); }
+        html[dir="rtl"] .pt-alebad-cast-arrow-prev svg { transform: scaleX(-1); }
+        html[dir="rtl"] .pt-alebad-cast-arrow-next svg { transform: scaleX(1); }
+
+        /* -- Desktop grab/grabbing cursors + snap-disable during
+              active drag. On touch this entire block is no-op
+              (cursor properties don't render on touch and we never
+              add `.is-grabbing` on touch pointers). -- */
+        @media (pointer: fine) {
+            .pt-alebad-cast-rail {
+                cursor: grab;
+            }
+            .pt-alebad-cast-rail.is-grabbing {
+                cursor: grabbing;
+                /* Don't fight the active mouse drag — snap reactivates
+                   on pointerup so the rail still settles to a card. */
+                scroll-snap-type: none;
+                scroll-behavior: auto;
+            }
+            .pt-alebad-cast-rail.is-grabbing .pt-alebad-cast-card {
+                user-select: none;
+                -webkit-user-select: none;
+                /* Prevent hover state from flickering on cards as
+                   the cursor slides across them during a drag. */
+                pointer-events: none;
+            }
+        }
+
+        /* -- Active-card emphasis. Whichever card the
+              IntersectionObserver flags as ≥85% visible in the rail
+              viewport gets a subtle scale + glow boost. Purely
+              additive — degrades gracefully if no IO support. Only
+              applies on devices that can hover, since on touch
+              you're constantly mid-snap and the emphasis would
+              flicker. -- */
+        @media (hover: hover) {
+            .pt-alebad-cast-card.is-centered {
+                transform: translateY(-3px);
+                box-shadow: 0 24px 60px rgba(0,0,0,0.5), 0 0 36px rgba(251,191,36,0.18);
+                border-color: rgba(251, 191, 36, 0.24);
+            }
+            /* Hover always wins over centered (so explicit user
+               intent reads as "this one"). */
+            .pt-alebad-cast-card.is-centered:hover {
+                transform: translateY(-6px) scale(1.015);
+                box-shadow: 0 32px 80px rgba(0,0,0,0.55), 0 0 60px rgba(251,191,36,0.22);
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .pt-alebad-cast-arrow { transition: opacity .2s linear; }
+            .pt-alebad-cast-arrow:hover,
+            .pt-alebad-cast-arrow:active { transform: translateY(-50%); }
+            .pt-alebad-cast-card.is-centered { transform: none; }
         }
 
         /* ---------- Scene 4 — Story ---------- */
@@ -9968,6 +10106,189 @@
                     }
                 });
             });
+        })();
+
+        // ---------- Cast rail v4 desktop interactions ----------
+        // Touch (mobile/iPad) is fully handled by native momentum +
+        // proximity snap from the CSS — this IIFE only wires the
+        // DESKTOP-specific affordances:
+        //   1. Arrow buttons → smooth scrollBy one card-width.
+        //      Auto-disable when at the rail's start or end.
+        //   2. Mouse drag-to-scroll (Netflix-rail style).
+        //      Filtered to e.pointerType === 'mouse' so touch is
+        //      untouched. Disables snap during the active drag via
+        //      `.is-grabbing`; snap reactivates on pointerup so the
+        //      rail still settles softly to the nearest card.
+        //   3. Vertical wheel → horizontal scroll. Polite version:
+        //      passes through to the page when the rail is at its
+        //      start or end, so vertical page-scroll still works
+        //      when the user has parked the rail at an edge.
+        //   4. Active-card emphasis: IntersectionObserver tags the
+        //      most-visible card with `.is-centered` for a subtle
+        //      scale + glow boost (CSS does the styling).
+        (function setupCastRailInteractions() {
+            const wrap = document.querySelector('[data-pt-cast-rail-wrap]');
+            if (!wrap) return;
+            const rail = wrap.querySelector('[data-pt-cast-rail]');
+            if (!rail) return;
+
+            const prevBtn = wrap.querySelector('[data-pt-cast-arrow="prev"]');
+            const nextBtn = wrap.querySelector('[data-pt-cast-arrow="next"]');
+
+            // One scroll step = card width + gap. Read live so it
+            // adapts to breakpoint changes without a reflow listener.
+            const cardStep = () => {
+                const card = rail.querySelector('.pt-alebad-cast-card');
+                if (!card) return 280;
+                const styles = window.getComputedStyle(rail);
+                const gap = parseFloat(styles.columnGap || styles.gap || '0') || 0;
+                return card.getBoundingClientRect().width + gap;
+            };
+
+            const maxScroll = () => Math.max(0, rail.scrollWidth - rail.clientWidth);
+            // `Math.abs` handles Firefox-RTL's negative scrollLeft so the
+            // start/end detection works in both directions.
+            const pos = () => Math.abs(rail.scrollLeft);
+
+            const updateArrows = () => {
+                const max = maxScroll();
+                const p = pos();
+                // If the rail doesn't actually overflow (e.g. very wide
+                // viewport, few cards), hide both arrows — having them
+                // visible but inert reads as broken UI.
+                if (max < 4) {
+                    if (prevBtn) prevBtn.classList.add('is-disabled');
+                    if (nextBtn) nextBtn.classList.add('is-disabled');
+                    return;
+                }
+                if (prevBtn) prevBtn.classList.toggle('is-disabled', p < 4);
+                if (nextBtn) nextBtn.classList.toggle('is-disabled', p > max - 4);
+            };
+
+            // scrollBy's `left` param is logical: positive = toward
+            // inline-end in BOTH LTR and RTL on modern browsers.
+            const scrollDir = (dir) => {
+                rail.scrollBy({ left: dir * cardStep(), behavior: 'smooth' });
+            };
+            if (prevBtn) prevBtn.addEventListener('click', () => scrollDir(-1));
+            if (nextBtn) nextBtn.addEventListener('click', () => scrollDir(1));
+
+            // Update on scroll (rAF-throttled) and on resize.
+            let raf = null;
+            const scheduleUpdate = () => {
+                if (raf) return;
+                raf = requestAnimationFrame(() => { raf = null; updateArrows(); });
+            };
+            rail.addEventListener('scroll', scheduleUpdate, { passive: true });
+            window.addEventListener('resize', scheduleUpdate, { passive: true });
+            // Initial paint — wait one frame so layout has settled.
+            requestAnimationFrame(updateArrows);
+
+            // Desktop-only behaviors (drag + wheel). Touch keeps the
+            // native iOS Safari pipeline.
+            const hasFinePointer = window.matchMedia &&
+                window.matchMedia('(pointer: fine)').matches;
+            if (hasFinePointer) {
+                // -- Drag-to-scroll (mouse only) --
+                let isDown = false;
+                let startX = 0;
+                let startScroll = 0;
+                let hasMoved = false;
+                let activePointerId = null;
+
+                rail.addEventListener('pointerdown', (e) => {
+                    // Only handle mouse — touch keeps native momentum.
+                    if (e.pointerType !== 'mouse') return;
+                    // Ignore right/middle clicks.
+                    if (e.button !== 0) return;
+                    isDown = true;
+                    hasMoved = false;
+                    startX = e.clientX;
+                    startScroll = rail.scrollLeft;
+                    activePointerId = e.pointerId;
+                    rail.classList.add('is-grabbing');
+                    try { rail.setPointerCapture(e.pointerId); } catch (_) {}
+                });
+
+                rail.addEventListener('pointermove', (e) => {
+                    if (!isDown) return;
+                    const dx = e.clientX - startX;
+                    if (Math.abs(dx) > 4) hasMoved = true;
+                    // Pulling the cursor right (positive dx) means
+                    // dragging the rail's content right = decreasing
+                    // scrollLeft. Subtract dx to follow the cursor.
+                    rail.scrollLeft = startScroll - dx;
+                });
+
+                const endDrag = (e) => {
+                    if (!isDown) return;
+                    isDown = false;
+                    rail.classList.remove('is-grabbing');
+                    if (activePointerId !== null) {
+                        try { rail.releasePointerCapture(activePointerId); } catch (_) {}
+                        activePointerId = null;
+                    }
+                    // If the user actually dragged (not just clicked),
+                    // suppress the synthetic click that follows so
+                    // any future click handlers on cards don't fire.
+                    if (hasMoved) {
+                        const suppress = (ev) => {
+                            ev.stopPropagation();
+                            ev.preventDefault();
+                        };
+                        rail.addEventListener('click', suppress, {
+                            capture: true, once: true
+                        });
+                        // Failsafe: detach within a microtask if no
+                        // click ever fires.
+                        setTimeout(() => {
+                            rail.removeEventListener('click', suppress, { capture: true });
+                        }, 40);
+                    }
+                };
+                rail.addEventListener('pointerup', endDrag);
+                rail.addEventListener('pointercancel', endDrag);
+
+                // -- Wheel-to-horizontal (mouse wheel users) --
+                // Trackpads that already generate deltaX pass through
+                // untouched. Mouse wheels (deltaY only) get converted.
+                // When the rail has reached an edge in the requested
+                // direction, we let the wheel bubble up so the page
+                // can scroll vertically — otherwise the rail would
+                // "trap" page scroll on long pages.
+                rail.addEventListener('wheel', (e) => {
+                    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+                    if (e.deltaY === 0) return;
+                    const max = maxScroll();
+                    const cur = rail.scrollLeft;
+                    const atEnd   = e.deltaY > 0 && cur >= max - 0.5;
+                    const atStart = e.deltaY < 0 && cur <= 0.5;
+                    if (atEnd || atStart) return;
+                    e.preventDefault();
+                    rail.scrollLeft = cur + e.deltaY;
+                }, { passive: false });
+            }
+
+            // -- Active-card emphasis --
+            // Tag whichever card is ≥85% visible inside the rail's
+            // own viewport with `.is-centered`. CSS handles the
+            // scale/glow boost (hover: hover only — touch would
+            // flicker since you're constantly mid-snap).
+            if ('IntersectionObserver' in window) {
+                const cards = rail.querySelectorAll('.pt-alebad-cast-card');
+                if (cards.length) {
+                    const centerIO = new IntersectionObserver((entries) => {
+                        entries.forEach((entry) => {
+                            entry.target.classList.toggle('is-centered',
+                                entry.intersectionRatio >= 0.85);
+                        });
+                    }, {
+                        root: rail,
+                        threshold: [0.6, 0.85, 0.95],
+                    });
+                    cards.forEach((c) => centerIO.observe(c));
+                }
+            }
         })();
     })();
 
