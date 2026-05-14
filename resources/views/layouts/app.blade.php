@@ -3187,63 +3187,91 @@
             text-decoration: none;
             position: relative;
         }
+        /* JN brand chip — the painted monogram lives inside this slot,
+           sized so the mark feels like a real brand anchor (52px on
+           desktop, 44px on mobile) instead of a tiny decorative icon.
+           The chip itself is intentionally near-invisible (subtle
+           border, ~zero background) so the painted artwork carries
+           the identity; the `.pt-brand-orb` glow behind + the
+           drop-shadow on the image are what give it presence on dark
+           surfaces. */
         .pt-brand-logo {
             position: relative;
-            width: 40px; height: 40px;
+            width: 52px; height: 52px;
             display: inline-flex; align-items: center; justify-content: center;
-            border-radius: 12px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid var(--prism-border);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 24px rgba(129,140,248,0.18);
+            border-radius: 14px;
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(255,255,255,0.06);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.06),
+                0 0 32px rgba(129,140,248,0.22),
+                0 0 18px rgba(232,196,118,0.10);
             transition: transform .4s var(--prism-ease), box-shadow .35s var(--prism-ease);
-            overflow: hidden;
+            overflow: visible;
             flex: 0 0 auto;
+            padding: 3px;
         }
         :root[data-pt-theme="light"] .pt-brand-logo {
-            background: rgba(15,23,42,0.04);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.92), 0 0 24px rgba(79,70,229,0.14);
+            background: rgba(15,23,42,0.035);
+            border-color: rgba(15,23,42,0.08);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.92),
+                0 0 32px rgba(79,70,229,0.16),
+                0 0 18px rgba(212,166,78,0.14);
         }
         .pt-brand-logo svg { position: relative; z-index: 1; }
-        /* Painted JN PNG mark — replaces the legacy inline SVG in the
-           navbar / drawer / footer brand chip. `display:block` keeps it
-           from inheriting the default `inline` baseline gap. `z-index:1`
-           keeps it above the .pt-brand-orb glow but below any future
-           overlays. The image already has its color identity baked in,
-           so no `fill` / `currentColor` plumbing is needed — but we
-           lean on the chip's `box-shadow` to give it the same lifted
-           feel the SVG used to have. */
+        /* Painted JN PNG mark — the artwork has its color identity
+           (gold serifs, teal J-descender, violet diagonal on the N)
+           baked in, so no `fill` / `currentColor` plumbing. We fill
+           the chip almost entirely (a tiny 3px chip padding above
+           keeps the painted strokes from kissing the rounded
+           corners) and lean on a real drop-shadow for crispness on
+           dark surfaces — without the shadow, the painted strokes
+           visually merge into the dark navbar background. */
         .pt-brand-logo .pt-brand-mark-img {
             position: relative;
             z-index: 1;
             display: block;
-            max-width: 100%;
-            max-height: 100%;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
-            /* On light surfaces the painted strokes look a touch washed
-               out next to the dark navbar version (the chip background
-               flips from #~141928 to ~#f1f3f8). A barely-there shadow
-               restores the painted-on-paper feel without making the
-               mark look heavy. */
-            filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 8px rgba(232,196,118,0.22));
         }
         :root[data-pt-theme="light"] .pt-brand-logo .pt-brand-mark-img {
-            filter: drop-shadow(0 1px 1px rgba(20, 18, 40, 0.18));
+            filter: drop-shadow(0 1px 2px rgba(20, 18, 40, 0.32)) drop-shadow(0 0 6px rgba(125, 75, 168, 0.16));
         }
+        /* Cinematic glow halo behind the mark. Larger inset / more
+           saturated mix so the painted artwork feels lit-from-behind
+           rather than just placed on a chip. The slow drift keeps it
+           alive without being distracting. */
         .pt-brand-orb {
             position: absolute;
-            inset: -25%;
-            background: radial-gradient(closest-side, rgba(129,140,248,0.42), transparent 70%);
-            filter: blur(8px);
-            opacity: 0.55;
-            animation: ptBrandOrb 6s ease-in-out infinite alternate;
+            inset: -45%;
+            background:
+                radial-gradient(closest-side, rgba(232,196,118,0.30), transparent 65%),
+                radial-gradient(closest-side, rgba(129,140,248,0.40), transparent 70%);
+            filter: blur(14px);
+            opacity: 0.7;
+            animation: ptBrandOrb 7s ease-in-out infinite alternate;
             pointer-events: none;
+            z-index: 0;
         }
         @keyframes ptBrandOrb {
-            0%   { transform: translate(-12%, -8%) scale(0.95); }
-            100% { transform: translate(8%, 6%) scale(1.1); }
+            0%   { transform: translate(-10%, -6%) scale(0.95); }
+            100% { transform: translate(8%, 6%) scale(1.12); }
         }
         @media (hover: hover) {
-            .pt-brand:hover .pt-brand-logo { transform: rotate(-4deg) scale(1.04); }
+            /* Painted artwork looks awkward when rotated (the strokes
+               are hand-painted with a top-down light source) — so on
+               hover we lift / brighten instead of tilting. */
+            .pt-brand:hover .pt-brand-logo {
+                transform: scale(1.06);
+                box-shadow:
+                    inset 0 1px 0 rgba(255,255,255,0.08),
+                    0 0 44px rgba(129,140,248,0.34),
+                    0 0 24px rgba(232,196,118,0.18);
+            }
+            .pt-brand:hover .pt-brand-orb { opacity: 0.95; }
         }
         .pt-brand-text {
             display: flex;
@@ -3427,6 +3455,14 @@
             .pt-nav { display: none; }
             .pt-brand-tag { display: none; }
             .pt-topbar { grid-template-columns: 1fr auto; gap: 8px; padding: 6px 6px 6px 8px; }
+            /* Mobile brand chip — 44px reads strongly next to the
+               PREMIUM wordmark on iPhone widths without crowding the
+               right-side action cluster. The tag line is hidden
+               above, so the chip-to-wordmark ratio is what carries
+               the brand on mobile. */
+            .pt-brand-logo { width: 44px; height: 44px; padding: 2px; }
+            .pt-brand { gap: 9px; }
+            .pt-brand-wordmark { font-size: 13px; letter-spacing: 0.18em; }
         }
         .pt-burger-bars {
             position: relative;
@@ -7689,21 +7725,27 @@
             {{-- Brand block --}}
             <a href="{{ route('shows.index') }}" class="pt-brand group" aria-label="Premium Tickets">
                 <span class="pt-brand-logo" aria-hidden="true">
-                    {{-- JN monogram — painted artwork, rendered as a 28×28
-                         transparent PNG inside the existing 40×40 brand
-                         chip. The artwork already has gold / teal / violet
-                         coloring baked in, so it does NOT inherit theme
-                         color — it carries its own identity on both dark
-                         and light surfaces. The brand chip's soft glow
-                         (.pt-brand-orb behind, .pt-brand-logo shadow) is
-                         what gives it lift; the PNG just sits on top. --}}
+                    {{-- JN monogram — painted artwork sized to fill the
+                         brand chip (52×52 desktop, 44×44 mobile). The
+                         chip itself is intentionally near-invisible;
+                         the painted strokes carry the brand identity
+                         (gold / teal / violet, baked into the artwork),
+                         and the `.pt-brand-orb` halo behind + the
+                         drop-shadow on the image give it cinematic
+                         lift on both dark and light surfaces. The
+                         explicit width/height attrs match the desktop
+                         chip size so the layout doesn't shift while
+                         the PNG decodes; the CSS uses width:100% so
+                         the mobile media query can shrink it without
+                         re-rendering. --}}
                     <img src="{{ asset('brand/jn-monogram.png') }}"
                          alt=""
-                         width="28"
-                         height="28"
+                         width="46"
+                         height="46"
                          class="pt-brand-mark-img"
                          loading="eager"
-                         decoding="async">
+                         decoding="async"
+                         fetchpriority="high">
                     <span class="pt-brand-orb" aria-hidden="true"></span>
                 </span>
                 <span class="pt-brand-text">
@@ -7780,11 +7822,11 @@
     <aside class="pt-drawer" id="pt-drawer" role="dialog" aria-modal="true" aria-label="Menu" aria-hidden="true">
         <div class="pt-drawer-head">
             <div class="pt-drawer-brand">
-                <span class="pt-brand-logo" aria-hidden="true" style="width:36px;height:36px;">
+                <span class="pt-brand-logo" aria-hidden="true" style="width:48px;height:48px;">
                     <img src="{{ asset('brand/jn-monogram.png') }}"
                          alt=""
-                         width="26"
-                         height="26"
+                         width="42"
+                         height="42"
                          class="pt-brand-mark-img"
                          loading="eager"
                          decoding="async">
@@ -7872,8 +7914,8 @@
                         <span class="pt-brand-logo" aria-hidden="true">
                             <img src="{{ asset('brand/jn-monogram.png') }}"
                                  alt=""
-                                 width="28"
-                                 height="28"
+                                 width="46"
+                                 height="46"
                                  class="pt-brand-mark-img"
                                  loading="lazy"
                                  decoding="async">
