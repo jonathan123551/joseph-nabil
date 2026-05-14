@@ -5763,6 +5763,753 @@
         }
 
         /* =====================================================================
+           PR 4 — Cinematic homepage for "العباد"
+           Show-specific scenes (hero / trailer / cast rail / story / how-to)
+           that replace the old generic onboarding. All CSS-first, GPU-friendly,
+           `prefers-reduced-motion: reduce` guarded at the bottom of the block.
+           ===================================================================== */
+
+        /* Shared section title (gold gradient) + sub */
+        .pt-alebad-section-title {
+            font-size: clamp(32px, 6.5vw, 56px);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+            margin: 0;
+            color: var(--prism-text);
+        }
+        .pt-alebad-section-title-grad {
+            background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 50%, #d97706 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .pt-alebad-section-sub {
+            font-size: clamp(15px, 2.5vw, 17px);
+            line-height: 1.7;
+            color: var(--prism-text-3);
+            max-width: 580px;
+            margin: 10px 0 0;
+        }
+        .pt-live-dot-gold {
+            background: #fbbf24 !important;
+            box-shadow: 0 0 12px rgba(251,191,36,0.65);
+        }
+
+        /* ---------- Scene 1 — Hero ---------- */
+        .pt-alebad-hero {
+            position: relative;
+            min-height: 100svh;
+            overflow: hidden;
+            padding: 88px 20px 56px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            isolation: isolate;
+        }
+        @supports not (height: 100svh) {
+            .pt-alebad-hero { min-height: 100vh; }
+        }
+        @media (min-width: 768px) {
+            .pt-alebad-hero { padding: 120px 64px 96px; }
+        }
+
+        .pt-alebad-hero-bg {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .pt-alebad-hero-img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            /* Zoom + offset so we frame ONLY the priest figure — the source
+               poster has its own title artwork at the bottom and patriarchal
+               blessing text at the top; we'd be fighting two title layers
+               and unreadable text otherwise. Mobile pulls the figure into
+               view via a wider scale; desktop relaxes it slightly. */
+            object-position: 28% 50%;
+            transform: scale(2.2);
+            filter: saturate(1.05) contrast(1.04) brightness(0.95);
+            opacity: 0.7;
+            transition: transform 16s ease-out, opacity .8s var(--prism-ease);
+        }
+        @media (min-width: 768px) {
+            .pt-alebad-hero-img {
+                object-position: 30% 45%;
+                transform: scale(1.8);
+            }
+        }
+        @media (min-width: 1280px) {
+            .pt-alebad-hero-img {
+                object-position: 32% 45%;
+                transform: scale(1.5);
+            }
+        }
+        .pt-alebad-hero.is-active .pt-alebad-hero-img {
+            transform: scale(2.05);
+        }
+        @media (min-width: 768px) {
+            .pt-alebad-hero.is-active .pt-alebad-hero-img { transform: scale(1.7); }
+        }
+        @media (min-width: 1280px) {
+            .pt-alebad-hero.is-active .pt-alebad-hero-img { transform: scale(1.42); }
+        }
+        .pt-alebad-hero-veil {
+            position: absolute;
+            inset: 0;
+            background:
+                /* Top dark band to obliterate any in-image text and keep the
+                   eyebrow chip readable. */
+                linear-gradient(180deg, rgba(5,6,13,0.85) 0%, rgba(5,6,13,0.35) 22%, rgba(5,6,13,0) 38%),
+                /* Bottom dark band so CTAs sit on solid color. */
+                linear-gradient(180deg, rgba(5,6,13,0) 55%, rgba(5,6,13,0.95) 100%),
+                /* RTL — push extra darkness to the right (text side). */
+                linear-gradient(to left, rgba(5,6,13,0) 0%, rgba(5,6,13,0.45) 60%, rgba(5,6,13,0.7) 100%);
+        }
+        .pt-alebad-hero-vignette {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,0.7) 100%);
+            mix-blend-mode: multiply;
+        }
+        .pt-alebad-hero-orbs {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .pt-alebad-hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 720px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding-top: 12px;
+        }
+        @media (min-width: 1024px) {
+            .pt-alebad-hero-content { max-width: 820px; gap: 22px; }
+        }
+
+        .pt-alebad-eyebrow {
+            padding: 7px 14px;
+            border: 1px solid rgba(251,191,36,0.32);
+            background: rgba(251,191,36,0.08);
+            color: #fbbf24;
+            font-size: 11.5px;
+            letter-spacing: 0.04em;
+        }
+
+        .pt-alebad-hero-title {
+            line-height: 0.95;
+            margin: 4px 0 0;
+            color: #f9fafb;
+        }
+        .pt-alebad-hero-titletext {
+            display: block;
+            font-size: clamp(72px, 19vw, 168px);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fef9c3 0%, #fbbf24 35%, #d97706 65%, #fbbf24 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 8px 60px rgba(251,191,36,0.18);
+        }
+        .pt-alebad-hero-sub {
+            display: block;
+            font-size: clamp(17px, 4vw, 24px);
+            font-weight: 500;
+            color: var(--prism-text-2);
+            letter-spacing: 0.005em;
+            margin-top: 14px;
+        }
+
+        .pt-alebad-hero-credit {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            font-size: 15px;
+            color: var(--prism-text-3);
+            margin: 0;
+        }
+        .pt-alebad-hero-credit-label {
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            font-size: 10.5px;
+            opacity: 0.7;
+        }
+        .pt-alebad-hero-credit-name {
+            font-weight: 600;
+            color: var(--prism-text);
+            font-size: 17px;
+            letter-spacing: -0.01em;
+        }
+
+        .pt-alebad-hero-tagline {
+            font-size: clamp(15px, 2.5vw, 17px);
+            line-height: 1.75;
+            color: var(--prism-text-2);
+            max-width: 540px;
+            margin: 0;
+        }
+
+        .pt-alebad-hero-cta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .pt-alebad-cta {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 22px;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            text-decoration: none;
+            min-height: 48px;
+            transition: transform .2s var(--prism-ease), background .2s var(--prism-ease), border-color .2s var(--prism-ease), box-shadow .2s var(--prism-ease);
+        }
+        .pt-alebad-cta-ghost {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.16);
+            color: #f1f5fb;
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+        }
+        .pt-alebad-cta-ghost:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.32);
+            transform: translateY(-1px);
+            color: #f1f5fb;
+        }
+        .pt-alebad-cta-play .pt-alebad-cta-play-glyph {
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            background: rgba(251,191,36,0.15);
+            border: 1px solid rgba(251,191,36,0.4);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #fbbf24;
+            padding-left: 2px;
+        }
+        .pt-alebad-cta:active { transform: scale(0.97); }
+
+        .pt-alebad-scroll-cue {
+            margin-top: 28px;
+        }
+
+        /* ---------- Scene 2 — Trailer card ---------- */
+        .pt-alebad-trailer {
+            padding: 96px 20px 72px;
+            text-align: center;
+            isolation: isolate;
+        }
+        @media (min-width: 768px) {
+            .pt-alebad-trailer { padding: 120px 64px 96px; }
+        }
+
+        .pt-alebad-trailer-head {
+            position: relative;
+            z-index: 2;
+            max-width: 760px;
+            margin: 0 auto 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .pt-alebad-trailer-card {
+            position: relative;
+            z-index: 2;
+            display: block;
+            max-width: 980px;
+            margin: 8px auto 0;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .pt-alebad-trailer-frame {
+            position: relative;
+            display: block;
+            aspect-ratio: 16 / 9;
+            border-radius: 22px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: #060810;
+            box-shadow: 0 32px 80px rgba(0,0,0,0.5), 0 0 60px rgba(34,211,238,0.06);
+            transition: transform .3s var(--prism-ease), box-shadow .3s var(--prism-ease), border-color .3s var(--prism-ease);
+            will-change: transform;
+        }
+        .pt-alebad-trailer-card:hover .pt-alebad-trailer-frame {
+            transform: translateY(-3px) scale(1.005);
+            box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 80px rgba(251,191,36,0.16);
+            border-color: rgba(251,191,36,0.32);
+        }
+
+        .pt-alebad-trailer-thumb {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: 50% 30%;
+            filter: saturate(1.05) contrast(1.05) brightness(0.78);
+            transition: transform .6s var(--prism-ease), filter .3s var(--prism-ease);
+        }
+        .pt-alebad-trailer-card:hover .pt-alebad-trailer-thumb {
+            transform: scale(1.04);
+            filter: saturate(1.1) contrast(1.05) brightness(0.85);
+        }
+
+        .pt-alebad-trailer-veil {
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,0) 30%, rgba(0,0,0,0.55) 100%),
+                linear-gradient(180deg, rgba(0,0,0,0) 60%, rgba(0,0,0,0.55) 100%);
+        }
+
+        .pt-alebad-trailer-play {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 86px; height: 86px;
+            border-radius: 50%;
+            background: rgba(251,191,36,0.95);
+            color: #1f1300;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding-left: 4px;
+            box-shadow: 0 24px 50px rgba(0,0,0,0.45), 0 0 0 4px rgba(251,191,36,0.18);
+            transition: transform .25s var(--prism-ease), box-shadow .25s var(--prism-ease);
+        }
+        @media (min-width: 768px) {
+            .pt-alebad-trailer-play { width: 116px; height: 116px; }
+        }
+        .pt-alebad-trailer-card:hover .pt-alebad-trailer-play {
+            transform: translate(-50%, -50%) scale(1.06);
+            box-shadow: 0 32px 70px rgba(0,0,0,0.55), 0 0 0 8px rgba(251,191,36,0.22);
+        }
+        .pt-alebad-trailer-card:active .pt-alebad-trailer-play {
+            transform: translate(-50%, -50%) scale(0.96);
+        }
+
+        .pt-alebad-trailer-pulse {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 86px; height: 86px;
+            border-radius: 50%;
+            border: 2px solid rgba(251,191,36,0.4);
+            animation: alebadTrailerPulse 2.4s ease-out infinite;
+            pointer-events: none;
+        }
+        @media (min-width: 768px) {
+            .pt-alebad-trailer-pulse { width: 116px; height: 116px; }
+        }
+        @keyframes alebadTrailerPulse {
+            0%   { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); }
+        }
+
+        .pt-alebad-trailer-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 6px 0;
+            font-size: 13px;
+            color: var(--prism-text-3);
+            letter-spacing: 0.04em;
+        }
+        .pt-alebad-trailer-meta-label {
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.18em;
+            opacity: 0.7;
+        }
+        .pt-alebad-trailer-meta-arrow {
+            font-size: 16px;
+            transition: transform .2s var(--prism-ease);
+        }
+        .pt-alebad-trailer-card:hover .pt-alebad-trailer-meta-arrow {
+            transform: translate(2px, -2px);
+            color: #fbbf24;
+        }
+
+        /* ---------- Scene 3 — Cast rail ---------- */
+        .pt-alebad-cast {
+            padding: 96px 0 72px;
+            isolation: isolate;
+        }
+        @media (min-width: 768px) {
+            .pt-alebad-cast { padding: 120px 0 96px; }
+        }
+
+        .pt-alebad-cast-head {
+            position: relative;
+            z-index: 2;
+            padding: 0 20px;
+            max-width: 980px;
+            margin: 0 auto 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            align-items: flex-start;
+        }
+        @media (min-width: 768px) {
+            .pt-alebad-cast-head { padding: 0 64px; margin-bottom: 28px; }
+        }
+
+        .pt-alebad-cast-rail-wrap {
+            position: relative;
+            z-index: 2;
+        }
+        .pt-alebad-cast-rail {
+            list-style: none;
+            margin: 0;
+            padding: 12px 20px 28px;
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-snap-type: x mandatory;
+            scroll-padding-inline-start: 20px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        @media (min-width: 768px) {
+            .pt-alebad-cast-rail { padding: 12px 64px 32px; gap: 20px; scroll-padding-inline-start: 64px; }
+        }
+        .pt-alebad-cast-rail::-webkit-scrollbar { display: none; }
+
+        .pt-alebad-cast-card {
+            flex: 0 0 auto;
+            width: clamp(220px, 78vw, 280px);
+            scroll-snap-align: center;
+            border-radius: 18px;
+            overflow: hidden;
+            background: var(--prism-surface);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+            transition: transform .3s var(--prism-ease), box-shadow .3s var(--prism-ease), border-color .3s var(--prism-ease);
+            transition-delay: calc(var(--i, 0) * 0ms);
+        }
+        @media (min-width: 768px) {
+            .pt-alebad-cast-card { width: 280px; scroll-snap-align: start; }
+        }
+        @media (min-width: 1024px) {
+            .pt-alebad-cast-card { width: 300px; }
+        }
+        .pt-alebad-cast-card:hover {
+            transform: translateY(-6px) scale(1.015);
+            box-shadow: 0 32px 80px rgba(0,0,0,0.55), 0 0 60px rgba(251,191,36,0.14);
+            border-color: rgba(251,191,36,0.32);
+        }
+        @media (hover: none) {
+            .pt-alebad-cast-card:hover {
+                transform: none;
+                box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+                border-color: rgba(255,255,255,0.08);
+            }
+        }
+
+        .pt-alebad-cast-poster {
+            position: relative;
+            display: block;
+            aspect-ratio: 4 / 5;
+            overflow: hidden;
+            background: #0a0d18;
+        }
+        .pt-alebad-cast-poster img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform .6s var(--prism-ease);
+        }
+        .pt-alebad-cast-card:hover .pt-alebad-cast-poster img {
+            transform: scale(1.04);
+        }
+
+        .pt-alebad-cast-veil {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(0,0,0,0) 60%, rgba(0,0,0,0.65) 100%);
+            pointer-events: none;
+        }
+        .pt-alebad-cast-glow {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(80% 50% at 50% 100%, rgba(251,191,36,0.28) 0%, rgba(251,191,36,0) 70%);
+            opacity: 0;
+            transition: opacity .3s var(--prism-ease);
+            pointer-events: none;
+        }
+        .pt-alebad-cast-card:hover .pt-alebad-cast-glow { opacity: 1; }
+
+        .pt-alebad-cast-caption {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 14px 16px 16px;
+        }
+        .pt-alebad-cast-role {
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: #fbbf24;
+            opacity: 0.85;
+        }
+        .pt-alebad-cast-name {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--prism-text);
+            letter-spacing: -0.01em;
+        }
+
+        .pt-alebad-cast-rail-hint {
+            display: block;
+            padding: 0 20px;
+            text-align: center;
+            color: var(--prism-text-4);
+            font-size: 11.5px;
+            letter-spacing: 0.06em;
+        }
+        @media (min-width: 1024px) {
+            .pt-alebad-cast-rail-hint { display: none; }
+        }
+
+        /* ---------- Scene 4 — Story ---------- */
+        .pt-alebad-story {
+            padding: 96px 24px 72px;
+            text-align: center;
+            isolation: isolate;
+        }
+        @media (min-width: 768px) {
+            .pt-alebad-story { padding: 120px 64px 96px; }
+        }
+
+        .pt-alebad-story-content {
+            position: relative;
+            z-index: 2;
+            max-width: 760px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .pt-alebad-story-title {
+            position: relative;
+            font-size: clamp(24px, 5vw, 38px);
+            font-weight: 600;
+            line-height: 1.45;
+            color: var(--prism-text);
+            margin: 0;
+            letter-spacing: -0.005em;
+            font-style: italic;
+        }
+        .pt-alebad-story-quote-mark {
+            display: block;
+            font-size: clamp(64px, 12vw, 110px);
+            line-height: 0;
+            color: #fbbf24;
+            opacity: 0.45;
+            margin-bottom: 18px;
+            margin-top: 22px;
+            font-style: normal;
+        }
+
+        .pt-alebad-story-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            width: 100%;
+            max-width: 320px;
+            margin: 10px 0;
+        }
+        .pt-alebad-story-divider-bar {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(to right, transparent 0%, rgba(251,191,36,0.32) 50%, transparent 100%);
+        }
+        .pt-alebad-story-divider-mark {
+            color: #fbbf24;
+            font-size: 13px;
+            opacity: 0.75;
+        }
+
+        .pt-alebad-story-body {
+            font-size: clamp(15px, 2.6vw, 17px);
+            line-height: 1.85;
+            color: var(--prism-text-2);
+            margin: 0;
+            max-width: 620px;
+        }
+
+        .pt-alebad-story-credits {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: center;
+            gap: 8px 12px;
+            margin-top: 28px;
+            padding-top: 22px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            font-size: 13px;
+            color: var(--prism-text-3);
+            width: 100%;
+            max-width: 620px;
+        }
+        .pt-alebad-story-credit {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+        .pt-alebad-story-credit-label {
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            font-size: 10.5px;
+            opacity: 0.7;
+        }
+        .pt-alebad-story-credit-value {
+            color: var(--prism-text);
+            font-weight: 600;
+        }
+        .pt-alebad-story-credit-sep {
+            color: var(--prism-text-4);
+            opacity: 0.5;
+        }
+
+        /* ---------- Scene 5 — Showtimes (tweak existing) ---------- */
+        .pt-alebad-shows .pt-cine-shows-title {
+            font-size: clamp(32px, 6.5vw, 56px);
+            letter-spacing: -0.02em;
+        }
+        .pt-alebad-shows .pt-cine-shows-stats {
+            margin-top: 22px;
+        }
+
+        /* ---------- Scene 6 — How-to (condensed) ---------- */
+        .pt-alebad-howto {
+            padding: 96px 20px 96px;
+            isolation: isolate;
+        }
+        @media (min-width: 768px) {
+            .pt-alebad-howto { padding: 120px 64px 120px; }
+        }
+        .pt-alebad-howto-head {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            max-width: 720px;
+            margin: 0 auto 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+        .pt-alebad-howto-grid {
+            position: relative;
+            z-index: 2;
+            list-style: none;
+            margin: 0 auto;
+            padding: 0;
+            display: grid;
+            gap: 14px;
+            max-width: 1080px;
+            grid-template-columns: 1fr;
+        }
+        @media (min-width: 640px) {
+            .pt-alebad-howto-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (min-width: 1024px) {
+            .pt-alebad-howto-grid { grid-template-columns: repeat(4, 1fr); gap: 18px; }
+        }
+        .pt-alebad-howto-step {
+            position: relative;
+            padding: 22px 20px 24px;
+            border-radius: 18px;
+            background: var(--prism-surface);
+            border: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow: hidden;
+            transition: transform .25s var(--prism-ease), border-color .25s var(--prism-ease), background .25s var(--prism-ease);
+        }
+        .pt-alebad-howto-step::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(34,211,238,0.16), rgba(129,140,248,0.16), rgba(192,132,252,0.16));
+            opacity: 0;
+            transition: opacity .25s var(--prism-ease);
+            border-radius: inherit;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .pt-alebad-howto-step:hover {
+            transform: translateY(-3px);
+            border-color: rgba(255,255,255,0.18);
+            background: var(--prism-surface-strong);
+        }
+        .pt-alebad-howto-step:hover::before { opacity: 1; }
+        .pt-alebad-howto-step > * { position: relative; z-index: 1; }
+
+        .pt-alebad-howto-num {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+            color: #fbbf24;
+            opacity: 0.85;
+        }
+        .pt-alebad-howto-emoji {
+            font-size: 28px;
+            line-height: 1;
+        }
+        .pt-alebad-howto-title-lbl {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--prism-text);
+            letter-spacing: -0.01em;
+        }
+        .pt-alebad-howto-desc {
+            font-size: 14px;
+            line-height: 1.65;
+            color: var(--prism-text-3);
+        }
+
+        /* Reduced-motion guard for all PR 4 scenes */
+        @media (prefers-reduced-motion: reduce) {
+            .pt-alebad-hero-img { transform: none !important; transition: none !important; }
+            .pt-alebad-trailer-pulse { animation: none !important; opacity: 0 !important; }
+            .pt-alebad-trailer-card:hover .pt-alebad-trailer-frame,
+            .pt-alebad-trailer-card:hover .pt-alebad-trailer-thumb,
+            .pt-alebad-trailer-card:hover .pt-alebad-trailer-play {
+                transform: translate(-50%, -50%) !important;
+            }
+            .pt-alebad-trailer-card:hover .pt-alebad-trailer-frame { transform: none !important; }
+            .pt-alebad-trailer-card:hover .pt-alebad-trailer-thumb { transform: none !important; }
+            .pt-alebad-cast-card:hover { transform: none !important; }
+            .pt-alebad-cast-card:hover .pt-alebad-cast-poster img { transform: none !important; }
+            .pt-alebad-howto-step:hover { transform: none !important; }
+            .pt-alebad-cta:active,
+            .pt-alebad-cast-card:active { transform: none !important; }
+        }
+
+        /* =====================================================================
            WAVE 3 — Cinematic premium polish (show detail, showtimes,
            sticky CTA, transitions, mobile Safari)
 
