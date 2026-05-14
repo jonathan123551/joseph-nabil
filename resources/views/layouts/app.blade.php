@@ -6378,14 +6378,42 @@
         .pt-alebad-cast-rail-wrap {
             position: relative;
             z-index: 2;
+            /* CRITICAL: The cast `<section>` is a column-flex container
+               with `align-items: center` (inherited from
+               `.pt-cine-scene`). Without an explicit width / align-self
+               override, this flex item would `align-self: center` and
+               shrink-to-fit its content width — which, for the rail
+               below, is the natural width of every card laid out flat
+               (8 cards × 300px + gaps ≈ 2700px). The section's
+               `overflow: hidden` would then clip that to the viewport,
+               but the inner `<ul>`'s `overflow-x: auto` would never
+               engage (because the `<ul>`'s `scrollWidth === clientWidth`
+               — both equal the natural content width). End result: rail
+               is visually clipped at the section edges and totally
+               un-scrollable on every input device (no swipe on touch,
+               no drag on mouse, no wheel-to-horizontal). Pinning the
+               wrap to the section's content box (`width: 100%` +
+               `align-self: stretch`) restores a proper viewport for
+               the rail so `overflow-x: auto` can do its job.
+               `min-width: 0` lets the wrap shrink below its intrinsic
+               content size if the section ever ends up in a narrower
+               flex parent (defensive). */
+            width: 100%;
+            align-self: stretch;
+            min-width: 0;
         }
 
         /* Inner stagger container — wraps the ul + hint so the cine
            stagger fades them in together. Arrows live OUTSIDE this
            inner so the stagger doesn't toggle their opacity (they
-           manage their own hover-reveal). */
+           manage their own hover-reveal). Same width-pinning rationale
+           as the wrap above — keeps the inner from collapsing to its
+           content width if anything in the cascade ever flips it into
+           a flex/grid context. */
         .pt-alebad-cast-rail-inner {
             position: relative;
+            width: 100%;
+            min-width: 0;
         }
 
         .pt-alebad-cast-rail {
