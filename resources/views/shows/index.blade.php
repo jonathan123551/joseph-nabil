@@ -78,24 +78,31 @@
     // iframe only mounts when the user taps play — keeps the iPhone
     // Safari first paint fast and avoids a ~200KB SDK on initial load.
     //
-    // IMPORTANT: the FB plugin needs the canonical `/watch/?v=<id>`
-    // form. Short share-links like `/share/v/<short>/` do NOT reliably
-    // resolve inside the plugin iframe — they 30x off-site, the plugin
-    // bails, and the trailer never plays inside the page. That bug is
-    // why the previous embed appeared broken.
+    // IMPORTANT: the FB Video Plugin (`/plugins/video.php`) needs the
+    // canonical `/watch/?v=<id>` form for the `href` query param.
+    // Short share-links like `/share/v/<short>/` do NOT reliably
+    // resolve inside the plugin iframe — they 30x off-site, the
+    // plugin bails, and the trailer never plays inside the page.
+    // That bug is why the previous embed appeared broken.
     //
-    // `$trailerUrl`         = canonical /watch URL, also the
-    //                         user-facing fallback ("افتح في فيسبوك").
-    // `$trailerEmbedUrl`    = FB video plugin iframe src. Width is
-    //                         requested at 1280 so the player renders
-    //                         at full size inside our 16:9 frame.
+    // Note: the base iframe URL is ALWAYS the plugin endpoint
+    // (`/plugins/video.php`). It is NOT a /share/v/ URL — those are
+    // only redirects to a canonical /watch URL and cannot host the
+    // embedded player themselves. Setting the base to a /share/v/
+    // URL produces a URL with two `?` separators (syntax error) and
+    // a non-embeddable target.
+    //
+    // `$trailerUrl`      = canonical /watch URL, user-facing
+    //                      fallback ("افتح في فيسبوك").
+    // `$trailerEmbedUrl` = FB video plugin iframe src. Width is
+    //                      requested at 1280 so the player renders
+    //                      at full size inside our 16:9 frame. Plugin
+    //                      docs only honour `href`, `show_text`,
+    //                      `width`, `appId` — other params are
+    //                      ignored (autoplay/mute are SDK methods,
+    //                      not plugin params).
     $trailerVideoId  = '1816698382142571';
     $trailerUrl      = 'https://www.facebook.com/watch/?v=' . $trailerVideoId;
-    // FB Video Plugin docs only support: href, show_text, width, appId.
-    // `autoplay` / `mute` are NOT real plugin params (they're SDK
-    // methods). We keep the iframe lightweight and let the user tap
-    // FB's own play overlay once the plugin's thumbnail loads — that
-    // matches FB's privacy / autoplay policy across browsers.
     $trailerEmbedUrl = 'https://www.facebook.com/plugins/video.php'
         . '?href=' . rawurlencode($trailerUrl)
         . '&show_text=false&width=1280';
@@ -204,7 +211,7 @@
     <div class="pt-alebad-hero-content pt-cine-stagger">
         <span class="pt-cine-eyebrow pt-alebad-eyebrow">
             <span class="pt-live-dot pt-live-dot-gold"></span>
-            <span>تحت رعاية البابا تواضروس الثاني · بطريركية الكرازة المرقسية</span>
+            <span>تحت رعاية البابا تواضروس الثاني · بطريرك الكرازة المرقسية</span>
         </span>
 
         <h1 id="pt-alebad-hero-title" class="pt-alebad-hero-title">
