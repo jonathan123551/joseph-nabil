@@ -8,8 +8,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#05060d">
 
-    {{-- Inline SVG favicon — neutral premium identity --}}
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2322d3ee'/><stop offset='0.5' stop-color='%23818cf8'/><stop offset='1' stop-color='%23c084fc'/></linearGradient></defs><path d='M32 6 L56 20 L46 56 L18 56 L8 20 Z' fill='none' stroke='url(%23g)' stroke-width='3' stroke-linejoin='round'/><path d='M32 6 L32 56 M8 20 L56 20 M18 56 L46 56' stroke='url(%23g)' stroke-width='1.5' opacity='0.6'/></svg>">
+    {{-- JN monogram favicon. See public/brand/ for the full set; this
+         fullscreen layout only needs the SVG variant since fullscreen
+         contexts don't render in tab strips that would benefit from
+         the .ico fallback. --}}
+    <link rel="icon" type="image/svg+xml" href="{{ asset('brand/favicon.svg') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('brand/apple-touch-icon.png') }}">
 
     <script src="https://cdn.tailwindcss.com"></script>
 

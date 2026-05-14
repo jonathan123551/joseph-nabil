@@ -25,8 +25,30 @@
         :root[data-pt-theme="light"] { color-scheme: light; }
     </style>
 
-    {{-- Inline SVG favicon — neutral premium identity --}}
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2322d3ee'/><stop offset='0.5' stop-color='%23818cf8'/><stop offset='1' stop-color='%23c084fc'/></linearGradient></defs><path d='M32 6 L56 20 L46 56 L18 56 L8 20 Z' fill='none' stroke='url(%23g)' stroke-width='3' stroke-linejoin='round'/><path d='M32 6 L32 56 M8 20 L56 20 M18 56 L46 56' stroke='url(%23g)' stroke-width='1.5' opacity='0.6'/></svg>">
+    {{-- ================= JN MONOGRAM · BRAND IDENTITY =================
+         Single source of truth for the platform mark. Five flavors live
+         under public/brand/:
+           - favicon.svg          (gradient mark + dark plate, optimized for tab icons)
+           - jn-monogram.svg      (gradient mark, no plate, for in-page brand blocks)
+           - jn-monogram-mono.svg (currentColor, for theme-inheriting contexts)
+           - apple-touch-icon.png (180x180, iOS home-screen)
+           - android-chrome-{192,512}.png + favicon-{16,32,48}.png + favicon.ico
+           - og-image.png         (1200x630, social/OG card)
+         All assets are checked in to the repo so they're always served
+         by Railway without a build step. --}}
+    <link rel="icon" type="image/svg+xml" href="{{ asset('brand/favicon.svg') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('brand/favicon-32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('brand/favicon-16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('brand/apple-touch-icon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+    <link rel="manifest" href="{{ asset('brand/site.webmanifest') }}">
+
+    {{-- Social / OG branding (consumed by WhatsApp, Twitter, etc.) --}}
+    <meta property="og:image" content="{{ asset('brand/og-image.png') }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="{{ asset('brand/og-image.png') }}">
 
     {{-- Theme + language bootstrap (runs synchronously BEFORE paint
          so there's no FOUC / RTL flash / theme flicker).
@@ -7610,16 +7632,31 @@
             {{-- Brand block --}}
             <a href="{{ route('shows.index') }}" class="pt-brand group" aria-label="Premium Tickets">
                 <span class="pt-brand-logo" aria-hidden="true">
-                    <svg width="22" height="22" viewBox="0 0 64 64" fill="none">
+                    {{-- JN monogram (gradient). 64x64 viewBox so the container
+                         CSS (.pt-brand-logo) keeps the existing 40x40 frame.
+                         Same gradient stops used everywhere via the
+                         pt-grad-nav linearGradient defined here — keep IDs
+                         unique per block so multiple JN marks on the same
+                         page (nav + drawer + footer) don't collide. --}}
+                    <svg width="24" height="24" viewBox="0 0 64 64" fill="none" aria-hidden="true">
                         <defs>
-                            <linearGradient id="pt-grad-nav" x1="0" y1="0" x2="1" y2="1">
-                                <stop offset="0" stop-color="#22d3ee"/>
-                                <stop offset="0.5" stop-color="#818cf8"/>
-                                <stop offset="1" stop-color="#c084fc"/>
+                            <linearGradient id="pt-grad-nav" x1="6" y1="8" x2="58" y2="56" gradientUnits="userSpaceOnUse">
+                                <stop offset="0"    stop-color="#3cb6c9"/>
+                                <stop offset="0.25" stop-color="#e8c476"/>
+                                <stop offset="0.55" stop-color="#d4a64e"/>
+                                <stop offset="0.82" stop-color="#a566c4"/>
+                                <stop offset="1"    stop-color="#7d4ba8"/>
                             </linearGradient>
                         </defs>
-                        <path d="M32 6 L56 20 L46 56 L18 56 L8 20 Z" fill="none" stroke="url(#pt-grad-nav)" stroke-width="3" stroke-linejoin="round"/>
-                        <path d="M32 6 L32 56 M8 20 L56 20 M18 56 L46 56" stroke="url(#pt-grad-nav)" stroke-width="1.5" opacity="0.55"/>
+                        <g stroke="url(#pt-grad-nav)" fill="none" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M 12 14 H 26"/>
+                            <path d="M 22 14 V 38 C 22 47.5 16 52 11 49 C 7 46.5 8 41 13 41.5"/>
+                            <path d="M 28 14 H 40"/>
+                            <path d="M 47 14 H 58"/>
+                            <path d="M 33 14 V 50"/>
+                            <path d="M 52 14 V 50"/>
+                            <path d="M 33 14 L 52 50"/>
+                        </g>
                     </svg>
                     <span class="pt-brand-orb" aria-hidden="true"></span>
                 </span>
@@ -7698,15 +7735,25 @@
         <div class="pt-drawer-head">
             <div class="pt-drawer-brand">
                 <span class="pt-brand-logo" aria-hidden="true" style="width:36px;height:36px;">
-                    <svg width="20" height="20" viewBox="0 0 64 64" fill="none">
+                    <svg width="22" height="22" viewBox="0 0 64 64" fill="none" aria-hidden="true">
                         <defs>
-                            <linearGradient id="pt-grad-drawer" x1="0" y1="0" x2="1" y2="1">
-                                <stop offset="0" stop-color="#22d3ee"/>
-                                <stop offset="0.5" stop-color="#818cf8"/>
-                                <stop offset="1" stop-color="#c084fc"/>
+                            <linearGradient id="pt-grad-drawer" x1="6" y1="8" x2="58" y2="56" gradientUnits="userSpaceOnUse">
+                                <stop offset="0"    stop-color="#3cb6c9"/>
+                                <stop offset="0.25" stop-color="#e8c476"/>
+                                <stop offset="0.55" stop-color="#d4a64e"/>
+                                <stop offset="0.82" stop-color="#a566c4"/>
+                                <stop offset="1"    stop-color="#7d4ba8"/>
                             </linearGradient>
                         </defs>
-                        <path d="M32 6 L56 20 L46 56 L18 56 L8 20 Z" fill="none" stroke="url(#pt-grad-drawer)" stroke-width="3" stroke-linejoin="round"/>
+                        <g stroke="url(#pt-grad-drawer)" fill="none" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M 12 14 H 26"/>
+                            <path d="M 22 14 V 38 C 22 47.5 16 52 11 49 C 7 46.5 8 41 13 41.5"/>
+                            <path d="M 28 14 H 40"/>
+                            <path d="M 47 14 H 58"/>
+                            <path d="M 33 14 V 50"/>
+                            <path d="M 52 14 V 50"/>
+                            <path d="M 33 14 L 52 50"/>
+                        </g>
                     </svg>
                 </span>
                 <div class="pt-drawer-brand-text">
@@ -7790,16 +7837,25 @@
                 <div>
                     <a href="{{ route('shows.index') }}" class="pt-brand" aria-label="Premium Tickets" style="padding: 0;">
                         <span class="pt-brand-logo" aria-hidden="true">
-                            <svg width="22" height="22" viewBox="0 0 64 64" fill="none">
+                            <svg width="24" height="24" viewBox="0 0 64 64" fill="none" aria-hidden="true">
                                 <defs>
-                                    <linearGradient id="pt-grad-foot" x1="0" y1="0" x2="1" y2="1">
-                                        <stop offset="0" stop-color="#22d3ee"/>
-                                        <stop offset="0.5" stop-color="#818cf8"/>
-                                        <stop offset="1" stop-color="#c084fc"/>
+                                    <linearGradient id="pt-grad-foot" x1="6" y1="8" x2="58" y2="56" gradientUnits="userSpaceOnUse">
+                                        <stop offset="0"    stop-color="#3cb6c9"/>
+                                        <stop offset="0.25" stop-color="#e8c476"/>
+                                        <stop offset="0.55" stop-color="#d4a64e"/>
+                                        <stop offset="0.82" stop-color="#a566c4"/>
+                                        <stop offset="1"    stop-color="#7d4ba8"/>
                                     </linearGradient>
                                 </defs>
-                                <path d="M32 6 L56 20 L46 56 L18 56 L8 20 Z" fill="none" stroke="url(#pt-grad-foot)" stroke-width="3" stroke-linejoin="round"/>
-                                <path d="M32 6 L32 56 M8 20 L56 20 M18 56 L46 56" stroke="url(#pt-grad-foot)" stroke-width="1.5" opacity="0.55"/>
+                                <g stroke="url(#pt-grad-foot)" fill="none" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M 12 14 H 26"/>
+                                    <path d="M 22 14 V 38 C 22 47.5 16 52 11 49 C 7 46.5 8 41 13 41.5"/>
+                                    <path d="M 28 14 H 40"/>
+                                    <path d="M 47 14 H 58"/>
+                                    <path d="M 33 14 V 50"/>
+                                    <path d="M 52 14 V 50"/>
+                                    <path d="M 33 14 L 52 50"/>
+                                </g>
                             </svg>
                         </span>
                         <span class="pt-brand-text">
