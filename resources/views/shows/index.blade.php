@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'العباد · مسرحية الراهب القمص بولس المقاري')
+@section('title', 'العابد · فيلم الراهب القمص بولس المقاري')
 @section('headMeta')
     <meta name="pt-title-i18n" content="page_title_shows">
     {{-- Above-the-fold hero preload — Safari + Chrome will start the
@@ -191,7 +191,7 @@
         </span>
 
         <h1 id="pt-alebad-hero-title" class="pt-alebad-hero-title">
-            <span class="pt-alebad-hero-titletext">العَبَّاد</span>
+            <span class="pt-alebad-hero-titletext">العابد</span>
             <span class="pt-alebad-hero-sub">الراهب القمص بولس المقاري</span>
         </h1>
 
@@ -315,10 +315,10 @@
             <span>طاقم العمل</span>
         </span>
         <h2 id="pt-alebad-cast-title" class="pt-alebad-section-title">
-            <span class="pt-alebad-section-title-grad">نجوم المسرحية</span>
+            <span class="pt-alebad-section-title-grad">نجوم الفيلم</span>
         </h2>
         <p class="pt-alebad-section-sub">
-            مجموعة من ألمع نجوم المسرح والدراما المصرية يجتمعون في عمل واحد.
+            مجموعة من ألمع نجوم الدراما المصرية يجتمعون في عمل واحد.
         </p>
     </div>
 
@@ -328,7 +328,7 @@
                 <li class="pt-alebad-cast-card" role="listitem" style="--i: {{ $i }}">
                     <span class="pt-alebad-cast-poster">
                         <img src="{{ asset($member['src']) }}"
-                             alt="{{ $member['role'] }} {{ $member['name'] }} — مسرحية العباد"
+                             alt="{{ $member['role'] }} {{ $member['name'] }} — فيلم العابد"
                              loading="lazy"
                              decoding="async">
                         <span class="pt-alebad-cast-veil" aria-hidden="true"></span>
@@ -383,7 +383,7 @@
         </span>
 
         <p class="pt-alebad-story-body">
-            "العَبَّاد" مسرحية مستوحاة من سيرة الراهب القمص بولس المقاري — قصة عبور
+            "العابد" فيلم مستوحى من سيرة الراهب القمص بولس المقاري — قصة عبور
             من ضوضاء العالم إلى صمت السماء، ومن انكسار الإنسان إلى عظمة الإيمان.
             عملٌ سينمائي على المسرح، يجمع نخبة من أعظم نجوم الدراما المصرية
             في رحلة روحية لا تُنسى.
