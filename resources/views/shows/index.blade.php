@@ -59,17 +59,17 @@
         [
             'src'   => 'images/al-abed/cast/04-mohamed-radwan.jpg',
             'name'  => 'محمد رضوان',
-            'role'  => 'بطولة',
+            'role'  => 'الفنان القدير',
         ],
         [
             'src'   => 'images/al-abed/cast/06-ahmed-halawany.jpg',
             'name'  => 'أحمد الحلواني',
-            'role'  => 'بطولة',
+            'role'  => 'الفنان القدير',
         ],
         [
             'src'   => 'images/al-abed/cast/01-father-boulos.jpg',
-            'name'  => 'الراهب القمص بولس المقاري',
-            'role'  => 'صاحب القصة',
+            'name'  => '   فريد النقراشي',
+            'role'  => ' بطولة',
         ],
     ];
 
@@ -209,16 +209,16 @@
     </div>
 
     <div class="pt-alebad-hero-content pt-cine-stagger">
-        <span class="pt-cine-eyebrow pt-alebad-eyebrow">
-            <span class="pt-live-dot pt-live-dot-gold"></span>
-            <span>تحت رعاية البابا تواضروس الثاني · بطريرك الكرازة المرقسية</span>
-        </span>
+        
 
         <h1 id="pt-alebad-hero-title" class="pt-alebad-hero-title">
             <span class="pt-alebad-hero-titletext">العابد</span>
             <span class="pt-alebad-hero-sub">الراهب القمص بولس المقاري</span>
         </h1>
-
+        <span class="pt-cine-eyebrow pt-alebad-eyebrow">
+            <span class="pt-live-dot pt-live-dot-gold"></span>
+            <span>تحت رعاية البابا تواضروس الثاني · بطريرك الكرازة المرقسية</span>
+        </span>
         <p class="pt-alebad-hero-credit">
             <span class="pt-alebad-hero-credit-label">إخراج</span>
             <span class="pt-alebad-hero-credit-name">جوزيف نبيل</span>
@@ -503,7 +503,7 @@
             <span class="pt-alebad-story-credit-sep" aria-hidden="true">·</span>
             <span class="pt-alebad-story-credit">
                 <span class="pt-alebad-story-credit-label">سيناريو وحوار</span>
-                <span class="pt-alebad-story-credit-value">فريد النفراشي · رامي إبراهيم</span>
+                <span class="pt-alebad-story-credit-value">فريد النقراشي </span>
             </span>
             <span class="pt-alebad-story-credit-sep" aria-hidden="true">·</span>
             <span class="pt-alebad-story-credit">
