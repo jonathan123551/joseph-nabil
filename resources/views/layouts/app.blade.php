@@ -7346,34 +7346,90 @@
             color: transparent;
         }
 
-        /* Eyebrow chip — gold on gold disappears. Use amber text +
-           amber border + slightly tinted bg so the chip reads cleanly
-           on cream. */
+        /* Eyebrow chip — gold on gold disappears on cream. Use amber
+           text + amber border + slightly tinted bg so the chip reads
+           cleanly on cream. NOTE: this targets eyebrow chips in
+           scenes 2–6 (cream bg). The hero (Scene 1) keeps its dark
+           backdrop in light mode, so its eyebrow gets re-pinned to
+           gold-on-dark further down. */
         :root[data-pt-theme="light"] .pt-alebad-eyebrow {
             color: #92400e;
             border-color: rgba(180,83,9,0.34);
             background: rgba(180,83,9,0.08);
         }
 
-        /* Hero text stays light because the hero keeps its dark priest
-           poster backdrop in both themes, but the in-poster "احجز الآن"
-           CTA already has its own opaque gold styling — nothing to
-           override there.
+        /* Scene 1 — العباد hero.
 
-           Soft hero-bottom bleed so the cut from the cool-black hero
+           The hero backdrop is hardcoded dark in both themes (cool-black
+           veil over the priest poster) because it's a cinematic image
+           context. But the body-text classes inside the hero
+           (`-sub`, `-credit`, `-tagline`) are keyed to `var(--prism-text-*)`,
+           so in light mode they flip to dark slate and become invisible
+           against the still-dark hero. Pin them to warm cream tones
+           so the typography stays legible without breaking the
+           cinematic atmosphere. */
+        :root[data-pt-theme="light"] .pt-alebad-hero-sub {
+            color: #e6dcc4;
+        }
+        :root[data-pt-theme="light"] .pt-alebad-hero-credit {
+            color: #cdb89a;
+        }
+        :root[data-pt-theme="light"] .pt-alebad-hero-credit-label {
+            color: #cdb89a;
+            opacity: 0.85;
+        }
+        :root[data-pt-theme="light"] .pt-alebad-hero-credit-name {
+            color: #f5e8c8;
+        }
+        :root[data-pt-theme="light"] .pt-alebad-hero-tagline {
+            color: #e6dcc4;
+        }
+
+        /* The eyebrow chip override above (for cream-bg scenes) would
+           leave the hero's chip as dark-amber-on-amber over the dark
+           hero — invisible. Restore gold-on-dark for just this
+           instance. */
+        :root[data-pt-theme="light"] .pt-alebad-hero .pt-alebad-eyebrow {
+            color: #fbbf24;
+            border-color: rgba(251,191,36,0.32);
+            background: rgba(251,191,36,0.10);
+        }
+
+        /* Localized contrast backdrop behind the hero text content —
+           a soft, blurred dark ellipse that strengthens text/background
+           separation without flattening the hero into a single black
+           rectangle. Sits at z-index -1 inside the content's stacking
+           context, so it lives behind the typography but above the
+           hero's veil/orbs/image. */
+        :root[data-pt-theme="light"] .pt-alebad-hero-content::before {
+            content: "";
+            position: absolute;
+            inset: -12% -8%;
+            background: radial-gradient(
+                ellipse 75% 65% at 35% 55%,
+                rgba(5,6,13,0.55) 0%,
+                rgba(5,6,13,0.28) 55%,
+                rgba(5,6,13,0)    100%);
+            z-index: -1;
+            pointer-events: none;
+            filter: blur(6px);
+        }
+
+        /* Hero-bottom cross-fade so the cut from the cool-black hero
            into the cream trailer scene reads as a film cross-fade
-           instead of a hard edge. We layer this via the hero's
-           existing veil pseudo wrapper. */
+           instead of a hard edge. Kept slim (12vh) so it only fades
+           the actual transition strip at the bottom — earlier versions
+           used 22vh and painted on top of the CTA + tagline content. */
         :root[data-pt-theme="light"] .pt-alebad-hero::after {
             content: "";
             position: absolute;
             inset: auto 0 0 0;
-            height: 22vh;
+            height: 12vh;
             background: linear-gradient(to bottom,
-                rgba(5,6,13,0)      0%,
-                rgba(45,36,22,0.35) 45%,
-                rgba(176,148,98,0.55) 78%,
-                #f4f1ea 100%);
+                rgba(5,6,13,0)        0%,
+                rgba(45,36,22,0.32)   35%,
+                rgba(176,148,98,0.60) 75%,
+                #f4f1ea               100%);
             z-index: 4;
             pointer-events: none;
         }
