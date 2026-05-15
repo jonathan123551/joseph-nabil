@@ -5887,6 +5887,294 @@
             box-shadow: 0 0 12px rgba(251,191,36,0.65);
         }
 
+        /* ====================================================================
+           Scene 0 — Joseph Nabil cinematic presentation
+           Full-viewport studio-intro card that opens the homepage. Deep
+           warm-black backdrop, ambient gold spotlight + drifting orbs, the
+           3D gold "Joseph Nabil DIRECTOR" mark as the centerpiece, a
+           refined Arabic credit line, and a cinematic cross-fade bleed
+           into the العباد hero immediately below.
+
+           Performance notes:
+             * The logo PNG (~445KB master, ~270KB mobile) is preloaded
+               from the page's headMeta so its first paint matches the
+               HTML arrival. mix-blend-mode: screen turns the image's
+               near-black backdrop into "no-op" pixels at composite
+               time — no alpha decoding, no extra GPU upload.
+             * Spotlight + orb + breath animations are pure transform
+               + opacity, which iOS Safari composites on the GPU
+               without main-thread cost. No filter() animations.
+             * All ambient motion stripped under prefers-reduced-motion.
+        ==================================================================== */
+        .pt-alebad-presents {
+            position: relative;
+            min-height: 100svh;
+            overflow: hidden;
+            padding: 96px 20px 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            isolation: isolate;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% 42%,
+                    #1c1409 0%,
+                    #0d0a06 45%,
+                    #050403 100%);
+        }
+        @supports not (height: 100svh) {
+            .pt-alebad-presents { min-height: 100vh; }
+        }
+        @media (min-width: 768px) {
+            .pt-alebad-presents { padding: 120px 64px 160px; }
+        }
+
+        .pt-alebad-presents-bg {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .pt-alebad-presents-spotlight {
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 55% 42% at 50% 40%,
+                    rgba(212,175,90,0.22) 0%,
+                    rgba(212,175,90,0.08) 35%,
+                    rgba(212,175,90,0) 70%);
+            animation: presentsSpotlightBreath 7s ease-in-out infinite;
+            transform-origin: 50% 40%;
+        }
+        @keyframes presentsSpotlightBreath {
+            0%, 100% { opacity: 0.88; transform: scale(1); }
+            50%      { opacity: 1;    transform: scale(1.04); }
+        }
+        .pt-alebad-presents-vignette {
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 70% 60% at 50% 48%,
+                    rgba(0,0,0,0) 35%,
+                    rgba(0,0,0,0.5) 75%,
+                    rgba(0,0,0,0.92) 100%);
+        }
+        .pt-alebad-presents .pt-cine-grain {
+            opacity: 0.06;
+        }
+
+        .pt-alebad-presents-orbs {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .pt-alebad-presents-orb {
+            position: absolute;
+            width: 520px; height: 520px;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.32;
+            will-change: transform;
+        }
+        .pt-alebad-presents-orb-a {
+            background: radial-gradient(circle,
+                rgba(218,180,108,0.78) 0%,
+                rgba(218,180,108,0) 70%);
+            top: -180px;
+            left: -140px;
+            animation: presentsOrbA 18s ease-in-out infinite;
+        }
+        .pt-alebad-presents-orb-b {
+            background: radial-gradient(circle,
+                rgba(180,130,60,0.55) 0%,
+                rgba(180,130,60,0) 70%);
+            bottom: -220px;
+            right: -160px;
+            animation: presentsOrbB 22s ease-in-out infinite;
+        }
+        @keyframes presentsOrbA {
+            0%, 100% { transform: translate3d(0,0,0); }
+            50%      { transform: translate3d(36px, 24px, 0); }
+        }
+        @keyframes presentsOrbB {
+            0%, 100% { transform: translate3d(0,0,0); }
+            50%      { transform: translate3d(-32px, -28px, 0); }
+        }
+
+        .pt-alebad-presents-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 26px;
+            text-align: center;
+            max-width: 760px;
+            width: 100%;
+        }
+        @media (min-width: 768px) {
+            .pt-alebad-presents-content { gap: 36px; }
+        }
+
+        .pt-alebad-presents-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 16px;
+            border-radius: 999px;
+            background: rgba(212,175,90,0.06);
+            border: 1px solid rgba(212,175,90,0.22);
+            color: #d4af5a;
+            font-family: "Space Grotesk", "IBM Plex Sans", system-ui, sans-serif;
+            font-size: 10.5px;
+            font-weight: 600;
+            letter-spacing: 0.42em;
+            text-transform: uppercase;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        .pt-alebad-presents-eyebrow-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: #d4af5a;
+            box-shadow: 0 0 12px rgba(212,175,90,0.7);
+            animation: presentsEyebrowDot 2.4s ease-in-out infinite;
+        }
+        @keyframes presentsEyebrowDot {
+            0%, 100% { opacity: 1; }
+            50%      { opacity: 0.4; }
+        }
+
+        /* Logo wrapper. Width clamps so the mark stays cinematic but
+           readable on every viewport. */
+        .pt-alebad-presents-mark {
+            position: relative;
+            display: block;
+            width: 100%;
+            max-width: clamp(280px, 86vw, 720px);
+        }
+        @media (min-width: 1024px) {
+            .pt-alebad-presents-mark { max-width: 780px; }
+        }
+        .pt-alebad-presents-mark picture,
+        .pt-alebad-presents-mark img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .pt-alebad-presents-mark img {
+            /* The PNG has a dark backdrop baked in; screen-blend drops
+               that backdrop so only the gold typography composites
+               onto the scene's warm-black gradient. Looks pasted
+               onto the scene rather than sitting in a black box. */
+            mix-blend-mode: screen;
+            filter: drop-shadow(0 30px 90px rgba(212,175,90,0.18));
+            animation: presentsMarkBreath 9s ease-in-out infinite;
+            transform-origin: 50% 50%;
+        }
+        @keyframes presentsMarkBreath {
+            0%, 100% { transform: scale(1);     filter: drop-shadow(0 30px 90px rgba(212,175,90,0.18)); }
+            50%      { transform: scale(1.012); filter: drop-shadow(0 36px 110px rgba(212,175,90,0.26)); }
+        }
+        /* Extra soft glow disc behind the logo. Sits in the parent's
+           stacking context, BEHIND the image, so it amplifies the
+           spotlight without changing the logo's blend mode. */
+        .pt-alebad-presents-mark-glow {
+            position: absolute;
+            inset: 10% 14%;
+            border-radius: 50%;
+            background: radial-gradient(ellipse at center,
+                rgba(212,175,90,0.22) 0%,
+                rgba(212,175,90,0.08) 40%,
+                rgba(212,175,90,0) 70%);
+            filter: blur(40px);
+            pointer-events: none;
+            z-index: -1;
+            animation: presentsMarkGlow 7s ease-in-out infinite;
+        }
+        @keyframes presentsMarkGlow {
+            0%, 100% { opacity: 0.9;  transform: scale(1); }
+            50%      { opacity: 1;    transform: scale(1.06); }
+        }
+
+        .pt-alebad-presents-tagline {
+            font-family: "IBM Plex Sans Arabic", "IBM Plex Sans",
+                "Segoe UI", system-ui, sans-serif;
+            font-size: clamp(14.5px, 2.4vw, 17px);
+            line-height: 1.85;
+            color: rgba(245,232,200,0.78);
+            letter-spacing: 0.01em;
+            max-width: 580px;
+            margin: 0;
+        }
+        .pt-alebad-presents-tagline-name {
+            font-weight: 600;
+            background: linear-gradient(135deg,
+                #f6e4ab 0%,
+                #d4af5a 50%,
+                #a37a2c 100%);
+            -webkit-background-clip: text;
+                    background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: #d4af5a; /* fallback */
+        }
+        .pt-alebad-presents-tagline-divider {
+            color: rgba(212,175,90,0.5);
+            margin: 0 0.3em;
+        }
+
+        .pt-alebad-presents-cue {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            color: rgba(212,175,90,0.7);
+            font-family: "Space Grotesk", "IBM Plex Sans Arabic", system-ui, sans-serif;
+            font-size: 10.5px;
+            letter-spacing: 0.36em;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+        .pt-alebad-presents-cue-chevron {
+            display: inline-block;
+            font-size: 16px;
+            line-height: 1;
+            color: #d4af5a;
+            animation: presentsCueDrift 2.2s ease-in-out infinite;
+        }
+        @keyframes presentsCueDrift {
+            0%, 100% { transform: translateY(0);  opacity: 0.7; }
+            50%      { transform: translateY(6px); opacity: 1;   }
+        }
+
+        /* Cross-fade bleed into Scene 1 (العباد hero). The bottom 28vh
+           of the presents scene fades from warm-black into the hero's
+           cool-black so the cut between scenes reads as a film
+           cross-fade, not a section break. */
+        .pt-alebad-presents-bleed {
+            position: absolute;
+            inset: auto 0 0 0;
+            height: 28vh;
+            background: linear-gradient(to bottom,
+                rgba(5,4,3,0)    0%,
+                rgba(5,4,3,0.45) 35%,
+                rgba(5,6,13,0.88) 78%,
+                #05060d 100%);
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .pt-alebad-presents-spotlight,
+            .pt-alebad-presents-mark img,
+            .pt-alebad-presents-mark-glow,
+            .pt-alebad-presents-eyebrow-dot,
+            .pt-alebad-presents-cue-chevron,
+            .pt-alebad-presents-orb {
+                animation: none !important;
+            }
+        }
+
         /* ---------- Scene 1 — Hero ---------- */
         .pt-alebad-hero {
             position: relative;

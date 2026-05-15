@@ -3,9 +3,19 @@
 @section('title', 'العابد · فيلم الراهب القمص بولس المقاري')
 @section('headMeta')
     <meta name="pt-title-i18n" content="page_title_shows">
-    {{-- Above-the-fold hero preload — Safari + Chrome will start the
-         download as soon as the HTML lands instead of after the layout
-         pass. Cuts visible "no backdrop" time on iPhone Safari. --}}
+    {{-- Above-the-fold preloads — Safari + Chrome will start the
+         downloads as soon as the HTML lands instead of after the
+         layout pass. Cuts visible "no backdrop" time on iPhone
+         Safari for both the Joseph Nabil presents card (first
+         scene the user sees) and the العباد hero immediately below. --}}
+    <link rel="preload" as="image"
+          href="{{ asset('brand/joseph-nabil-director-720.png') }}"
+          media="(max-width: 600px)"
+          fetchpriority="high">
+    <link rel="preload" as="image"
+          href="{{ asset('brand/joseph-nabil-director.png') }}"
+          media="(min-width: 601px)"
+          fetchpriority="high">
     <link rel="preload" as="image" href="{{ asset('images/al-abed/hero.jpg') }}" fetchpriority="high">
 @endsection
 
@@ -176,13 +186,100 @@
 <div class="pt-cine pt-alebad" data-pt-cine>
 
 {{-- =====================================================================
+     Scene 0 — Joseph Nabil cinematic presentation
+     The true opener: a full-viewport studio-intro signature that
+     emotionally frames the entire homepage as "A Joseph Nabil
+     experience" BEFORE the user enters the world of العابد. Builds
+     the feel of a real cinematic production — like a film-studio
+     logo card at the start of a movie.
+
+     Design notes:
+       * Deep cinematic black backdrop with a soft warm-gold radial
+         spotlight + ambient drifting orbs. Mirrors the lighting of
+         the source logo art so the rendered gold blends with the
+         scene rather than feeling pasted onto it.
+       * The logo PNG has its near-black background baked in. We use
+         `mix-blend-mode: screen` on the <img> so the dark frame
+         drops out and only the gold typography + glow remain
+         visible against the scene's backdrop. No alpha hacks
+         required — the original file is preserved unmodified.
+       * A bottom "bleed" gradient + the hero's own dark sky bleed
+         INTO each other so the transition feels like a cross-fade
+         in a film cut, not a hard section divider.
+       * `is-scene-intro` moves from the hero to this scene so the
+         floating nav stays hidden through the presents card and
+         fades back in only once we enter the hero.
+       * Tagline is intentionally short — a cinematic credit line,
+         not an about-us paragraph.
+===================================================================== --}}
+<section class="pt-cine-scene is-scene-intro pt-alebad-presents"
+         data-cine-scene="presents"
+         aria-labelledby="pt-alebad-presents-eyebrow">
+
+    <div class="pt-alebad-presents-bg" aria-hidden="true">
+        <span class="pt-alebad-presents-spotlight"></span>
+        <span class="pt-alebad-presents-vignette"></span>
+        <span class="pt-cine-grain"></span>
+    </div>
+
+    {{-- Ambient gold orbs drifting slowly behind the logo. Cheap on
+         GPU (just blurred radial gradients, no filter chains). --}}
+    <div class="pt-alebad-presents-orbs" aria-hidden="true">
+        <span class="pt-alebad-presents-orb pt-alebad-presents-orb-a"></span>
+        <span class="pt-alebad-presents-orb pt-alebad-presents-orb-b"></span>
+    </div>
+
+    <div class="pt-alebad-presents-content pt-cine-stagger">
+        <span id="pt-alebad-presents-eyebrow" class="pt-alebad-presents-eyebrow">
+            <span class="pt-alebad-presents-eyebrow-dot" aria-hidden="true"></span>
+            <span>A JOSEPH NABIL EXPERIENCE</span>
+        </span>
+
+        {{-- Logo. Mobile gets the 720px-wide downscaled variant
+             (~270KB) via <picture><source>; desktop loads the
+             1155×888 master (~445KB). The master image is
+             intentionally preloaded above in headMeta. --}}
+        <div class="pt-alebad-presents-mark">
+            <span class="pt-alebad-presents-mark-glow" aria-hidden="true"></span>
+            <picture>
+                <source srcset="{{ asset('brand/joseph-nabil-director-720.png') }}"
+                        media="(max-width: 600px)">
+                <img src="{{ asset('brand/joseph-nabil-director.png') }}"
+                     alt="Joseph Nabil — Director"
+                     width="1155" height="888"
+                     fetchpriority="high"
+                     decoding="async">
+            </picture>
+        </div>
+
+        <p class="pt-alebad-presents-tagline">
+            تجربةٌ سينمائية يقدّمها المخرج
+            <span class="pt-alebad-presents-tagline-name">جوزيف نبيل</span>
+            <span class="pt-alebad-presents-tagline-divider" aria-hidden="true"> · </span>
+            حيث تلتقي الصورة بالإحساس، ويلتقي الإنسان بالحكاية.
+        </p>
+
+        <span class="pt-alebad-presents-cue" aria-hidden="true">
+            <span>ادخل إلى العالم</span>
+            <span class="pt-alebad-presents-cue-chevron">↓</span>
+        </span>
+    </div>
+
+    {{-- Cinematic bleed into the next scene (العباد hero). Bottom
+         28vh fades from this scene's warm-black to the hero's
+         cool-black via a layered gradient, so the cut between
+         scenes reads as a cross-fade. --}}
+    <div class="pt-alebad-presents-bleed" aria-hidden="true"></div>
+</section>
+
+{{-- =====================================================================
      Scene 1 — Cinematic hero · العباد
      Full-screen opener built around the production: a large atmospheric
      backdrop (the priest poster, already preloaded), dramatic typography,
      and three premium CTAs. The booking system is the secondary CTA; the
      primary feeling is "this is a real show".
 ===================================================================== --}}
-<section class="pt-cine-scene is-scene-intro pt-alebad-hero"
+<section class="pt-cine-scene pt-alebad-hero"
          data-cine-scene="hero"
          aria-labelledby="pt-alebad-hero-title">
 
