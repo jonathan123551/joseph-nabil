@@ -7313,6 +7313,170 @@
         }
 
         /* =====================================================================
+           Light-theme overrides for the cinematic homepage scenes.
+
+           Design intent: "cinema lobby" light mode. The Joseph Nabil
+           presents scene (Scene 0) and the العباد hero (Scene 1) keep
+           their hardcoded dark backdrops — movie-poster contexts don't
+           theme-switch. Scenes 2–6 (trailer, cast, story, showtimes,
+           how-to) inherit the warm cream page background, so we
+           re-balance their accents/text/borders for legibility on
+           light surfaces:
+
+             - Pale gold gradients on titles become darker amber so the
+               text doesn't wash out on cream.
+             - Eyebrow chips lose their gold-on-gold tint and pick up
+               amber text + a soft amber border on white-ish bg.
+             - Hardcoded `#fbbf24` accents (cast role, story divider,
+               quote mark, dividers) shift to deeper amber `#b45309`.
+             - Borders/backgrounds keyed on `rgba(255,255,255,X)` (which
+               are invisible on cream) become tinted slate so the chip,
+               card, and KPI frames actually show up.
+             - A soft bottom bleed is added to the hero so the cut from
+               dark hero → cream trailer reads as a film cross-fade.
+           ===================================================================== */
+
+        /* Section titles use a pale `#fef3c7 → #fbbf24 → #d97706` gradient
+           that is unreadable on a cream page. Switch to a deeper amber
+           ramp for light mode. */
+        :root[data-pt-theme="light"] .pt-alebad-section-title-grad {
+            background: linear-gradient(135deg, #b45309 0%, #92400e 50%, #78350f 100%);
+            -webkit-background-clip: text;
+                    background-clip: text;
+            color: transparent;
+        }
+
+        /* Eyebrow chip — gold on gold disappears. Use amber text +
+           amber border + slightly tinted bg so the chip reads cleanly
+           on cream. */
+        :root[data-pt-theme="light"] .pt-alebad-eyebrow {
+            color: #92400e;
+            border-color: rgba(180,83,9,0.34);
+            background: rgba(180,83,9,0.08);
+        }
+
+        /* Hero text stays light because the hero keeps its dark priest
+           poster backdrop in both themes, but the in-poster "احجز الآن"
+           CTA already has its own opaque gold styling — nothing to
+           override there.
+
+           Soft hero-bottom bleed so the cut from the cool-black hero
+           into the cream trailer scene reads as a film cross-fade
+           instead of a hard edge. We layer this via the hero's
+           existing veil pseudo wrapper. */
+        :root[data-pt-theme="light"] .pt-alebad-hero::after {
+            content: "";
+            position: absolute;
+            inset: auto 0 0 0;
+            height: 22vh;
+            background: linear-gradient(to bottom,
+                rgba(5,6,13,0)      0%,
+                rgba(45,36,22,0.35) 45%,
+                rgba(176,148,98,0.55) 78%,
+                #f4f1ea 100%);
+            z-index: 4;
+            pointer-events: none;
+        }
+
+        /* Scene 2 — Trailer.
+           Section title + sub already cascade off `var(--prism-text*)`
+           and adapt automatically. The fallback "افتح في فيسبوك" link
+           is built on `rgba(255,255,255,*)` borders/backgrounds that
+           are invisible on cream — switch to slate. */
+        :root[data-pt-theme="light"] .pt-alebad-trailer-fallback {
+            color: var(--prism-text-2);
+            border-color: rgba(15,23,42,0.18);
+            background: rgba(15,23,42,0.04);
+        }
+        :root[data-pt-theme="light"] .pt-alebad-trailer-fallback:hover,
+        :root[data-pt-theme="light"] .pt-alebad-trailer-fallback:focus-visible {
+            color: #b45309;
+            border-color: rgba(180,83,9,0.42);
+            background: rgba(180,83,9,0.08);
+        }
+        :root[data-pt-theme="light"] .pt-alebad-trailer-card.is-stalled .pt-alebad-trailer-fallback {
+            color: #b45309;
+            border-color: rgba(180,83,9,0.42);
+            background: rgba(180,83,9,0.10);
+        }
+
+        /* Scene 3 — Cast.
+           Cards keep their dark posters; they sit on the cream page
+           with a slate border + softer shadow so they read as
+           framed-on-the-page rather than floating. Role label gold
+           shifts to a deeper amber so it's legible on the white-ish
+           caption strip. */
+        :root[data-pt-theme="light"] .pt-alebad-cast-card {
+            border-color: rgba(15,23,42,0.10);
+            box-shadow:
+                0 18px 38px -16px rgba(15,23,42,0.32),
+                0 4px 10px -4px rgba(15,23,42,0.14);
+        }
+        :root[data-pt-theme="light"] .pt-alebad-cast-card:hover {
+            border-color: rgba(180,83,9,0.34);
+            box-shadow:
+                0 30px 60px -20px rgba(15,23,42,0.40),
+                0 0 50px rgba(180,83,9,0.16);
+        }
+        @media (hover: none) {
+            :root[data-pt-theme="light"] .pt-alebad-cast-card:hover {
+                border-color: rgba(15,23,42,0.10);
+                box-shadow:
+                    0 18px 38px -16px rgba(15,23,42,0.32),
+                    0 4px 10px -4px rgba(15,23,42,0.14);
+            }
+        }
+        :root[data-pt-theme="light"] .pt-alebad-cast-role {
+            color: #b45309;
+            opacity: 1;
+        }
+        :root[data-pt-theme="light"] .pt-alebad-cast-rail-hint {
+            color: var(--prism-text-3);
+        }
+
+        /* Scene 4 — Story.
+           Quote mark, divider bar, and divider mark all hardcode
+           `#fbbf24` which is too light on cream. The credits' top
+           rule is `rgba(255,255,255,0.06)` which is invisible. */
+        :root[data-pt-theme="light"] .pt-alebad-story-quote-mark {
+            color: #b45309;
+            opacity: 0.42;
+        }
+        :root[data-pt-theme="light"] .pt-alebad-story-divider-bar {
+            background: linear-gradient(to right,
+                transparent 0%,
+                rgba(180,83,9,0.34) 50%,
+                transparent 100%);
+        }
+        :root[data-pt-theme="light"] .pt-alebad-story-divider-mark {
+            color: #b45309;
+            opacity: 0.78;
+        }
+        :root[data-pt-theme="light"] .pt-alebad-story-credits {
+            border-top-color: rgba(15,23,42,0.12);
+        }
+
+        /* Scene 5 — Showtimes.
+           The shared `.pt-cine-shows-stats` KPI strip uses faint
+           white-on-white tints and a pale cyan→indigo gradient on
+           the numbers — both unreadable on cream. Switch backgrounds
+           to slate alpha and the number gradient to a deeper indigo
+           ramp for better contrast. */
+        :root[data-pt-theme="light"] .pt-alebad-shows .pt-cine-shows-stat {
+            background: rgba(15,23,42,0.04);
+            border-color: rgba(15,23,42,0.12);
+        }
+        :root[data-pt-theme="light"] .pt-alebad-shows .pt-cine-shows-stat-num {
+            background: linear-gradient(120deg, #0e7490 0%, #4338ca 100%);
+            -webkit-background-clip: text;
+                    background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        :root[data-pt-theme="light"] .pt-alebad-shows .pt-cine-shows-stat-label {
+            color: var(--prism-text-2);
+        }
+
+        /* =====================================================================
            WAVE 3 — Cinematic premium polish (show detail, showtimes,
            sticky CTA, transitions, mobile Safari)
 
