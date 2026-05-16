@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'تم إرسال طلب الحجز · Premium Tickets')
+@section('title', 'تم إرسال طلب الحجز · Joseph Nabil')
 @section('headMeta')
     <meta name="pt-title-i18n" content="page_title_thankyou">
 @endsection
@@ -19,7 +19,7 @@
     $startAt   = $showTime ? $showTime->starts_at_utc : null;
     $endAt     = $startAt ? $startAt->copy()->addHours(3) : null;
     $showTitle = $show ? $show->title : '';
-    $calLabel   = $showTitle !== '' ? $showTitle : 'Premium Tickets';
+    $calLabel   = $showTitle !== '' ? $showTitle : 'Joseph Nabil';
     $calDetails = 'Reference: ' . $booking->reference_code;
     // Build a real RFC-5545 .ics VEVENT body. We embed the bytes in a
     // data URL on the link so iOS Safari opens it in Apple Calendar,
@@ -39,7 +39,7 @@
         $lines = [
             'BEGIN:VCALENDAR',
             'VERSION:2.0',
-            'PRODID:-//Premium Tickets//AR//EN',
+            'PRODID:-//Joseph Nabil//AR//EN',
             'CALSCALE:GREGORIAN',
             'METHOD:PUBLISH',
             'BEGIN:VEVENT',

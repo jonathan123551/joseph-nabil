@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl" data-pt-lang="ar" data-pt-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <title>@yield('title', 'Premium Tickets')</title>
+    <title>@yield('title', 'Joseph Nabil')</title>
     {{-- Pages can opt into JS-driven title localization by declaring
          @section('headMeta') with a <meta name="pt-title-i18n"
          content="my_key" data-suffix="optional dynamic suffix">. The
@@ -649,14 +649,19 @@
         }
         .prism-logo:hover { transform: rotate(-6deg) scale(1.05); }
         .prism-wordmark {
+            /* Rebranded to "Joseph Nabil" (mixed-case proper noun) — the
+               previous PREMIUM uppercase wordmark wanted aggressive
+               tracking; a real name wants tight kerning + a hint of
+               size to feel like a signature, not a label. */
             font-family: "Space Grotesk", system-ui, sans-serif;
             font-weight: 700;
-            font-size: 15px;
-            letter-spacing: 0.18em;
+            font-size: 15.5px;
+            letter-spacing: 0.005em;
             background: var(--prism-neon);
             -webkit-background-clip: text;
                     background-clip: text;
             color: transparent;
+            white-space: nowrap;
         }
         .prism-tagline {
             font-size: 9px;
@@ -3280,16 +3285,23 @@
             min-width: 0;
         }
         .pt-brand-wordmark {
+            /* Rebranded to "Joseph Nabil" — mixed-case signature, no
+               longer the uppercase wide-tracked PREMIUM wordmark.
+               Slightly larger and tightly kerned so the new (longer)
+               string occupies roughly the same optical width as the
+               old 7-char PREMIUM token without crowding the brand
+               chip or the right-side action cluster on iPhone widths. */
             font-family: "Space Grotesk", system-ui, sans-serif;
-            font-weight: 800;
-            font-size: 14px;
-            letter-spacing: 0.22em;
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: 0.005em;
             background: var(--prism-neon);
             background-size: 220% 100%;
             -webkit-background-clip: text;
                     background-clip: text;
             color: transparent;
             animation: ptShimmerText 7s linear infinite;
+            white-space: nowrap;
         }
         @keyframes ptShimmerText {
             0%   { background-position: 0% 50%; }
@@ -3456,13 +3468,13 @@
             .pt-brand-tag { display: none; }
             .pt-topbar { grid-template-columns: 1fr auto; gap: 8px; padding: 6px 6px 6px 8px; }
             /* Mobile brand chip — 44px reads strongly next to the
-               PREMIUM wordmark on iPhone widths without crowding the
-               right-side action cluster. The tag line is hidden
-               above, so the chip-to-wordmark ratio is what carries
-               the brand on mobile. */
+               "Joseph Nabil" wordmark on iPhone widths without
+               crowding the right-side action cluster. The tag line
+               is hidden above, so the chip-to-wordmark ratio is what
+               carries the brand on mobile. */
             .pt-brand-logo { width: 44px; height: 44px; padding: 2px; }
             .pt-brand { gap: 9px; }
-            .pt-brand-wordmark { font-size: 13px; letter-spacing: 0.18em; }
+            .pt-brand-wordmark { font-size: 13.5px; letter-spacing: 0.005em; }
         }
         .pt-burger-bars {
             position: relative;
@@ -8590,7 +8602,7 @@
 
         <header class="pt-topbar" id="pt-topbar" role="banner">
             {{-- Brand block --}}
-            <a href="{{ route('shows.index') }}" class="pt-brand group" aria-label="Premium Tickets">
+            <a href="{{ route('shows.index') }}" class="pt-brand group" aria-label="Joseph Nabil">
                 <span class="pt-brand-logo" aria-hidden="true">
                     {{-- JN monogram — painted artwork sized to fill the
                          brand chip (52×52 desktop, 44×44 mobile). The
@@ -8616,7 +8628,7 @@
                     <span class="pt-brand-orb" aria-hidden="true"></span>
                 </span>
                 <span class="pt-brand-text">
-                    <span class="pt-brand-wordmark" data-i18n="brand">PREMIUM</span>
+                    <span class="pt-brand-wordmark" data-i18n="brand">Joseph Nabil</span>
                     <span class="pt-brand-tag" data-i18n="brand_tag">TICKETS · STAGE</span>
                 </span>
             </a>
@@ -8699,7 +8711,7 @@
                          decoding="async">
                 </span>
                 <div class="pt-drawer-brand-text">
-                    <div class="prism-wordmark" style="font-size:14px;" data-i18n="brand">PREMIUM</div>
+                    <div class="prism-wordmark" style="font-size:14px;" data-i18n="brand">Joseph Nabil</div>
                     <div class="prism-tagline" style="font-size:9px;" data-i18n="brand_tag">TICKETS</div>
                 </div>
             </div>
@@ -8777,7 +8789,7 @@
             <div class="pt-footer-grid">
                 {{-- Brand block --}}
                 <div>
-                    <a href="{{ route('shows.index') }}" class="pt-brand" aria-label="Premium Tickets" style="padding: 0;">
+                    <a href="{{ route('shows.index') }}" class="pt-brand" aria-label="Joseph Nabil" style="padding: 0;">
                         <span class="pt-brand-logo" aria-hidden="true">
                             <img src="{{ asset('brand/jn-monogram.png') }}"
                                  alt=""
@@ -8788,7 +8800,7 @@
                                  decoding="async">
                         </span>
                         <span class="pt-brand-text">
-                            <span class="pt-brand-wordmark" data-i18n="brand">PREMIUM</span>
+                            <span class="pt-brand-wordmark" data-i18n="brand">Joseph Nabil</span>
                             <span class="pt-brand-tag" data-i18n="brand_tag">TICKETS · STAGE</span>
                         </span>
                     </a>
@@ -8817,7 +8829,7 @@
 
             <div class="mt-8 pt-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs"
                  style="border-top: 1px solid var(--prism-border); color: var(--prism-text-3);">
-                <div>© {{ now()->year }} <span class="prism-wordmark text-[11px]" data-i18n="brand">PREMIUM</span></div>
+                <div>© {{ now()->year }} <span class="prism-wordmark text-[11px]" data-i18n="brand">Joseph Nabil</span></div>
                
             </div>
         </div>
@@ -8959,7 +8971,7 @@
         const I18N = {
             ar: {
                 /* ===== brand / nav / footer / theme / lang chrome ===== */
-                brand: 'PREMIUM', brand_tag: 'TICKETS · STAGE',
+                brand: 'Joseph Nabil', brand_tag: 'TICKETS · STAGE',
                 nav_home: 'الرئيسية', nav_shows: 'العروض', nav_admin: 'لوحة التحكم',
                 foot_fast: 'حجز فوري', foot_secure: 'دفع آمن', foot_qr: 'QR على واتساب',
                 foot_about: 'منصة حجز تذاكر مسرح مصرية، مصممة لتجربة فاخرة وسريعة على الموبايل والديسكتوب.',
@@ -9008,7 +9020,7 @@
                 cine_4_t: 'استلم تذكرتك',
                 cine_4_b: 'تذكرة QR توصلك على واتساب فور الاعتماد · جاهزة للمسح عند البوابة.',
                 // Cinematic homepage v3 (full-screen scenes)
-                cine_intro_eyebrow: 'PREMIUM TICKETS',
+                cine_intro_eyebrow: 'JOSEPH NABIL',
                 cine_intro_line_a: 'اكتشف',
                 cine_intro_line_b: 'حجز التذاكر',
                 cine_intro_line_c: 'بشكل مختلف.',
@@ -9227,12 +9239,12 @@
                 seat_auto_pick_cancel: 'إلغاء',
 
                 /* ===== page <title>s — used by the meta[name="pt-title-i18n"] hook ===== */
-                page_title_shows: 'العروض المتاحة · Premium Tickets',
+                page_title_shows: 'العروض المتاحة · Joseph Nabil',
                 page_title_book_seats: 'اختار مقعدك',
                 page_title_book_form: 'إكمال الحجز',
                 page_title_book_create: 'حجز تذاكر',
-                page_title_thankyou: 'تم إرسال طلب الحجز · Premium Tickets',
-                page_title_ticket_lookup: 'تذكرتك · Premium Tickets',
+                page_title_thankyou: 'تم إرسال طلب الحجز · Joseph Nabil',
+                page_title_ticket_lookup: 'تذكرتك · Joseph Nabil',
 
                 /* ===== auth pages ===== */
                 auth_admin_pill: 'دخول الأدمن',
@@ -9496,7 +9508,7 @@
 
                 /* ===== admin: console / dashboard ===== */
                 adm_console_pill: 'لوحة التحكم',
-                adm_console_eyebrow: 'PREMIUM · CONTROL',
+                adm_console_eyebrow: 'JOSEPH NABIL · CONTROL',
                 adm_dashboard_title: 'لوحة تحكم الأدمن',
                 adm_dashboard_lede: 'من هنا تقدر تتابع نبض العروض، الحجوزات، والتذاكر اللي طلعت للجمهور.',
                 adm_back: 'رجوع',
@@ -9772,7 +9784,7 @@
             },
             en: {
                 /* ===== brand / nav / footer / theme / lang chrome ===== */
-                brand: 'PREMIUM', brand_tag: 'TICKETS · STAGE',
+                brand: 'Joseph Nabil', brand_tag: 'TICKETS · STAGE',
                 nav_home: 'Home', nav_shows: 'Shows', nav_admin: 'Admin',
                 foot_fast: 'Instant booking', foot_secure: 'Secure payment', foot_qr: 'QR via WhatsApp',
                 foot_about: 'Egyptian theater ticketing platform built for a fast, premium experience on mobile and desktop.',
@@ -9821,7 +9833,7 @@
                 cine_4_t: 'Receive your QR ticket',
                 cine_4_b: 'Your QR ticket lands on WhatsApp the moment we approve — ready to scan at the door.',
                 // Cinematic homepage v3 (full-screen scenes)
-                cine_intro_eyebrow: 'PREMIUM TICKETS',
+                cine_intro_eyebrow: 'JOSEPH NABIL',
                 cine_intro_line_a: 'Discover',
                 cine_intro_line_b: 'ticket booking',
                 cine_intro_line_c: 'differently.',
@@ -10040,12 +10052,12 @@
                 seat_auto_pick_cancel: 'Cancel',
 
                 /* ===== page <title>s — used by the meta[name="pt-title-i18n"] hook ===== */
-                page_title_shows: 'Available shows · Premium Tickets',
+                page_title_shows: 'Available shows · Joseph Nabil',
                 page_title_book_seats: 'Pick your seat',
                 page_title_book_form: 'Complete booking',
                 page_title_book_create: 'Book tickets',
-                page_title_thankyou: 'Booking submitted · Premium Tickets',
-                page_title_ticket_lookup: 'Your ticket · Premium Tickets',
+                page_title_thankyou: 'Booking submitted · Joseph Nabil',
+                page_title_ticket_lookup: 'Your ticket · Joseph Nabil',
 
                 /* ===== auth pages ===== */
                 auth_admin_pill: 'Admin Access',
@@ -10309,7 +10321,7 @@
 
                 /* ===== admin: console / dashboard ===== */
                 adm_console_pill: 'Admin Console',
-                adm_console_eyebrow: 'PREMIUM · CONTROL',
+                adm_console_eyebrow: 'JOSEPH NABIL · CONTROL',
                 adm_dashboard_title: 'Admin dashboard',
                 adm_dashboard_lede: 'Track shows, bookings, and the tickets that have gone out to your audience — all in one place.',
                 adm_back: 'Back',

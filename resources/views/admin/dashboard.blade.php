@@ -14,7 +14,7 @@
                         <span class="prism-dot prism-dot-emerald"></span>
                         <span data-i18n="adm_console_pill">Admin Console</span>
                     </span>
-                    <span class="prism-eyebrow" data-i18n="adm_console_eyebrow">PREMIUM · CONTROL</span>
+                    <span class="prism-eyebrow" data-i18n="adm_console_eyebrow">JOSEPH NABIL · CONTROL</span>
                 </div>
                 <h1 class="prism-headline text-xl sm:text-2xl">
                     <span data-i18n="adm_dashboard_title"
