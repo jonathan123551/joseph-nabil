@@ -6929,6 +6929,16 @@
             color: var(--prism-text-4);
             font-size: 11.5px;
             letter-spacing: 0.06em;
+            /* Fades out gracefully once the user has scrolled the
+               rail (handled by JS adding .is-acknowledged). Pulsing
+               forever after the user has already engaged would read
+               as nagging. */
+            transition: opacity .35s ease, transform .35s ease;
+        }
+        .pt-alebad-cast-rail-hint.is-acknowledged {
+            opacity: 0;
+            transform: translateY(-2px);
+            pointer-events: none;
         }
         .pt-alebad-cast-rail-hint-chevron {
             display: inline-block;
@@ -11140,13 +11150,45 @@
                 if (nextBtn) nextBtn.classList.toggle('is-disabled', p > max - 4);
             };
 
-            // scrollBy's `left` param is logical: positive = toward
-            // inline-end in BOTH LTR and RTL on modern browsers.
+            // Arrow click → scroll to the NEXT card boundary, not just
+            // `scrollBy(cardStep)`. With `scroll-snap-type: proximity`
+            // active on the rail, a blind scrollBy can land between
+            // snap points; the proximity snap then nudges the rail
+            // back to the previous card after the smooth-scroll
+            // settles, producing a visible jitter. Aligning explicitly
+            // to a card boundary means the snap engine has nothing to
+            // fight, so each arrow click resolves cleanly.
             const scrollDir = (dir) => {
-                rail.scrollBy({ left: dir * cardStep(), behavior: 'smooth' });
+                const step = cardStep();
+                if (step <= 0) return;
+                const max = maxScroll();
+                const current = rail.scrollLeft;
+                // Add a 4px deadband so a click on a card already
+                // aligned advances to the next one, not "0 step".
+                const target = dir > 0
+                    ? Math.ceil((current + 4) / step) * step
+                    : Math.floor((current - 4) / step) * step;
+                rail.scrollTo({
+                    left: Math.max(0, Math.min(max, target)),
+                    behavior: 'smooth',
+                });
             };
             if (prevBtn) prevBtn.addEventListener('click', () => scrollDir(-1));
             if (nextBtn) nextBtn.addEventListener('click', () => scrollDir(1));
+
+            // Hide the "اسحب لاكتشاف باقي النجوم" hint once the user
+            // has actually scrolled the rail. Pulsing forever would
+            // read as nagging; one acknowledgment is enough.
+            const hint = wrap.querySelector('.pt-alebad-cast-rail-hint');
+            if (hint) {
+                const hideHintIfMoved = () => {
+                    if (pos() > 24) {
+                        hint.classList.add('is-acknowledged');
+                        rail.removeEventListener('scroll', hideHintIfMoved);
+                    }
+                };
+                rail.addEventListener('scroll', hideHintIfMoved, { passive: true });
+            }
 
             // Update on scroll (rAF-throttled) and on resize.
             let raf = null;
@@ -11164,31 +11206,65 @@
             const hasFinePointer = window.matchMedia &&
                 window.matchMedia('(pointer: fine)').matches;
             if (hasFinePointer) {
-                // -- Drag-to-scroll (mouse only) --
+                // -- Drag-to-scroll with inertia (mouse only) --
                 let isDown = false;
                 let startX = 0;
                 let startScroll = 0;
                 let hasMoved = false;
                 let activePointerId = null;
+                // Velocity tracker — exponential moving average over
+                // the last few pointermove events, in cursor-pixels
+                // per ms. On pointerup any residual velocity coasts
+                // the scroll for ~400ms with cubic decay, giving the
+                // rail a "throw" feel instead of stopping dead at
+                // the last cursor position.
+                let lastMoveX = 0;
+                let lastMoveTime = 0;
+                let velocity = 0;
+                let inertiaRaf = null;
+
+                const cancelInertia = () => {
+                    if (inertiaRaf !== null) {
+                        cancelAnimationFrame(inertiaRaf);
+                        inertiaRaf = null;
+                    }
+                };
 
                 rail.addEventListener('pointerdown', (e) => {
                     // Only handle mouse — touch keeps native momentum.
                     if (e.pointerType !== 'mouse') return;
                     // Ignore right/middle clicks.
                     if (e.button !== 0) return;
+                    // Kill any in-flight inertia from a previous drag —
+                    // a fresh grab should always feel responsive.
+                    cancelInertia();
                     isDown = true;
                     hasMoved = false;
                     startX = e.clientX;
                     startScroll = rail.scrollLeft;
                     activePointerId = e.pointerId;
+                    lastMoveX = e.clientX;
+                    lastMoveTime = performance.now();
+                    velocity = 0;
                     rail.classList.add('is-grabbing');
                     try { rail.setPointerCapture(e.pointerId); } catch (_) {}
                 });
 
                 rail.addEventListener('pointermove', (e) => {
                     if (!isDown) return;
+                    const now = performance.now();
+                    const dt = now - lastMoveTime;
                     const dx = e.clientX - startX;
                     if (Math.abs(dx) > 4) hasMoved = true;
+                    if (dt > 0) {
+                        const instantVel = (e.clientX - lastMoveX) / dt;
+                        // EMA smoothing — 0.65 weight on history makes
+                        // the velocity stable against single-frame jitter
+                        // but still tracks acceleration.
+                        velocity = velocity * 0.65 + instantVel * 0.35;
+                    }
+                    lastMoveX = e.clientX;
+                    lastMoveTime = now;
                     // Pulling the cursor right (positive dx) means
                     // dragging the rail's content right = decreasing
                     // scrollLeft. Subtract dx to follow the cursor.
@@ -11203,6 +11279,29 @@
                         try { rail.releasePointerCapture(activePointerId); } catch (_) {}
                         activePointerId = null;
                     }
+
+                    // Coast: if release velocity is non-trivial, apply
+                    // cubic-decay inertia for a few frames. Threshold of
+                    // 0.25 px/ms (= 250 px/s) suppresses inertia on
+                    // intentional slow drags — only flick-style throws
+                    // coast. ~12ms per frame at 60fps, multiplied
+                    // through gives a natural feel similar to native
+                    // iOS Photos.
+                    if (Math.abs(velocity) > 0.25) {
+                        let v = velocity * 16; // px per frame at 60fps
+                        const decay = 0.93;
+                        const tick = () => {
+                            v *= decay;
+                            rail.scrollLeft -= v;
+                            if (Math.abs(v) > 0.4) {
+                                inertiaRaf = requestAnimationFrame(tick);
+                            } else {
+                                inertiaRaf = null;
+                            }
+                        };
+                        inertiaRaf = requestAnimationFrame(tick);
+                    }
+                    velocity = 0;
                     // If the user actually dragged (not just clicked),
                     // suppress the synthetic click that follows so
                     // any future click handlers on cards don't fire.

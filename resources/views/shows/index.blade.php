@@ -77,6 +77,21 @@
             'role'  => 'الفنان القدير',
         ],
         [
+            'src'   => 'images/al-abed/cast/09-assem-samy.jpg',
+            'name'  => 'عاصم سامي',
+            'role'  => 'الفنان القدير',
+        ],
+        [
+            'src'   => 'images/al-abed/cast/10-sameh-fekry.jpg',
+            'name'  => 'سامح فكري',
+            'role'  => 'الفنان',
+        ],
+        [
+            'src'   => 'images/al-abed/cast/11-taher-elhakim.jpg',
+            'name'  => 'طاهر الحكيم',
+            'role'  => 'الفنان',
+        ],
+        [
             'src'   => 'images/al-abed/cast/01-father-boulos.jpg',
             'name'  => '   فريد النقراشي',
             'role'  => ' بطولة',
