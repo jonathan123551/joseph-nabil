@@ -6284,29 +6284,41 @@
             letter-spacing: 0.04em;
         }
 
+        /* The hero `<h1>` is now a frame for the calligraphic title artwork
+           (el3abed-title.png) instead of a stack of styled text. The
+           `<h1>` itself acts purely as a positioning + glow container;
+           the image is the visual title. The previous `.pt-alebad-hero-titletext`
+           and `.pt-alebad-hero-sub` rules are gone because the elements
+           they targeted no longer exist in the DOM. */
         .pt-alebad-hero-title {
-            line-height: 0.95;
+            position: relative;
             margin: 4px 0 0;
+            line-height: 0;
             color: #f9fafb;
         }
-        .pt-alebad-hero-titletext {
+        .pt-alebad-hero-logo {
             display: block;
-            font-size: clamp(72px, 19vw, 168px);
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            background: linear-gradient(135deg, #fef9c3 0%, #fbbf24 35%, #d97706 65%, #fbbf24 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            text-shadow: 0 8px 60px rgba(251,191,36,0.18);
+            width: clamp(220px, 56vw, 380px);
+            height: auto;
+            margin-inline-start: 0;
+            /* Soft warm gold halo. `drop-shadow` follows the alpha edge of
+               the calligraphy strokes instead of painting a rectangular
+               glow box behind the image, which keeps the cinematic poster
+               feel without flat halos. Stacked drop-shadows = tighter
+               inner + softer outer for depth. */
+            filter:
+                drop-shadow(0 2px 6px rgba(0,0,0,0.55))
+                drop-shadow(0 10px 38px rgba(251,191,36,0.18));
         }
-        .pt-alebad-hero-sub {
-            display: block;
-            font-size: clamp(17px, 4vw, 24px);
-            font-weight: 500;
-            color: var(--prism-text-2);
-            letter-spacing: 0.005em;
-            margin-top: 14px;
+        @media (min-width: 768px) {
+            .pt-alebad-hero-logo {
+                width: clamp(280px, 38vw, 460px);
+            }
+        }
+        @media (min-width: 1280px) {
+            .pt-alebad-hero-logo {
+                width: clamp(360px, 32vw, 520px);
+            }
         }
 
         .pt-alebad-hero-credit {
@@ -7363,14 +7375,16 @@
            The hero backdrop is hardcoded dark in both themes (cool-black
            veil over the priest poster) because it's a cinematic image
            context. But the body-text classes inside the hero
-           (`-sub`, `-credit`, `-tagline`) are keyed to `var(--prism-text-*)`,
+           (`-credit`, `-tagline`) are keyed to `var(--prism-text-*)`,
            so in light mode they flip to dark slate and become invisible
            against the still-dark hero. Pin them to warm cream tones
            so the typography stays legible without breaking the
-           cinematic atmosphere. */
-        :root[data-pt-theme="light"] .pt-alebad-hero-sub {
-            color: #e6dcc4;
-        }
+           cinematic atmosphere.
+
+           Note: `.pt-alebad-hero-sub` is no longer in the DOM — the big
+           gold title + small subtitle were both replaced by the official
+           El3abed calligraphic logo artwork, so its light-mode rule is
+           removed. */
         :root[data-pt-theme="light"] .pt-alebad-hero-credit {
             color: #cdb89a;
         }

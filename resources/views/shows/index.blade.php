@@ -308,9 +308,26 @@
     <div class="pt-alebad-hero-content pt-cine-stagger">
         
 
+        {{-- The big "العابد" gold text + the small "الراهب القمص بولس المقاري"
+             subtitle that used to live here are intentionally removed and
+             replaced by the official El3abed calligraphic title artwork.
+             Both the title and the subtitle ("الراهب القمص بولس المقاري") are
+             already baked into the artwork, so this swap preserves the same
+             semantic content while making the hero feel like a film
+             title card rather than a stack of styled text rows.
+
+             The `<h1>` element is kept (with the same `id` used by the
+             `aria-labelledby` on the parent <section>) so the page still
+             exposes a top-level heading. The `<img>`'s `alt` text carries
+             the full title for screen readers and SEO. --}}
         <h1 id="pt-alebad-hero-title" class="pt-alebad-hero-title">
-            <span class="pt-alebad-hero-titletext">العابد</span>
-            <span class="pt-alebad-hero-sub">الراهب القمص بولس المقاري</span>
+            <img class="pt-alebad-hero-logo"
+                 src="{{ asset('images/brand/el3abed-title.png') }}"
+                 alt="العابد — الراهب القمص بولس المقاري"
+                 width="1200"
+                 height="996"
+                 fetchpriority="high"
+                 decoding="async" />
         </h1>
         <span class="pt-cine-eyebrow pt-alebad-eyebrow">
             <span class="pt-live-dot pt-live-dot-gold"></span>
