@@ -7207,6 +7207,287 @@
             opacity: 0.5;
         }
 
+        /* ---------- Scene 4 — Story: expandable "Making Of" credits panel
+           A compact disclosure surface that lives beneath the inline 3-credit
+           row. Collapsed state is intentionally tiny — a one-line teaser of a
+           few headline names + a ghost toggle button — so the homepage's
+           vertical rhythm is barely affected. Expanded state reveals grouped
+           sections (إنتاج / بطولة / بالاشتراك / صنّاع العمل / سيناريو · إخراج)
+           in a responsive grid.
+
+           Height animation uses the `grid-template-rows: 0fr ↔ 1fr` trick
+           rather than max-height with a guessed pixel value — the panel
+           animates to its natural content height regardless of how the
+           cast grid wraps on the current viewport. */
+        .pt-alebad-story-more {
+            width: 100%;
+            max-width: 760px;
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+        .pt-alebad-story-more-teaser {
+            margin: 0;
+            font-size: 13.5px;
+            line-height: 1.55;
+            color: var(--prism-text-3);
+            opacity: 0.85;
+            text-align: center;
+            max-width: 560px;
+            letter-spacing: 0.005em;
+        }
+        .pt-alebad-story-more-teaser-more {
+            display: inline-block;
+            margin-inline-start: 6px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(251,191,36,0.28);
+            color: #fbbf24;
+            font-size: 11.5px;
+            letter-spacing: 0.02em;
+            opacity: 0.9;
+        }
+
+        .pt-alebad-story-more-toggle {
+            appearance: none;
+            -webkit-appearance: none;
+            background: transparent;
+            border: 1px solid rgba(251,191,36,0.28);
+            border-radius: 999px;
+            padding: 9px 18px;
+            color: #fbbf24;
+            font: inherit;
+            font-size: 13px;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 200ms ease, border-color 200ms ease, transform 200ms ease;
+            min-height: 40px;
+        }
+        .pt-alebad-story-more-toggle:hover,
+        .pt-alebad-story-more-toggle:focus-visible {
+            background: rgba(251,191,36,0.08);
+            border-color: rgba(251,191,36,0.5);
+            outline: none;
+        }
+        .pt-alebad-story-more-toggle:focus-visible {
+            box-shadow: 0 0 0 3px rgba(251,191,36,0.18);
+        }
+        .pt-alebad-story-more-toggle-chev {
+            display: inline-block;
+            font-size: 14px;
+            line-height: 1;
+            transition: transform 320ms cubic-bezier(.2,.7,.2,1);
+        }
+        .pt-alebad-story-more-toggle[aria-expanded="true"] .pt-alebad-story-more-toggle-chev {
+            transform: rotate(180deg);
+        }
+        /* Label swap — show one of two labels depending on expanded state. */
+        .pt-alebad-story-more-toggle [data-hide],
+        .pt-alebad-story-more-toggle[aria-expanded="true"] [data-show] {
+            display: none;
+        }
+        .pt-alebad-story-more-toggle[aria-expanded="true"] [data-hide] {
+            display: inline;
+        }
+
+        /* Expandable panel. Uses grid 0fr → 1fr to animate to natural height. */
+        .pt-alebad-story-panel {
+            width: 100%;
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 420ms cubic-bezier(.2,.7,.2,1);
+        }
+        .pt-alebad-story-panel.is-open {
+            grid-template-rows: 1fr;
+        }
+        .pt-alebad-story-panel-inner {
+            min-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(-4px);
+            transition: opacity 380ms ease, transform 380ms ease;
+        }
+        .pt-alebad-story-panel.is-open .pt-alebad-story-panel-inner {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 80ms;
+        }
+
+        .pt-alebad-story-panel-body {
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            padding: 28px 4px 4px;
+            text-align: start;
+        }
+        @media (min-width: 768px) {
+            .pt-alebad-story-panel-body {
+                gap: 36px;
+                padding-top: 36px;
+            }
+        }
+
+        .pt-alebad-story-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .pt-alebad-story-group-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0;
+            font-size: 11.5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.22em;
+            color: #fbbf24;
+            opacity: 0.85;
+            text-align: center;
+            justify-content: center;
+        }
+        .pt-alebad-story-group-title::before,
+        .pt-alebad-story-group-title::after {
+            content: "";
+            flex: 1;
+            max-width: 80px;
+            height: 1px;
+            background: linear-gradient(to right,
+                transparent 0%, rgba(251,191,36,0.32) 50%, transparent 100%);
+        }
+
+        .pt-alebad-story-group-prod {
+            margin: 0;
+            font-size: clamp(14px, 2.4vw, 15.5px);
+            color: var(--prism-text-2);
+            line-height: 1.7;
+            text-align: center;
+        }
+        .pt-alebad-story-group-prod-sub {
+            display: inline-block;
+            color: var(--prism-text-3);
+            font-size: 0.92em;
+            margin-inline-start: 4px;
+        }
+        .pt-alebad-story-group-lead {
+            margin: 0;
+            font-size: clamp(20px, 4.2vw, 26px);
+            font-weight: 600;
+            color: var(--prism-text);
+            text-align: center;
+            letter-spacing: -0.005em;
+            background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 60%, #d4af5a 100%);
+            -webkit-background-clip: text;
+                    background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Cast grid — responsive columns with calm typography */
+        .pt-alebad-story-group-cast {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 6px 14px;
+            font-size: 13.5px;
+            color: var(--prism-text-2);
+            line-height: 1.55;
+        }
+        @media (min-width: 520px) {
+            .pt-alebad-story-group-cast {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        @media (min-width: 920px) {
+            .pt-alebad-story-group-cast {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+        .pt-alebad-story-group-cast li {
+            padding: 4px 0;
+            text-align: start;
+        }
+
+        /* Crew grid — role label + name pairs as a 2-column layout. */
+        .pt-alebad-story-group-crew {
+            margin: 0;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px 22px;
+        }
+        @media (min-width: 600px) {
+            .pt-alebad-story-group-crew {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .pt-alebad-story-group-crew-row {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 6px 0;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .pt-alebad-story-group-crew-row:first-of-type,
+        .pt-alebad-story-group-crew-row:nth-of-type(2) {
+            border-top: 0;
+        }
+        @media (max-width: 599px) {
+            .pt-alebad-story-group-crew-row:nth-of-type(2) {
+                border-top: 1px solid rgba(255,255,255,0.05);
+            }
+        }
+        .pt-alebad-story-group-crew-row dt {
+            font-size: 10.5px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--prism-text-3);
+            opacity: 0.75;
+        }
+        .pt-alebad-story-group-crew-row dd {
+            margin: 0;
+            font-size: 14px;
+            color: var(--prism-text);
+            font-weight: 500;
+        }
+
+        .pt-alebad-story-group--final .pt-alebad-story-group-stamp {
+            display: flex;
+            justify-content: center;
+            align-items: baseline;
+            gap: 12px;
+            margin: 0;
+            font-size: clamp(15px, 2.8vw, 18px);
+            color: var(--prism-text);
+            font-weight: 600;
+        }
+        .pt-alebad-story-group--final .pt-alebad-story-group-stamp > span:not([aria-hidden]) {
+            background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 60%, #d4af5a 100%);
+            -webkit-background-clip: text;
+                    background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .pt-alebad-story-group--final .pt-alebad-story-group-stamp > span[aria-hidden] {
+            color: var(--prism-text-4);
+            opacity: 0.55;
+        }
+
+        /* Reduced motion — instant toggle, no height/fade animation.
+           The panel is still toggleable, just snaps open/closed instantly. */
+        @media (prefers-reduced-motion: reduce) {
+            .pt-alebad-story-panel,
+            .pt-alebad-story-panel-inner,
+            .pt-alebad-story-more-toggle-chev,
+            .pt-alebad-story-more-toggle {
+                transition: none !important;
+            }
+        }
+
         /* ---------- Scene 5 — Showtimes (tweak existing) ---------- */
         .pt-alebad-shows .pt-cine-shows-title {
             font-size: clamp(32px, 6.5vw, 56px);
@@ -7524,6 +7805,60 @@
         }
         :root[data-pt-theme="light"] .pt-alebad-story-credits {
             border-top-color: rgba(15,23,42,0.12);
+        }
+
+        /* Expandable Making-Of panel — same hardcoded gold/cream tints as
+           the rest of the Story scene won't read on the cream page bg, so
+           re-tone everything to the amber/slate palette used by PR #9's
+           light-mode pass. */
+        :root[data-pt-theme="light"] .pt-alebad-story-more-teaser {
+            color: var(--prism-text-3);
+        }
+        :root[data-pt-theme="light"] .pt-alebad-story-more-teaser-more {
+            color: #92400e;
+            border-color: rgba(180,83,9,0.34);
+            background: rgba(180,83,9,0.06);
+        }
+        :root[data-pt-theme="light"] .pt-alebad-story-more-toggle {
+            color: #92400e;
+            border-color: rgba(180,83,9,0.42);
+        }
+        :root[data-pt-theme="light"] .pt-alebad-story-more-toggle:hover,
+        :root[data-pt-theme="light"] .pt-alebad-story-more-toggle:focus-visible {
+            background: rgba(180,83,9,0.08);
+            border-color: rgba(180,83,9,0.65);
+        }
+        :root[data-pt-theme="light"] .pt-alebad-story-more-toggle:focus-visible {
+            box-shadow: 0 0 0 3px rgba(180,83,9,0.16);
+        }
+        :root[data-pt-theme="light"] .pt-alebad-story-group-title {
+            color: #92400e;
+            opacity: 0.92;
+        }
+        :root[data-pt-theme="light"] .pt-alebad-story-group-title::before,
+        :root[data-pt-theme="light"] .pt-alebad-story-group-title::after {
+            background: linear-gradient(to right,
+                transparent 0%, rgba(180,83,9,0.34) 50%, transparent 100%);
+        }
+        :root[data-pt-theme="light"] .pt-alebad-story-group-lead {
+            background: linear-gradient(135deg, #b45309 0%, #92400e 60%, #78350f 100%);
+            -webkit-background-clip: text;
+                    background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        :root[data-pt-theme="light"] .pt-alebad-story-group-crew-row {
+            border-top-color: rgba(15,23,42,0.10);
+        }
+        @media (max-width: 599px) {
+            :root[data-pt-theme="light"] .pt-alebad-story-group-crew-row:nth-of-type(2) {
+                border-top-color: rgba(15,23,42,0.10);
+            }
+        }
+        :root[data-pt-theme="light"] .pt-alebad-story-group--final .pt-alebad-story-group-stamp > span:not([aria-hidden]) {
+            background: linear-gradient(135deg, #b45309 0%, #92400e 60%, #78350f 100%);
+            -webkit-background-clip: text;
+                    background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         /* Scene 5 — Showtimes.
@@ -10929,6 +11264,35 @@
                     cards.forEach((c) => centerIO.observe(c));
                 }
             }
+        })();
+
+        // ---------- Scene 4 — Story: "Making Of" credits expand/collapse ----------
+        // Wires the gold disclosure button beneath the inline credits row
+        // to its grouped credits panel. Animation is pure-CSS via the
+        // grid-template-rows 0fr↔1fr trick — JS just flips:
+        //   - aria-expanded on the button (drives label/chevron via CSS)
+        //   - .is-open on the panel (drives the height + fade transition)
+        // Keyboard handling is free because the trigger is a real <button>.
+        // No-op when there's no panel on the page (every other route).
+        (function setupStoryCreditsExpand() {
+            const toggle = document.querySelector('[data-pt-credits-toggle]');
+            const panel  = document.querySelector('[data-pt-credits-panel]');
+            if (!toggle || !panel) return;
+
+            const setOpen = (open) => {
+                toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                panel.classList.toggle('is-open', open);
+            };
+
+            // Initial state: collapsed. Honor any pre-set aria-expanded
+            // from the markup so SSR can ship an already-open variant.
+            const initialOpen = toggle.getAttribute('aria-expanded') === 'true';
+            setOpen(initialOpen);
+
+            toggle.addEventListener('click', () => {
+                const next = toggle.getAttribute('aria-expanded') !== 'true';
+                setOpen(next);
+            });
         })();
     })();
 

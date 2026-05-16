@@ -627,6 +627,196 @@
                 <span class="pt-alebad-story-credit-value">عمانوئيل سعد</span>
             </span>
         </div>
+
+        {{-- =============================================================
+             Making Of / Full Credits — collapsed disclosure surface.
+             Collapsed state shows only a one-line teaser of headline
+             names + a ghost toggle button, so the homepage's vertical
+             rhythm is barely affected. Tapping the toggle expands the
+             panel to reveal grouped credit sections:
+               1. إنتاج (production)
+               2. بطولة (lead)
+               3. بالاشتراك مع النجوم (supporting cast — 47 names)
+               4. صنّاع العمل (crew — bilingual role labels)
+               5. سيناريو وحوار · إخراج (final stamp)
+             Height animation: grid 0fr → 1fr (no JS height measure).
+             Reduced-motion safe (CSS strips transition). Wired by
+             setupStoryCreditsExpand IIFE in app layout.
+        ============================================================= --}}
+        <div class="pt-alebad-story-more">
+            <p class="pt-alebad-story-more-teaser">
+                فريد النقراشي · أحمد حلاوة · لطفي لبيب · محمد رضوان
+                <span class="pt-alebad-story-more-teaser-more">+44 آخرين</span>
+            </p>
+
+            <button type="button"
+                    class="pt-alebad-story-more-toggle"
+                    data-pt-credits-toggle
+                    aria-controls="pt-alebad-story-credits-panel"
+                    aria-expanded="false">
+                <span data-show>عرض فريق العمل الكامل</span>
+                <span data-hide>إخفاء فريق العمل</span>
+                <span class="pt-alebad-story-more-toggle-chev" aria-hidden="true">⌄</span>
+            </button>
+
+            <div id="pt-alebad-story-credits-panel"
+                 class="pt-alebad-story-panel"
+                 data-pt-credits-panel>
+                <div class="pt-alebad-story-panel-inner">
+                    <div class="pt-alebad-story-panel-body">
+
+                        {{-- إنتاج --}}
+                        <section class="pt-alebad-story-group">
+                            <h3 class="pt-alebad-story-group-title">إنتاج</h3>
+                            <p class="pt-alebad-story-group-prod">
+                                دير القديس العظيم الأنبا شنوده رئيس المتوحدين
+                                <span class="pt-alebad-story-group-prod-sub">— الدير الأبيض، سوهاج</span>
+                            </p>
+                        </section>
+
+                        {{-- بطولة الفنان --}}
+                        <section class="pt-alebad-story-group">
+                            <h3 class="pt-alebad-story-group-title">بطولة الفنان</h3>
+                            <p class="pt-alebad-story-group-lead">فريد النقراشي</p>
+                        </section>
+
+                        {{-- بالاشتراك مع النجوم — 47 supporting cast --}}
+                        <section class="pt-alebad-story-group">
+                            <h3 class="pt-alebad-story-group-title">بالاشتراك مع النجوم</h3>
+                            <ul class="pt-alebad-story-group-cast">
+                                <li>الفنان القدير / أحمد حلاوة</li>
+                                <li>الفنان القدير / لطفي لبيب</li>
+                                <li>الفنان القدير / محمد رضوان</li>
+                                <li>الفنان القدير / فتوح أحمد</li>
+                                <li>الفنان القدير / ناجي سعد</li>
+                                <li>الفنانة / حنان سليمان</li>
+                                <li>الفنان / أحمد الحلواني</li>
+                                <li>الفنان / طاهر أبو حطب</li>
+                                <li>الفنان / مجدي شكري</li>
+                                <li>الفنان / عاصم سامي</li>
+                                <li>الفنان / حسان العربي</li>
+                                <li>الفنان / علي الطيب</li>
+                                <li>الفنان / حسان ترك</li>
+                                <li>الفنان / مجدي فوزي</li>
+                                <li>الفنان / جرجس فوزي</li>
+                                <li>الفنان / سمير حسني</li>
+                                <li>الفنان / سامح فكري</li>
+                                <li>الفنان / ضياء شفيق</li>
+                                <li>الفنان / يوسف حافظ</li>
+                                <li>الفنان / عادل سمير</li>
+                                <li>الفنان / محمود الفرماوي</li>
+                                <li>الفنان / أمير تادرس</li>
+                                <li>الفنانة / نجوى شفيق</li>
+                                <li>الفنانة / صفاء صفوت</li>
+                                <li>الفنان / ملاك جلال</li>
+                                <li>الفنان / بولا الفريد</li>
+                                <li>الفنان / رأفت فوزي</li>
+                                <li>الفنان / جميل فتحي</li>
+                                <li>الفنانة / أوديت صفوت</li>
+                                <li>الفنان / باسم رؤوف</li>
+                                <li>الفنان / دافيد سمير</li>
+                                <li>الفنان / جوزيف نبيل</li>
+                                <li>الفنان / أمير فهمي</li>
+                                <li>الفنان / مينا جمال</li>
+                                <li>الفنانة / ماري سميح</li>
+                                <li>الفنان / أبنوب أليشع</li>
+                                <li>الفنان / أرساني</li>
+                                <li>الفنانة / ريتا الياس</li>
+                                <li>الفنانة / ماري جرجس</li>
+                                <li>الفنان / توني فريد النقراشي</li>
+                                <li>الفنان / يوسف فريد النقراشي</li>
+                                <li>الفنان / مينا هنري</li>
+                                <li>الفنان / مصطفى حسن</li>
+                                <li>الفنان / عزيز لويس</li>
+                                <li>الفنانة / إيمان سالم</li>
+                                <li>الفنانة / إسراء عصام</li>
+                                <li>الفنان / عادل صدقي</li>
+                                <li>الفنانة / تهاني كمال</li>
+                                <li>الفنان / أسامة شاكر</li>
+                            </ul>
+                        </section>
+
+                        {{-- صنّاع العمل — crew --}}
+                        <section class="pt-alebad-story-group">
+                            <h3 class="pt-alebad-story-group-title">صنّاع العمل</h3>
+                            <dl class="pt-alebad-story-group-crew">
+                                <div class="pt-alebad-story-group-crew-row">
+                                    <dt>تصوير · D.O.P</dt>
+                                    <dd>چوزيف لويس</dd>
+                                </div>
+                                <div class="pt-alebad-story-group-crew-row">
+                                    <dt>مونتاج</dt>
+                                    <dd>سامر ماضي</dd>
+                                </div>
+                                <div class="pt-alebad-story-group-crew-row">
+                                    <dt>موسيقى تصويرية وألحان</dt>
+                                    <dd>عمانوئيل سعد</dd>
+                                </div>
+                                <div class="pt-alebad-story-group-crew-row">
+                                    <dt>إخراج فني · Art Director</dt>
+                                    <dd>كمال مجدي</dd>
+                                </div>
+                                <div class="pt-alebad-story-group-crew-row">
+                                    <dt>ألوان · Colorist</dt>
+                                    <dd>متى رشدي</dd>
+                                </div>
+                                <div class="pt-alebad-story-group-crew-row">
+                                    <dt>منتج فني</dt>
+                                    <dd>رامي إبراهيم</dd>
+                                </div>
+                                <div class="pt-alebad-story-group-crew-row">
+                                    <dt>أشعار</dt>
+                                    <dd>رمزي بشارة</dd>
+                                </div>
+                                <div class="pt-alebad-story-group-crew-row">
+                                    <dt>مكساج شريط الصوت</dt>
+                                    <dd>جرجس صبحي</dd>
+                                </div>
+                                <div class="pt-alebad-story-group-crew-row">
+                                    <dt>تصميم الأزياء</dt>
+                                    <dd>مريام عدلي</dd>
+                                </div>
+                                <div class="pt-alebad-story-group-crew-row">
+                                    <dt>مكياج</dt>
+                                    <dd>عزيز صليب · چينو</dd>
+                                </div>
+                                <div class="pt-alebad-story-group-crew-row">
+                                    <dt>مهندس صوت</dt>
+                                    <dd>أحمد أبو ليلة</dd>
+                                </div>
+                                <div class="pt-alebad-story-group-crew-row">
+                                    <dt>مخرج منفذ</dt>
+                                    <dd>مورين مجدي · فليمون نبيل</dd>
+                                </div>
+                                <div class="pt-alebad-story-group-crew-row">
+                                    <dt>مؤثرات بصرية · VFX</dt>
+                                    <dd>أنطون ناجح</dd>
+                                </div>
+                                <div class="pt-alebad-story-group-crew-row">
+                                    <dt>دعاية · Advertising</dt>
+                                    <dd>ميللر عزت</dd>
+                                </div>
+                                <div class="pt-alebad-story-group-crew-row">
+                                    <dt>إعلان البرومو · Trailer</dt>
+                                    <dd>مينا سمير</dd>
+                                </div>
+                            </dl>
+                        </section>
+
+                        {{-- سيناريو · إخراج — final stamp --}}
+                        <section class="pt-alebad-story-group pt-alebad-story-group--final">
+                            <h3 class="pt-alebad-story-group-title">سيناريو وحوار · إخراج</h3>
+                            <p class="pt-alebad-story-group-stamp">
+                                <span>فريد النقراشي</span>
+                                <span aria-hidden="true">·</span>
+                                <span>چوزيف نبيل</span>
+                            </p>
+                        </section>
+
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 
