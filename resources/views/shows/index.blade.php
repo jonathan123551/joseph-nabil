@@ -801,10 +801,9 @@
 
                         {{-- سيناريو · إخراج — final stamp --}}
                         <section class="pt-alebad-story-group pt-alebad-story-group--final">
-                            <h3 class="pt-alebad-story-group-title">سيناريو وحوار · إخراج</h3>
+                            <h3 class="pt-alebad-story-group-title"> إخراج</h3>
                             <p class="pt-alebad-story-group-stamp">
-                                <span>فريد النقراشي</span>
-                                <span aria-hidden="true">·</span>
+                               
                                 <span>چوزيف نبيل</span>
                             </p>
                         </section>
