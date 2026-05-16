@@ -320,7 +320,10 @@
             <span class="pt-alebad-hero-credit-label">إخراج</span>
             <span class="pt-alebad-hero-credit-name">جوزيف نبيل</span>
         </p>
-
+        <p class="pt-alebad-hero-credit">
+            <span class="pt-alebad-hero-credit-label">سيناريو و حوار </span>
+            <span class="pt-alebad-hero-credit-name"> فريد النقراشي</span>
+        </p>
         <p class="pt-alebad-hero-tagline">
             رحلة روحية مستوحاة من سيرة الراهب القمص بولس المقاري — صلاة، صحراء، وعبور إلى السماء.
         </p>
