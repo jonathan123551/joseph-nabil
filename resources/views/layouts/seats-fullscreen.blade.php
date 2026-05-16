@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>@yield('title', 'Premium Tickets · اختار مقعدك')</title>
+    <title>@yield('title', 'Joseph Nabil · اختار مقعدك')</title>
     {{-- viewport-fit=cover lets the page extend behind iOS notch / nav bar
          so the seat map can truly fill the screen without scrolling. --}}
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">

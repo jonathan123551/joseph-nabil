@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'حصلت مشكلة · Premium Tickets')
+@section('title', 'حصلت مشكلة · Joseph Nabil')
 
 @section('content')
 <section class="max-w-lg mx-auto prism-fade-up">

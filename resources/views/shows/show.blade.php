@@ -1,7 +1,7 @@
 {{-- resources/views/shows/show.blade.php --}}
 @extends('layouts.app')
 
-@section('title', $show->title . ' · Premium Tickets')
+@section('title', $show->title . ' · Joseph Nabil')
 @section('body_class', 'pt-route-show')
 
 @php
