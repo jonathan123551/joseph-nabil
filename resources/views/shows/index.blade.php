@@ -317,13 +317,14 @@
             <span>تحت رعاية البابا تواضروس الثاني · بطريرك الكرازة المرقسية</span>
         </span>
         <p class="pt-alebad-hero-credit">
-            <span class="pt-alebad-hero-credit-label">إخراج</span>
-            <span class="pt-alebad-hero-credit-name">جوزيف نبيل</span>
-        </p>
-        <p class="pt-alebad-hero-credit">
             <span class="pt-alebad-hero-credit-label">سيناريو و حوار </span>
             <span class="pt-alebad-hero-credit-name"> فريد النقراشي</span>
         </p>
+        <p class="pt-alebad-hero-credit">
+            <span class="pt-alebad-hero-credit-label">إخراج</span>
+            <span class="pt-alebad-hero-credit-name">جوزيف نبيل</span>
+        </p>
+        
         <p class="pt-alebad-hero-tagline">
             رحلة روحية مستوحاة من سيرة الراهب القمص بولس المقاري — صلاة، صحراء، وعبور إلى السماء.
         </p>
@@ -394,9 +395,7 @@
         <h2 id="pt-alebad-trailer-title" class="pt-alebad-section-title">
             <span class="pt-alebad-section-title-grad">شاهد البرومو</span>
         </h2>
-        <p class="pt-alebad-section-sub">
-            دقيقة من الأجواء، الموسيقى، وشخصيات المسرحية — قبل ما تحجز.
-        </p>
+        
     </div>
 
     {{-- Trailer card is a click-to-load embed (NOT a link). The first
@@ -468,7 +467,7 @@
             <span class="pt-alebad-section-title-grad">نجوم الفيلم</span>
         </h2>
         <p class="pt-alebad-section-sub">
-            مجموعة من ألمع نجوم الدراما المصرية يجتمعون في عمل واحد.
+            مجموعة من ألمع النجوم يجتمعون في عمل واحد.
         </p>
     </div>
 
