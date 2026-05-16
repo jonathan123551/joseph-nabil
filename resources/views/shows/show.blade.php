@@ -78,7 +78,7 @@
                 @endif
 
                 <div class="pt-show-hero-meta">
-                    <span class="prism-pill prism-pill-neon" data-i18n="show_pill_kind">عرض مسرحي</span>
+                    
                     <span class="prism-pill"><span class="prism-dot prism-dot-sky"></span> <span data-i18n="show_pill_online">حجز إلكتروني</span></span>
                     <span class="prism-pill"><span class="prism-dot prism-dot-emerald"></span> <span data-i18n="show_pill_qr">تذكرة QR</span></span>
 
