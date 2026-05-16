@@ -796,6 +796,10 @@
                                     <dt>إعلان البرومو · Trailer</dt>
                                     <dd>مينا سمير</dd>
                                 </div>
+                                <div class="pt-alebad-story-group-crew-row">
+                                    <dt>سيناريو وحوار </dt>
+                                    <dd>فريد النقراشي </dd>
+                                </div>
                             </dl>
                         </section>
 
