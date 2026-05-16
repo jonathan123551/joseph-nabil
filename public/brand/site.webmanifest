@@ -1,7 +1,7 @@
 {
-  "name": "Premium Tickets — JN",
+  "name": "Joseph Nabil",
   "short_name": "JN",
-  "description": "Premium event ticketing, seat manifest, and stage operations.",
+  "description": "A Joseph Nabil cinematic ticketing experience — seat manifest and stage operations.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
