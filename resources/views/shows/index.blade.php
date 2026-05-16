@@ -621,11 +621,7 @@
                 <span class="pt-alebad-story-credit-label">سيناريو وحوار</span>
                 <span class="pt-alebad-story-credit-value">فريد النقراشي </span>
             </span>
-            <span class="pt-alebad-story-credit-sep" aria-hidden="true">·</span>
-            <span class="pt-alebad-story-credit">
-                <span class="pt-alebad-story-credit-label">موسيقى</span>
-                <span class="pt-alebad-story-credit-value">عمانوئيل سعد</span>
-            </span>
+           
         </div>
 
         {{-- =============================================================
