@@ -212,7 +212,7 @@
        * Tagline is intentionally short — a cinematic credit line,
          not an about-us paragraph.
 ===================================================================== --}}
- <section class="pt-cine-scene is-scene-intro pt-alebad-presents"
+<!-- <section class="pt-cine-scene is-scene-intro pt-alebad-presents"
          data-cine-scene="presents"
          aria-labelledby="pt-alebad-presents-eyebrow">
 
@@ -270,7 +270,7 @@
          cool-black via a layered gradient, so the cut between
          scenes reads as a cross-fade. --}}
     <div class="pt-alebad-presents-bleed" aria-hidden="true"></div>
-</section> 
+</section> -->
 
 {{-- =====================================================================
      Scene 1 — Cinematic hero · العباد
