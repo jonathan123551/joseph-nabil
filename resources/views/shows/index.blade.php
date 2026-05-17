@@ -620,11 +620,177 @@
         </span>
 
         <p class="pt-alebad-story-body">
-            "العابد" فيلم مستوحى من سيرة الراهب القمص بولس المقاري — قصة عبور
-            من ضوضاء العالم إلى صمت السماء، ومن انكسار الإنسان إلى عظمة الإيمان.
-            عملٌ سينمائي على المسرح، يجمع نخبة من أعظم نجوم الدراما المصرية
-            في رحلة روحية لا تُنسى.
+            <span class="pt-alebad-story-bio-headline">القمّص بولس العابد المقاري (١٨٩٩ – ١٩٦٥)</span>
+            راهبٌ قبطيٌّ مصريٌّ عُرف بحياة الزُّهد والصلاة والعُزلة الروحية،
+            وتحوّلت سيرته إلى واحدة من أكثر الحكايات الروحية تأثيرًا
+            في الوجدان القبطي المعاصر.
         </p>
+
+        {{-- =============================================================
+             القصة / السيرة — full biography disclosure surface.
+             Collapsed state: a soft fade-preview teaser + the gold ghost
+             pill toggle. Tapping the toggle expands a layered cinematic
+             biography panel split into 6 grouped sections so the page
+             never reads like a Wikipedia article — each section gets a
+             gold-traced header + soft hairline divider + comfortably
+             leaded Arabic prose. Speech inside the biography (the
+             letter to القمص مينا البراموس, the Virgin Mary dialogue
+             during the church restoration) is rendered as real
+             <blockquote> elements with a distinct cinematic treatment
+             so the reader perceives them as remembered voices, not
+             body prose. Height animation reuses the grid-row 0fr↔1fr
+             trick from the Making-Of panel below — no JS height measure.
+        ============================================================= --}}
+        <div class="pt-alebad-story-more pt-alebad-story-bio">
+            <p class="pt-alebad-story-more-teaser pt-alebad-story-bio-teaser">
+                من سمالوط إلى مغارة نجع حمادي
+                <span class="pt-alebad-story-more-teaser-more">سيرة سائحٍ وعابد</span>
+            </p>
+
+            <button type="button"
+                    class="pt-alebad-story-more-toggle"
+                    data-pt-disclosure-toggle
+                    aria-controls="pt-alebad-story-bio-panel"
+                    aria-expanded="false">
+                <span data-show>اقرأ السيرة الكاملة</span>
+                <span data-hide>إخفاء السيرة</span>
+                <span class="pt-alebad-story-more-toggle-chev" aria-hidden="true">⌄</span>
+            </button>
+
+            <div id="pt-alebad-story-bio-panel"
+                 class="pt-alebad-story-panel"
+                 data-pt-disclosure-panel>
+                <div class="pt-alebad-story-panel-inner">
+                    <div class="pt-alebad-story-panel-body pt-alebad-story-bio-panel-body">
+
+                        {{-- الميلاد والنشأة --}}
+                        <section class="pt-alebad-story-group">
+                            <h3 class="pt-alebad-story-group-title">الميلاد والنشأة</h3>
+                            <p class="pt-alebad-story-bio-prose">
+                                وُلد باسم «حنين» في الثامن عشر من أبريل سنة ١٨٩٩م
+                                بمركز سمالوط — محافظة المنيا. أبوه «صليب» وأمّه «سفينة»،
+                                وله أربعة إخوة: ميخائيل، وعطاالله، ومختاره، ومريم.
+                                نشأ في أسرة تقيّة، فنما جسديًّا وروحيًّا في مخافة الله،
+                                وعاش حياةً قِوامها الصلاة والقناعة والشكر.
+                                التحق بكتّاب الكنيسة ثم بالمدرسة الابتدائية، وعمل
+                                مع والده بالزراعة، وكان يُصلّي وسط ثلاث كنائس.
+                            </p>
+                        </section>
+
+                        {{-- الرهبنة والعزلة --}}
+                        <section class="pt-alebad-story-group">
+                            <h3 class="pt-alebad-story-group-title">الرهبنة والعزلة</h3>
+                            <p class="pt-alebad-story-bio-prose">
+                                ترك العالم في عام ١٩٢٠م دون علم أسرته، وذهب إلى
+                                دير الأنبا مقار حيث سِيمَ راهبًا، وبدأ حياته الرهبانيّة
+                                في جهادٍ قاسٍ. أحبّ الوحدة كثيرًا، فتوحّد في دير العزب،
+                                ثم عاش في مغارةٍ بنجع حمّادي. وعُرف بشغفه بالصلاة
+                                والصوم الكثير والزهد والعبادة، حتى أطلقوا عليه
+                                «بولس العابد».
+                            </p>
+                        </section>
+
+                        {{-- حياة الصلاة والمعجزات --}}
+                        <section class="pt-alebad-story-group">
+                            <h3 class="pt-alebad-story-group-title">حياة الصلاة والمعجزات</h3>
+                            <p class="pt-alebad-story-bio-prose">
+                                وصل إلى درجة السياحة، وتعمّق فيها، وروى لتلميذه
+                                الأنبا تيموثاوس الكثير عن هذه الحياة. واستخدمه
+                                الربّ يسوع المسيح في عمل الكثير من معجزات الشفاء،
+                                وأعطاه موهبة التنبّؤ بأحداثٍ مستقبلية.
+                            </p>
+                        </section>
+
+                        {{-- علاقته بالأنبا تيموثاوس --}}
+                        <section class="pt-alebad-story-group">
+                            <h3 class="pt-alebad-story-group-title">علاقته بالأنبا تيموثاوس</h3>
+                            <p class="pt-alebad-story-bio-prose">
+                                كان من تلاميذه الأنبا تيموثاوس المتنيّح الأسقف
+                                العامّ، وذكر المتنيّح الأنبا تيموثاوس أنّ القمّص
+                                بولس العابد ومعه القمّص بولس السائح الكبير والقس
+                                ميخائيل السائح قد ذهبوا سويًّا لزيارة الفردوس
+                                وبلاد الطوباويّين.
+                            </p>
+                            <p class="pt-alebad-story-bio-prose">
+                                كما أرسل القمّص مينا البراموسي خطابًا يطلب فيه
+                                أن يحضر إليه ليعيش بجواره، ليستفيد من خبراته في
+                                حياة الوحدة. فأرسل إليه أبونا بولس العابد يقول:
+                            </p>
+                            <blockquote class="pt-alebad-story-bio-quote">
+                                <p>«إنّ لكم من الخبرة الروحية والجهاد الروحي
+                                ما يحتاجه الكثيرون، وأنا بدوري أطلب صلواتكم دائمًا.»</p>
+                                <footer class="pt-alebad-story-bio-quote-speaker">
+                                    من خطابه إلى القمّص مينا البراموسي
+                                </footer>
+                            </blockquote>
+                            <p class="pt-alebad-story-bio-prose">
+                                وكانت له صداقةٌ ومحبّةٌ روحيّةٌ عميقة جدًّا مع
+                                أبونا عبد المسيح المناهري، وكانا يعيشان أسبوع
+                                الآلام معًا.
+                            </p>
+                        </section>
+
+                        {{-- ترميم الكنيسة --}}
+                        <section class="pt-alebad-story-group">
+                            <h3 class="pt-alebad-story-group-title">ترميم الكنيسة</h3>
+                            <p class="pt-alebad-story-bio-prose">
+                                خدم أبونا بولس العابد في العسيرات، ورمّم الكنيسة
+                                هناك بناءً على طلب السيدة العذراء مريم. يُروى
+                                عنه: في ذات ليلة رأى نورًا جميلًا يخرج من صورة
+                                العذراء مريم، أعقبه صوتٌ منها قائلًا:
+                            </p>
+                            <blockquote class="pt-alebad-story-bio-quote pt-alebad-story-bio-quote--virgin">
+                                <p>«يا راهب... الكنيسة أوشكت على السقوط، وإن سقطت
+                                لا يستطيع أحدٌ بناءها مرّةً أخرى. رمّموا الكنيسة
+                                قبل سقوطها.»</p>
+                                <footer class="pt-alebad-story-bio-quote-speaker">
+                                    السيّدة العذراء مريم
+                                </footer>
+                            </blockquote>
+                            <p class="pt-alebad-story-bio-prose">فقال لها:</p>
+                            <blockquote class="pt-alebad-story-bio-quote">
+                                <p>«يا ستّي يا عدرا، أنا كما تعرفين كبير السنّ،
+                                ومريض وغريب في هذه البلد، فكيف أستطيع القيام
+                                بهذا العمل الكبير؟»</p>
+                                <footer class="pt-alebad-story-bio-quote-speaker">
+                                    أبونا بولس العابد
+                                </footer>
+                            </blockquote>
+                            <p class="pt-alebad-story-bio-prose">فأجابته:</p>
+                            <blockquote class="pt-alebad-story-bio-quote pt-alebad-story-bio-quote--virgin">
+                                <p>«كلّ الناس يحبّونك ويثقون بك ويُطيعونك،
+                                فابدأ العمل، وانظر ما سوف يكون من معونة ابني
+                                وإلهي يسوع المسيح لك.»</p>
+                                <footer class="pt-alebad-story-bio-quote-speaker">
+                                    السيّدة العذراء مريم
+                                </footer>
+                            </blockquote>
+                            <p class="pt-alebad-story-bio-prose">
+                                وبالفعل تمّ تجديد الكنيسة بطريقةٍ معجزيّة، وكانت
+                                السيّدة العذراء مريم تظهر له وتعمل معجزات
+                                بصلواته.
+                            </p>
+                        </section>
+
+                        {{-- نياحته --}}
+                        <section class="pt-alebad-story-group pt-alebad-story-group--final">
+                            <h3 class="pt-alebad-story-group-title">نياحته</h3>
+                            <p class="pt-alebad-story-bio-prose">
+                                عاش أبونا بولس العابد حوالي ستٍّ وستين سنة،
+                                منها خمسٌ وأربعون سنة بالدير، حتى تنيَّح بسلام
+                                صباح يوم الأربعاء الموافق السادس عشر من يونيو
+                                ١٩٦٥م. ودُفن جثمانه الطاهر في مزارٍ خاصٍّ
+                                بمدافن الأقباط قبلي دير الأنبا شنوده الغربي
+                                بمحافظة سوهاج، بناءً على رغبته، ويرقد إلى جواره
+                                الأنبا تيموثاوس الأسقف العامّ الذي سجّل سيرة
+                                حياته.
+                            </p>
+                        </section>
+
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div class="pt-alebad-story-credits">
             <span class="pt-alebad-story-credit">
