@@ -602,15 +602,17 @@
         <span class="pt-cine-orb pt-cine-orb-shows-b"></span>
     </div>
 
+    {{-- Visible state (calm + minimal): no eyebrow chip, no cinematic
+         quote — the saint's name itself becomes the cinematic title of
+         the scene. The ✦ ornament + summary + teaser + gold pill that
+         follow are unchanged from PR #130.
+         The section's aria-labelledby still points to id="pt-alebad-story-title",
+         which now hangs on the saint's name <h2> so screen readers get
+         a proper section name. --}}
     <div class="pt-alebad-story-content pt-cine-stagger">
-        <span class="pt-cine-eyebrow">
-            <span class="pt-live-dot pt-live-dot-gold"></span>
-            <span>القصة</span>
-        </span>
-
-        <h2 id="pt-alebad-story-title" class="pt-alebad-story-title">
-            <span class="pt-alebad-story-quote-mark" aria-hidden="true">”</span>
-            في صحراءٍ ما، عاش رجلٌ تركَ الدنيا كلَّها ليبحثَ عن الله.
+        <h2 id="pt-alebad-story-title" class="pt-alebad-story-bio-headline">
+            القمّص بولس العابد المقاري
+            <span class="pt-alebad-story-bio-headline-years">(١٨٩٩ – ١٩٦٥)</span>
         </h2>
 
         <span class="pt-alebad-story-divider" aria-hidden="true">
@@ -620,7 +622,6 @@
         </span>
 
         <p class="pt-alebad-story-body">
-            <span class="pt-alebad-story-bio-headline">القمّص بولس العابد المقاري (١٨٩٩ – ١٩٦٥)</span>
             راهبٌ قبطيٌّ مصريٌّ عُرف بحياة الزُّهد والصلاة والعُزلة الروحية،
             وتحوّلت سيرته إلى واحدة من أكثر الحكايات الروحية تأثيرًا
             في الوجدان القبطي المعاصر.
