@@ -7146,26 +7146,12 @@
             align-items: center;
         }
 
-        .pt-alebad-story-title {
-            position: relative;
-            font-size: clamp(24px, 5vw, 38px);
-            font-weight: 600;
-            line-height: 1.45;
-            color: var(--prism-text);
-            margin: 0;
-            letter-spacing: -0.005em;
-            font-style: italic;
-        }
-        .pt-alebad-story-quote-mark {
-            display: block;
-            font-size: clamp(64px, 12vw, 110px);
-            line-height: 0;
-            color: #fbbf24;
-            opacity: 0.45;
-            margin-bottom: 18px;
-            margin-top: 22px;
-            font-style: normal;
-        }
+        /* Removed in PR 16: .pt-alebad-story-title + .pt-alebad-story-quote-mark.
+           The visible Story scene no longer carries the
+           "في صحراءٍ ما، عاش رجلٌ تركَ الدنيا..." cinematic quote nor
+           the القصة eyebrow chip — the saint's name itself (rendered
+           via .pt-alebad-story-bio-headline lower in this file) is now
+           the cinematic title of the scene. */
 
         .pt-alebad-story-divider {
             display: flex;
@@ -7539,15 +7525,50 @@
             - The "virgin" variant gets a slightly stronger gold tint to
               echo the spiritual weight of the Marian apparition scene.
         ==================================================================== */
+        /* Promoted in PR 16: this rule now styles the section's <h2>
+           — the cinematic title of the Story scene. Replaces the role
+           the في صحراءٍ ما... cinematic quote used to play. */
         .pt-alebad-story-bio-headline {
             display: block;
-            margin-bottom: 10px;
-            font-family: "Space Grotesk", system-ui, sans-serif;
-            font-size: clamp(12.5px, 2.2vw, 14px);
-            font-weight: 600;
-            letter-spacing: 0.08em;
-            color: #fbbf24;
-            opacity: 0.92;
+            margin: 0;
+            /* Match the headline weight of the cast section so the
+               two cinematic titles read at the same hierarchical level. */
+            font-size: clamp(22px, 4.6vw, 38px);
+            font-weight: 700;
+            line-height: 1.35;
+            letter-spacing: 0.005em;
+            text-align: center;
+            /* Warm gold gradient — same palette as the Joseph Nabil intro
+               eyebrow + the cast lead's emphasis stamp so the saint's
+               name reads as the section's premium cinematic title. */
+            background: linear-gradient(135deg,
+                #fef3c7 0%,
+                #fbbf24 55%,
+                #d4af5a 100%);
+            -webkit-background-clip: text;
+                    background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .pt-alebad-story-bio-headline-years {
+            /* Dates sit on the same line as the name where the viewport
+               allows; the smaller size + lighter weight makes them feel
+               like a subtitle, not a co-equal label. */
+            display: inline-block;
+            margin-inline-start: 8px;
+            font-size: 0.58em;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            vertical-align: middle;
+            opacity: 0.88;
+        }
+        @media (max-width: 480px) {
+            /* On narrow phones the (1899–1965) span wraps to a second
+               line so the name still reads on a single comfortable line. */
+            .pt-alebad-story-bio-headline-years {
+                display: block;
+                margin: 6px 0 0;
+                font-size: 0.62em;
+            }
         }
 
         .pt-alebad-story-bio { max-width: 720px; }
@@ -7644,8 +7665,20 @@
            rest of PR #9's light-mode pass so the section reads on
            the cream page background. */
         :root[data-pt-theme="light"] .pt-alebad-story-bio-headline {
-            color: #b45309;
+            /* On cream the dark-mode cream→gold→bronze gradient washes out.
+               Re-tone to a deeper amber→bronze ramp so the saint's name
+               reads as a strong title against the page background. */
+            background: linear-gradient(135deg,
+                #b45309 0%,
+                #92400e 60%,
+                #78350f 100%);
+            -webkit-background-clip: text;
+                    background-clip: text;
+            -webkit-text-fill-color: transparent;
             opacity: 1;
+        }
+        :root[data-pt-theme="light"] .pt-alebad-story-bio-headline-years {
+            opacity: 0.78;
         }
         :root[data-pt-theme="light"] .pt-alebad-story-bio-quote {
             border-inline-start-color: rgba(180,83,9,0.45);
@@ -7967,13 +8000,11 @@
         }
 
         /* Scene 4 — Story.
-           Quote mark, divider bar, and divider mark all hardcode
-           `#fbbf24` which is too light on cream. The credits' top
-           rule is `rgba(255,255,255,0.06)` which is invisible. */
-        :root[data-pt-theme="light"] .pt-alebad-story-quote-mark {
-            color: #b45309;
-            opacity: 0.42;
-        }
+           Divider bar + mark hardcode `#fbbf24` which is too light on
+           cream; the credits' top rule is `rgba(255,255,255,0.06)`
+           which is invisible against cream. Light-mode overrides for
+           the now-removed .pt-alebad-story-quote-mark were pruned in
+           PR 16 (the quote element no longer exists in the markup). */
         :root[data-pt-theme="light"] .pt-alebad-story-divider-bar {
             background: linear-gradient(to right,
                 transparent 0%,
