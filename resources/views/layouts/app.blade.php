@@ -4330,6 +4330,221 @@
             .pt-footer-link:hover { color: var(--prism-text); }
         }
 
+        /* ====================================================================
+           Footer · developer signature
+           --------------------------------------------------------------------
+           Final cinematic credit line at the bottom of every page. Replaces
+           the original "© {year} Joseph Nabil" copyright row. The site brand
+           block at the top of the footer still reads "Joseph Nabil" — that's
+           the show/platform identity — this block credits the developer who
+           built the platform.
+
+           Designed to feel like a luxury studio signature:
+            - centered cinematic stack
+            - cream→gold→bronze background-clip gradient on the wordmark
+            - calm Latin small-caps subtitle
+            - glassy outlined WhatsApp pill in the cream/gold palette
+              (explicitly NOT bright-green WhatsApp brand — the salesy
+              chip-look the brief asked to avoid)
+            - very subtle ambient gold glow behind the wordmark
+        ==================================================================== */
+        .pt-foot-sig {
+            margin-top: 28px;
+            padding-top: 26px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            text-align: center;
+            position: relative;
+        }
+        /* Ambient glow centered behind the wordmark — keeps the block
+           visually anchored without adding any visible chrome. */
+        .pt-foot-sig::before {
+            content: "";
+            position: absolute;
+            inset-inline-start: 50%;
+            top: 30%;
+            width: 280px;
+            height: 120px;
+            transform: translateX(-50%);
+            background: radial-gradient(
+                ellipse at center,
+                rgba(251,191,36,0.10) 0%,
+                rgba(251,191,36,0.04) 35%,
+                transparent 70%);
+            filter: blur(36px);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .pt-foot-sig > * { position: relative; z-index: 1; }
+
+        .pt-foot-sig-name-row {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 10px;
+            /* The wordmark + © + year all share the same gradient so the
+               line reads as one continuous signature. */
+            background: linear-gradient(135deg,
+                #fef3c7 0%,
+                #fbbf24 60%,
+                #d4af5a 100%);
+            -webkit-background-clip: text;
+                    background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .pt-foot-sig-name {
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-size: clamp(15px, 2.4vw, 18px);
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+        .pt-foot-sig-sep {
+            font-size: clamp(13px, 2vw, 15px);
+            font-weight: 400;
+            opacity: 0.72;
+        }
+        .pt-foot-sig-year {
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-size: clamp(14px, 2.2vw, 16px);
+            font-weight: 500;
+            letter-spacing: 0.01em;
+        }
+
+        .pt-foot-sig-sub {
+            margin: 0;
+            font-size: clamp(11.5px, 1.8vw, 12.5px);
+            line-height: 1.55;
+            letter-spacing: 0.06em;
+            color: var(--prism-text-3);
+            opacity: 0.78;
+        }
+
+        /* Glassy outlined WhatsApp pill — explicitly NOT bright green.
+           The WhatsApp glyph is stroked in currentColor (cream/gold),
+           the border + ambient hover glow stay in the gold/cream
+           palette so the action reads as a luxury contact card, not
+           a sales chip. */
+        .pt-foot-sig-wa {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 2px;
+            padding: 8px 16px;
+            border: 1px solid rgba(251,191,36,0.32);
+            border-radius: 999px;
+            background: linear-gradient(135deg,
+                rgba(255,255,255,0.04) 0%,
+                rgba(251,191,36,0.04) 100%);
+            color: var(--prism-text-2);
+            text-decoration: none;
+            font-size: 12.5px;
+            letter-spacing: 0.02em;
+            min-height: 38px;
+            transition:
+                transform .22s var(--prism-ease),
+                border-color .22s var(--prism-ease),
+                box-shadow .22s var(--prism-ease),
+                background .22s var(--prism-ease),
+                color .22s var(--prism-ease);
+            -webkit-tap-highlight-color: transparent;
+        }
+        @media (hover: hover) {
+            .pt-foot-sig-wa:hover {
+                transform: translateY(-1px);
+                border-color: rgba(251,191,36,0.58);
+                background: linear-gradient(135deg,
+                    rgba(255,255,255,0.06) 0%,
+                    rgba(251,191,36,0.10) 100%);
+                box-shadow: 0 10px 26px -12px rgba(251,191,36,0.40);
+                color: var(--prism-text);
+            }
+        }
+        .pt-foot-sig-wa:focus-visible {
+            outline: 2px solid rgba(251,191,36,0.55);
+            outline-offset: 3px;
+        }
+        .pt-foot-sig-wa-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #fbbf24;
+            opacity: 0.92;
+        }
+        .pt-foot-sig-wa-label {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+        .pt-foot-sig-wa-label-num {
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-size: 11.5px;
+            letter-spacing: 0.05em;
+            opacity: 0.65;
+            /* Stays LTR even inside an RTL doc so the phone number
+               reads naturally. */
+            direction: ltr;
+        }
+
+        /* Mobile: tighten the row + drop the number onto a second line
+           under the label so the pill stays single-row at iPhone-mini width. */
+        @media (max-width: 480px) {
+            .pt-foot-sig { gap: 12px; }
+            .pt-foot-sig-wa-label {
+                flex-direction: column;
+                gap: 1px;
+                align-items: center;
+            }
+            .pt-foot-sig-wa-label-num { font-size: 10.5px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .pt-foot-sig-wa { transition: none; }
+            .pt-foot-sig-wa:hover { transform: none; }
+        }
+
+        /* Light-mode — cream/gold gradient washes out on cream paper.
+           Re-tone to a deeper amber→bronze ramp; ambient glow shifts to
+           amber too. Same approach as PR #131's bio headline override. */
+        :root[data-pt-theme="light"] .pt-foot-sig-name-row {
+            background: linear-gradient(135deg,
+                #b45309 0%,
+                #92400e 60%,
+                #78350f 100%);
+            -webkit-background-clip: text;
+                    background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        :root[data-pt-theme="light"] .pt-foot-sig-sub {
+            color: #57534e;
+            opacity: 0.92;
+        }
+        :root[data-pt-theme="light"] .pt-foot-sig::before {
+            background: radial-gradient(
+                ellipse at center,
+                rgba(180,83,9,0.10) 0%,
+                rgba(180,83,9,0.04) 35%,
+                transparent 70%);
+        }
+        :root[data-pt-theme="light"] .pt-foot-sig-wa {
+            border-color: rgba(180,83,9,0.32);
+            background: linear-gradient(135deg,
+                rgba(180,83,9,0.04) 0%,
+                rgba(180,83,9,0.08) 100%);
+            color: #44403c;
+        }
+        :root[data-pt-theme="light"] .pt-foot-sig-wa:hover {
+            border-color: rgba(180,83,9,0.55);
+            background: linear-gradient(135deg,
+                rgba(180,83,9,0.06) 0%,
+                rgba(180,83,9,0.12) 100%);
+            box-shadow: 0 10px 26px -12px rgba(180,83,9,0.40);
+            color: #1c1917;
+        }
+        :root[data-pt-theme="light"] .pt-foot-sig-wa-icon {
+            color: #b45309;
+        }
+
         /* iOS-safe: ensure content uses small viewport units when needed */
         .pt-min-svh { min-height: 100svh; }
         .pt-min-dvh { min-height: 100dvh; }
@@ -9017,10 +9232,51 @@
                 </div>
             </div>
 
-            <div class="mt-8 pt-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs"
-                 style="border-top: 1px solid var(--prism-border); color: var(--prism-text-3);">
-                <div>© {{ now()->year }} <span class="prism-wordmark text-[11px]" data-i18n="brand">Joseph Nabil</span></div>
-               
+            {{-- ============== Developer signature ==============
+                 The final cinematic credit line at the bottom of every page.
+                 Site brand at the top of the footer represents the
+                 platform / show (Joseph Nabil); this block credits the
+                 developer who built the platform — designed to feel like
+                 a luxury studio signature, not a sales footer.
+
+                 Layout: centered stack of three elements
+                   1. Wordmark row    — "Jonathan Maged · © · {year}"
+                                        (cream→gold→bronze background-clip gradient)
+                   2. Subtitle        — small-caps Latin, calm + spaced
+                   3. WhatsApp pill   — glassy outlined contact action,
+                                        explicitly NOT bright-green WhatsApp brand
+
+                 Pulls together via .pt-foot-sig (see CSS lower in this file).
+            ============================================================ --}}
+            <div class="pt-foot-sig"
+                 style="border-top: 1px solid var(--prism-border);">
+                <div class="pt-foot-sig-name-row">
+                    <span class="pt-foot-sig-name">Jonathan Maged</span>
+                    <span class="pt-foot-sig-sep" aria-hidden="true">©</span>
+                    <span class="pt-foot-sig-year">{{ now()->year }}</span>
+                </div>
+                <p class="pt-foot-sig-sub">Cinematic Web Experience by Jonathan Maged</p>
+                <a class="pt-foot-sig-wa"
+                   href="https://wa.me/201222356357"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   aria-label="تواصل مع المطور عبر واتساب على الرقم 01222356357">
+                    <span class="pt-foot-sig-wa-icon" aria-hidden="true">
+                        {{-- Outlined WhatsApp glyph — stroked in currentColor
+                             so it inherits the cream/gold pill palette and
+                             never reads as the salesy bright-green brand. --}}
+                        <svg viewBox="0 0 24 24" width="15" height="15"
+                             fill="none" stroke="currentColor" stroke-width="1.6"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.37 0 0 5.37 0 12c0 2.11.55 4.17 1.6 5.98L0 24l6.18-1.62A11.93 11.93 0 0 0 12 24c6.63 0 12-5.37 12-12 0-3.2-1.25-6.21-3.48-8.52z"/>
+                            <path d="M17.43 14.45c-.28-.14-1.66-.82-1.92-.91-.26-.1-.45-.14-.64.14-.19.28-.74.91-.9 1.1-.17.19-.33.21-.61.07-.28-.14-1.19-.44-2.27-1.4-.84-.75-1.4-1.67-1.57-1.95-.16-.28-.02-.43.12-.57.13-.13.28-.33.42-.49.14-.16.19-.28.28-.47.09-.19.05-.35-.02-.49-.07-.14-.64-1.55-.88-2.12-.23-.55-.46-.48-.64-.49h-.55c-.19 0-.49.07-.75.35-.26.28-.99.97-.99 2.36 0 1.39 1.01 2.74 1.15 2.93.14.19 1.99 3.04 4.83 4.27.67.29 1.2.46 1.61.59.68.22 1.29.19 1.78.12.54-.08 1.66-.68 1.89-1.34.23-.66.23-1.22.16-1.34-.07-.12-.26-.19-.54-.33z"/>
+                        </svg>
+                    </span>
+                    <span class="pt-foot-sig-wa-label">
+                        <span class="pt-foot-sig-wa-label-text">تواصل عبر واتساب</span>
+                        <span class="pt-foot-sig-wa-label-num">01222356357</span>
+                    </span>
+                </a>
             </div>
         </div>
     </footer>
