@@ -4338,10 +4338,10 @@
            version to a calm minimal mark — Apple-store / A24-credits energy.
 
            Visual structure:
-             ─── · ───                    thin hairline + dot ornament
-             Jonathan Maged · © 2026      monochrome cream wordmark (LTR)
-             CRAFTED BY JONATHAN MAGED    small-caps Latin caption
-             ⚆ تواصل عبر واتساب →         quiet inline text-link
+             ── · ──                                  thin hairline + dot ornament
+             Jonathan Maged · © 2026                  monochrome cream wordmark (LTR)
+             ENGINEERED FOR CINEMATIC EXPERIENCES     small-caps craft signature
+             ⚆ Contact                                quiet inline text-link (icon + word only)
 
            Defensive note on the iPhone Safari "zoom-out goes weird" bug:
            the previous version had a 280px absolutely-positioned ::before
@@ -4351,12 +4351,12 @@
            signature can never contribute to horizontal scroll.
         ==================================================================== */
         .pt-foot-sig {
-            margin-top: 32px;
-            padding-top: 28px;
+            margin-top: 40px;
+            padding-top: 36px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
             text-align: center;
             position: relative;
             /* Belt + braces against any decorative paint leaking out of
@@ -4366,26 +4366,28 @@
         }
 
         /* Ornament — thin horizontal hairlines flanking a centered
-           interpunct. Same vocabulary as the ✦ marks on the Story scene. */
+           interpunct. Tightened (narrower + paler) so it reads as a
+           subtle anchor mark above the wordmark, not a divider. */
         .pt-foot-sig-ornament {
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            width: clamp(160px, 38vw, 260px);
-            color: rgba(251,191,36,0.5);
+            width: clamp(120px, 28vw, 180px);
+            margin-bottom: 4px;
+            color: rgba(251,191,36,0.42);
         }
         .pt-foot-sig-ornament-line {
             flex: 1;
             height: 1px;
             background: linear-gradient(90deg,
                 transparent 0%,
-                rgba(251,191,36,0.40) 50%,
+                rgba(251,191,36,0.32) 50%,
                 transparent 100%);
         }
         .pt-foot-sig-ornament-dot {
-            font-size: 16px;
+            font-size: 14px;
             line-height: 1;
-            opacity: 0.7;
+            opacity: 0.62;
         }
 
         /* Wordmark row — monochrome cream typography, locked LTR so the
@@ -4394,56 +4396,61 @@
         .pt-foot-sig-name-row {
             display: inline-flex;
             align-items: baseline;
-            gap: 12px;
+            gap: 14px;
             color: var(--prism-text);
         }
         .pt-foot-sig-name {
             font-family: "Space Grotesk", system-ui, sans-serif;
-            font-size: clamp(15px, 2.4vw, 18px);
+            font-size: clamp(16px, 2.6vw, 19px);
             font-weight: 500;
-            letter-spacing: 0.02em;
+            letter-spacing: 0.015em;
         }
         .pt-foot-sig-meta {
             display: inline-flex;
             align-items: baseline;
-            gap: 6px;
+            gap: 7px;
             color: var(--prism-text-3);
             font-family: "Space Grotesk", system-ui, sans-serif;
-            font-size: clamp(12.5px, 1.9vw, 14px);
+            font-size: clamp(12px, 1.85vw, 13.5px);
             font-weight: 400;
             letter-spacing: 0.04em;
-            opacity: 0.80;
+            opacity: 0.72;
         }
         .pt-foot-sig-sep {
-            opacity: 0.8;
+            opacity: 0.7;
         }
 
         /* Calm Latin caption beneath the wordmark — uppercase small caps
-           with generous tracking so it reads as "credit", not "tagline". */
+           with generous tracking so it reads as Apple-style metadata,
+           not as a tagline. Says "the developer made this for cinematic
+           experiences" without ever repeating the name above. */
         .pt-foot-sig-sub {
-            margin: 2px 0 0;
+            margin: 4px 0 2px;
             font-family: "Space Grotesk", system-ui, sans-serif;
-            font-size: clamp(10.5px, 1.6vw, 11.5px);
+            font-size: clamp(10px, 1.55vw, 11px);
             line-height: 1.5;
-            letter-spacing: 0.18em;
+            letter-spacing: 0.22em;
             text-transform: uppercase;
             color: var(--prism-text-4);
-            opacity: 0.68;
+            opacity: 0.58;
         }
 
         /* Contact action — quiet inline text-link, NO pill chrome.
-           Tiny outlined WhatsApp glyph + Arabic label + arrow.
-           Hover slides the arrow + brightens the gold accents. */
+           Tiny outlined WhatsApp glyph + single 'Contact' word —
+           no arrow, no Arabic label, no decorative wording.
+           Hover lifts the gold accents without adding any chrome. */
         .pt-foot-sig-link {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            margin-top: 6px;
+            gap: 10px;
+            margin-top: 10px;
             padding: 6px 4px;
             color: var(--prism-text-3);
             text-decoration: none;
+            font-family: "Space Grotesk", system-ui, sans-serif;
             font-size: 13px;
-            letter-spacing: 0.02em;
+            font-weight: 500;
+            letter-spacing: 0.04em;
             transition:
                 color .22s var(--prism-ease),
                 opacity .22s var(--prism-ease);
@@ -4455,24 +4462,12 @@
             justify-content: center;
             color: rgba(251,191,36,0.72);
             opacity: 0.85;
-            transition: transform .22s var(--prism-ease),
-                        color .22s var(--prism-ease),
+            transition: color .22s var(--prism-ease),
                         opacity .22s var(--prism-ease);
-        }
-        .pt-foot-sig-link-arrow {
-            display: inline-flex;
-            font-size: 14px;
-            color: rgba(251,191,36,0.6);
-            transition: transform .22s var(--prism-ease),
-                        color .22s var(--prism-ease);
         }
         @media (hover: hover) {
             .pt-foot-sig-link:hover {
                 color: var(--prism-text);
-            }
-            .pt-foot-sig-link:hover .pt-foot-sig-link-arrow {
-                transform: translateX(3px);
-                color: #fbbf24;
             }
             .pt-foot-sig-link:hover .pt-foot-sig-link-icon {
                 opacity: 1;
@@ -4485,41 +4480,40 @@
             border-radius: 4px;
         }
 
-        /* Mobile: tighter rhythm so the stamp doesn't crowd
-           the iOS home indicator. */
+        /* Mobile: slightly tighter rhythm so the stamp doesn't crowd
+           the iOS home indicator, but still keeps generous breathing
+           room compared to the previous denser version. */
         @media (max-width: 480px) {
-            .pt-foot-sig { gap: 10px; padding-top: 24px; }
-            .pt-foot-sig-ornament { width: clamp(140px, 60vw, 200px); }
+            .pt-foot-sig {
+                margin-top: 32px;
+                padding-top: 30px;
+                gap: 14px;
+            }
+            .pt-foot-sig-ornament { width: clamp(100px, 32vw, 160px); }
+            .pt-foot-sig-link { margin-top: 8px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
             .pt-foot-sig-link,
-            .pt-foot-sig-link-arrow,
             .pt-foot-sig-link-icon { transition: none; }
-            .pt-foot-sig-link:hover .pt-foot-sig-link-arrow,
-            .pt-foot-sig-link:hover .pt-foot-sig-link-icon { transform: none; }
         }
 
         /* Light-mode — gold accents shift to deeper amber on cream
            paper. The wordmark itself is the normal text color and
            inherits the light theme automatically (no override needed). */
         :root[data-pt-theme="light"] .pt-foot-sig-ornament {
-            color: rgba(180,83,9,0.5);
+            color: rgba(180,83,9,0.42);
         }
         :root[data-pt-theme="light"] .pt-foot-sig-ornament-line {
             background: linear-gradient(90deg,
                 transparent 0%,
-                rgba(180,83,9,0.40) 50%,
+                rgba(180,83,9,0.32) 50%,
                 transparent 100%);
         }
         :root[data-pt-theme="light"] .pt-foot-sig-link-icon {
             color: rgba(180,83,9,0.72);
         }
-        :root[data-pt-theme="light"] .pt-foot-sig-link-arrow {
-            color: rgba(180,83,9,0.6);
-        }
         @media (hover: hover) {
-            :root[data-pt-theme="light"] .pt-foot-sig-link:hover .pt-foot-sig-link-arrow,
             :root[data-pt-theme="light"] .pt-foot-sig-link:hover .pt-foot-sig-link-icon {
                 color: #b45309;
             }
@@ -9248,10 +9242,10 @@
                  Layout (all centered, locked to LTR for the wordmark so
                  the Latin reads in correct order inside the RTL doc):
 
-                   ─── · ───                  ← thin hairline ornament
-                   Jonathan Maged · © 2026    ← monochrome cream wordmark
-                   CRAFTED BY JONATHAN MAGED  ← small-caps Latin caption
-                   ⚆ تواصل عبر واتساب →       ← quiet text-link, no pill
+                   ── · ──                                 ← thin hairline ornament
+                   Jonathan Maged · © 2026                 ← cream wordmark (LTR)
+                   ENGINEERED FOR CINEMATIC EXPERIENCES    ← craft signature (no name)
+                   ⚆ Contact                               ← icon + word only
 
                  The phone number stays in the href + aria-label so the
                  action is still tappable + screen-reader accessible,
@@ -9280,18 +9274,21 @@
                     </span>
                 </div>
 
-                {{-- Calm Latin caption — uppercase small-caps. --}}
-                <p class="pt-foot-sig-sub" dir="ltr">Crafted by Jonathan Maged</p>
+                {{-- Calm Latin caption — uppercase small-caps with generous
+                     tracking. Implies the developer role without repeating
+                     the name (which already sits above as the wordmark). --}}
+                <p class="pt-foot-sig-sub" dir="ltr">Engineered for cinematic experiences</p>
 
                 {{-- Contact action — quiet inline text-link, NOT a pill.
-                     Tiny outlined WhatsApp glyph + Arabic label + arrow.
-                     No visible phone number; the number lives in the
-                     href + aria-label. --}}
+                     Tiny outlined WhatsApp glyph + single 'Contact' label.
+                     No arrow, no Arabic label, no visible phone number
+                     — the phone number lives in the href + aria-label so
+                     it's still tappable + accessible. --}}
                 <a class="pt-foot-sig-link"
                    href="https://wa.me/201222356357"
                    target="_blank"
                    rel="noopener noreferrer"
-                   aria-label="تواصل مع المطور عبر واتساب على الرقم 01222356357">
+                   aria-label="Contact the developer via WhatsApp at 01222356357">
                     <span class="pt-foot-sig-link-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" width="13" height="13"
                              fill="none" stroke="currentColor" stroke-width="1.5"
@@ -9300,8 +9297,7 @@
                             <path d="M17.43 14.45c-.28-.14-1.66-.82-1.92-.91-.26-.1-.45-.14-.64.14-.19.28-.74.91-.9 1.1-.17.19-.33.21-.61.07-.28-.14-1.19-.44-2.27-1.4-.84-.75-1.4-1.67-1.57-1.95-.16-.28-.02-.43.12-.57.13-.13.28-.33.42-.49.14-.16.19-.28.28-.47.09-.19.05-.35-.02-.49-.07-.14-.64-1.55-.88-2.12-.23-.55-.46-.48-.64-.49h-.55c-.19 0-.49.07-.75.35-.26.28-.99.97-.99 2.36 0 1.39 1.01 2.74 1.15 2.93.14.19 1.99 3.04 4.83 4.27.67.29 1.2.46 1.61.59.68.22 1.29.19 1.78.12.54-.08 1.66-.68 1.89-1.34.23-.66.23-1.22.16-1.34-.07-.12-.26-.19-.54-.33z"/>
                         </svg>
                     </span>
-                    <span class="pt-foot-sig-link-label">تواصل عبر واتساب</span>
-                    <span class="pt-foot-sig-link-arrow" aria-hidden="true">→</span>
+                    <span class="pt-foot-sig-link-label" dir="ltr">Contact</span>
                 </a>
             </div>
         </div>
