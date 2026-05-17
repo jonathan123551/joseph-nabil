@@ -358,7 +358,7 @@
         </p>
         
         <p class="pt-alebad-hero-tagline">
-            رحلة روحية مستوحاة من سيرة الراهب القمص بولس المقاري — صلاة، صحراء، وعبور إلى السماء.
+            رحلة روحية مستوحاة من سيرة الراهب القمص بولس المقاري.
         </p>
 
         <div class="pt-alebad-hero-cta">
@@ -390,7 +390,7 @@
             <a href="#pt-alebad-story"
                class="pt-alebad-cta pt-alebad-cta-ghost"
                data-pt-smooth-anchor>
-                <span>تفاصيل العرض</span>
+                <span>تفاصيل القصة</span>
                 <span class="pt-arrow-rtl" aria-hidden="true">←</span>
             </a>
         </div>
