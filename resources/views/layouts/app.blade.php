@@ -7510,6 +7510,165 @@
             }
         }
 
+        /* ====================================================================
+           Story · biography disclosure
+           --------------------------------------------------------------------
+           Adds a layered cinematic biography surface above the Making-Of
+           credits panel. The visible section above this point now reads:
+             1. eyebrow القصة
+             2. dramatic block-quote
+             3. ✦ ornament divider
+             4. short bio summary (name + dates + one-sentence framing)
+             5. fade-preview teaser + اقرأ السيرة الكاملة ↓
+           Tapping the toggle reveals 6 grouped sections of Arabic prose
+           covering the saint's life. Speech is rendered as real <blockquote>
+           with cinematic styling so the reader perceives quoted voices,
+           not body prose.
+
+           Visual design notes:
+            - Group title styling is inherited from .pt-alebad-story-group-title
+              (gold-traced hairline + small-caps amber) so the biography reads
+              as part of the same Story scene language as the Making-Of panel.
+            - Body prose uses line-height 2.05 — Arabic text with tashkeel
+              and punctuation needs significantly more leading than Latin
+              prose at the same size to avoid feeling cramped.
+            - Quote blocks have an inline-start gold rail, a generous
+              opening ❝ ornament, and a small-caps speaker label beneath —
+              distinct enough from prose paragraphs that the reader doesn't
+              have to parse who's speaking.
+            - The "virgin" variant gets a slightly stronger gold tint to
+              echo the spiritual weight of the Marian apparition scene.
+        ==================================================================== */
+        .pt-alebad-story-bio-headline {
+            display: block;
+            margin-bottom: 10px;
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-size: clamp(12.5px, 2.2vw, 14px);
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            color: #fbbf24;
+            opacity: 0.92;
+        }
+
+        .pt-alebad-story-bio { max-width: 720px; }
+
+        /* The teaser line above the gold pill — bridges the visible
+           summary into the disclosure button. Slightly muted so the
+           pill carries the emphasis. */
+        .pt-alebad-story-bio-teaser { color: var(--prism-text-2); opacity: 0.9; }
+
+        .pt-alebad-story-bio-panel-body {
+            max-width: 680px;
+            margin: 0 auto;
+            gap: 32px;
+        }
+        @media (min-width: 768px) {
+            .pt-alebad-story-bio-panel-body { gap: 44px; }
+        }
+
+        .pt-alebad-story-bio-prose {
+            margin: 0;
+            font-size: clamp(14.5px, 2.6vw, 16px);
+            /* Arabic prose with tashkeel + punctuation needs noticeably
+               more leading than Latin at the same size. 2.05 lets each
+               line breathe without feeling double-spaced. */
+            line-height: 2.05;
+            color: var(--prism-text-2);
+            text-align: start;
+            padding-inline: 4px;
+        }
+        @media (min-width: 640px) {
+            .pt-alebad-story-bio-prose { padding-inline: 12px; }
+        }
+
+        /* Cinematic blockquote — quoted speech inside the biography
+           (Virgin Mary dialogue, letters). Visually distinct from
+           prose so the reader perceives "this is a remembered voice". */
+        .pt-alebad-story-bio-quote {
+            position: relative;
+            margin: 6px 0;
+            padding: 14px 22px 14px 26px;
+            border-inline-start: 2px solid rgba(251,191,36,0.42);
+            background: linear-gradient(
+                to inline-end,
+                rgba(251,191,36,0.06) 0%,
+                rgba(251,191,36,0.0) 70%);
+            border-radius: 0 12px 12px 0;
+            color: var(--prism-text);
+        }
+        html[dir="rtl"] .pt-alebad-story-bio-quote {
+            border-radius: 12px 0 0 12px;
+        }
+        .pt-alebad-story-bio-quote::before {
+            content: "❝";
+            position: absolute;
+            inset-inline-start: 4px;
+            top: -4px;
+            font-size: 22px;
+            line-height: 1;
+            color: #fbbf24;
+            opacity: 0.55;
+        }
+        .pt-alebad-story-bio-quote > p {
+            margin: 0;
+            font-size: clamp(15px, 2.6vw, 17px);
+            line-height: 1.95;
+            font-style: italic;
+            font-weight: 500;
+            color: var(--prism-text);
+        }
+        .pt-alebad-story-bio-quote-speaker {
+            display: block;
+            margin-top: 10px;
+            font-size: 11.5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: #fbbf24;
+            opacity: 0.85;
+            font-style: normal;
+        }
+        /* Virgin Mary variant — stronger gold tint to echo the
+           spiritual weight of the Marian apparition scene. */
+        .pt-alebad-story-bio-quote--virgin {
+            border-inline-start-color: rgba(251,191,36,0.7);
+            background: linear-gradient(
+                to inline-end,
+                rgba(251,191,36,0.11) 0%,
+                rgba(251,191,36,0.02) 80%);
+        }
+        .pt-alebad-story-bio-quote--virgin::before { opacity: 0.85; }
+
+        /* Light-mode retones for the biography surface — pull the
+           hardcoded gold into the amber/slate palette used by the
+           rest of PR #9's light-mode pass so the section reads on
+           the cream page background. */
+        :root[data-pt-theme="light"] .pt-alebad-story-bio-headline {
+            color: #b45309;
+            opacity: 1;
+        }
+        :root[data-pt-theme="light"] .pt-alebad-story-bio-quote {
+            border-inline-start-color: rgba(180,83,9,0.45);
+            background: linear-gradient(
+                to inline-end,
+                rgba(180,83,9,0.07) 0%,
+                rgba(180,83,9,0.0) 70%);
+            color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] .pt-alebad-story-bio-quote::before {
+            color: #b45309;
+        }
+        :root[data-pt-theme="light"] .pt-alebad-story-bio-quote-speaker {
+            color: #b45309;
+        }
+        :root[data-pt-theme="light"] .pt-alebad-story-bio-quote--virgin {
+            border-inline-start-color: rgba(180,83,9,0.7);
+            background: linear-gradient(
+                to inline-end,
+                rgba(180,83,9,0.13) 0%,
+                rgba(180,83,9,0.03) 80%);
+        }
+
         /* ---------- Scene 5 — Showtimes (tweak existing) ---------- */
         .pt-alebad-shows .pt-cine-shows-title {
             font-size: clamp(32px, 6.5vw, 56px);
@@ -11377,32 +11536,49 @@
             }
         })();
 
-        // ---------- Scene 4 — Story: "Making Of" credits expand/collapse ----------
-        // Wires the gold disclosure button beneath the inline credits row
-        // to its grouped credits panel. Animation is pure-CSS via the
+        // ---------- Scene 4 — Story: disclosure surfaces (bio + credits) ----------
+        // Wires every gold ghost-pill toggle in the Story scene to its
+        // panel via aria-controls. Animation is pure-CSS via the
         // grid-template-rows 0fr↔1fr trick — JS just flips:
         //   - aria-expanded on the button (drives label/chevron via CSS)
         //   - .is-open on the panel (drives the height + fade transition)
         // Keyboard handling is free because the trigger is a real <button>.
+        // Supports two attribute styles so the new biography disclosure and
+        // the legacy Making-Of credits disclosure can coexist without
+        // re-flagging the existing markup:
+        //   - new generic [data-pt-disclosure-toggle] / [data-pt-disclosure-panel]
+        //   - legacy [data-pt-credits-toggle] / [data-pt-credits-panel]
         // No-op when there's no panel on the page (every other route).
-        (function setupStoryCreditsExpand() {
-            const toggle = document.querySelector('[data-pt-credits-toggle]');
-            const panel  = document.querySelector('[data-pt-credits-panel]');
-            if (!toggle || !panel) return;
+        (function setupStoryDisclosures() {
+            const toggles = document.querySelectorAll(
+                '[data-pt-disclosure-toggle], [data-pt-credits-toggle]'
+            );
+            if (toggles.length === 0) return;
 
-            const setOpen = (open) => {
-                toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-                panel.classList.toggle('is-open', open);
-            };
+            toggles.forEach((toggle) => {
+                const controlsId = toggle.getAttribute('aria-controls');
+                // Two ways to locate the matching panel:
+                //   1. preferred: button has aria-controls="<panel-id>"
+                //   2. legacy:    nearest [data-pt-credits-panel] in the doc
+                let panel = controlsId ? document.getElementById(controlsId) : null;
+                if (!panel) {
+                    panel = document.querySelector('[data-pt-credits-panel]');
+                }
+                if (!panel) return;
 
-            // Initial state: collapsed. Honor any pre-set aria-expanded
-            // from the markup so SSR can ship an already-open variant.
-            const initialOpen = toggle.getAttribute('aria-expanded') === 'true';
-            setOpen(initialOpen);
+                const setOpen = (open) => {
+                    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    panel.classList.toggle('is-open', open);
+                };
 
-            toggle.addEventListener('click', () => {
-                const next = toggle.getAttribute('aria-expanded') !== 'true';
-                setOpen(next);
+                // Initial state: honor any pre-set aria-expanded from the
+                // markup so SSR can ship an already-open variant.
+                setOpen(toggle.getAttribute('aria-expanded') === 'true');
+
+                toggle.addEventListener('click', () => {
+                    const next = toggle.getAttribute('aria-expanded') !== 'true';
+                    setOpen(next);
+                });
             });
         })();
     })();
