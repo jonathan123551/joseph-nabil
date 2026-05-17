@@ -7775,6 +7775,22 @@
             letter-spacing: 0.04em;
             vertical-align: middle;
             opacity: 0.88;
+            /* The parent <h2> uses background-clip:text + transparent text
+               fill to render its gradient through the saint's name glyphs.
+               That trick does NOT extend into an inline-block child — the
+               child inherits the transparent text-fill but has no background
+               of its own to clip through, so its glyphs render against the
+               page's dark backdrop (a dark blue-gray rectangle next to the
+               name). Re-applying the same gradient + background-clip here
+               gives the years span its own paint source so the dates show
+               in the same cream→gold→bronze gradient as the name. */
+            background: linear-gradient(135deg,
+                #fef3c7 0%,
+                #fbbf24 55%,
+                #d4af5a 100%);
+            -webkit-background-clip: text;
+                    background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
         @media (max-width: 480px) {
             /* On narrow phones the (1899–1965) span wraps to a second
@@ -7893,6 +7909,17 @@
             opacity: 1;
         }
         :root[data-pt-theme="light"] .pt-alebad-story-bio-headline-years {
+            /* Mirror the dark-mode fix in light mode — give the years span
+               its own amber→bronze gradient so the dates stay readable on
+               cream paper (without this the inline-block child inherits
+               transparent text-fill from the parent and renders invisible). */
+            background: linear-gradient(135deg,
+                #b45309 0%,
+                #92400e 60%,
+                #78350f 100%);
+            -webkit-background-clip: text;
+                    background-clip: text;
+            -webkit-text-fill-color: transparent;
             opacity: 0.78;
         }
         :root[data-pt-theme="light"] .pt-alebad-story-bio-quote {
