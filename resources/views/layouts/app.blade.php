@@ -4331,218 +4331,198 @@
         }
 
         /* ====================================================================
-           Footer · developer signature
+           Footer · developer signature (Apple/A24 stamp)
            --------------------------------------------------------------------
-           Final cinematic credit line at the bottom of every page. Replaces
-           the original "© {year} Joseph Nabil" copyright row. The site brand
-           block at the top of the footer still reads "Joseph Nabil" — that's
-           the show/platform identity — this block credits the developer who
-           built the platform.
+           Final centered "studio stamp" at the bottom of every page.
+           Redesigned away from the previous loud gold-gradient + glassy-pill
+           version to a calm minimal mark — Apple-store / A24-credits energy.
 
-           Designed to feel like a luxury studio signature:
-            - centered cinematic stack
-            - cream→gold→bronze background-clip gradient on the wordmark
-            - calm Latin small-caps subtitle
-            - glassy outlined WhatsApp pill in the cream/gold palette
-              (explicitly NOT bright-green WhatsApp brand — the salesy
-              chip-look the brief asked to avoid)
-            - very subtle ambient gold glow behind the wordmark
+           Visual structure:
+             ─── · ───                    thin hairline + dot ornament
+             Jonathan Maged · © 2026      monochrome cream wordmark (LTR)
+             CRAFTED BY JONATHAN MAGED    small-caps Latin caption
+             ⚆ تواصل عبر واتساب →         quiet inline text-link
+
+           Defensive note on the iPhone Safari "zoom-out goes weird" bug:
+           the previous version had a 280px absolutely-positioned ::before
+           ambient glow that could potentially escape the parent box at
+           extreme pinch-out. The new design has no decorative paint, and
+           the container uses `overflow: clip` for belt + braces so the
+           signature can never contribute to horizontal scroll.
         ==================================================================== */
         .pt-foot-sig {
-            margin-top: 28px;
-            padding-top: 26px;
+            margin-top: 32px;
+            padding-top: 28px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
             text-align: center;
             position: relative;
+            /* Belt + braces against any decorative paint leaking out of
+               the signature block (would have triggered horizontal
+               scroll on iOS Safari at extreme pinch-out). */
+            overflow: clip;
         }
-        /* Ambient glow centered behind the wordmark — keeps the block
-           visually anchored without adding any visible chrome. */
-        .pt-foot-sig::before {
-            content: "";
-            position: absolute;
-            inset-inline-start: 50%;
-            top: 30%;
-            width: 280px;
-            height: 120px;
-            transform: translateX(-50%);
-            background: radial-gradient(
-                ellipse at center,
-                rgba(251,191,36,0.10) 0%,
-                rgba(251,191,36,0.04) 35%,
-                transparent 70%);
-            filter: blur(36px);
-            pointer-events: none;
-            z-index: 0;
-        }
-        .pt-foot-sig > * { position: relative; z-index: 1; }
 
+        /* Ornament — thin horizontal hairlines flanking a centered
+           interpunct. Same vocabulary as the ✦ marks on the Story scene. */
+        .pt-foot-sig-ornament {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            width: clamp(160px, 38vw, 260px);
+            color: rgba(251,191,36,0.5);
+        }
+        .pt-foot-sig-ornament-line {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(251,191,36,0.40) 50%,
+                transparent 100%);
+        }
+        .pt-foot-sig-ornament-dot {
+            font-size: 16px;
+            line-height: 1;
+            opacity: 0.7;
+        }
+
+        /* Wordmark row — monochrome cream typography, locked LTR so the
+           Latin name + © + year read in correct order inside the RTL doc
+           (the dir="ltr" on the element flips the inline-flex direction). */
         .pt-foot-sig-name-row {
             display: inline-flex;
             align-items: baseline;
-            gap: 10px;
-            /* The wordmark + © + year all share the same gradient so the
-               line reads as one continuous signature. */
-            background: linear-gradient(135deg,
-                #fef3c7 0%,
-                #fbbf24 60%,
-                #d4af5a 100%);
-            -webkit-background-clip: text;
-                    background-clip: text;
-            -webkit-text-fill-color: transparent;
+            gap: 12px;
+            color: var(--prism-text);
         }
         .pt-foot-sig-name {
             font-family: "Space Grotesk", system-ui, sans-serif;
             font-size: clamp(15px, 2.4vw, 18px);
-            font-weight: 600;
-            letter-spacing: 0.01em;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+        .pt-foot-sig-meta {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 6px;
+            color: var(--prism-text-3);
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-size: clamp(12.5px, 1.9vw, 14px);
+            font-weight: 400;
+            letter-spacing: 0.04em;
+            opacity: 0.80;
         }
         .pt-foot-sig-sep {
-            font-size: clamp(13px, 2vw, 15px);
-            font-weight: 400;
-            opacity: 0.72;
-        }
-        .pt-foot-sig-year {
-            font-family: "Space Grotesk", system-ui, sans-serif;
-            font-size: clamp(14px, 2.2vw, 16px);
-            font-weight: 500;
-            letter-spacing: 0.01em;
+            opacity: 0.8;
         }
 
+        /* Calm Latin caption beneath the wordmark — uppercase small caps
+           with generous tracking so it reads as "credit", not "tagline". */
         .pt-foot-sig-sub {
-            margin: 0;
-            font-size: clamp(11.5px, 1.8vw, 12.5px);
-            line-height: 1.55;
-            letter-spacing: 0.06em;
-            color: var(--prism-text-3);
-            opacity: 0.78;
+            margin: 2px 0 0;
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-size: clamp(10.5px, 1.6vw, 11.5px);
+            line-height: 1.5;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--prism-text-4);
+            opacity: 0.68;
         }
 
-        /* Glassy outlined WhatsApp pill — explicitly NOT bright green.
-           The WhatsApp glyph is stroked in currentColor (cream/gold),
-           the border + ambient hover glow stay in the gold/cream
-           palette so the action reads as a luxury contact card, not
-           a sales chip. */
-        .pt-foot-sig-wa {
+        /* Contact action — quiet inline text-link, NO pill chrome.
+           Tiny outlined WhatsApp glyph + Arabic label + arrow.
+           Hover slides the arrow + brightens the gold accents. */
+        .pt-foot-sig-link {
             display: inline-flex;
             align-items: center;
-            gap: 10px;
-            margin-top: 2px;
-            padding: 8px 16px;
-            border: 1px solid rgba(251,191,36,0.32);
-            border-radius: 999px;
-            background: linear-gradient(135deg,
-                rgba(255,255,255,0.04) 0%,
-                rgba(251,191,36,0.04) 100%);
-            color: var(--prism-text-2);
+            gap: 8px;
+            margin-top: 6px;
+            padding: 6px 4px;
+            color: var(--prism-text-3);
             text-decoration: none;
-            font-size: 12.5px;
+            font-size: 13px;
             letter-spacing: 0.02em;
-            min-height: 38px;
             transition:
-                transform .22s var(--prism-ease),
-                border-color .22s var(--prism-ease),
-                box-shadow .22s var(--prism-ease),
-                background .22s var(--prism-ease),
-                color .22s var(--prism-ease);
+                color .22s var(--prism-ease),
+                opacity .22s var(--prism-ease);
             -webkit-tap-highlight-color: transparent;
         }
-        @media (hover: hover) {
-            .pt-foot-sig-wa:hover {
-                transform: translateY(-1px);
-                border-color: rgba(251,191,36,0.58);
-                background: linear-gradient(135deg,
-                    rgba(255,255,255,0.06) 0%,
-                    rgba(251,191,36,0.10) 100%);
-                box-shadow: 0 10px 26px -12px rgba(251,191,36,0.40);
-                color: var(--prism-text);
-            }
-        }
-        .pt-foot-sig-wa:focus-visible {
-            outline: 2px solid rgba(251,191,36,0.55);
-            outline-offset: 3px;
-        }
-        .pt-foot-sig-wa-icon {
+        .pt-foot-sig-link-icon {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            color: #fbbf24;
-            opacity: 0.92;
+            color: rgba(251,191,36,0.72);
+            opacity: 0.85;
+            transition: transform .22s var(--prism-ease),
+                        color .22s var(--prism-ease),
+                        opacity .22s var(--prism-ease);
         }
-        .pt-foot-sig-wa-label {
+        .pt-foot-sig-link-arrow {
             display: inline-flex;
-            align-items: baseline;
-            gap: 8px;
+            font-size: 14px;
+            color: rgba(251,191,36,0.6);
+            transition: transform .22s var(--prism-ease),
+                        color .22s var(--prism-ease);
         }
-        .pt-foot-sig-wa-label-num {
-            font-family: "Space Grotesk", system-ui, sans-serif;
-            font-size: 11.5px;
-            letter-spacing: 0.05em;
-            opacity: 0.65;
-            /* Stays LTR even inside an RTL doc so the phone number
-               reads naturally. */
-            direction: ltr;
+        @media (hover: hover) {
+            .pt-foot-sig-link:hover {
+                color: var(--prism-text);
+            }
+            .pt-foot-sig-link:hover .pt-foot-sig-link-arrow {
+                transform: translateX(3px);
+                color: #fbbf24;
+            }
+            .pt-foot-sig-link:hover .pt-foot-sig-link-icon {
+                opacity: 1;
+                color: #fbbf24;
+            }
+        }
+        .pt-foot-sig-link:focus-visible {
+            outline: 2px solid rgba(251,191,36,0.45);
+            outline-offset: 4px;
+            border-radius: 4px;
         }
 
-        /* Mobile: tighten the row + drop the number onto a second line
-           under the label so the pill stays single-row at iPhone-mini width. */
+        /* Mobile: tighter rhythm so the stamp doesn't crowd
+           the iOS home indicator. */
         @media (max-width: 480px) {
-            .pt-foot-sig { gap: 12px; }
-            .pt-foot-sig-wa-label {
-                flex-direction: column;
-                gap: 1px;
-                align-items: center;
-            }
-            .pt-foot-sig-wa-label-num { font-size: 10.5px; }
+            .pt-foot-sig { gap: 10px; padding-top: 24px; }
+            .pt-foot-sig-ornament { width: clamp(140px, 60vw, 200px); }
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .pt-foot-sig-wa { transition: none; }
-            .pt-foot-sig-wa:hover { transform: none; }
+            .pt-foot-sig-link,
+            .pt-foot-sig-link-arrow,
+            .pt-foot-sig-link-icon { transition: none; }
+            .pt-foot-sig-link:hover .pt-foot-sig-link-arrow,
+            .pt-foot-sig-link:hover .pt-foot-sig-link-icon { transform: none; }
         }
 
-        /* Light-mode — cream/gold gradient washes out on cream paper.
-           Re-tone to a deeper amber→bronze ramp; ambient glow shifts to
-           amber too. Same approach as PR #131's bio headline override. */
-        :root[data-pt-theme="light"] .pt-foot-sig-name-row {
-            background: linear-gradient(135deg,
-                #b45309 0%,
-                #92400e 60%,
-                #78350f 100%);
-            -webkit-background-clip: text;
-                    background-clip: text;
-            -webkit-text-fill-color: transparent;
+        /* Light-mode — gold accents shift to deeper amber on cream
+           paper. The wordmark itself is the normal text color and
+           inherits the light theme automatically (no override needed). */
+        :root[data-pt-theme="light"] .pt-foot-sig-ornament {
+            color: rgba(180,83,9,0.5);
         }
-        :root[data-pt-theme="light"] .pt-foot-sig-sub {
-            color: #57534e;
-            opacity: 0.92;
+        :root[data-pt-theme="light"] .pt-foot-sig-ornament-line {
+            background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(180,83,9,0.40) 50%,
+                transparent 100%);
         }
-        :root[data-pt-theme="light"] .pt-foot-sig::before {
-            background: radial-gradient(
-                ellipse at center,
-                rgba(180,83,9,0.10) 0%,
-                rgba(180,83,9,0.04) 35%,
-                transparent 70%);
+        :root[data-pt-theme="light"] .pt-foot-sig-link-icon {
+            color: rgba(180,83,9,0.72);
         }
-        :root[data-pt-theme="light"] .pt-foot-sig-wa {
-            border-color: rgba(180,83,9,0.32);
-            background: linear-gradient(135deg,
-                rgba(180,83,9,0.04) 0%,
-                rgba(180,83,9,0.08) 100%);
-            color: #44403c;
+        :root[data-pt-theme="light"] .pt-foot-sig-link-arrow {
+            color: rgba(180,83,9,0.6);
         }
-        :root[data-pt-theme="light"] .pt-foot-sig-wa:hover {
-            border-color: rgba(180,83,9,0.55);
-            background: linear-gradient(135deg,
-                rgba(180,83,9,0.06) 0%,
-                rgba(180,83,9,0.12) 100%);
-            box-shadow: 0 10px 26px -12px rgba(180,83,9,0.40);
-            color: #1c1917;
-        }
-        :root[data-pt-theme="light"] .pt-foot-sig-wa-icon {
-            color: #b45309;
+        @media (hover: hover) {
+            :root[data-pt-theme="light"] .pt-foot-sig-link:hover .pt-foot-sig-link-arrow,
+            :root[data-pt-theme="light"] .pt-foot-sig-link:hover .pt-foot-sig-link-icon {
+                color: #b45309;
+            }
         }
 
         /* iOS-safe: ensure content uses small viewport units when needed */
@@ -9259,50 +9239,69 @@
                 </div>
             </div>
 
-            {{-- ============== Developer signature ==============
-                 The final cinematic credit line at the bottom of every page.
-                 Site brand at the top of the footer represents the
-                 platform / show (Joseph Nabil); this block credits the
-                 developer who built the platform — designed to feel like
-                 a luxury studio signature, not a sales footer.
+            {{-- ============== Developer signature (Apple/A24 stamp) =====
+                 Final centered "studio stamp" at the bottom of every page.
+                 Replaces the loud gold-gradient + glassy pill version with
+                 a calm minimal mark — same visual vocabulary as the ✦
+                 ornaments elsewhere on the homepage.
 
-                 Layout: centered stack of three elements
-                   1. Wordmark row    — "Jonathan Maged · © · {year}"
-                                        (cream→gold→bronze background-clip gradient)
-                   2. Subtitle        — small-caps Latin, calm + spaced
-                   3. WhatsApp pill   — glassy outlined contact action,
-                                        explicitly NOT bright-green WhatsApp brand
+                 Layout (all centered, locked to LTR for the wordmark so
+                 the Latin reads in correct order inside the RTL doc):
 
-                 Pulls together via .pt-foot-sig (see CSS lower in this file).
+                   ─── · ───                  ← thin hairline ornament
+                   Jonathan Maged · © 2026    ← monochrome cream wordmark
+                   CRAFTED BY JONATHAN MAGED  ← small-caps Latin caption
+                   ⚆ تواصل عبر واتساب →       ← quiet text-link, no pill
+
+                 The phone number stays in the href + aria-label so the
+                 action is still tappable + screen-reader accessible,
+                 but it doesn't clutter the visual signature.
             ============================================================ --}}
             <div class="pt-foot-sig"
                  style="border-top: 1px solid var(--prism-border);">
-                <div class="pt-foot-sig-name-row">
+                {{-- Thin hairline + dot ornament above the wordmark —
+                     same visual vocabulary as the ✦ ornament on the
+                     Story scene. --}}
+                <span class="pt-foot-sig-ornament" aria-hidden="true">
+                    <span class="pt-foot-sig-ornament-line"></span>
+                    <span class="pt-foot-sig-ornament-dot">·</span>
+                    <span class="pt-foot-sig-ornament-line"></span>
+                </span>
+
+                {{-- Wordmark row — forced LTR so the Latin name + © +
+                     year always read in correct order inside the RTL
+                     document (without this the row reverses to
+                     "2026 © Jonathan Maged"). --}}
+                <div class="pt-foot-sig-name-row" dir="ltr">
                     <span class="pt-foot-sig-name">Jonathan Maged</span>
-                    <span class="pt-foot-sig-sep" aria-hidden="true">©</span>
-                    <span class="pt-foot-sig-year">{{ now()->year }}</span>
+                    <span class="pt-foot-sig-meta">
+                        <span class="pt-foot-sig-sep" aria-hidden="true">©</span>
+                        <span class="pt-foot-sig-year">{{ now()->year }}</span>
+                    </span>
                 </div>
-                <p class="pt-foot-sig-sub">Cinematic Web Experience by Jonathan Maged</p>
-                <a class="pt-foot-sig-wa"
+
+                {{-- Calm Latin caption — uppercase small-caps. --}}
+                <p class="pt-foot-sig-sub" dir="ltr">Crafted by Jonathan Maged</p>
+
+                {{-- Contact action — quiet inline text-link, NOT a pill.
+                     Tiny outlined WhatsApp glyph + Arabic label + arrow.
+                     No visible phone number; the number lives in the
+                     href + aria-label. --}}
+                <a class="pt-foot-sig-link"
                    href="https://wa.me/201222356357"
                    target="_blank"
                    rel="noopener noreferrer"
                    aria-label="تواصل مع المطور عبر واتساب على الرقم 01222356357">
-                    <span class="pt-foot-sig-wa-icon" aria-hidden="true">
-                        {{-- Outlined WhatsApp glyph — stroked in currentColor
-                             so it inherits the cream/gold pill palette and
-                             never reads as the salesy bright-green brand. --}}
-                        <svg viewBox="0 0 24 24" width="15" height="15"
-                             fill="none" stroke="currentColor" stroke-width="1.6"
+                    <span class="pt-foot-sig-link-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="13" height="13"
+                             fill="none" stroke="currentColor" stroke-width="1.5"
                              stroke-linecap="round" stroke-linejoin="round">
                             <path d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.37 0 0 5.37 0 12c0 2.11.55 4.17 1.6 5.98L0 24l6.18-1.62A11.93 11.93 0 0 0 12 24c6.63 0 12-5.37 12-12 0-3.2-1.25-6.21-3.48-8.52z"/>
                             <path d="M17.43 14.45c-.28-.14-1.66-.82-1.92-.91-.26-.1-.45-.14-.64.14-.19.28-.74.91-.9 1.1-.17.19-.33.21-.61.07-.28-.14-1.19-.44-2.27-1.4-.84-.75-1.4-1.67-1.57-1.95-.16-.28-.02-.43.12-.57.13-.13.28-.33.42-.49.14-.16.19-.28.28-.47.09-.19.05-.35-.02-.49-.07-.14-.64-1.55-.88-2.12-.23-.55-.46-.48-.64-.49h-.55c-.19 0-.49.07-.75.35-.26.28-.99.97-.99 2.36 0 1.39 1.01 2.74 1.15 2.93.14.19 1.99 3.04 4.83 4.27.67.29 1.2.46 1.61.59.68.22 1.29.19 1.78.12.54-.08 1.66-.68 1.89-1.34.23-.66.23-1.22.16-1.34-.07-.12-.26-.19-.54-.33z"/>
                         </svg>
                     </span>
-                    <span class="pt-foot-sig-wa-label">
-                        <span class="pt-foot-sig-wa-label-text">تواصل عبر واتساب</span>
-                        <span class="pt-foot-sig-wa-label-num">01222356357</span>
-                    </span>
+                    <span class="pt-foot-sig-link-label">تواصل عبر واتساب</span>
+                    <span class="pt-foot-sig-link-arrow" aria-hidden="true">→</span>
                 </a>
             </div>
         </div>
