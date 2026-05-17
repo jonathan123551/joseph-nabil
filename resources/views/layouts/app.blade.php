@@ -4339,8 +4339,9 @@
 
            Visual structure:
              ── · ──                                  thin hairline + dot ornament
+             Developed by                             sentence-case eyebrow (LTR)
              Jonathan Maged · © 2026                  monochrome cream wordmark (LTR)
-             ENGINEERED FOR CINEMATIC EXPERIENCES     small-caps craft signature
+             ENGINEERED FOR CINEMATIC EXPERIENCES     tracked-caps craft signature
              ⚆ Contact                                quiet inline text-link (icon + word only)
 
            Defensive note on the iPhone Safari "zoom-out goes weird" bug:
@@ -4388,6 +4389,27 @@
             font-size: 14px;
             line-height: 1;
             opacity: 0.62;
+        }
+
+        /* Eyebrow — quiet "Developed by" above the wordmark.
+           Sentence-case Latin (not tracked caps) so it contrasts the
+           ALL-CAPS subtitle further down and sandwiches the name in
+           two different typographic registers — Apple
+           "Designed by Apple in California" energy. */
+        .pt-foot-sig-eyebrow {
+            margin: 0;
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            font-size: clamp(11px, 1.7vw, 12.5px);
+            line-height: 1.4;
+            font-weight: 400;
+            letter-spacing: 0.04em;
+            color: var(--prism-text-4);
+            opacity: 0.62;
+        }
+        /* Tighten the gap between eyebrow + wordmark so the two read
+           as one signature unit rather than two stacked lines. */
+        .pt-foot-sig-eyebrow + .pt-foot-sig-name-row {
+            margin-top: -6px;
         }
 
         /* Wordmark row — monochrome cream typography, locked LTR so the
@@ -9261,6 +9283,13 @@
                     <span class="pt-foot-sig-ornament-dot">·</span>
                     <span class="pt-foot-sig-ornament-line"></span>
                 </span>
+
+                {{-- Eyebrow — quiet "Developed by" above the wordmark,
+                     same Apple "Designed by Apple in California" energy.
+                     Sentence-case (not tracked caps) so it pairs with
+                     the title-case wordmark beneath and contrasts the
+                     ALL-CAPS subtitle further down. --}}
+                <p class="pt-foot-sig-eyebrow" dir="ltr">Developed by</p>
 
                 {{-- Wordmark row — forced LTR so the Latin name + © +
                      year always read in correct order inside the RTL
