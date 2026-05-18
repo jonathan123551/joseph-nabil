@@ -150,7 +150,7 @@ class BookingController extends Controller
                 'to' => $phone,
                 'type' => 'template',
                 'template' => [
-                    'name' => 'ticket_clean_final',
+                    'name' => 'ticket',
                     'language' => [
                         'code' => 'ar_EG',
                     ],
