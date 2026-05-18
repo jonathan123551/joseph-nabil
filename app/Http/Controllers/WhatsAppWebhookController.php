@@ -30,60 +30,91 @@ class WhatsAppWebhookController extends Controller
     ======================= */
     public function handle(Request $request)
     {
+        // 🔥 IMPORTANT TEST LOG
+        Log::info('WEBHOOK HIT');
+        Log::info($request->all());
+
         $message = $request->input('entry.0.changes.0.value.messages.0');
 
+        // لو webhook status فقط
         if (!$message || !isset($message['from'])) {
+
+            Log::info('NO MESSAGE PAYLOAD');
+
             $this->forwardToChatwoot($request);
-            return response()->json(['ok' => true]);
+
+            return response()->json([
+                'ok' => true
+            ]);
         }
 
         // 📱 Normalize phone
         $phone = preg_replace('/[^0-9]/', '', $message['from']);
 
-        // 📝 Get message text
-        $text = $message['text']['body']
+        // 📝 Extract message text safely
+        $text =
+            $message['text']['body']
             ?? $message['button']['text']
+            ?? $message['button']['payload']
             ?? $message['interactive']['button_reply']['title']
+            ?? $message['interactive']['button_reply']['id']
             ?? '';
 
         Log::info('INCOMING MESSAGE', [
             'phone' => $phone,
-            'text'  => $text
+            'text'  => $text,
+            'type'  => $message['type'] ?? 'unknown'
         ]);
 
         /* ==========================
            🎟 SEND TICKET LOGIC
         ========================== */
 
-        if (trim($text) === 'أستلام التذكرة') {
+        if (
+            trim($text) === 'أستلام التذكرة' ||
+            trim($text) === 'استلام التذكرة' ||
+            trim($text) === 'receive_ticket'
+        ) {
 
-            // ✅ نجيب أول تذكرة لنفس الرقم ولسه متبعتتش
+            Log::info('RECEIVE TICKET TRIGGERED', [
+                'phone' => $phone
+            ]);
+
+            // ✅ أول تذكرة لنفس الرقم ولسه متبعتتش
             $ticket = Ticket::where('phone', $phone)
                 ->whereNotNull('qr_image_path')
                 ->where('whatsapp_sent', false)
-                ->orderBy('id') // مهم عشان الترتيب
+                ->orderBy('id')
                 ->first();
 
             if (!$ticket) {
-                Log::info('NO TICKET FOUND', ['phone' => $phone]);
-                return response()->json(['status' => 'no ticket']);
+
+                Log::info('NO TICKET FOUND', [
+                    'phone' => $phone
+                ]);
+
+                return response()->json([
+                    'status' => 'no ticket'
+                ]);
             }
 
             Log::info('SENDING TICKET', [
                 'ticket_id' => $ticket->id,
-                'code' => $ticket->ticket_code
+                'ticket_code' => $ticket->ticket_code
             ]);
 
             try {
 
-                // 🎭 نجيب ميعاد الحفلة
+                // 🎭 موعد الحفلة
                 $showTimeText = '';
 
                 if ($ticket->booking && $ticket->booking->showTime) {
+
                     $showTime = $ticket->booking->showTime;
 
                     $showTimeText =
-                        $showTime->date->format('d/m/Y') . ' • ' .
+                        $showTime->date->format('d/m/Y')
+                        .' • '.
                         Carbon::parse($showTime->time)->format('h:i A');
                 }
 
@@ -97,7 +128,7 @@ class WhatsAppWebhookController extends Controller
                         $showTimeText
                     );
 
-                // ✅ تحديث الحالة (دي أهم نقطة)
+                // ✅ تحديث الحالة
                 $ticket->update([
                     'whatsapp_sent' => true
                 ]);
@@ -109,7 +140,8 @@ class WhatsAppWebhookController extends Controller
             } catch (\Exception $e) {
 
                 Log::error('SEND FAILED', [
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
+                    'line'  => $e->getLine()
                 ]);
             }
         }
@@ -120,9 +152,14 @@ class WhatsAppWebhookController extends Controller
 
         $this->forwardToChatwoot($request);
 
-        return response()->json(['ok' => true]);
+        return response()->json([
+            'ok' => true
+        ]);
     }
 
+    /* =======================
+       CHATWOOT FORWARD
+    ======================= */
     private function forwardToChatwoot(Request $request)
     {
         try {
@@ -130,14 +167,22 @@ class WhatsAppWebhookController extends Controller
             $chatwootWebhookUrl = env('CHATWOOT_WHATSAPP_WEBHOOK_URL');
 
             if (!$chatwootWebhookUrl) {
-                Log::error('Chatwoot webhook URL not set');
+
+                Log::error('CHATWOOT WEBHOOK URL NOT SET');
+
                 return;
             }
 
-            Http::timeout(10)->post($chatwootWebhookUrl, $request->all());
+            Http::timeout(10)->post(
+                $chatwootWebhookUrl,
+                $request->all()
+            );
 
         } catch (\Exception $e) {
-            Log::error('Forward to Chatwoot failed: ' . $e->getMessage());
+
+            Log::error('FORWARD TO CHATWOOT FAILED', [
+                'error' => $e->getMessage()
+            ]);
         }
     }
 }
