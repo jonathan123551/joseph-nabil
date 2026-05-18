@@ -184,6 +184,18 @@ class BookingController extends Controller
     {
         $phone = preg_replace('/[^0-9]/', '', $phone);
 
+        // WhatsApp Cloud API rejects images larger than 5 MB. The ticket
+        // PNGs we upload to Cloudinary in approve() are commonly 5–6 MB
+        // at full resolution (2159×2699), which causes Meta to 200-accept
+        // the /messages call and then asynchronously fail delivery with
+        // error 131053 ("Media download error") via the statuses webhook.
+        // Routing the link through whatsAppMediaUrl() injects a Cloudinary
+        // transformation that downsizes the image to JPEG / 2000 px wide /
+        // auto-quality — enough to stay well under 5 MB while keeping the
+        // QR code legible. The DB still stores the original high-res PNG
+        // URL; only the link sent to Meta is rewritten.
+        $mediaUrl = $this->whatsAppMediaUrl($imageUrl);
+
         $response = Http::withToken(env('WHATSAPP_TOKEN'))->post(
             'https://graph.facebook.com/v23.0/'.env('WHATSAPP_PHONE_ID').'/messages',
             [
@@ -191,7 +203,7 @@ class BookingController extends Controller
                 'to' => $phone,
                 'type' => 'image',
                 'image' => [
-                    'link' => $imageUrl,
+                    'link' => $mediaUrl,
                     'caption' => "*🎟️ أهلاً {$full_name}*\n\n"
                             ."يسعدنا وجودك معنا،\n"
                             ."أنت الآن جزء من تجربة جديدة نصرخ فيها سويًا…\n\n"
@@ -225,7 +237,38 @@ class BookingController extends Controller
             'ok'       => $response->successful(),
             'body'     => $response->json(),
             'body_raw' => $response->body(),
+            'link'     => $mediaUrl,
         ]);
+    }
+
+    /* =======================
+     | CLOUDINARY → WHATSAPP-SAFE URL
+     |
+     | Inject a Cloudinary transformation between "image/upload/" and the
+     | version segment so Meta fetches a downsized JPEG instead of the raw
+     | high-res PNG. Non-Cloudinary URLs (or already-transformed URLs)
+     | pass through untouched.
+     |
+     |   /image/upload/v123/...png
+     |     → /image/upload/q_auto,f_jpg,w_2000,c_limit/v123/...png
+     |
+     | q_auto:   automatic quality (Cloudinary chooses lossy level)
+     | f_jpg:    deliver JPEG (PNG photographic content is much larger)
+     | w_2000:   limit width to 2000 px
+     | c_limit:  only downscale; never upscale a smaller original
+     ======================= */
+    private function whatsAppMediaUrl(string $url): string
+    {
+        if (! preg_match('#/image/upload/v\d+/#', $url)) {
+            return $url;
+        }
+
+        return preg_replace(
+            '#/image/upload/v#',
+            '/image/upload/q_auto,f_jpg,w_2000,c_limit/v',
+            $url,
+            1
+        );
     }
 
     /* =======================
