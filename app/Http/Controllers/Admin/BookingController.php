@@ -143,7 +143,7 @@ class BookingController extends Controller
     {
         $phone = preg_replace('/[^0-9]/', '', $phone);
 
-        Http::withToken(env('WHATSAPP_TOKEN'))->post(
+        $response = Http::withToken(env('WHATSAPP_TOKEN'))->post(
             'https://graph.facebook.com/v23.0/'.env('WHATSAPP_PHONE_ID').'/messages',
             [
                 'messaging_product' => 'whatsapp',
@@ -158,6 +158,17 @@ class BookingController extends Controller
                 ],
             ]
         );
+
+        // Capture Graph API response so silent Meta-side failures (e.g.
+        // template not approved, language mismatch, 24h window issues for
+        // followup sends) surface in Railway logs instead of being
+        // discarded by the fire-and-forget HTTP call.
+        \Log::info('WA OUTBOUND TEMPLATE', [
+            'phone'  => $phone,
+            'status' => $response->status(),
+            'ok'     => $response->successful(),
+            'body'   => $response->json(),
+        ]);
     }
 
     /* =======================
@@ -167,7 +178,7 @@ class BookingController extends Controller
     {
         $phone = preg_replace('/[^0-9]/', '', $phone);
 
-        Http::withToken(env('WHATSAPP_TOKEN'))->post(
+        $response = Http::withToken(env('WHATSAPP_TOKEN'))->post(
             'https://graph.facebook.com/v23.0/'.env('WHATSAPP_PHONE_ID').'/messages',
             [
                 'messaging_product' => 'whatsapp',
@@ -192,6 +203,17 @@ class BookingController extends Controller
                 ],
             ]
         );
+
+        // Capture Graph API response so failures surface in Railway logs.
+        // Freeform image sends are gated by the 24h customer service window
+        // and will be rejected with code 131047 outside that window — making
+        // that visible is the only way to debug silent resend failures.
+        \Log::info('WA OUTBOUND IMAGE', [
+            'phone'  => $phone,
+            'status' => $response->status(),
+            'ok'     => $response->successful(),
+            'body'   => $response->json(),
+        ]);
     }
 
     /* =======================
