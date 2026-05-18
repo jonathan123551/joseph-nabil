@@ -163,11 +163,17 @@ class BookingController extends Controller
         // template not approved, language mismatch, 24h window issues for
         // followup sends) surface in Railway logs instead of being
         // discarded by the fire-and-forget HTTP call.
+        //
+        // body_raw is the response body as a raw string — needed because
+        // Monolog truncates deeply nested error objects to the placeholder
+        // "Over 9 levels deep, aborting normalization" when normalizing
+        // them into the structured `body` field.
         \Log::info('WA OUTBOUND TEMPLATE', [
-            'phone'  => $phone,
-            'status' => $response->status(),
-            'ok'     => $response->successful(),
-            'body'   => $response->json(),
+            'phone'    => $phone,
+            'status'   => $response->status(),
+            'ok'       => $response->successful(),
+            'body'     => $response->json(),
+            'body_raw' => $response->body(),
         ]);
     }
 
@@ -208,11 +214,17 @@ class BookingController extends Controller
         // Freeform image sends are gated by the 24h customer service window
         // and will be rejected with code 131047 outside that window — making
         // that visible is the only way to debug silent resend failures.
+        //
+        // body_raw is the response body as a raw string — needed because
+        // Monolog truncates deeply nested error objects to the placeholder
+        // "Over 9 levels deep, aborting normalization" when normalizing
+        // them into the structured `body` field.
         \Log::info('WA OUTBOUND IMAGE', [
-            'phone'  => $phone,
-            'status' => $response->status(),
-            'ok'     => $response->successful(),
-            'body'   => $response->json(),
+            'phone'    => $phone,
+            'status'   => $response->status(),
+            'ok'       => $response->successful(),
+            'body'     => $response->json(),
+            'body_raw' => $response->body(),
         ]);
     }
 

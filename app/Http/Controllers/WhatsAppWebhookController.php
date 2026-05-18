@@ -35,7 +35,16 @@ class WhatsAppWebhookController extends Controller
         // visible label was approved with a different alef variant, with
         // no signal in logs other than an INCOMING MESSAGE line. With the
         // raw payload available we can always see exactly what Meta sent.
+        //
+        // WEBHOOK HIT is the structured (array) form which Monolog will
+        // pretty-print and stop recursing at maxNormalizeDepth (9 by
+        // default). WEBHOOK RAW is the raw POST body as a string, which
+        // sidesteps the depth limit entirely — useful for inspecting
+        // delivery-status callbacks whose `statuses[*].errors[*]` objects
+        // sit at depth 9 and get replaced by the placeholder string
+        // "Over 9 levels deep, aborting normalization".
         Log::info('WEBHOOK HIT', $request->all());
+        Log::info('WEBHOOK RAW', ['raw' => $request->getContent()]);
 
         $message = $request->input('entry.0.changes.0.value.messages.0');
 
