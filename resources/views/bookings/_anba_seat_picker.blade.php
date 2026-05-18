@@ -1775,28 +1775,49 @@
             }
         };
 
-        // drawStage — visual only. Geometry (w, x, y, h, arc curve) is
-        // unchanged; only the colors / gradient stops use the PRISM neon
-        // palette (cyan → indigo → violet) instead of amber.
+        // drawStage — visual only. The screen now spans the full width of
+        // the seat grid (leftmost seat's outer edge → rightmost seat's outer
+        // edge) so it reads as a real cinema screen rather than a narrow
+        // theater label. Geometry of seats / rows is untouched.
         function drawStage() {
-            const w = Math.min(DISPLAY_W * 0.55, 460);
-            const x = (DISPLAY_W - w) / 2;
-            const y = TOP_PAD;
-            const h = STAGE_H - 8;
+            // Compute the horizontal extent of the seat grid from the
+            // already-laid-out SEATS array. Falls back to the legacy fixed
+            // box if drawStage runs before computeLayout (defensive only —
+            // in the normal flow computeLayout runs first).
+            let x, w;
+            if (SEATS.length > 0) {
+                let minX =  Infinity;
+                let maxX = -Infinity;
+                for (let i = 0; i < SEATS.length; i++) {
+                    const sx = SEATS[i].x;
+                    if (sx - SEAT_W / 2 < minX) minX = sx - SEAT_W / 2;
+                    if (sx + SEAT_W / 2 > maxX) maxX = sx + SEAT_W / 2;
+                }
+                x = minX;
+                w = maxX - minX;
+            } else {
+                w = Math.min(DISPLAY_W * 0.55, 460);
+                x = (DISPLAY_W - w) / 2;
+            }
+            const y    = TOP_PAD;
+            const h    = STAGE_H - 8;
+            const cx   = x + w / 2;
 
-            // ambient halo below the arc — neon glow
-            const halo = ctx.createRadialGradient(DISPLAY_W/2, y + h, 10, DISPLAY_W/2, y + h, w * 0.85);
+            // ambient halo below the arc — neon glow, scaled with the new width
+            const halo = ctx.createRadialGradient(cx, y + h, 10, cx, y + h, w * 0.55);
             halo.addColorStop(0,   'rgba(129,140,248,0.40)');
             halo.addColorStop(0.5, 'rgba(34,211,238,0.18)');
             halo.addColorStop(1,   'rgba(129,140,248,0)');
             ctx.fillStyle = halo;
-            ctx.fillRect(0, y + h - 10, DISPLAY_W, 90);
+            ctx.fillRect(0, y + h - 10, DISPLAY_W, 110);
 
-            // arc body — neon gradient fill
+            // screen body — flat-bottom rectangle with a very subtle top
+            // arc (control-point rise stays ±5px regardless of width, so
+            // the curve flattens automatically at cinema-screen scale).
             ctx.save();
             ctx.beginPath();
             ctx.moveTo(x, y + h);
-            ctx.bezierCurveTo(x + w * 0.10, y - 6, x + w * 0.90, y - 6, x + w, y + h);
+            ctx.bezierCurveTo(x + w * 0.06, y - 5, x + w * 0.94, y - 5, x + w, y + h);
             ctx.closePath();
             const grad = ctx.createLinearGradient(x, y, x + w, y + h);
             grad.addColorStop(0,   'rgba(34,211,238,0.30)');
@@ -1805,7 +1826,7 @@
             ctx.fillStyle = grad;
             ctx.fill();
 
-            // arc border — neon stroke (with subtle glow)
+            // outer border — neon stroke with soft glow
             ctx.shadowColor = 'rgba(129,140,248,0.55)';
             ctx.shadowBlur  = 14;
             ctx.lineWidth   = 1.4;
@@ -1817,16 +1838,33 @@
             ctx.stroke();
             ctx.restore();
 
-            // stage label
+            // top "light-bar" — thin bright reflection along the curved
+            // upper edge to suggest a real cinema-screen surface
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(x, y + h);
+            ctx.bezierCurveTo(x + w * 0.06, y - 5, x + w * 0.94, y - 5, x + w, y + h);
+            ctx.lineWidth   = 0.9;
+            ctx.shadowColor = 'rgba(224,231,255,0.9)';
+            ctx.shadowBlur  = 10;
+            const highlight = ctx.createLinearGradient(x, 0, x + w, 0);
+            highlight.addColorStop(0,   'rgba(224,231,255,0)');
+            highlight.addColorStop(0.5, 'rgba(224,231,255,0.85)');
+            highlight.addColorStop(1,   'rgba(224,231,255,0)');
+            ctx.strokeStyle = highlight;
+            ctx.stroke();
+            ctx.restore();
+
+            // stage label — Arabic "cinema screen" + English subtitle
             ctx.save();
             ctx.fillStyle = '#e0e7ff';
-            ctx.font = '700 14px "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif';
+            ctx.font = '700 17px "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('المسرح', DISPLAY_W / 2, y + h / 2 - 4);
+            ctx.fillText('شاشة السينما', cx, y + h / 2 - 4);
             ctx.font = '600 9px "Space Grotesk", system-ui, sans-serif';
             ctx.fillStyle = 'rgba(199,210,254,0.75)';
-            ctx.fillText('S T A G E', DISPLAY_W / 2, y + h / 2 + 12);
+            ctx.fillText('C I N E M A   S C R E E N', cx, y + h / 2 + 14);
             ctx.restore();
         }
 
