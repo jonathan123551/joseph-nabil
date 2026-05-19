@@ -12,6 +12,16 @@
     $bkRejected = $bookings->where('status', 'rejected')->count();
     $bkTickets  = $bookings->where('status', 'approved')->sum('tickets_count');
     $bkRevenue  = (int) $bookings->where('status', 'approved')->sum('total_price');
+    // Aggregate bulk-discount savings across approved bookings. Uses
+    // the persisted discount_amount column so it always matches what
+    // customers actually paid (no re-derivation from rules).
+    $bkDiscountSavings = (int) $bookings
+        ->where('status', 'approved')
+        ->sum('discount_amount');
+    $bkDiscountedCount = $bookings
+        ->where('status', 'approved')
+        ->filter(fn ($b) => (int) ($b->discount_percent ?? 0) > 0)
+        ->count();
 @endphp
 
 <section class="space-y-5">
@@ -62,6 +72,17 @@
             <span class="prism-stat-strip-label" data-i18n="adm_revenue">Revenue</span>
             <span class="prism-stat-strip-val prism-stat-strip-val-gold">{{ number_format($bkRevenue, 0) }}<span class="opacity-60 ms-1 text-[11px] font-semibold">EGP</span></span>
         </div>
+        @if($bkDiscountSavings > 0 || $bkDiscountedCount > 0)
+            {{-- Bulk-discount KPI — shows total savings on approved
+                 bookings + the count of bookings that qualified. --}}
+            <div class="prism-stat-strip-item">
+                <span class="prism-stat-strip-label" data-i18n="adm_discount_savings">خصومات مطبقة</span>
+                <span class="prism-stat-strip-val prism-stat-strip-val-emerald">
+                    −{{ number_format($bkDiscountSavings, 0) }}<span class="opacity-60 ms-1 text-[11px] font-semibold">EGP</span>
+                    <span class="opacity-70 text-[11px] font-semibold">· {{ $bkDiscountedCount }}</span>
+                </span>
+            </div>
+        @endif
     </div>
 
     {{-- ========================== FILTERS / TOOLBAR ========================== --}}
@@ -138,6 +159,16 @@
                                 <p class="font-bold text-[color:var(--prism-text)]">{{ $booking->full_name }}</p>
                                 <p class="text-xs" style="color: var(--prism-gold);">
                                     🎟️ {{ $booking->tickets_count }} <span data-i18n="common_ticket_word">تذكرة</span>
+                                    @if((int) ($booking->discount_percent ?? 0) > 0)
+                                        {{-- Bulk-discount badge — inline next to the
+                                             ticket count so it never adds a row. --}}
+                                        <span class="inline-flex items-center gap-1 ms-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold"
+                                              title="خصم {{ (int) $booking->discount_percent }}% · وفّر {{ (int) $booking->discount_amount }} جنيه"
+                                              style="color:#6ee7b7; border:1px solid rgba(110,231,183,0.55); background: rgba(16,185,129,0.10);">
+                                            <span aria-hidden="true">🎁</span>
+                                            <span dir="ltr">-{{ (int) $booking->discount_percent }}%</span>
+                                        </span>
+                                    @endif
                                 </p>
                             </div>
                             <span class="text-[color:var(--prism-text-3)] block mb-1">{{ $booking->phone }}</span>
@@ -229,8 +260,16 @@
                     <div>
                         <div class="font-semibold text-sm text-[color:var(--prism-text)]">{{ $booking->full_name }}</div>
 
-                        <div class="text-xs mb-1" style="color: var(--prism-gold);">
-                            🎟️ {{ $booking->tickets_count }} <span data-i18n="common_ticket_word">تذكرة</span>
+                        <div class="text-xs mb-1 flex items-center gap-1.5 flex-wrap" style="color: var(--prism-gold);">
+                            <span>🎟️ {{ $booking->tickets_count }} <span data-i18n="common_ticket_word">تذكرة</span></span>
+                            @if((int) ($booking->discount_percent ?? 0) > 0)
+                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold"
+                                      title="خصم {{ (int) $booking->discount_percent }}% · وفّر {{ (int) $booking->discount_amount }} جنيه"
+                                      style="color:#6ee7b7; border:1px solid rgba(110,231,183,0.55); background: rgba(16,185,129,0.10);">
+                                    <span aria-hidden="true">🎁</span>
+                                    <span dir="ltr">-{{ (int) $booking->discount_percent }}%</span>
+                                </span>
+                            @endif
                         </div>
 
                         <div class="text-[color:var(--prism-text-3)]">{{ $booking->phone }}</div>

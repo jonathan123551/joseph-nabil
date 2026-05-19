@@ -725,6 +725,17 @@
                     إضافة / تعديل المقاعد ←
                 </a>
             </div>
+
+            {{-- Bulk-discount offer reminder + live price breakdown.
+                 Both panels sync with the seat selection in JS. --}}
+            @include('partials._bulk_discount_banner', [
+                'bulkDiscount' => $bulkDiscount,
+                'compact'      => true,
+                'variant'      => 'subtle',
+            ])
+            <div data-price-breakdown-host>
+                @include('partials._price_breakdown', ['bulkDiscount' => $bulkDiscount])
+            </div>
         </div>
 
         {{-- payment info — visible, simple, always-expanded block. One
@@ -890,6 +901,8 @@
     </div>
 </div>
 </div>{{-- /.anba-flow --}}
+
+@include('partials._bulk_discount_js', ['bulkDiscount' => $bulkDiscount])
 
 <script>
 (function () {
@@ -1102,8 +1115,17 @@
 
     function totals() {
         const n = seats.length;
+        // Apply the bulk-discount rules so the summary shows the
+        // FINAL price. Falls back to subtotal when the helper
+        // isn't loaded.
+        if (window.BulkDiscount) {
+            const p = window.BulkDiscount.calculate(unitPrice, n);
+            return { count: n, total: p.totalPrice };
+        }
         return { count: n, total: n * unitPrice };
     }
+
+    const priceBreakdownRoot = root.querySelector('[data-price-breakdown-host] [data-price-breakdown]');
 
     function paintTotals() {
         const t = totals();
@@ -1113,6 +1135,9 @@
         if (mobileCount)  mobileCount.textContent  = t.count;
         if (mobileTotal)  mobileTotal.textContent  = totalStr;
         if (totalInlineEl) totalInlineEl.textContent = totalStr;
+        if (priceBreakdownRoot && window.BulkDiscount) {
+            window.BulkDiscount.render(priceBreakdownRoot, unitPrice, t.count);
+        }
     }
 
     // Returns the first invalid field in DOM order (or null).

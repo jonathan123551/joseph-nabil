@@ -15,6 +15,12 @@
 ===================================================================== --}}
 <section class="max-w-3xl mx-auto prism-fade-up">
 
+    {{-- Bulk-discount offer banner — surfaced BEFORE the user picks a
+         section so they know about the offer as they start the flow. --}}
+    <div class="mb-5">
+        @include('partials._bulk_discount_banner', ['bulkDiscount' => $bulkDiscount])
+    </div>
+
     {{-- Local tweaks (kept scoped to step 1 — picks up the global PRISM tokens).
          Premium card design: two-row internal layout (name+eyebrow row at top,
          price+CTA row at bottom) so the price is unmistakable and the call-to-
@@ -536,6 +542,12 @@
 ===================================================================== --}}
 <section class="max-w-5xl mx-auto prism-fade-up">
 
+    {{-- Bulk-discount offer banner — sits above the form so the user
+         sees the offer before they pick a ticket count. --}}
+    <div class="mb-5">
+        @include('partials._bulk_discount_banner', ['bulkDiscount' => $bulkDiscount])
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
         {{-- ======================
@@ -661,6 +673,12 @@
                                   file:hover:bg-white/[0.10] file:transition">
                 </div>
 
+                {{-- Live pricing summary — reflects discount once the
+                     ticket count hits the bulk threshold. --}}
+                <div data-price-breakdown-host>
+                    @include('partials._price_breakdown', ['bulkDiscount' => $bulkDiscount])
+                </div>
+
                 <button type="submit"
                         id="submitBtn"
                         disabled
@@ -680,6 +698,7 @@
 | SCRIPT (manual flow only — Anba Ruweis ships its own script in the partial)
 ====================== --}}
 @if(!($isAnbaRuweis ?? false))
+@include('partials._bulk_discount_js', ['bulkDiscount' => $bulkDiscount])
 <script>
 
 let count = 1;
@@ -687,6 +706,14 @@ let count = 1;
 // (pending + approved) AND any admin-blocked seats, so the stepper can
 // never offer a count the seat picker / store would refuse.
 const maxTickets = {{ (int) $showTime->effectiveRemainingTickets() }};
+const manualUnitPrice = {{ (int) $showTime->ticket_price }};
+const priceBreakdownRoot = document.querySelector('[data-price-breakdown-host] [data-price-breakdown]');
+
+function paintBreakdown() {
+    if (window.BulkDiscount && priceBreakdownRoot) {
+        window.BulkDiscount.render(priceBreakdownRoot, manualUnitPrice, count);
+    }
+}
 
 const namesContainer = document.getElementById('namesContainer');
 const ticketsInput = document.getElementById('tickets_count');
@@ -791,9 +818,11 @@ function changeCount(val) {
     ticketsInput.value = count;
 
     renderNames();
+    paintBreakdown();
 }
 
 renderNames();
+paintBreakdown();
 
 
 // ===== زرار الإرسال =====

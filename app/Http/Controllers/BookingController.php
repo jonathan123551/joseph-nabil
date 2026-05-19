@@ -9,6 +9,7 @@ use App\Models\Setting;
 use App\Models\Show;
 use App\Models\ShowTime;
 use App\Models\Theater;
+use App\Support\BookingPricing;
 use App\Support\ImageOptimizer;
 use Cloudinary\Api\Upload\UploadApi;
 use Cloudinary\Configuration\Configuration;
@@ -125,6 +126,10 @@ class BookingController extends Controller
             'isAnbaRuweis' => $isAnbaRuweis,
             'balconyPrice' => (int) ($showTime->show->balcony_price ?? 0),
             'hallPrice' => (int) ($showTime->show->hall_price ?? 0),
+            // Bulk-discount offer config (mirrored to JS for the
+            // pricing summary; the server still re-computes the
+            // final price on POST).
+            'bulkDiscount' => BookingPricing::toJs(),
         ];
     }
 
@@ -242,13 +247,24 @@ class BookingController extends Controller
         // ☁️ رفع الصورة
         $upload = $this->uploadPaymentScreenshot($request->file('payment_screenshot'));
 
+        // Apply the bulk-discount rules server-side. Even if the
+        // client has stale JS, the persisted price is whatever
+        // BookingPricing says it should be.
+        $pricing = BookingPricing::calculate(
+            (int) $showTime->ticket_price,
+            $ticketsCount
+        );
+
         // ✅ إنشاء الحجز
         $booking = Booking::create([
             'show_time_id' => $showTime->id,
             'full_name' => $request->names[0],
             'phone' => $mainPhone,
             'tickets_count' => $ticketsCount,
-            'total_price' => $showTime->ticket_price * $ticketsCount,
+            'total_price' => $pricing['total_price'],
+            'original_price' => $pricing['original_price'],
+            'discount_percent' => $pricing['discount_percent'],
+            'discount_amount' => $pricing['discount_amount'],
             'transfer_screenshot_path' => $upload['secure_url'],
             'transfer_screenshot_public_id' => $upload['public_id'],
             'status' => 'pending',
@@ -340,12 +356,22 @@ class BookingController extends Controller
             $booking = DB::transaction(function () use ($request, $showTime, $seats, $seatIds, $unitPrice, $mainPhone, $upload) {
                 $count = count($seatIds);
 
+                // Apply the bulk-discount rules server-side. Per-seat
+                // booking_seats rows continue to record the FULL
+                // unit price (so admins can see what each seat
+                // would have cost at list); the discount lives on
+                // the parent booking row.
+                $pricing = BookingPricing::calculate($unitPrice, $count);
+
                 $booking = Booking::create([
                     'show_time_id' => $showTime->id,
                     'full_name' => $request->names[0],
                     'phone' => $mainPhone,
                     'tickets_count' => $count,
-                    'total_price' => $unitPrice * $count,
+                    'total_price' => $pricing['total_price'],
+                    'original_price' => $pricing['original_price'],
+                    'discount_percent' => $pricing['discount_percent'],
+                    'discount_amount' => $pricing['discount_amount'],
                     'transfer_screenshot_path' => $upload['secure_url'],
                     'transfer_screenshot_public_id' => $upload['public_id'],
                     'status' => 'pending',

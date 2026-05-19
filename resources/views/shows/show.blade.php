@@ -102,6 +102,15 @@
             </div>
         </div>
 
+        {{-- Bulk-discount offer banner — sits between the hero and the
+             showtime cards so the offer is the first thing a returning
+             user sees once they're ready to pick a time. --}}
+        @if($hasAnyAvailable)
+            @include('partials._bulk_discount_banner', [
+                'bulkDiscount' => \App\Support\BookingPricing::toJs(),
+            ])
+        @endif
+
         {{-- ===== W3#2: Premium showtime cards ===== --}}
         <div id="pt-showtimes" class="space-y-3">
             <div class="pt-time-section-head">

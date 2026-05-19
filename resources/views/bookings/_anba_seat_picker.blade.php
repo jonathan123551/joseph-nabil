@@ -1289,6 +1289,16 @@
             {{-- selection summary (chips + total) — read-only here; the
                  form on the next page is where attendees + payment go. --}}
             <div class="space-y-3">
+                @unless ($adminMode)
+                    {{-- Bulk-discount offer reminder (compact pill so it
+                         doesn't compete with the seat grid for attention). --}}
+                    @include('partials._bulk_discount_banner', [
+                        'bulkDiscount' => $bulkDiscount ?? null,
+                        'compact'      => true,
+                        'variant'      => 'subtle',
+                    ])
+                @endunless
+
                 <div>
                     <div class="flex items-center justify-between text-[11px] text-[color:var(--p-text-3)] mb-1">
                         <span data-i18n="seat_selected_label">المقاعد المختارة</span>
@@ -1301,13 +1311,10 @@
                 </div>
 
                 @unless ($adminMode)
-                    <div class="flex items-center justify-between rounded-xl px-3 py-2"
-                         style="background: linear-gradient(135deg, rgba(251,191,36,0.10), rgba(251,191,36,0.04));
-                                border: 1px solid rgba(251,191,36,0.32); color: #fef3c7;">
-                        <span class="text-[11px] uppercase" style="letter-spacing: .18em;" data-i18n="seat_total">الإجمالي</span>
-                        <span class="text-base font-bold" style="color: var(--p-gold);">
-                            <span data-total-price>0</span> <span class="text-[10px] opacity-80">EGP</span>
-                        </span>
+                    {{-- Live price breakdown — reflects the bulk discount
+                         once selection hits the threshold. --}}
+                    <div data-price-breakdown-host>
+                        @include('partials._price_breakdown', ['bulkDiscount' => $bulkDiscount ?? null])
                     </div>
                 @endunless
 
@@ -1418,6 +1425,10 @@
         </div>
     @endunless
 </div>
+
+@unless ($adminMode)
+    @include('partials._bulk_discount_js', ['bulkDiscount' => $bulkDiscount ?? null])
+@endunless
 
 <script>
     (function () {
@@ -2377,17 +2388,34 @@
             popRAF = requestAnimationFrame(step);
         }
 
+        // Resolve the price-breakdown card once — used by renderSidePanel()
+        // to keep the discount math in sync with seat selection.
+        const priceBreakdownRoot = root.querySelector('[data-price-breakdown-host] [data-price-breakdown]');
+
         // ===== Side panel rendering (chips, attendees, total, mobile bar) =====
         function renderSidePanel() {
             const ids = Array.from(selected.keys());
             const n = ids.length;
 
+            // Apply the bulk-discount rules so the picker shows the
+            // FINAL price the customer will pay (not the raw subtotal).
+            // Falls back to plain subtotal when the helper isn't loaded
+            // (e.g. admin flow which skips the JS partial).
+            let finalTotal = n * hallPrice;
+            if (window.BulkDiscount) {
+                const p = window.BulkDiscount.calculate(hallPrice, n);
+                finalTotal = p.totalPrice;
+            }
+
             if (countEl)      countEl.textContent     = n;
             if (mobileCount)  mobileCount.textContent = n;
             // Price elements are absent in admin mode — null-check before
             // writing so the same renderer works for both flows.
-            if (totalEl)      totalEl.textContent     = (n * hallPrice).toLocaleString('en-US');
-            if (mobileTotal)  mobileTotal.textContent = (n * hallPrice).toLocaleString('en-US');
+            if (totalEl)      totalEl.textContent     = finalTotal.toLocaleString('en-US');
+            if (mobileTotal)  mobileTotal.textContent = finalTotal.toLocaleString('en-US');
+            if (priceBreakdownRoot && window.BulkDiscount) {
+                window.BulkDiscount.render(priceBreakdownRoot, hallPrice, n);
+            }
             root.classList.toggle('has-selection', n > 0);
 
             // Inline seat-label preview for the mobile CTA so the user
