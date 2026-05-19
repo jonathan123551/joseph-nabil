@@ -13,6 +13,11 @@ class Booking extends Model
     'tickets_count',
     'total_price',
 
+    // الخصم (bulk-discount offer — see App\Support\BookingPricing)
+    'original_price',
+    'discount_percent',
+    'discount_amount',
+
     // الدفع
     'payment_method',
     'payment_status',
@@ -42,7 +47,21 @@ class Booking extends Model
         'paid_at' => 'datetime',
         'approved_at' => 'datetime',
         'whatsapp_sent_at' => 'datetime',
+        'original_price' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
+        'discount_percent' => 'integer',
     ];
+
+    /**
+     * True when the bulk-discount offer was applied to this booking.
+     * Safe against legacy rows (pre-migration) which carry NULL
+     * original_price / 0 discount.
+     */
+    public function hasDiscount(): bool
+    {
+        return (int) $this->discount_percent > 0
+            && (float) $this->discount_amount > 0;
+    }
 
     public function showTime()
     {

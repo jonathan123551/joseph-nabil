@@ -147,12 +147,46 @@
 
             <div class="h-px bg-[color:var(--prism-border)]"></div>
 
-            <div class="flex justify-between items-center">
-                <span class="text-[color:var(--prism-text-3)] text-xs" data-i18n="thx_total_label">إجمالي المبلغ</span>
-                <span class="font-bold text-[color:var(--prism-emerald)]">
-                    {{ $booking->total_price }} <span class="text-[10px] opacity-80" data-i18n="common_egp">جنيه</span>
-                </span>
-            </div>
+            @if($booking->hasDiscount())
+                {{-- Bulk-discount breakdown — shows the original total
+                     struck through next to the discounted final, and a
+                     dedicated "you saved …" line. Server-stored values
+                     so this matches what admins see. --}}
+                <div class="flex justify-between items-center">
+                    <span class="text-[color:var(--prism-text-3)] text-xs" data-i18n="thx_subtotal_label">المجموع قبل الخصم</span>
+                    <span class="text-xs text-[color:var(--prism-text-3)]">
+                        <span class="line-through opacity-80">{{ (int) $booking->original_price }}</span>
+                        <span class="opacity-60" data-i18n="common_egp">جنيه</span>
+                    </span>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <span class="text-[color:var(--prism-text-3)] text-xs">
+                        <span data-i18n="thx_discount_label">الخصم</span>
+                        <span dir="ltr" class="opacity-70">(-{{ (int) $booking->discount_percent }}%)</span>
+                    </span>
+                    <span class="font-semibold text-[color:var(--prism-emerald)]">
+                        −{{ (int) $booking->discount_amount }}
+                        <span class="text-[10px] opacity-80" data-i18n="common_egp">جنيه</span>
+                    </span>
+                </div>
+
+                <div class="h-px bg-[color:var(--prism-border)]"></div>
+
+                <div class="flex justify-between items-center">
+                    <span class="text-[color:var(--prism-text-3)] text-xs" data-i18n="thx_total_label">إجمالي المبلغ</span>
+                    <span class="font-bold text-[color:var(--prism-emerald)]">
+                        {{ $booking->total_price }} <span class="text-[10px] opacity-80" data-i18n="common_egp">جنيه</span>
+                    </span>
+                </div>
+            @else
+                <div class="flex justify-between items-center">
+                    <span class="text-[color:var(--prism-text-3)] text-xs" data-i18n="thx_total_label">إجمالي المبلغ</span>
+                    <span class="font-bold text-[color:var(--prism-emerald)]">
+                        {{ $booking->total_price }} <span class="text-[10px] opacity-80" data-i18n="common_egp">جنيه</span>
+                    </span>
+                </div>
+            @endif
 
             @if($startAt)
                 {{-- QW#6: live countdown to show. Pure ms diff against ISO start;
