@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\Theater;
 use App\Models\Ticket;
 use Cloudinary\Api\Upload\UploadApi;
 use Cloudinary\Configuration\Configuration;
@@ -179,6 +180,15 @@ class BookingController extends Controller
 
     /* =======================
      | SEND IMAGE
+     |
+     | Sends the customer's QR ticket as a WhatsApp image with a
+     | cinematic confirmation caption. The QR PNG is uploaded to
+     | Cloudinary by approve(); here we just stream that URL through
+     | whatsAppMediaUrl() (see below) so Meta receives a properly
+     | sized JPEG. The caption is built by buildTicketCaption() —
+     | the ticket's booking / showTime / seat are looked up by
+     | reference here so the existing call sites don't need to know
+     | about the new dynamic fields.
      ======================= */
     public function sendWhatsAppTicket($phone, $imageUrl, $reference, $full_name, $showTimeText)
     {
@@ -196,6 +206,16 @@ class BookingController extends Controller
         // URL; only the link sent to Meta is rewritten.
         $mediaUrl = $this->whatsAppMediaUrl($imageUrl);
 
+        // Resolve the ticket by its `ticket_code` so we can render the
+        // structured caption (show date, show time, seat label).
+        // Falls back to a name-only caption if the lookup misses — e.g.
+        // for legacy resends where the reference doesn't map to a row.
+        $ticket = Ticket::with(['booking.showTime', 'booking.seats', 'bookingSeat'])
+            ->where('ticket_code', $reference)
+            ->first();
+
+        $caption = $this->buildTicketCaption($ticket, $full_name);
+
         $response = Http::withToken(env('WHATSAPP_TOKEN'))->post(
             'https://graph.facebook.com/v23.0/'.env('WHATSAPP_PHONE_ID').'/messages',
             [
@@ -204,20 +224,7 @@ class BookingController extends Controller
                 'type' => 'image',
                 'image' => [
                     'link' => $mediaUrl,
-                    'caption' => "*🎟️ أهلاً {$full_name}*\n\n"
-                            ."يسعدنا وجودك معنا،\n"
-                            ."أنت الآن جزء من تجربة جديدة نصرخ فيها سويًا…\n\n"
-                            ."ليزداد العقل وعيًا.\n\n"
-                            ."نتمنى لك أمسية ثرية بالفن ✨\n\n"
-                            ."نحن لا نطلب منك سوى حواسك،\n"
-                            ."ولا ننتظر منك إلا أن تأتي إلى مصدر الصراخ…\n"
-                            ."فهو دائمًا على المسرح 🎭\n\n"
-                            ."نلتقي لنصرخ معًا،\n"
-                            ."فنغيّر ما فسد،\n"
-                            ."ونزرع بدلًا منه ثمرًا صالحًا ❤️\n\n"
-                            ."🗓️ *موعد الحفلة:*\n"
-                            ."{$showTimeText}\n\n"
-                            .'‼️ *يرجى إحضار هذه التذكرة عند الدخول*',
+                    'caption' => $caption,
                 ],
             ]
         );
@@ -239,6 +246,94 @@ class BookingController extends Controller
             'body_raw' => $response->body(),
             'link'     => $mediaUrl,
         ]);
+    }
+
+    /* =======================
+     | CAPTION BUILDER
+     |
+     | Builds the cinematic ticket caption sent next to the QR image.
+     | Only customer name, show date, show time and seat label are
+     | dynamic — the movie title and the surrounding flavour text are
+     | intentionally hardcoded so the brand voice stays consistent.
+     ======================= */
+    private function buildTicketCaption(?Ticket $ticket, ?string $fallbackName = null): string
+    {
+        $customerName = trim((string) ($ticket?->name ?? $fallbackName ?? ''));
+        $showTime     = $ticket?->booking?->showTime;
+
+        $showDate = $showTime?->date
+            ? $showTime->date->format('d/m/Y')
+            : '';
+        $showTimeStr = $showTime?->time
+            ? \Carbon\Carbon::parse($showTime->time)->format('h:i A')
+            : '';
+
+        $seatLabel = $ticket ? $this->seatLabelForTicket($ticket) : '';
+        $seatLine  = $seatLabel !== '' ? $seatLabel : '—';
+
+        // Hardcoded film title — per product spec, this stays static.
+        $filmTitle = 'القديس أبونا بولس العابد';
+
+        return "مرحبًا {$customerName} 👋\n\n"
+            ."🎬 تم تأكيد حجزك لفيلم\n"
+            ."\"{$filmTitle}\" 🎬\n\n"
+            ."ننتظركم لنعيش معًا سيرة الراهب السائح ومبدد الأوجاع بصلواته ✨\n\n"
+            ."📅 موعد العرض:\n"
+            ."{$showDate}\n\n"
+            ."🕔 الساعة:\n"
+            ."{$showTimeStr}\n\n"
+            ."🎟️ الكرسي:\n"
+            ."{$seatLine}\n\n"
+            ."⚠️ ملاحظة:\n"
+            ."يرجى إحضار التذكرة عند الدخول.\n\n"
+            ."✨ بركة أبونا بولس العابد تكون معكم.";
+    }
+
+    /* =======================
+     | SEAT LABEL
+     |
+     | Resolves a ticket’s seat to the "صالةA11" / "بلكونB7" format.
+     |   • Anba flow: 1 ticket → 1 booking_seat — single label.
+     |   • Manual / "other" venue flow: ticket has no booking_seat,
+     |     so we fall back to all seats on the parent booking joined
+     |     with " • " ("صالةA11 • صالةA12"). Returns '' when no
+     |     seats exist (purely-virtual / manual bookings).
+     ======================= */
+    private function seatLabelForTicket(Ticket $ticket): string
+    {
+        if ($ticket->booking_seat_id && $ticket->bookingSeat) {
+            return $this->formatSeatLabel(
+                $ticket->bookingSeat->section,
+                $ticket->bookingSeat->row_letter,
+                $ticket->bookingSeat->seat_number,
+            );
+        }
+
+        $booking = $ticket->booking;
+        if ($booking && $booking->seats && $booking->seats->isNotEmpty()) {
+            return $booking->seats
+                ->map(fn ($s) => $this->formatSeatLabel($s->section, $s->row_letter, $s->seat_number))
+                ->implode(' • ');
+        }
+
+        return '';
+    }
+
+    /**
+     * Render one seat as "صالةA11" / "بلكونB7". Defensive against
+     * missing pieces so we never emit a partial label like "صالةnull".
+     */
+    private function formatSeatLabel(?string $section, ?string $rowLetter, $seatNumber): string
+    {
+        $sectionLabel = Theater::SECTION_LABELS[$section] ?? '';
+        $row          = strtoupper(trim((string) ($rowLetter ?? '')));
+        $seat         = trim((string) ($seatNumber ?? ''));
+
+        if ($sectionLabel === '' && $row === '' && $seat === '') {
+            return '';
+        }
+
+        return $sectionLabel.$row.$seat;
     }
 
     /* =======================
