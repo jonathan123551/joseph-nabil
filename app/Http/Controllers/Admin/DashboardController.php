@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\Setting;
 use App\Models\Show;
 use App\Models\ShowTime;
+use App\Support\ShowTimeAnalytics;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -37,7 +38,14 @@ class DashboardController extends Controller
         $rejectedBookings = Booking::where('status', 'rejected')->count();
 
         // إحصائيات لكل ميعاد عرض لوحده
-        $showTimesStats = ShowTime::with('show')
+        //
+        // Eager-load every relation needed by the new analytics section
+        // (`bookings.seats` for hall/balcony breakdown + revenue tiles,
+        // `seatBlocks` for the blocked-seats KPI on each card) in one
+        // shot. The legacy table further down the page reuses these
+        // same rows, so this also removes the N+1 the old loop had on
+        // `blockedSeatsCount()` and the per-showtime booking queries.
+        $showTimesStats = ShowTime::with(['show', 'bookings.seats', 'seatBlocks'])
             ->orderBy('date')
             ->orderBy('time')
             ->get();
@@ -47,40 +55,33 @@ class DashboardController extends Controller
         // seat_blocks table once per dashboard render.
         $totalBlockedSeats = 0;
 
+        // Pre-compute the rich analytics payload for every showtime
+        // (ShowTimeAnalytics::compute() reads from already-loaded
+        // relations, so this stays query-free in the loop). The legacy
+        // per-row stats live on the model alongside it so the existing
+        // "Show Times" table further down keeps working untouched.
+        $analytics = collect();
+
         foreach ($showTimesStats as $time) {
-            // عدد التذاكر المعتمدة للميعاد ده
-            $approved = Booking::where('show_time_id', $time->id)
-                ->where('status', 'approved')
-                ->sum('tickets_count');
+            $a = ShowTimeAnalytics::compute($time);
+            $analytics->put($time->id, $a);
 
-            // عدد التذاكر pending للميعاد ده
-            $pending = Booking::where('show_time_id', $time->id)
-                ->where('status', 'pending')
-                ->sum('tickets_count');
-
-            // المقاعد المحجوبة (admin-only). Always 0 for non-seatmap
-            // shows because there's no seat layout to block against.
-            $blocked = $time->blockedSeatsCount();
-            $totalBlockedSeats += $blocked;
-
-            // التذاكر المتبقية في الميعاد ده — blocked seats are
-            // operationally unavailable, so they reduce remaining
-            // inventory just like booked seats do.
-            $remaining = max(0, (int) $time->total_tickets - $approved - $pending - $blocked);
+            $totalBlockedSeats += $a['blocked'];
 
             // نضيف القيم دي كخصائص على الموديل عشان نستخدمها في الـ Blade
-            $time->approved_tickets  = $approved;
-            $time->pending_tickets   = $pending;
-            $time->blocked_tickets   = $blocked;
-            $time->remaining_tickets = $remaining;
-
-            // إيرادات الميعاد ده = sum(total_price) للحجوزات المعتمدة المرتبطة
-            // بالميعاد ده فقط. نفس الـ partition بتاع $totalRevenue، فمضمون
-            // إن مجموع الإيرادات لكل المواعيد يساوي $totalRevenue بالظبط.
-            $time->revenue = (int) Booking::where('show_time_id', $time->id)
-                ->where('status', 'approved')
-                ->sum('total_price');
+            // (الجدول التشغيلي) — same column names as before so the legacy
+            // table renders identically.
+            $time->approved_tickets  = $a['approved_tickets'];
+            $time->pending_tickets   = $a['pending_tickets'];
+            $time->blocked_tickets   = $a['blocked'];
+            $time->remaining_tickets = $a['remaining'];
+            $time->revenue           = $a['approved_revenue'];
         }
+
+        // Roll up the analytics payload into a single set of top-level
+        // KPIs for the dashboard "Analytics" section header (total
+        // occupancy %, total discounts, etc.).
+        $analyticsTotals = ShowTimeAnalytics::totals($analytics->all());
 
         // التذاكر المتبقية على مستوى كل المواعيد — also subtracts blocked
         // seats so the "Remaining" KPI matches what the seat picker is
@@ -101,6 +102,8 @@ class DashboardController extends Controller
             'pendingBookings',
             'rejectedBookings',
             'showTimesStats',
+            'analytics',
+            'analyticsTotals',
             'transferWallet',
             'transferInsta'
         ));
