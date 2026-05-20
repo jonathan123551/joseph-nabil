@@ -650,7 +650,7 @@
                                                 <div class="sta-section-row-value">{{ $stafmt($h['tickets_sold']) }}</div>
                                             </div>
                                             <div>
-                                                <div class="sta-section-row-label" data-i18n="adm_sta_section_list">قيمة قائمة الأسعار</div>
+                                                <div class="sta-section-row-label" data-i18n="adm_sta_section_list"> الأجمالى قبل الخصومات  </div>
                                                 <div class="sta-section-row-value">{{ $stafmt($h['list_revenue']) }} <span class="text-xs opacity-70" data-i18n="common_currency_short">ج</span></div>
                                             </div>
                                             <div>
@@ -682,7 +682,7 @@
                                                 <div class="sta-section-row-value">{{ $stafmt($b['tickets_sold']) }}</div>
                                             </div>
                                             <div>
-                                                <div class="sta-section-row-label" data-i18n="adm_sta_section_list">قيمة قائمة الأسعار</div>
+                                                <div class="sta-section-row-label" data-i18n="adm_sta_section_list">  الأجمالى قبل الخصومات</div>
                                                 <div class="sta-section-row-value">{{ $stafmt($b['list_revenue']) }} <span class="text-xs opacity-70" data-i18n="common_currency_short">ج</span></div>
                                             </div>
                                             <div>

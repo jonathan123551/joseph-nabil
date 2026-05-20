@@ -272,12 +272,12 @@ class BookingController extends Controller
         $seatLine  = $seatLabel !== '' ? $seatLabel : '—';
 
         // Hardcoded film title — per product spec, this stays static.
-        $filmTitle = 'القديس أبونا بولس العابد';
+        $filmTitle = 'قصة حياة الراهب بولس المقاري';
 
         return "مرحبًا {$customerName} 👋\n\n"
-            ."🎬 تم تأكيد حجزك لفيلم\n"
+            ."🎬  تم تأكيد حجزك لفيلم العابد \n"
             ."\"{$filmTitle}\" 🎬\n\n"
-            ."ننتظركم لنعيش معًا سيرة الراهب السائح ومبدد الأوجاع بصلواته ✨\n\n"
+            ."ننتظركم لنعيش معًا رحلة ممتعة من سيرة الراهب السائح ومبدد الأوجاع بصلواته ✨\n\n"
             ."📅 موعد العرض:\n"
             ."{$showDate}\n\n"
             ."🕔 الساعة:\n"
