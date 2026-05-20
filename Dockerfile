@@ -37,8 +37,25 @@ FROM php:8.2-fpm
 # supervisor  — runs php-fpm + nginx side-by-side
 # nodejs/npm  — needed at build time only, to compile Tailwind
 # libpng/libjpeg/libfreetype/libpq — required by the gd + pdo_pgsql exts
+# Notes on the additions vs the Tier-1 image:
+#   * libnginx-mod-http-brotli-filter / -brotli-static
+#       Brotli filter modules from the Debian repo. Installing them drops
+#       `load_module ngx_http_brotli_{filter,static}_module.so;` snippets
+#       into /etc/nginx/modules-enabled/, which our nginx.conf picks up via
+#       `include /etc/nginx/modules-enabled/*.conf;`. Layered on top of
+#       gzip, brotli typically saves another ~15–20% on text responses for
+#       modern browsers (they advertise `Accept-Encoding: br`).
+#   * webp
+#       Provides the `cwebp` CLI we use below to pre-generate `.webp`
+#       siblings of every raster image in public/. nginx then serves the
+#       .webp to browsers that send `Accept: image/webp` (every modern
+#       browser) and falls back to the original for old ones — all without
+#       touching a single Blade template.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         nginx \
+        libnginx-mod-http-brotli-filter \
+        libnginx-mod-http-brotli-static \
+        webp \
         supervisor \
         ca-certificates \
         curl \
@@ -105,6 +122,33 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-di
 RUN npm install --no-audit --no-fund --prefer-offline \
     && npm run build \
     && rm -rf node_modules
+
+# ----- WebP pre-generation -------------------------------------------------
+# Generate a `.webp` sibling next to every PNG/JPG/JPEG under public/brand
+# and public/images at image-build time. nginx.conf maps `Accept: image/webp`
+# to a `.webp` suffix and uses `try_files $uri$webp_suffix $uri` so modern
+# browsers transparently get the smaller variant while old browsers still
+# get the original — no Blade `<img src="">` edits required.
+#
+# We keep the .webp only when it's actually smaller than the source
+# (cwebp can occasionally emit a larger file for very small / already
+# optimized inputs; in that case we delete it so `try_files` falls
+# straight through to the original).
+# Portability note: this RUN executes under /bin/sh, which on the
+# php:8.2-fpm (Debian) base image is dash, not bash. dash does not
+# support `read -d ''` for null-delimited input, so we use
+# `find ... -exec sh -c '...' _ {} +` to fan filenames into a portable
+# loop that works the same on every Debian image we might rebase to.
+RUN find public/brand public/images \
+        -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) \
+        -exec sh -c '\
+            for f in "$@"; do \
+                cwebp -quiet -q 82 "$f" -o "$f.webp" || continue; \
+                orig=$(stat -c%s "$f"); \
+                webp=$(stat -c%s "$f.webp"); \
+                if [ "$webp" -ge "$orig" ]; then rm -f "$f.webp"; fi; \
+            done' \
+        _ {} +
 
 # ----- Laravel runtime caches ---------------------------------------------
 # Only `view:cache` is baked in here — it depends solely on .blade.php
