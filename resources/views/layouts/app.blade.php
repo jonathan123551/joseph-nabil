@@ -10148,6 +10148,7 @@
                 adm_times_blocked_chip: '🚫 {n} محجوب',
 
                 /* ===== admin: show times analytics dashboard ===== */
+                adm_analytics_title: 'تحليلات العروض',
                 adm_sta_kpi_showtimes: 'إجمالي المواعيد',
                 adm_sta_kpi_showtimes_sub: 'عدد مواعيد العرض المتاحة',
                 adm_sta_kpi_occupancy: 'متوسط الإشغال',
@@ -11006,6 +11007,7 @@
                 adm_times_col_actions: 'Actions',
 
                 /* ===== admin: show times analytics dashboard ===== */
+                adm_analytics_title: 'Showtime analytics',
                 adm_sta_kpi_showtimes: 'Show times',
                 adm_sta_kpi_showtimes_sub: 'Total scheduled show times',
                 adm_sta_kpi_occupancy: 'Avg. occupancy',

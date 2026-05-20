@@ -2,7 +2,237 @@
 
 @section('title', 'لوحة تحكم الأدمن')
 
+@php
+    use App\Models\Show as ShowModel;
+
+    // Helpers for the analytics dashboard. Data is already pre-computed
+    // by the controller via ShowTimeAnalytics — these only handle
+    // presentation (formatting + ring geometry).
+    $stafmt = fn ($n) => number_format((int) $n);
+    $staPct = fn ($n) => rtrim(rtrim(number_format((float) $n, 1), '0'), '.') . '%';
+
+    // Single source of truth for the occupancy ring geometry so every
+    // ring on the page is the same size.
+    $staRingRadius = 42;
+    $staRingCircumference = 2 * M_PI * $staRingRadius;
+@endphp
+
 @section('content')
+
+{{-- Shared SVG gradient hoisted out of every card so the gradient ID
+     stays unique per document (HTML rule) and the definition is shipped
+     once per page instead of once per showtime. --}}
+<svg width="0" height="0" style="position:absolute;" aria-hidden="true">
+    <defs>
+        <linearGradient id="staRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"  stop-color="#34d399"/>
+            <stop offset="55%" stop-color="#22d3ee"/>
+            <stop offset="100%" stop-color="#a78bfa"/>
+        </linearGradient>
+    </defs>
+</svg>
+
+{{-- Scoped CSS for the analytics dashboard. All classes are namespaced
+     under `.sta-` so they cannot collide with the operational Show Times
+     page or any other PRISM card surface. Only the occupancy ring + the
+     stacked-progress bar need custom rules — everything else reuses the
+     existing PRISM tokens from layouts/app.blade.php. --}}
+<style>
+    .sta-ring-wrap {
+        position: relative;
+        width: 116px; height: 116px;
+        flex: 0 0 auto;
+    }
+    .sta-ring-wrap svg {
+        width: 100%; height: 100%;
+        transform: rotate(-90deg);
+    }
+    .sta-ring-track { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 10; }
+    .sta-ring-fill {
+        fill: none;
+        stroke: url(#staRingGrad);
+        stroke-width: 10;
+        stroke-linecap: round;
+        transition: stroke-dashoffset .9s cubic-bezier(.25,.8,.25,1);
+    }
+    .sta-ring-center {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        text-align: center; line-height: 1;
+    }
+    .sta-ring-percent {
+        font-family: "Space Grotesk", system-ui, sans-serif;
+        font-weight: 700; font-size: 26px;
+        color: var(--prism-text);
+        letter-spacing: -0.02em;
+    }
+    .sta-ring-caption {
+        margin-top: 4px;
+        font-size: 10px; font-weight: 600;
+        letter-spacing: 0.14em;
+        color: var(--prism-text-3);
+        text-transform: uppercase;
+    }
+
+    /* Stacked progress bar — approved | pending | blocked | remaining */
+    .sta-stack {
+        position: relative;
+        height: 12px; width: 100%;
+        background: rgba(255,255,255,0.05);
+        border-radius: 999px; overflow: hidden;
+        display: flex;
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+    .sta-stack-seg { height: 100%; transition: width .9s cubic-bezier(.25,.8,.25,1); }
+    .sta-stack-seg.is-approved { background: linear-gradient(90deg, #10b981, #34d399); }
+    .sta-stack-seg.is-pending  { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .sta-stack-seg.is-blocked  { background: linear-gradient(90deg, #f43f5e, #fb7185); }
+    .sta-stack-seg.is-remaining{ background: transparent; }
+
+    .sta-legend {
+        display: flex; flex-wrap: wrap; gap: 12px;
+        font-size: 11px;
+        color: var(--prism-text-3);
+        margin-top: 8px;
+    }
+    .sta-legend-dot {
+        display: inline-block;
+        width: 9px; height: 9px;
+        border-radius: 999px;
+        margin-inline-end: 6px;
+        vertical-align: middle;
+    }
+    .sta-legend-dot.is-approved { background: #34d399; box-shadow: 0 0 8px rgba(52,211,153,0.5); }
+    .sta-legend-dot.is-pending  { background: #fbbf24; box-shadow: 0 0 8px rgba(251,191,36,0.5); }
+    .sta-legend-dot.is-blocked  { background: #fb7185; box-shadow: 0 0 8px rgba(244,63,94,0.5); }
+    .sta-legend-dot.is-remaining{ background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.45); }
+
+    /* Hall / Balcony breakdown cards (Anba-priced shows only). */
+    .sta-section-card {
+        border-radius: 16px;
+        padding: 14px 16px;
+        border: 1px solid var(--prism-border, rgba(255,255,255,0.10));
+        background: rgba(255,255,255,0.03);
+        display: flex; flex-direction: column; gap: 10px;
+        min-width: 0;
+    }
+    .sta-section-card.is-hall    { background: linear-gradient(180deg, rgba(251,191,36,0.10), rgba(251,191,36,0.02)); border-color: rgba(251,191,36,0.30); }
+    .sta-section-card.is-balcony { background: linear-gradient(180deg, rgba(192,132,252,0.10), rgba(192,132,252,0.02)); border-color: rgba(192,132,252,0.30); }
+    .sta-section-title {
+        display: flex; align-items: center; justify-content: space-between;
+        font-size: 12px; font-weight: 700;
+        letter-spacing: 0.10em;
+        text-transform: uppercase;
+    }
+    .sta-section-card.is-hall .sta-section-title { color: #fcd34d; }
+    .sta-section-card.is-balcony .sta-section-title { color: #d8b4fe; }
+    .sta-section-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+    @media (max-width: 360px) { .sta-section-rows { grid-template-columns: 1fr; } }
+    .sta-section-row-label {
+        font-size: 10.5px;
+        color: var(--prism-text-3);
+        letter-spacing: 0.06em;
+    }
+    .sta-section-row-value {
+        font-family: "Space Grotesk", system-ui, sans-serif;
+        font-weight: 700; font-size: 15px;
+        color: var(--prism-text);
+        line-height: 1.1;
+    }
+
+    /* Revenue split — approved vs pending tiles. */
+    .sta-rev-split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .sta-rev-tile {
+        border-radius: 14px;
+        padding: 12px 14px;
+        border: 1px solid rgba(255,255,255,0.10);
+        background: rgba(255,255,255,0.03);
+    }
+    .sta-rev-tile.is-approved { border-color: rgba(52,211,153,0.32); background: linear-gradient(180deg, rgba(16,185,129,0.10), rgba(16,185,129,0.02)); }
+    .sta-rev-tile.is-pending  { border-color: rgba(251,191,36,0.32);  background: linear-gradient(180deg, rgba(251,191,36,0.10), rgba(251,191,36,0.02)); }
+    .sta-rev-label {
+        font-size: 10px; font-weight: 600;
+        letter-spacing: 0.14em;
+        color: var(--prism-text-3);
+        text-transform: uppercase;
+    }
+    .sta-rev-value {
+        margin-top: 6px;
+        font-family: "Space Grotesk", system-ui, sans-serif;
+        font-weight: 700;
+        font-size: clamp(18px, 4vw, 22px);
+        line-height: 1.1;
+    }
+    .sta-rev-tile.is-approved .sta-rev-value { color: var(--prism-emerald); }
+    .sta-rev-tile.is-pending  .sta-rev-value { color: var(--prism-gold); }
+    .sta-rev-sub {
+        margin-top: 4px;
+        font-size: 11px;
+        color: var(--prism-text-3);
+    }
+
+    /* Advanced metrics expandable. Native <details> so it works without JS. */
+    .sta-advanced { border-top: 1px dashed var(--prism-border, rgba(255,255,255,0.10)); padding-top: 14px; margin-top: 4px; }
+    .sta-advanced summary {
+        cursor: pointer;
+        list-style: none;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 10px;
+        font-size: 12px; font-weight: 600;
+        color: var(--prism-text-2);
+        letter-spacing: 0.06em;
+        user-select: none;
+    }
+    .sta-advanced summary::-webkit-details-marker { display: none; }
+    .sta-advanced summary::after {
+        content: "▾";
+        font-size: 10px;
+        color: var(--prism-text-3);
+        transition: transform .25s ease;
+    }
+    .sta-advanced[open] summary::after { transform: rotate(180deg); }
+    .sta-advanced-grid {
+        margin-top: 12px;
+        display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px;
+    }
+    @media (min-width: 640px) {
+        .sta-advanced-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
+    }
+
+    /* Live availability chip. */
+    .sta-status-chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px; font-weight: 600;
+        border: 1px solid;
+    }
+    .sta-status-chip.is-live    { background: rgba(16,185,129,0.10); color: #6ee7b7; border-color: rgba(52,211,153,0.40); }
+    .sta-status-chip.is-soldout { background: rgba(244,63,94,0.10);  color: #fda4af; border-color: rgba(251,113,133,0.40); }
+    .sta-status-chip .sta-status-dot {
+        width: 7px; height: 7px; border-radius: 999px;
+        background: currentColor;
+        box-shadow: 0 0 8px currentColor;
+    }
+    .sta-status-chip.is-live .sta-status-dot { animation: staPulse 1.8s ease-in-out infinite; }
+    @keyframes staPulse {
+        0%, 100% { opacity: 1; }
+        50%      { opacity: .35; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .sta-ring-fill, .sta-stack-seg { transition: none; }
+        .sta-status-chip.is-live .sta-status-dot { animation: none; }
+    }
+
+    @media (max-width: 640px) {
+        .sta-ring-wrap { width: 96px; height: 96px; }
+        .sta-ring-percent { font-size: 22px; }
+        .sta-rev-value { font-size: 18px; }
+    }
+</style>
+
     <section class="space-y-7">
 
         {{-- ============================ HERO ============================ --}}
@@ -178,138 +408,359 @@
             </div>
         </div>
 
-        {{-- ============================ SHOW TIMES TABLE ============================ --}}
-        <section class="space-y-3 pt-reveal">
+        {{-- ============================ ANALYTICS ============================ --}}
+        {{-- Cross-show analytics dashboard. Each showtime renders as its
+             own rich card (occupancy ring, sold vs remaining viz,
+             approved vs pending revenue split, hall/balcony breakdown for
+             Anba shows, expandable advanced metrics). All numbers come
+             from $analytics / $analyticsTotals which are pre-computed by
+             ShowTimeAnalytics in the controller. --}}
+        <section class="space-y-4 pt-reveal">
 
             <div class="prism-section-head">
-                <span class="prism-section-title" data-i18n="adm_showtimes_title">المواعيد والتذاكر لكل عرض</span>
-                <span class="prism-eyebrow">SHOW TIMES</span>
+                <span class="prism-section-title" data-i18n="adm_analytics_title">تحليلات العروض</span>
+                <span class="prism-eyebrow">SHOWTIME ANALYTICS</span>
             </div>
 
-            {{-- DESKTOP TABLE --}}
-            <div class="hidden md:block prism-glass overflow-x-auto">
-                <table class="prism-table-clean">
-                    <thead>
-                        <tr>
-                            <th class="text-right pt-rtl-text" data-i18n="adm_th_show">العرض</th>
-                            <th class="text-right pt-rtl-text" data-i18n="adm_th_date">التاريخ</th>
-                            <th class="text-right pt-rtl-text" data-i18n="adm_th_time">الساعة</th>
-                            <th class="text-center" data-i18n="adm_th_total">إجمالي</th>
-                            <th class="text-center" style="color: var(--prism-emerald);">Approved</th>
-                            <th class="text-center" style="color: var(--prism-gold);">Pending</th>
-                            <th class="text-center" style="color: #fda4af;" data-i18n="adm_th_blocked">المحجوب</th>
-                            <th class="text-center" style="color: var(--prism-cyan);" data-i18n="adm_th_remaining">المتبقي</th>
-                            <th class="text-center" style="color: var(--prism-gold);">Revenue</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                    @foreach($showTimesStats as $time)
-                        <tr>
-                            <td class="text-[color:var(--prism-text)] font-medium">{{ $time->show->title }}</td>
-                            <td>{{ $time->date?->format('Y-m-d') }}</td>
-                            <td>{{ \Carbon\Carbon::parse($time->time)->format('g:i A') }}</td>
-
-                            <td class="text-center">
-                                <span class="prism-pill">{{ $time->total_tickets }}</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="prism-pill prism-pill-emerald">{{ $time->approved_tickets }}</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="prism-pill prism-pill-amber">{{ $time->pending_tickets }}</span>
-                            </td>
-                            <td class="text-center">
-                                @if(($time->blocked_tickets ?? 0) > 0)
-                                    <span class="prism-pill prism-pill-rose">{{ $time->blocked_tickets }}</span>
-                                @else
-                                    <span class="prism-pill" style="opacity:.45;">0</span>
-                                @endif
-                            </td>
-                            <td class="text-center">
-                                <span class="prism-pill {{ $time->remaining_tickets > 0 ? 'prism-pill-sky' : 'prism-pill-rose' }}">{{ $time->remaining_tickets }}</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="prism-pill prism-pill-amber">
-                                    {{ number_format($time->revenue, 0) }} EGP
-                                </span>
-                            </td>
-                        </tr>
-                    @endforeach
-                    </tbody>
-                </table>
-            </div>
-
-            {{-- MOBILE CARDS --}}
-            <div class="md:hidden space-y-3 prism-stagger">
-
-            @forelse($showTimesStats as $time)
-
-                <div class="prism-glass p-4 space-y-3 prism-fade-up">
-
-                    {{-- Header --}}
-                    <div class="flex justify-between text-xs items-center">
-                        <span class="text-[color:var(--prism-text-2)] flex items-center gap-1">
-                            <span>🎭</span>
-                            <span class="font-semibold">{{ $time->show->title }}</span>
-                        </span>
-                        <span class="font-medium" style="color: var(--prism-gold);">
-                            {{ \Carbon\Carbon::parse($time->time)->format('g:i A') }}
-                        </span>
-                    </div>
-
-                    {{-- التاريخ --}}
-                    <div class="text-xs text-[color:var(--prism-text-3)] flex items-center gap-1">
-                        <span>📅</span>
-                        <span>{{ $time->date?->format('Y-m-d') }}</span>
-                    </div>
-
-                    {{-- Stats grid --}}
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-
-                        <div class="pt-mini-card flex justify-between px-3 py-1.5">
-                            <span class="text-[color:var(--prism-text-3)]" data-i18n="adm_th_total">إجمالي</span>
-                            <span class="text-[color:var(--prism-text)] font-semibold">{{ $time->total_tickets }}</span>
-                        </div>
-
-                        <div class="pt-mini-card pt-mini-card-emerald flex justify-between px-3 py-1.5">
-                            <span>Approved</span>
-                            <span class="font-semibold">{{ $time->approved_tickets }}</span>
-                        </div>
-
-                        <div class="pt-mini-card pt-mini-card-gold flex justify-between px-3 py-1.5">
-                            <span>Pending</span>
-                            <span class="font-semibold">{{ $time->pending_tickets }}</span>
-                        </div>
-
-                        @if(($time->blocked_tickets ?? 0) > 0)
-                            <div class="pt-mini-card pt-mini-card-rose flex justify-between px-3 py-1.5">
-                                <span data-i18n="adm_th_blocked">المحجوب</span>
-                                <span class="font-semibold">{{ $time->blocked_tickets }}</span>
-                            </div>
-                        @endif
-
-                        <div class="pt-mini-card {{ $time->remaining_tickets > 0 ? 'pt-mini-card-cyan' : 'pt-mini-card-rose' }} flex justify-between px-3 py-1.5
-                                    {{ ($time->blocked_tickets ?? 0) > 0 ? '' : 'col-span-1' }}">
-                            <span data-i18n="adm_th_remaining">المتبقي</span>
-                            <span class="font-semibold">{{ $time->remaining_tickets }}</span>
-                        </div>
-
-                        <div class="pt-mini-card pt-mini-card-gold flex justify-between px-3 py-1.5 col-span-2">
-                            <span>Revenue</span>
-                            <span class="font-semibold">{{ number_format($time->revenue, 0) }} EGP</span>
-                        </div>
-
-                    </div>
-                </div>
-
-            @empty
-                <div class="prism-glass p-4 text-center text-xs text-[color:var(--prism-text-3)]"
+            @if($showTimesStats->isEmpty())
+                <div class="prism-glass p-6 text-center text-sm text-[color:var(--prism-text-3)]"
                      data-i18n="adm_showtimes_empty">
                     لسه مفيش مواعيد متسجلة على السيستم.
                 </div>
-            @endforelse
-            </div>
+            @else
+
+                {{-- Two supplementary analytics KPIs that don't already
+                     live in the top-level KPI grid. Average occupancy %
+                     is calculated as a capacity-weighted mean across all
+                     showtimes, total discounts is the sum of applied
+                     bulk-discount savings across approved bookings. --}}
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 prism-fade-up">
+
+                    <div class="prism-stat is-attention">
+                        <span class="prism-stat-label" data-i18n="adm_sta_kpi_occupancy">متوسط الإشغال</span>
+                        <span class="prism-stat-value">{{ $staPct($analyticsTotals['occupancy_percent'] ?? 0) }}</span>
+                        <span class="prism-stat-caption">
+                            {{ $stafmt($analyticsTotals['sold'] ?? 0) }} /
+                            {{ $stafmt($analyticsTotals['capacity'] ?? 0) }}
+                            <span data-i18n="adm_sta_kpi_tickets_word">تذكرة</span>
+                        </span>
+                    </div>
+
+                    <div class="prism-stat">
+                        <span class="prism-stat-label" data-i18n="adm_sta_kpi_savings">إجمالي الخصومات</span>
+                        <span class="prism-stat-value" style="color: var(--prism-gold);">{{ $stafmt($analyticsTotals['total_discount'] ?? 0) }}</span>
+                        <span class="prism-stat-caption">
+                            <span data-i18n="common_currency_short">ج</span>
+                            · <span data-i18n="adm_sta_kpi_savings_sub">قيمة الخصومات المُطبَّقة</span>
+                        </span>
+                    </div>
+
+                    <div class="prism-stat is-positive">
+                        <span class="prism-stat-label" data-i18n="adm_sta_rev_approved">إيراد مؤكد</span>
+                        <span class="prism-stat-value">{{ $stafmt($analyticsTotals['approved_revenue'] ?? 0) }}</span>
+                        <span class="prism-stat-caption">
+                            <span data-i18n="common_currency_short">ج</span>
+                            · {{ $stafmt($analyticsTotals['approved_bookings'] ?? 0) }}
+                            <span data-i18n="adm_sta_kpi_bookings_word">حجز</span>
+                        </span>
+                    </div>
+
+                    <div class="prism-stat">
+                        <span class="prism-stat-label" data-i18n="adm_sta_rev_pending">إيراد معلَّق</span>
+                        <span class="prism-stat-value" style="color: var(--prism-gold);">{{ $stafmt($analyticsTotals['pending_revenue'] ?? 0) }}</span>
+                        <span class="prism-stat-caption">
+                            <span data-i18n="common_currency_short">ج</span>
+                            · {{ $stafmt($analyticsTotals['pending_bookings'] ?? 0) }}
+                            <span data-i18n="adm_sta_kpi_bookings_word">حجز</span>
+                        </span>
+                    </div>
+
+                </div>
+
+                {{-- Per-showtime analytics cards --}}
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 prism-stagger">
+
+                @foreach($showTimesStats as $time)
+                    @php
+                        $a = $analytics[$time->id] ?? [];
+
+                        // Per-card section-pricing flag: shows can have
+                        // different theater types, so each card decides
+                        // independently whether to show the hall/balcony
+                        // breakdown.
+                        $cardUsesSection = $time->show && $time->show->theater_type === ShowModel::THEATER_ANBA_RUWEIS;
+                        $cardSectionLabel = $cardUsesSection
+                            ? ((int) ($time->show->hall_price ?? 0)) . ' / ' . ((int) ($time->show->balcony_price ?? 0))
+                            : null;
+
+                        $occupancyPct = $a['occupancy_percent'] ?? 0;
+                        $ringOffset   = $staRingCircumference * (1 - min(100, $occupancyPct) / 100);
+
+                        $approvedPct  = $a['sold_percent']     ?? 0;
+                        $pendingPct   = $a['pending_percent']  ?? 0;
+                        $blockedPct   = $a['blocked_percent']  ?? 0;
+                        $remainingPct = max(0, 100 - $approvedPct - $pendingPct - $blockedPct);
+
+                        $isLocked  = ($a['remaining'] ?? 0) <= 0;
+                        $isSoldOut = $time->is_sold_out || $isLocked;
+                    @endphp
+
+                    <article class="prism-glass prism-glow-border p-5 sm:p-6 space-y-5 prism-fade-up">
+
+                        {{-- ── header: show title + date/time + status ─── --}}
+                        <div class="flex items-start justify-between gap-3 flex-wrap">
+                            <div class="space-y-1 min-w-0 flex-1">
+                                <div class="flex items-center gap-2 text-[color:var(--prism-text)]">
+                                    <span aria-hidden="true">🎭</span>
+                                    <span class="font-semibold text-sm truncate">{{ $time->show->title }}</span>
+                                </div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="prism-pill prism-pill-neon" style="font-size:11px;">
+                                        <span class="prism-dot prism-dot-emerald"></span>
+                                        {{ $time->date?->format('d/m/Y') }}
+                                    </span>
+                                    <span class="prism-pill prism-pill-amber" style="font-size:11px;">
+                                        🕔 {{ \Carbon\Carbon::parse($time->time)->format('g:i A') }}
+                                    </span>
+                                </div>
+                                <p class="text-[11px] text-[color:var(--prism-text-3)]">
+                                    @if ($cardUsesSection)
+                                        <span data-i18n="adm_sta_price_split">صالة / بلكون</span>:
+                                        <span style="color: var(--prism-gold);">{{ $cardSectionLabel }} <span data-i18n="common_currency_short">ج</span></span>
+                                    @else
+                                        <span data-i18n="adm_times_col_price">السعر</span>:
+                                        <span style="color: var(--prism-gold);">{{ $stafmt($a['ticket_price'] ?? 0) }} <span data-i18n="common_currency_short">ج</span></span>
+                                    @endif
+                                </p>
+                            </div>
+
+                            <span class="sta-status-chip {{ $isSoldOut ? 'is-soldout' : 'is-live' }}">
+                                <span class="sta-status-dot"></span>
+                                <span data-i18n="{{ $isSoldOut ? 'adm_status_sold_out' : 'adm_status_available' }}">
+                                    {{ $isSoldOut ? 'Sold Out' : 'متاح' }}
+                                </span>
+                            </span>
+                        </div>
+
+                        {{-- ── occupancy ring + 4-tile breakdown ────── --}}
+                        <div class="flex items-center gap-4 sm:gap-5 flex-wrap">
+
+                            <div class="sta-ring-wrap" aria-hidden="true">
+                                <svg viewBox="0 0 100 100">
+                                    <circle class="sta-ring-track" cx="50" cy="50" r="{{ $staRingRadius }}"></circle>
+                                    <circle class="sta-ring-fill"
+                                            cx="50" cy="50" r="{{ $staRingRadius }}"
+                                            stroke-dasharray="{{ $staRingCircumference }}"
+                                            stroke-dashoffset="{{ $ringOffset }}"></circle>
+                                </svg>
+                                <div class="sta-ring-center">
+                                    <span class="sta-ring-percent">{{ (int) round($occupancyPct) }}%</span>
+                                    <span class="sta-ring-caption" data-i18n="adm_sta_ring_caption">إشغال</span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2 flex-1 min-w-[200px]">
+                                <div class="pt-mini-card pt-mini-card-emerald">
+                                    <div class="pt-mini-card-label" data-i18n="adm_sta_approved">معتمد</div>
+                                    <div class="pt-mini-card-value">{{ $stafmt($a['approved_tickets'] ?? 0) }}</div>
+                                </div>
+                                <div class="pt-mini-card pt-mini-card-gold">
+                                    <div class="pt-mini-card-label" data-i18n="adm_sta_pending">قيد المراجعة</div>
+                                    <div class="pt-mini-card-value">{{ $stafmt($a['pending_tickets'] ?? 0) }}</div>
+                                </div>
+                                <div class="pt-mini-card" style="border-color: rgba(251,113,133,0.32); background: rgba(244,63,94,0.06);">
+                                    <div class="pt-mini-card-label" data-i18n="adm_sta_blocked">محجوب</div>
+                                    <div class="pt-mini-card-value" style="color: #fda4af;">{{ $stafmt($a['blocked'] ?? 0) }}</div>
+                                </div>
+                                <div class="pt-mini-card">
+                                    <div class="pt-mini-card-label" data-i18n="adm_sta_remaining">المتبقي</div>
+                                    <div class="pt-mini-card-value" style="color: var(--prism-text);">
+                                        {{ $stafmt($a['remaining'] ?? 0) }}
+                                        <span class="text-[10px] opacity-50">/ {{ $stafmt($a['capacity'] ?? 0) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- ── stacked progress bar + legend ───────── --}}
+                        <div>
+                            <div class="sta-stack" role="img"
+                                 aria-label="Approved {{ $approvedPct }}%, pending {{ $pendingPct }}%, blocked {{ $blockedPct }}%, remaining {{ $remainingPct }}%">
+                                <div class="sta-stack-seg is-approved"  style="width: {{ $approvedPct }}%;"></div>
+                                <div class="sta-stack-seg is-pending"   style="width: {{ $pendingPct }}%;"></div>
+                                <div class="sta-stack-seg is-blocked"   style="width: {{ $blockedPct }}%;"></div>
+                                <div class="sta-stack-seg is-remaining" style="width: {{ $remainingPct }}%;"></div>
+                            </div>
+                            <div class="sta-legend">
+                                <span><span class="sta-legend-dot is-approved"></span><span data-i18n="adm_sta_approved">معتمد</span></span>
+                                <span><span class="sta-legend-dot is-pending"></span><span data-i18n="adm_sta_pending">قيد المراجعة</span></span>
+                                @if(($a['blocked'] ?? 0) > 0)
+                                    <span><span class="sta-legend-dot is-blocked"></span><span data-i18n="adm_sta_blocked">محجوب</span></span>
+                                @endif
+                                <span><span class="sta-legend-dot is-remaining"></span><span data-i18n="adm_sta_remaining">المتبقي</span></span>
+                            </div>
+                        </div>
+
+                        {{-- ── revenue split: approved vs pending ──── --}}
+                        <div class="sta-rev-split">
+                            <div class="sta-rev-tile is-approved">
+                                <div class="sta-rev-label" data-i18n="adm_sta_rev_approved">إيراد مؤكد</div>
+                                <div class="sta-rev-value">
+                                    {{ $stafmt($a['approved_revenue'] ?? 0) }}
+                                    <span class="text-xs opacity-70" data-i18n="common_currency_short">ج</span>
+                                </div>
+                                <div class="sta-rev-sub">
+                                    {{ $stafmt($a['approved_bookings'] ?? 0) }}
+                                    <span data-i18n="adm_sta_kpi_bookings_word">حجز</span>
+                                    · <span data-i18n="adm_sta_avg_short">متوسط</span>
+                                    {{ $stafmt($a['average_booking_value'] ?? 0) }}
+                                    <span data-i18n="common_currency_short">ج</span>
+                                </div>
+                            </div>
+
+                            <div class="sta-rev-tile is-pending">
+                                <div class="sta-rev-label" data-i18n="adm_sta_rev_pending">إيراد معلَّق</div>
+                                <div class="sta-rev-value">
+                                    {{ $stafmt($a['pending_revenue'] ?? 0) }}
+                                    <span class="text-xs opacity-70" data-i18n="common_currency_short">ج</span>
+                                </div>
+                                <div class="sta-rev-sub">
+                                    {{ $stafmt($a['pending_bookings'] ?? 0) }}
+                                    <span data-i18n="adm_sta_kpi_bookings_word">حجز</span>
+                                    · <span data-i18n="adm_sta_conv_short">تحويل</span>
+                                    {{ $staPct($a['conversion_percent'] ?? 0) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- ── hall / balcony breakdown (Anba only) ─── --}}
+                        @if($cardUsesSection && (($a['hall'] ?? null) || ($a['balcony'] ?? null)))
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                                @php $h = $a['hall'] ?? null; @endphp
+                                @if($h)
+                                    <div class="sta-section-card is-hall">
+                                        <div class="sta-section-title">
+                                            <span><span data-i18n="adm_sta_section_hall">صالة</span></span>
+                                            <span class="text-[10px] opacity-80">{{ $stafmt($a['hall_price']) }} <span data-i18n="common_currency_short">ج</span></span>
+                                        </div>
+                                        <div class="sta-section-rows">
+                                            <div>
+                                                <div class="sta-section-row-label" data-i18n="adm_sta_section_sold">تذاكر مُباعة</div>
+                                                <div class="sta-section-row-value">{{ $stafmt($h['tickets_sold']) }}</div>
+                                            </div>
+                                            <div>
+                                                <div class="sta-section-row-label" data-i18n="adm_sta_section_list">قيمة قائمة الأسعار</div>
+                                                <div class="sta-section-row-value">{{ $stafmt($h['list_revenue']) }} <span class="text-xs opacity-70" data-i18n="common_currency_short">ج</span></div>
+                                            </div>
+                                            <div>
+                                                <div class="sta-section-row-label" data-i18n="adm_sta_section_final">صافي الإيراد</div>
+                                                <div class="sta-section-row-value" style="color: var(--prism-emerald);">
+                                                    {{ $stafmt($h['final_revenue']) }} <span class="text-xs opacity-70" data-i18n="common_currency_short">ج</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="sta-section-row-label" data-i18n="adm_sta_section_savings">الخصومات</div>
+                                                <div class="sta-section-row-value" style="color: var(--prism-gold);">
+                                                    {{ $stafmt($h['discount_amount']) }} <span class="text-xs opacity-70" data-i18n="common_currency_short">ج</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+
+                                @php $b = $a['balcony'] ?? null; @endphp
+                                @if($b)
+                                    <div class="sta-section-card is-balcony">
+                                        <div class="sta-section-title">
+                                            <span><span data-i18n="adm_sta_section_balcony">بلكون</span></span>
+                                            <span class="text-[10px] opacity-80">{{ $stafmt($a['balcony_price']) }} <span data-i18n="common_currency_short">ج</span></span>
+                                        </div>
+                                        <div class="sta-section-rows">
+                                            <div>
+                                                <div class="sta-section-row-label" data-i18n="adm_sta_section_sold">تذاكر مُباعة</div>
+                                                <div class="sta-section-row-value">{{ $stafmt($b['tickets_sold']) }}</div>
+                                            </div>
+                                            <div>
+                                                <div class="sta-section-row-label" data-i18n="adm_sta_section_list">قيمة قائمة الأسعار</div>
+                                                <div class="sta-section-row-value">{{ $stafmt($b['list_revenue']) }} <span class="text-xs opacity-70" data-i18n="common_currency_short">ج</span></div>
+                                            </div>
+                                            <div>
+                                                <div class="sta-section-row-label" data-i18n="adm_sta_section_final">صافي الإيراد</div>
+                                                <div class="sta-section-row-value" style="color: var(--prism-emerald);">
+                                                    {{ $stafmt($b['final_revenue']) }} <span class="text-xs opacity-70" data-i18n="common_currency_short">ج</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="sta-section-row-label" data-i18n="adm_sta_section_savings">الخصومات</div>
+                                                <div class="sta-section-row-value" style="color: var(--prism-gold);">
+                                                    {{ $stafmt($b['discount_amount']) }} <span class="text-xs opacity-70" data-i18n="common_currency_short">ج</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+
+                            </div>
+                        @endif
+
+                        {{-- ── advanced expandable ──────────────────── --}}
+                        <details class="sta-advanced">
+                            <summary>
+                                <span data-i18n="adm_sta_advanced_toggle">تحليلات متقدمة</span>
+                            </summary>
+                            <div class="sta-advanced-grid">
+                                <div class="pt-mini-card">
+                                    <div class="pt-mini-card-label" data-i18n="adm_sta_adv_discount">الخصومات المُطبَّقة</div>
+                                    <div class="pt-mini-card-value" style="color: var(--prism-gold);">
+                                        {{ $stafmt($a['total_discount'] ?? 0) }}
+                                        <span class="text-xs opacity-70" data-i18n="common_currency_short">ج</span>
+                                    </div>
+                                </div>
+                                <div class="pt-mini-card">
+                                    <div class="pt-mini-card-label" data-i18n="adm_sta_adv_discounted_count">عدد الحجوزات المخصومة</div>
+                                    <div class="pt-mini-card-value">{{ $stafmt($a['discounted_bookings'] ?? 0) }}</div>
+                                </div>
+                                <div class="pt-mini-card">
+                                    <div class="pt-mini-card-label" data-i18n="adm_sta_adv_avg">متوسط قيمة الحجز</div>
+                                    <div class="pt-mini-card-value">
+                                        {{ $stafmt($a['average_booking_value'] ?? 0) }}
+                                        <span class="text-xs opacity-70" data-i18n="common_currency_short">ج</span>
+                                    </div>
+                                </div>
+                                <div class="pt-mini-card">
+                                    <div class="pt-mini-card-label" data-i18n="adm_sta_adv_conv">نسبة الموافقة</div>
+                                    <div class="pt-mini-card-value" style="color: var(--prism-cyan);">
+                                        {{ $staPct($a['conversion_percent'] ?? 0) }}
+                                    </div>
+                                </div>
+                                <div class="pt-mini-card pt-mini-card-emerald">
+                                    <div class="pt-mini-card-label" data-i18n="adm_sta_adv_bk_approved">حجوزات معتمدة</div>
+                                    <div class="pt-mini-card-value">{{ $stafmt($a['approved_bookings'] ?? 0) }}</div>
+                                </div>
+                                <div class="pt-mini-card pt-mini-card-gold">
+                                    <div class="pt-mini-card-label" data-i18n="adm_sta_adv_bk_pending">حجوزات معلَّقة</div>
+                                    <div class="pt-mini-card-value">{{ $stafmt($a['pending_bookings'] ?? 0) }}</div>
+                                </div>
+                                <div class="pt-mini-card" style="border-color: rgba(251,113,133,0.32); background: rgba(244,63,94,0.06);">
+                                    <div class="pt-mini-card-label" data-i18n="adm_sta_adv_bk_rejected">حجوزات مرفوضة</div>
+                                    <div class="pt-mini-card-value" style="color: #fda4af;">{{ $stafmt($a['rejected_bookings'] ?? 0) }}</div>
+                                </div>
+                                <div class="pt-mini-card">
+                                    <div class="pt-mini-card-label" data-i18n="adm_sta_adv_total_rev">الإيراد الكلي</div>
+                                    <div class="pt-mini-card-value">
+                                        {{ $stafmt($a['total_revenue'] ?? 0) }}
+                                        <span class="text-xs opacity-70" data-i18n="common_currency_short">ج</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+
+                    </article>
+                @endforeach
+
+                </div>
+            @endif
         </section>
 
         {{-- ============================ SETTINGS ============================ --}}
