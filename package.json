@@ -1,0 +1,13 @@
+{
+    "name": "elabeed-tickets",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "tailwindcss -i resources/css/app.css -o public/build/app.css --minify",
+        "dev": "tailwindcss -i resources/css/app.css -o public/build/app.css --watch"
+    },
+    "devDependencies": {
+        "tailwindcss": "^4.0.0",
+        "@tailwindcss/cli": "^4.0.0"
+    }
+}

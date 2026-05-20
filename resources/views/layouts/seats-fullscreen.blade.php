@@ -18,7 +18,13 @@
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('brand/apple-touch-icon.png') }}">
     <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
 
-    <script src="https://cdn.tailwindcss.com"></script>
+    {{-- Tailwind CSS — same pre-built static stylesheet as the main layout
+         (replaces the dev-only cdn.tailwindcss.com Play CDN). See the
+         long comment in resources/views/layouts/app.blade.php for the
+         full rationale; this file just mirrors the swap so the
+         fullscreen seat-picker shell uses the same compiled utilities
+         as the rest of the app. --}}
+    <link rel="stylesheet" href="{{ asset('build/app.css') }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

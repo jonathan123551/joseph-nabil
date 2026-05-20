@@ -89,8 +89,19 @@
         })();
     </script>
 
-    {{-- Tailwind CSS (CDN, like before) --}}
-    <script src="https://cdn.tailwindcss.com"></script>
+    {{-- Tailwind CSS — pre-built static stylesheet (replaces the dev-only
+         cdn.tailwindcss.com Play CDN). The file is generated during the
+         Docker image build by `npm run build` (see Dockerfile), which runs
+         `tailwindcss -i resources/css/app.css -o public/build/app.css
+         --minify`. The build scans every .blade.php / .js file under
+         resources/ for utility classes and emits only those — so the
+         output is small (~55 KB) and the same utilities currently in use
+         render identically. Position is preserved (right where the
+         <script> CDN tag used to sit) so the cascade order vs. the
+         inline PRISM <style> block below is unchanged: PRISM still wins
+         on conflicts. The static file gets long-lived Cache-Control via
+         the nginx location block, so the browser downloads it once. --}}
+    <link rel="stylesheet" href="{{ asset('build/app.css') }}">
 
     {{-- Premium font stack --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
