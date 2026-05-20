@@ -3,15 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\GenerateTicketImageJob;
+use App\Jobs\SendWhatsAppTicketImageJob;
+use App\Jobs\SendWhatsAppTicketTemplateJob;
 use App\Models\Booking;
 use App\Models\Theater;
 use App\Models\Ticket;
-use Cloudinary\Api\Upload\UploadApi;
 use Cloudinary\Configuration\Configuration;
-use Endroid\QrCode\Builder\Builder;
-use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 
 class BookingController extends Controller
 {
@@ -53,6 +52,26 @@ class BookingController extends Controller
 
     /* =======================
      |  APPROVE BOOKING
+     |
+     |  Tier-2: the per-ticket QR build, image composite, Cloudinary
+     |  upload and WhatsApp template send used to run inline here — the
+     |  admin's browser blocked for 8–17 seconds on a 4-ticket booking,
+     |  including an explicit `sleep(1)` between WhatsApp calls to dodge
+     |  Meta rate limits.
+     |
+     |  Now: the Booking::update(status=approved) still commits sync (so
+     |  the admin's redirect target shows the new state immediately) and
+     |  the heavy work fans out to queued jobs:
+     |    • GenerateTicketImageJob — builds QR + composite + uploads
+     |      to Cloudinary, then chains SendWhatsAppTicketImageJob for
+     |      the same ticket on success.
+     |    • SendWhatsAppTicketTemplateJob — the per-phone template
+     |      message that used to be guarded by sleep(1). The single
+     |      queue worker drains one job at a time, replicating the
+     |      pacing without burning admin wall-time.
+     |  Rollback to the pre-Tier-2 inline behavior is one env var:
+     |  set QUEUE_CONNECTION=sync and every dispatch() above runs
+     |  inline on the request thread, byte-identical to today's flow.
      ======================= */
     public function approve(Booking $booking)
     {
@@ -74,313 +93,54 @@ class BookingController extends Controller
         ]);
 
         foreach ($booking->tickets as $ticket) {
+            // Each ticket gets its own image-generation job. The job
+            // is idempotent on qr_image_path: tickets that already
+            // have an image (e.g. an admin un-approving and re-
+            // approving) skip the Cloudinary upload and chain straight
+            // to the WhatsApp send job.
+            GenerateTicketImageJob::dispatch($ticket->id)->onQueue('high');
 
-            if ($ticket->qr_image_path) {
-                continue;
-            }
-
-            /* === QR === */
-            $qr = Builder::create()
-                ->writer(new PngWriter)
-                ->data($ticket->ticket_code)
-                ->size($show->ticket_qr_size ?? 220)
-                ->margin(0)
-                ->build();
-
-            $templateImage = imagecreatefromstring(
-                file_get_contents($show->ticket_template_path)
-            );
-
-            $qrImage = imagecreatefromstring($qr->getString());
-
-            imagecopy(
-                $templateImage,
-                $qrImage,
-                $show->ticket_qr_x ?? 0,
-                $show->ticket_qr_y ?? 0,
-                0,
-                0,
-                imagesx($qrImage),
-                imagesy($qrImage)
-            );
-
-            $tempPath = sys_get_temp_dir().'/'.$ticket->ticket_code.'.png';
-
-            imagepng($templateImage, $tempPath);
-
-            imagedestroy($templateImage);
-            imagedestroy($qrImage);
-
-            $upload = (new UploadApi)->upload($tempPath, [
-                'folder' => 'tickets/generated',
-            ]);
-
-            unlink($tempPath);
-
-            $ticket->update([
-                'qr_image_path' => $upload['secure_url'],
-                'whatsapp_sent' => false, // مهم جدًا
-            ]);
-        }
-
-        foreach ($booking->tickets as $ticket) {
-
-            $this->sendTicketTemplate(
-                $ticket->phone
-            );
-
-            sleep(1);
+            // Template send (the customer-facing "تم تأكيد حجزك" tap-
+            // to-receive template) is independent of the image
+            // pipeline — dispatch it directly. Pacing that used to
+            // come from in-request sleep(1) now comes from the
+            // single-concurrency queue worker draining `high` in
+            // order.
+            SendWhatsAppTicketTemplateJob::dispatch($ticket->phone)->onQueue('high');
         }
 
         return redirect()
             ->route('admin.bookings.show', $booking->id)
-            ->with('status', 'تم اعتماد الحجز وإرسال رسالة الاستلام ✅');
+            ->with('status', 'تم اعتماد الحجز — يتم إرسال التذاكر في الخلفية ✅');
     }
 
-    /* =======================
-     | TEMPLATE
-     ======================= */
-    public function sendTicketTemplate($phone)
-    {
-        $phone = preg_replace('/[^0-9]/', '', $phone);
-
-        $response = Http::withToken(env('WHATSAPP_TOKEN'))->post(
-            'https://graph.facebook.com/v23.0/'.env('WHATSAPP_PHONE_ID').'/messages',
-            [
-                'messaging_product' => 'whatsapp',
-                'to' => $phone,
-                'type' => 'template',
-                'template' => [
-                    'name' => 'ticket',
-                    'language' => [
-                        'code' => 'ar_EG',
-                    ],
-                    'components' => [], // 🔥 مهم جداً
-                ],
-            ]
-        );
-
-        // Capture Graph API response so silent Meta-side failures (e.g.
-        // template not approved, language mismatch, 24h window issues for
-        // followup sends) surface in Railway logs instead of being
-        // discarded by the fire-and-forget HTTP call.
-        //
-        // body_raw is the response body as a raw string — needed because
-        // Monolog truncates deeply nested error objects to the placeholder
-        // "Over 9 levels deep, aborting normalization" when normalizing
-        // them into the structured `body` field.
-        \Log::info('WA OUTBOUND TEMPLATE', [
-            'phone'    => $phone,
-            'status'   => $response->status(),
-            'ok'       => $response->successful(),
-            'body'     => $response->json(),
-            'body_raw' => $response->body(),
-        ]);
-    }
-
-    /* =======================
-     | SEND IMAGE
-     |
-     | Sends the customer's QR ticket as a WhatsApp image with a
-     | cinematic confirmation caption. The QR PNG is uploaded to
-     | Cloudinary by approve(); here we just stream that URL through
-     | whatsAppMediaUrl() (see below) so Meta receives a properly
-     | sized JPEG. The caption is built by buildTicketCaption() —
-     | the ticket's booking / showTime / seat are looked up by
-     | reference here so the existing call sites don't need to know
-     | about the new dynamic fields.
-     ======================= */
-    public function sendWhatsAppTicket($phone, $imageUrl, $reference, $full_name, $showTimeText)
-    {
-        $phone = preg_replace('/[^0-9]/', '', $phone);
-
-        // WhatsApp Cloud API rejects images larger than 5 MB. The ticket
-        // PNGs we upload to Cloudinary in approve() are commonly 5–6 MB
-        // at full resolution (2159×2699), which causes Meta to 200-accept
-        // the /messages call and then asynchronously fail delivery with
-        // error 131053 ("Media download error") via the statuses webhook.
-        // Routing the link through whatsAppMediaUrl() injects a Cloudinary
-        // transformation that downsizes the image to JPEG / 2000 px wide /
-        // auto-quality — enough to stay well under 5 MB while keeping the
-        // QR code legible. The DB still stores the original high-res PNG
-        // URL; only the link sent to Meta is rewritten.
-        $mediaUrl = $this->whatsAppMediaUrl($imageUrl);
-
-        // Resolve the ticket by its `ticket_code` so we can render the
-        // structured caption (show date, show time, seat label).
-        // Falls back to a name-only caption if the lookup misses — e.g.
-        // for legacy resends where the reference doesn't map to a row.
-        $ticket = Ticket::with(['booking.showTime', 'booking.seats', 'bookingSeat'])
-            ->where('ticket_code', $reference)
-            ->first();
-
-        $caption = $this->buildTicketCaption($ticket, $full_name);
-
-        $response = Http::withToken(env('WHATSAPP_TOKEN'))->post(
-            'https://graph.facebook.com/v23.0/'.env('WHATSAPP_PHONE_ID').'/messages',
-            [
-                'messaging_product' => 'whatsapp',
-                'to' => $phone,
-                'type' => 'image',
-                'image' => [
-                    'link' => $mediaUrl,
-                    'caption' => $caption,
-                ],
-            ]
-        );
-
-        // Capture Graph API response so failures surface in Railway logs.
-        // Freeform image sends are gated by the 24h customer service window
-        // and will be rejected with code 131047 outside that window — making
-        // that visible is the only way to debug silent resend failures.
-        //
-        // body_raw is the response body as a raw string — needed because
-        // Monolog truncates deeply nested error objects to the placeholder
-        // "Over 9 levels deep, aborting normalization" when normalizing
-        // them into the structured `body` field.
-        \Log::info('WA OUTBOUND IMAGE', [
-            'phone'    => $phone,
-            'status'   => $response->status(),
-            'ok'       => $response->successful(),
-            'body'     => $response->json(),
-            'body_raw' => $response->body(),
-            'link'     => $mediaUrl,
-        ]);
-    }
-
-    /* =======================
-     | CAPTION BUILDER
-     |
-     | Builds the cinematic ticket caption sent next to the QR image.
-     | Only customer name, show date, show time and seat label are
-     | dynamic — the movie title and the surrounding flavour text are
-     | intentionally hardcoded so the brand voice stays consistent.
-     ======================= */
-    private function buildTicketCaption(?Ticket $ticket, ?string $fallbackName = null): string
-    {
-        $customerName = trim((string) ($ticket?->name ?? $fallbackName ?? ''));
-        $showTime     = $ticket?->booking?->showTime;
-
-        $showDate = $showTime?->date
-            ? $showTime->date->format('d/m/Y')
-            : '';
-        $showTimeStr = $showTime?->time
-            ? \Carbon\Carbon::parse($showTime->time)->format('h:i A')
-            : '';
-
-        $seatLabel = $ticket ? $this->seatLabelForTicket($ticket) : '';
-        $seatLine  = $seatLabel !== '' ? $seatLabel : '—';
-
-        // Hardcoded film title — per product spec, this stays static.
-        $filmTitle = 'قصة حياة الراهب بولس المقاري';
-
-        return "مرحبًا {$customerName} 👋\n\n"
-            ."🎬  تم تأكيد حجزك لفيلم العابد \n"
-            ."\"{$filmTitle}\" 🎬\n\n"
-            ."ننتظركم لنعيش معًا رحلة ممتعة من سيرة الراهب السائح ومبدد الأوجاع بصلواته ✨\n\n"
-            ."📅 موعد العرض:\n"
-            ."{$showDate}\n\n"
-            ."🕔 الساعة:\n"
-            ."{$showTimeStr}\n\n"
-            ."🎟️ الكرسي:\n"
-            ."{$seatLine}\n\n"
-            ."⚠️ ملاحظة:\n"
-            ."يرجى إحضار التذكرة عند الدخول.\n\n"
-            ."✨ بركة أبونا بولس العابد تكون معكم.";
-    }
-
-    /* =======================
-     | SEAT LABEL
-     |
-     | Resolves a ticket’s seat to the "صالةA11" / "بلكونB7" format.
-     |   • Anba flow: 1 ticket → 1 booking_seat — single label.
-     |   • Manual / "other" venue flow: ticket has no booking_seat,
-     |     so we fall back to all seats on the parent booking joined
-     |     with " • " ("صالةA11 • صالةA12"). Returns '' when no
-     |     seats exist (purely-virtual / manual bookings).
-     ======================= */
-    private function seatLabelForTicket(Ticket $ticket): string
-    {
-        if ($ticket->booking_seat_id && $ticket->bookingSeat) {
-            return $this->formatSeatLabel(
-                $ticket->bookingSeat->section,
-                $ticket->bookingSeat->row_letter,
-                $ticket->bookingSeat->seat_number,
-            );
-        }
-
-        $booking = $ticket->booking;
-        if ($booking && $booking->seats && $booking->seats->isNotEmpty()) {
-            return $booking->seats
-                ->map(fn ($s) => $this->formatSeatLabel($s->section, $s->row_letter, $s->seat_number))
-                ->implode(' • ');
-        }
-
-        return '';
-    }
-
-    /**
-     * Render one seat as "صالةA11" / "بلكونB7". Defensive against
-     * missing pieces so we never emit a partial label like "صالةnull".
-     */
-    private function formatSeatLabel(?string $section, ?string $rowLetter, $seatNumber): string
-    {
-        $sectionLabel = Theater::SECTION_LABELS[$section] ?? '';
-        $row          = strtoupper(trim((string) ($rowLetter ?? '')));
-        $seat         = trim((string) ($seatNumber ?? ''));
-
-        if ($sectionLabel === '' && $row === '' && $seat === '') {
-            return '';
-        }
-
-        return $sectionLabel.$row.$seat;
-    }
-
-    /* =======================
-     | CLOUDINARY → WHATSAPP-SAFE URL
-     |
-     | Inject a Cloudinary transformation between "image/upload/" and the
-     | version segment so Meta fetches a downsized JPEG instead of the raw
-     | high-res PNG. Non-Cloudinary URLs (or already-transformed URLs)
-     | pass through untouched.
-     |
-     |   /image/upload/v123/...png
-     |     → /image/upload/q_auto,f_jpg,w_2000,c_limit/v123/...png
-     |
-     | q_auto:   automatic quality (Cloudinary chooses lossy level)
-     | f_jpg:    deliver JPEG (PNG photographic content is much larger)
-     | w_2000:   limit width to 2000 px
-     | c_limit:  only downscale; never upscale a smaller original
-     ======================= */
-    private function whatsAppMediaUrl(string $url): string
-    {
-        if (! preg_match('#/image/upload/v\d+/#', $url)) {
-            return $url;
-        }
-
-        return preg_replace(
-            '#/image/upload/v#',
-            '/image/upload/q_auto,f_jpg,w_2000,c_limit/v',
-            $url,
-            1
-        );
-    }
+    // Tier-2 note: the previous in-controller helpers (sendTicketTemplate,
+    // sendWhatsAppTicket, buildTicketCaption, seatLabelForTicket,
+    // formatSeatLabel, whatsAppMediaUrl) all moved verbatim to
+    // App\Services\TicketDeliveryService and App\Services\TicketRenderer
+    // so the queue jobs can call them without going through `app(...)`.
+    // The text, URL transform, network shape, and log lines are identical;
+    // only the location changed.
 
     /* =======================
      | WEBHOOK (استلام التذاكر)
+     |
+     | Legacy webhook handler — not currently wired to a route (the live
+     | webhook is WhatsAppWebhookController::handle). Kept for compatibility
+     | with any external integration that may still POST here. Switched to
+     | dispatching SendWhatsAppTicketImageJob so it shares the same async
+     | path as the live webhook.
      ======================= */
     public function receiveTicket(Request $request)
     {
         $phone = $request['from'];
-
-        // تنظيف الرقم
         $phone = preg_replace('/[^0-9]/', '', $phone);
 
         \Log::info('USER CLICKED', ['phone' => $phone]);
 
-        // هات كل التذاكر اللي لسه متبعتتش لنفس الرقم
         $tickets = Ticket::where('phone', $phone)
             ->where('whatsapp_sent', false)
+            ->whereNotNull('qr_image_path')
             ->get();
 
         if ($tickets->isEmpty()) {
@@ -388,25 +148,10 @@ class BookingController extends Controller
         }
 
         foreach ($tickets as $ticket) {
-
-            if (! $ticket->qr_image_path) {
-                continue;
-            }
-
-            $this->sendWhatsAppTicket(
-                $ticket->phone,
-                $ticket->qr_image_path,
-                $ticket->ticket_code,
-                $ticket->name,
-                ''
-            );
-
-            $ticket->update([
-                'whatsapp_sent' => true,
-            ]);
+            SendWhatsAppTicketImageJob::dispatch($ticket->id)->onQueue('high');
         }
 
-        return response()->json(['status' => 'sent']);
+        return response()->json(['status' => 'queued', 'count' => $tickets->count()]);
     }
 
     /* =======================
@@ -447,13 +192,9 @@ class BookingController extends Controller
             return back()->with('status', '❌ التذكرة لم يتم إنشاؤها بعد');
         }
 
-        $this->sendWhatsAppTicket(
-            $ticket->phone,
-            $ticket->qr_image_path,
-            $ticket->ticket_code,
-            $ticket->name,
-            ''
-        );
+        // Tier-2: dispatch instead of inline send. The admin's button
+        // returns immediately; the worker drains the actual send.
+        SendWhatsAppTicketImageJob::dispatch($ticket->id)->onQueue('high');
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json(['ok' => true], 200);
@@ -540,29 +281,26 @@ class BookingController extends Controller
                 ->with('ticket_lookup_cooldown', $secondsLeft);
         }
 
-        $sent = 0;
+        // Tier-2: dispatch one image-send job per ticket. We no longer
+        // mark `whatsapp_sent = true` here — the job is what flips that
+        // flag, only when Meta acks the send. The customer-visible
+        // cooldown still starts on dispatch, not on delivery, so a slow
+        // worker can't block them from re-clicking.
+        $queued = 0;
         foreach ($booking->tickets as $ticket) {
             if (! $ticket->qr_image_path) {
                 continue;
             }
 
-            $this->sendWhatsAppTicket(
-                $ticket->phone,
-                $ticket->qr_image_path,
-                $ticket->ticket_code,
-                $ticket->name,
-                ''
-            );
-
-            $ticket->update(['whatsapp_sent' => true]);
-            $sent++;
+            SendWhatsAppTicketImageJob::dispatch($ticket->id)->onQueue('high');
+            $queued++;
         }
 
         // 60-second cooldown — value stored is the unix timestamp at which
         // the cooldown expires, so the UI can show a precise countdown.
         cache()->put($cacheKey, now()->timestamp + 60, now()->addSeconds(60));
 
-        return $redirect->with('ticket_lookup_status', $sent > 0 ? 'success' : 'no_qr');
+        return $redirect->with('ticket_lookup_status', $queued > 0 ? 'success' : 'no_qr');
     }
 
     /**

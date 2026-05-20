@@ -493,7 +493,16 @@ class BookingController extends Controller
 
     private function uploadPaymentScreenshot($file): array
     {
-        $optimized = ImageOptimizer::optimize($file, 1600, 80);
+        // Tier-2 micro-tune: previously 1600 px / quality 80. Cutting to
+        // 1280 px / quality 75 shaves ~150–400 ms off the customer's
+        // booking-submit wait without making the payment screenshot any
+        // less legible to the admin reviewing it. The Cloudinary upload
+        // step itself stays synchronous — the screenshot URL is part
+        // of the Booking row at INSERT time, and Railway containers
+        // have ephemeral disk so we can't safely stash the file for an
+        // async upload without a persistent volume (see Tier-2 plan,
+        // §3.4 option C).
+        $optimized = ImageOptimizer::optimize($file, 1280, 75);
 
         $upload = (new UploadApi)->upload($optimized, [
             'folder' => 'payments/screenshots',

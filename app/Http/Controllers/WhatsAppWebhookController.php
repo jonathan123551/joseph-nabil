@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Jobs\SendWhatsAppTicketImageJob;
 use App\Models\Ticket;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class WhatsAppWebhookController extends Controller
 {
@@ -103,49 +104,18 @@ class WhatsAppWebhookController extends Controller
                 return response()->json(['status' => 'no ticket']);
             }
 
-            Log::info('SENDING TICKET', [
+            // Tier-2: defer the actual Meta /messages call to a queued
+            // worker. Meta retries the webhook if we don't respond
+            // within ~20 s, and the previous synchronous send loop sat
+            // right at that edge for multi-ticket bookings. The job
+            // also owns the `whatsapp_sent = true` write — only on a
+            // confirmed Meta ack, never just on dispatch.
+            Log::info('QUEUEING TICKET', [
                 'ticket_id' => $ticket->id,
-                'code' => $ticket->ticket_code
+                'code'      => $ticket->ticket_code,
             ]);
 
-            try {
-
-                // 🎭 نجيب ميعاد الحفلة
-                $showTimeText = '';
-
-                if ($ticket->booking && $ticket->booking->showTime) {
-                    $showTime = $ticket->booking->showTime;
-
-                    $showTimeText =
-                        $showTime->date->format('d/m/Y') . ' • ' .
-                        Carbon::parse($showTime->time)->format('h:i A');
-                }
-
-                // 📤 إرسال التذكرة
-                app(\App\Http\Controllers\Admin\BookingController::class)
-                    ->sendWhatsAppTicket(
-                        $ticket->phone,
-                        $ticket->qr_image_path,
-                        $ticket->ticket_code,
-                        $ticket->name,
-                        $showTimeText
-                    );
-
-                // ✅ تحديث الحالة (دي أهم نقطة)
-                $ticket->update([
-                    'whatsapp_sent' => true
-                ]);
-
-                Log::info('TICKET SENT SUCCESS', [
-                    'ticket_id' => $ticket->id
-                ]);
-
-            } catch (\Exception $e) {
-
-                Log::error('SEND FAILED', [
-                    'error' => $e->getMessage()
-                ]);
-            }
+            SendWhatsAppTicketImageJob::dispatch($ticket->id)->onQueue('high');
         }
 
         /* ==========================
