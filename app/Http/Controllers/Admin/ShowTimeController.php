@@ -5,16 +5,45 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Show;
 use App\Models\ShowTime;
+use App\Support\ShowTimeAnalytics;
 use Illuminate\Http\Request;
 
 class ShowTimeController extends Controller
 {
     // عرض كل المواعيد لعرض معيّن
+    //
+    // The index page doubles as a live analytics dashboard for the show,
+    // so we eager-load every relation needed by ShowTimeAnalytics::compute()
+    // up-front (bookings + their seats, plus admin-blocked seats for
+    // seatmap shows). Without the explicit `with()` call, the page would
+    // fire N+1 queries per showtime when computing revenue / occupancy /
+    // section breakdowns — at ~10 showtimes × hundreds of bookings the
+    // request would balloon to thousands of queries.
     public function index(Show $show)
     {
-        $times = $show->showTimes()->orderBy('date')->orderBy('time')->get();
+        $times = $show->showTimes()
+            ->with(['bookings.seats', 'seatBlocks'])
+            ->orderBy('date')
+            ->orderBy('time')
+            ->get();
 
-        return view('admin.show_times.index', compact('show', 'times'));
+        // Re-attach the parent show on every showtime so the analytics
+        // helper can read theater_type / hall_price / balcony_price
+        // without re-querying.
+        $times->each(fn ($t) => $t->setRelation('show', $show));
+
+        $analytics = $times->mapWithKeys(
+            fn ($t) => [$t->id => ShowTimeAnalytics::compute($t)]
+        );
+
+        $totals = ShowTimeAnalytics::totals($analytics->all());
+
+        return view('admin.show_times.index', compact(
+            'show',
+            'times',
+            'analytics',
+            'totals'
+        ));
     }
 
     // فورم إضافة معاد جديد
