@@ -812,19 +812,20 @@
             font-size: 11px;
         }
 
-        /* ===== Auto-pick chip modal =====
-           Touch-first replacement for `window.prompt()`. A small glass
-           card with N tappable chips (1..max). Closes on overlay tap or
-           Escape. Layered on top of the seat-picker viewport so it works
-           in both inline and fullscreen modes. */
+        /* ===== Fast-booking sheet =====
+           Phase 1: offer-led quick actions + custom quantity + strategy
+           pills. Still calls the existing auto-pick allocator immediately;
+           future phases can add preview/candidate cycling without changing
+           the trigger surface. */
         .anba-modal-backdrop {
             position: fixed;
             inset: 0;
             z-index: 60;
             display: none;
             align-items: center;
-            justify-content: center;
-            padding: 16px;
+            justify-content: flex-end;
+            padding: 12px;
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
             background: rgba(3, 5, 12, 0.72);
             backdrop-filter: blur(8px) saturate(140%);
             -webkit-backdrop-filter: blur(8px) saturate(140%);
@@ -836,17 +837,24 @@
             opacity: 1;
         }
         .anba-modal-card {
-            width: min(360px, 92vw);
-            border-radius: 18px;
-            padding: 18px 18px 14px;
-            background: linear-gradient(180deg, rgba(15,18,32,0.96), rgba(8,10,20,0.96));
+            width: min(440px, 100%);
+            max-height: min(86dvh, 720px);
+            overflow: auto;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 24px;
+            padding: 16px;
+            background:
+                radial-gradient(120% 80% at 0% 0%, rgba(34,211,238,0.12), transparent 48%),
+                radial-gradient(110% 80% at 100% 0%, rgba(192,132,252,0.14), transparent 52%),
+                linear-gradient(180deg, rgba(15,18,32,0.98), rgba(8,10,20,0.98));
             border: 1px solid rgba(251,191,36,0.40);
             box-shadow:
                 0 24px 60px -12px rgba(0,0,0,0.65),
                 0 0 0 1px rgba(255,255,255,0.04) inset,
                 0 1px 0 rgba(255,255,255,0.10) inset;
             color: var(--p-text);
-            transform: translateY(6px) scale(.98);
+            transform: translateY(18px) scale(.98);
             transition: transform .22s var(--p-ease);
         }
         .anba-modal-backdrop.is-open .anba-modal-card {
@@ -858,42 +866,242 @@
             text-transform: uppercase;
             color: #fcd34d;
             font-weight: 700;
-            margin-bottom: 6px;
-            text-align: center;
+            margin-bottom: 5px;
         }
         .anba-modal-title {
-            font-size: 16px;
-            font-weight: 700;
+            font-size: 18px;
+            line-height: 1.15;
+            font-weight: 800;
             color: var(--p-text);
-            text-align: center;
+            margin-bottom: 4px;
+            letter-spacing: -0.01em;
+        }
+        .anba-modal-sub {
+            margin-bottom: 14px;
+            font-size: 12px;
+            line-height: 1.45;
+            color: var(--p-text-3);
+        }
+        .anba-offer-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
             margin-bottom: 12px;
         }
-        .anba-modal-grid {
-            display: grid;
-            grid-template-columns: repeat(6, minmax(0, 1fr));
-            gap: 8px;
-            margin-bottom: 14px;
-        }
-        .anba-modal-chip {
+        .anba-offer-btn {
             appearance: none;
             -webkit-appearance: none;
-            border: 1px solid rgba(251,191,36,0.30);
-            background: rgba(251,191,36,0.06);
-            color: #fde68a;
-            border-radius: 12px;
-            padding: 12px 0;
-            font-size: 16px;
-            font-weight: 700;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+            min-height: 78px;
+            padding: 11px;
+            border-radius: 18px;
+            border: 1px solid rgba(129,140,248,0.28);
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025)),
+                rgba(8,10,20,0.54);
+            color: var(--p-text);
+            cursor: pointer;
+            text-align: start;
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+            transition: transform .14s var(--p-ease), border-color .14s var(--p-ease), background .14s var(--p-ease), box-shadow .18s var(--p-ease);
+        }
+        .anba-offer-btn:hover,
+        .anba-offer-btn.is-active {
+            transform: translateY(-1px);
+            border-color: rgba(251,191,36,0.58);
+            background:
+                radial-gradient(130% 90% at 0% 0%, rgba(251,191,36,0.18), transparent 56%),
+                linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03));
+            box-shadow:
+                0 14px 30px -18px rgba(251,191,36,0.8),
+                0 0 18px rgba(129,140,248,0.20),
+                inset 0 1px 0 rgba(255,255,255,0.08);
+        }
+        .anba-offer-btn:active { transform: scale(.98); }
+        .anba-offer-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            width: 100%;
+        }
+        .anba-offer-name {
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1.15;
+        }
+        .anba-offer-count {
+            font-size: 11px;
+            font-weight: 900;
+            color: #fef3c7;
+            background: rgba(251,191,36,0.14);
+            border: 1px solid rgba(251,191,36,0.34);
+            padding: 3px 7px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+        .anba-offer-meta {
+            font-size: 10.5px;
+            color: var(--p-text-3);
+            line-height: 1.25;
+        }
+        .anba-booking-panel {
+            display: grid;
+            gap: 10px;
+            padding: 12px;
+            border-radius: 20px;
+            background: rgba(8,10,20,0.50);
+            border: 1px solid rgba(129,140,248,0.20);
+            margin-bottom: 12px;
+        }
+        .anba-qty-row {
+            display: grid;
+            grid-template-columns: 42px 1fr 42px;
+            gap: 8px;
+            align-items: center;
+        }
+        .anba-qty-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(129,140,248,0.30);
+            color: var(--p-text);
+            font-size: 20px;
+            font-weight: 800;
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
-            min-height: 44px;
-            transition: transform .12s var(--p-ease), background .12s var(--p-ease), border-color .12s var(--p-ease);
         }
-        .anba-modal-chip:hover {
-            background: rgba(251,191,36,0.16);
+        .anba-qty-input {
+            width: 100%;
+            height: 46px;
+            border-radius: 16px;
+            border: 1px solid rgba(251,191,36,0.35);
+            background: rgba(2,6,23,0.52);
+            color: var(--p-text);
+            text-align: center;
+            font-size: 22px;
+            font-weight: 900;
+            outline: none;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .anba-qty-input:focus {
+            border-color: rgba(251,191,36,0.72);
+            box-shadow: 0 0 0 3px rgba(251,191,36,0.11), inset 0 1px 0 rgba(255,255,255,0.06);
+        }
+        .anba-strategy-row {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 6px;
+        }
+        .anba-strategy-pill {
+            min-height: 38px;
+            border-radius: 999px;
+            border: 1px solid rgba(129,140,248,0.25);
+            background: rgba(255,255,255,0.04);
+            color: var(--p-text-2);
+            font-size: 10.5px;
+            font-weight: 800;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            transition: background .14s var(--p-ease), border-color .14s var(--p-ease), color .14s var(--p-ease), transform .14s var(--p-ease);
+        }
+        .anba-strategy-pill.is-active {
+            color: #ecfeff;
+            border-color: rgba(34,211,238,0.56);
+            background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(129,140,248,0.16));
+            box-shadow: 0 0 16px rgba(34,211,238,0.16);
+        }
+        .anba-strategy-pill:active { transform: scale(.98); }
+        .anba-tier-status {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 13px;
+        }
+        .anba-tier-track {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 6px;
+        }
+        .anba-tier-node {
+            min-width: 0;
+            border-radius: 14px;
+            padding: 7px 5px;
+            background: rgba(255,255,255,0.035);
+            border: 1px solid rgba(129,140,248,0.20);
+            color: var(--p-text-3);
+            text-align: center;
+            font-size: 10px;
+            line-height: 1.2;
+        }
+        .anba-tier-node.is-active {
+            color: #fef3c7;
             border-color: rgba(251,191,36,0.55);
+            background: linear-gradient(180deg, rgba(251,191,36,0.16), rgba(251,191,36,0.06));
+            box-shadow: 0 0 18px rgba(251,191,36,0.16);
         }
-        .anba-modal-chip:active { transform: scale(0.95); }
+        .anba-tier-node b {
+            display: block;
+            font-size: 11px;
+            color: inherit;
+        }
+        .anba-upsell {
+            min-height: 34px;
+            border-radius: 15px;
+            padding: 9px 10px;
+            border: 1px solid rgba(34,211,238,0.22);
+            background: linear-gradient(135deg, rgba(34,211,238,0.10), rgba(129,140,248,0.09));
+            color: var(--p-text-2);
+            font-size: 11.5px;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+        .anba-sheet-actions {
+            display: grid;
+            gap: 8px;
+        }
+        .anba-modal-apply {
+            min-height: 48px;
+            border: 0;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #cffafe 0%, #c7d2fe 48%, #fde68a 100%);
+            color: #0b0e1c;
+            font-size: 13px;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow:
+                0 12px 30px -12px rgba(251,191,36,0.75),
+                0 0 22px rgba(34,211,238,0.18),
+                inset 0 1px 0 rgba(255,255,255,0.65);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .anba-modal-apply:active { transform: scale(.99); }
+        .anba-modal-apply:disabled {
+            opacity: .48;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .anba-modal-manual {
+            min-height: 42px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.035);
+            border: 1px solid rgba(129,140,248,0.22);
+            color: var(--p-text-2);
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .anba-sheet-note {
+            margin-top: 8px;
+            color: var(--p-text-4);
+            font-size: 10.5px;
+            line-height: 1.35;
+        }
         .anba-modal-cancel {
             display: block;
             width: 100%;
@@ -911,12 +1119,25 @@
             background: rgba(255,255,255,0.04);
             color: var(--p-text);
         }
-        @media (max-width: 360px) {
-            .anba-modal-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        @media (min-width: 640px) {
+            .anba-modal-backdrop {
+                justify-content: center;
+                padding: 18px;
+            }
+            .anba-modal-card {
+                border-radius: 26px;
+                padding: 18px;
+            }
+        }
+        @media (max-width: 380px) {
+            .anba-offer-grid { grid-template-columns: 1fr; }
+            .anba-strategy-row { grid-template-columns: 1fr; }
         }
         @media (prefers-reduced-motion: reduce) {
             .anba-modal-backdrop,
-            .anba-modal-card { transition: none; }
+            .anba-modal-card,
+            .anba-offer-btn,
+            .anba-strategy-pill { transition: none; }
         }
         /* ---- Light-mode overrides: auto-pick chip-count modal ----
            Fired from the auto-pick FAB. The dark amber-on-navy card looks
@@ -929,7 +1150,10 @@
             background: rgba(15,23,42,0.32);
         }
         :root[data-pt-theme="light"] .anba-modal-card {
-            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.98));
+            background:
+                radial-gradient(120% 80% at 0% 0%, rgba(8,145,178,0.10), transparent 48%),
+                radial-gradient(110% 80% at 100% 0%, rgba(124,58,237,0.10), transparent 52%),
+                linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.98));
             border-color: rgba(245,158,11,0.45);
             box-shadow:
                 inset 0 1px 0 rgba(255,255,255,0.7),
@@ -943,14 +1167,52 @@
         :root[data-pt-theme="light"] .anba-modal-title {
             color: var(--prism-text);
         }
-        :root[data-pt-theme="light"] .anba-modal-chip {
-            background: rgba(245,158,11,0.10);
-            border-color: rgba(245,158,11,0.45);
-            color: var(--prism-gold);
+        :root[data-pt-theme="light"] .anba-modal-sub,
+        :root[data-pt-theme="light"] .anba-offer-meta,
+        :root[data-pt-theme="light"] .anba-upsell,
+        :root[data-pt-theme="light"] .anba-sheet-note {
+            color: var(--prism-text-3);
         }
-        :root[data-pt-theme="light"] .anba-modal-chip:hover {
-            background: rgba(245,158,11,0.20);
-            border-color: rgba(245,158,11,0.65);
+        :root[data-pt-theme="light"] .anba-offer-btn,
+        :root[data-pt-theme="light"] .anba-booking-panel,
+        :root[data-pt-theme="light"] .anba-tier-node,
+        :root[data-pt-theme="light"] .anba-modal-manual {
+            background: rgba(255,255,255,0.70);
+            border-color: rgba(15,23,42,0.12);
+            color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] .anba-offer-btn:hover,
+        :root[data-pt-theme="light"] .anba-offer-btn.is-active {
+            background:
+                radial-gradient(130% 90% at 0% 0%, rgba(245,158,11,0.18), transparent 56%),
+                rgba(255,255,255,0.92);
+            border-color: rgba(245,158,11,0.52);
+        }
+        :root[data-pt-theme="light"] .anba-offer-count,
+        :root[data-pt-theme="light"] .anba-tier-node.is-active {
+            color: #92400e;
+        }
+        :root[data-pt-theme="light"] .anba-qty-input {
+            background: rgba(255,255,255,0.86);
+            color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] .anba-qty-btn {
+            background: rgba(15,23,42,0.04);
+            color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] .anba-strategy-pill {
+            background: rgba(15,23,42,0.04);
+            border-color: rgba(15,23,42,0.12);
+            color: var(--prism-text-2);
+        }
+        :root[data-pt-theme="light"] .anba-strategy-pill.is-active {
+            color: #312e81;
+            border-color: rgba(79,70,229,0.36);
+            background: linear-gradient(135deg, rgba(8,145,178,0.12), rgba(124,58,237,0.12));
+        }
+        :root[data-pt-theme="light"] .anba-upsell {
+            background: linear-gradient(135deg, rgba(8,145,178,0.08), rgba(124,58,237,0.08));
+            border-color: rgba(79,70,229,0.18);
         }
         :root[data-pt-theme="light"] .anba-modal-cancel {
             border-color: rgba(15,23,42,0.12);
@@ -1405,10 +1667,10 @@
         {!! json_encode($preset, JSON_UNESCAPED_UNICODE) !!}
     </script>
 
-    {{-- Auto-pick chip modal (mobile-first, replaces native prompt()).
-         Hidden by default; toggled .is-open from JS. The grid is filled
-         dynamically with N chips (1..max). All copy localized via
-         data-i18n so AR/EN switches live without re-render. --}}
+    {{-- Fast-booking sheet (Phase 1).
+         Offer-led quick actions + custom quantity + strategy pills. It
+         still calls the current auto-pick allocator immediately; preview
+         and ranked candidates land in later phases. --}}
     @unless ($adminMode)
         <div class="anba-modal-backdrop"
              data-anba-modal
@@ -1417,10 +1679,87 @@
              aria-labelledby="anba-modal-title"
              hidden>
             <div class="anba-modal-card" role="document">
-                <div class="anba-modal-eyebrow" data-i18n="seat_auto_pick_eyebrow">اختيار سريع</div>
-                <h2 id="anba-modal-title" class="anba-modal-title" data-i18n="seat_auto_pick_prompt">كم مقعد تريد؟</h2>
-                <div class="anba-modal-grid" data-anba-modal-grid></div>
-                <button type="button" class="anba-modal-cancel" data-anba-modal-cancel data-i18n="seat_auto_pick_cancel">إلغاء</button>
+                <div class="anba-modal-eyebrow" data-i18n="seat_fast_eyebrow">Smart fast booking</div>
+                <h2 id="anba-modal-title" class="anba-modal-title" data-i18n="seat_fast_title">Pick your group size</h2>
+                <p class="anba-modal-sub" data-i18n="seat_fast_sub">Use an offer shortcut, or enter any number. We will pick seats instantly using the current best-seat logic.</p>
+
+                <div class="anba-offer-grid" data-fast-offers>
+                    <button type="button" class="anba-offer-btn" data-fast-count="5">
+                        <span class="anba-offer-top">
+                            <span class="anba-offer-name"><span aria-hidden="true">🎁</span> <span data-i18n="seat_offer_family">Family</span></span>
+                            <span class="anba-offer-count">5+</span>
+                        </span>
+                        <span class="anba-offer-meta" data-i18n="seat_offer_family_meta">20% Family Offer</span>
+                    </button>
+                    <button type="button" class="anba-offer-btn" data-fast-count="10">
+                        <span class="anba-offer-top">
+                            <span class="anba-offer-name"><span aria-hidden="true">⛪</span> <span data-i18n="seat_offer_church">Church Group</span></span>
+                            <span class="anba-offer-count">10+</span>
+                        </span>
+                        <span class="anba-offer-meta" data-i18n="seat_offer_church_meta">30% group discount</span>
+                    </button>
+                    <button type="button" class="anba-offer-btn" data-fast-count="31">
+                        <span class="anba-offer-top">
+                            <span class="anba-offer-name"><span aria-hidden="true">💎</span> <span data-i18n="seat_offer_large">Large Group</span></span>
+                            <span class="anba-offer-count">31+</span>
+                        </span>
+                        <span class="anba-offer-meta" data-i18n="seat_offer_large_meta">40% premium tier</span>
+                    </button>
+                    <button type="button" class="anba-offer-btn" data-fast-count="50">
+                        <span class="anba-offer-top">
+                            <span class="anba-offer-name"><span aria-hidden="true">👑</span> <span data-i18n="seat_offer_full">Full Group</span></span>
+                            <span class="anba-offer-count">50+</span>
+                        </span>
+                        <span class="anba-offer-meta" data-i18n="seat_offer_full_meta">50% Best Value</span>
+                    </button>
+                </div>
+
+                <div class="anba-booking-panel">
+                    <label class="text-[11px] font-bold text-[color:var(--p-text-3)]" for="anbaFastQty" data-i18n="seat_custom_qty">Custom quantity</label>
+                    <div class="anba-qty-row">
+                        <button type="button" class="anba-qty-btn" data-fast-step="-1" aria-label="Decrease">−</button>
+                        <input id="anbaFastQty"
+                               class="anba-qty-input"
+                               data-fast-qty
+                               type="number"
+                               inputmode="numeric"
+                               min="1"
+                               max="50"
+                               value="5"
+                               autocomplete="off">
+                        <button type="button" class="anba-qty-btn" data-fast-step="1" aria-label="Increase">+</button>
+                    </div>
+
+                    <div class="anba-strategy-row" role="group" aria-label="Selection strategy">
+                        <button type="button" class="anba-strategy-pill" data-fast-strategy="bestView">🎯 <span data-i18n="seat_strategy_best_view">Best View</span></button>
+                        <button type="button" class="anba-strategy-pill" data-fast-strategy="together">👨‍👩‍👧 <span data-i18n="seat_strategy_together">Keep Us Together</span></button>
+                        <button type="button" class="anba-strategy-pill" data-fast-strategy="fastest">⚡ <span data-i18n="seat_strategy_fastest">Fastest Available</span></button>
+                    </div>
+                </div>
+
+                <div class="anba-tier-status">
+                    <div class="anba-tier-track" data-fast-tier-track>
+                        <div class="anba-tier-node" data-tier-min="5"><b>🎁 5+</b><span>20%</span></div>
+                        <div class="anba-tier-node" data-tier-min="10"><b>⛪ 10+</b><span>30%</span></div>
+                        <div class="anba-tier-node" data-tier-min="31"><b>💎 31+</b><span>40%</span></div>
+                        <div class="anba-tier-node" data-tier-min="50"><b>👑 50+</b><span data-i18n="seat_best_value">Best Value</span></div>
+                    </div>
+                    <div class="anba-upsell" data-fast-upsell>Family Offer unlocked.</div>
+                </div>
+
+                <div class="anba-sheet-actions">
+                    <button type="button" class="anba-modal-apply" data-fast-apply>
+                        <span aria-hidden="true">⚡</span>
+                        <span data-i18n="seat_fast_apply">Pick the best seats for me</span>
+                    </button>
+                    <button type="button" class="anba-modal-manual" data-fast-manual>
+                        <span aria-hidden="true">🎯</span>
+                        <span data-i18n="seat_manual_selection">Manual seat selection</span>
+                    </button>
+                </div>
+
+                <p class="anba-sheet-note" data-i18n="seat_fast_note">You can still edit seats manually after auto-pick.</p>
+                <button type="button" class="anba-modal-cancel" data-anba-modal-cancel data-i18n="seat_auto_pick_cancel">Cancel</button>
             </div>
         </div>
     @endunless
@@ -2230,10 +2569,19 @@
             return best;
         }
 
-        function applyAutoPickN(N) {
+        function applyAutoPickN(N, allocContext = {}) {
             const t = window.PT_T || ((k) => k);
+            const startedAt = performance.now();
             const result = autoPickBestSeats(N);
             if (!result) {
+                debugAlloc('allocation:current-failed', {
+                    requested: N,
+                    strategy: allocContext.strategy || fastBookingState.strategy,
+                    source: allocContext.source || 'unknown',
+                    mode: 'contiguous',
+                    elapsedMs: Math.round((performance.now() - startedAt) * 10) / 10,
+                    reason: 'no_contiguous_window',
+                });
                 if (window.PT && window.PT.toast) {
                     window.PT.toast(t('seat_auto_pick_none'), 2200);
                 }
@@ -2251,6 +2599,17 @@
             if (window.PT && window.PT.toast) {
                 window.PT.toast(t('seat_auto_pick_done'), 1800);
             }
+            debugAlloc('allocation:current-applied', {
+                requested: N,
+                strategy: allocContext.strategy || fastBookingState.strategy,
+                source: allocContext.source || 'unknown',
+                mode: 'contiguous',
+                candidateCount: result ? 1 : 0,
+                winningScore: result.score,
+                selectedCount: result.seats.length,
+                rows: Array.from(new Set(result.seats.map((s) => s.row))),
+                elapsedMs: Math.round((performance.now() - startedAt) * 10) / 10,
+            });
             // Smoothly pan the canvas so the picked seats end up centered
             // in the viewport. This is the visual confirmation that the
             // user *can* see what got picked, even when the seats were
@@ -2269,32 +2628,159 @@
             return true;
         }
 
-        // Auto-pick chip modal — replaces window.prompt() with a
-        // touch-first chip grid. Keyboard: Escape closes; Enter on a
-        // chip activates it. The grid is populated lazily on first open
-        // and re-uses the same DOM thereafter.
-        const AUTO_PICK_MAX = 12;
-        const modal     = root.querySelector('[data-anba-modal]');
-        const modalGrid = root.querySelector('[data-anba-modal-grid]');
+        // Fast-booking sheet (Phase 1). This is UI/state scaffolding over
+        // the existing allocator; the strategy is logged and shown now, then
+        // becomes a scoring weight in Phase 3.
+        const AUTO_PICK_MAX = 50;
+        const modal       = root.querySelector('[data-anba-modal]');
         const modalCancel = root.querySelector('[data-anba-modal-cancel]');
+        const fastQty     = root.querySelector('[data-fast-qty]');
+        const fastApply   = root.querySelector('[data-fast-apply]');
+        const fastManual  = root.querySelector('[data-fast-manual]');
+        const fastUpsell  = root.querySelector('[data-fast-upsell]');
+        const fastOffers  = Array.from(root.querySelectorAll('[data-fast-count]'));
+        const fastSteps   = Array.from(root.querySelectorAll('[data-fast-step]'));
+        const fastStrategies = Array.from(root.querySelectorAll('[data-fast-strategy]'));
+        const fastTierNodes = Array.from(root.querySelectorAll('[data-tier-min]'));
         let modalOpen = false;
         let lastFocus = null;
 
-        function ensureModalGrid() {
-            if (!modalGrid || modalGrid.children.length) return;
-            for (let i = 1; i <= AUTO_PICK_MAX; i++) {
-                const chip = document.createElement('button');
-                chip.type = 'button';
-                chip.className = 'anba-modal-chip';
-                chip.textContent = String(i);
-                chip.dataset.n = String(i);
-                modalGrid.appendChild(chip);
+        const fastBookingState = {
+            count: 5,
+            strategy: 'together',
+            strategyTouched: false,
+            source: 'default',
+        };
+
+        const allocDebugEnabled = (() => {
+            try {
+                const params = new URLSearchParams(window.location.search || '');
+                return params.get('alloc_debug') === '1'
+                    || localStorage.getItem('anba_alloc_debug') === '1';
+            } catch (_) {
+                return false;
             }
+        })();
+
+        window.__ANBA_ALLOC_DEBUG = window.__ANBA_ALLOC_DEBUG || {
+            enabled: allocDebugEnabled,
+            lastRun: null,
+            history: [],
+        };
+        window.__ANBA_ALLOC_DEBUG.enabled = !!(window.__ANBA_ALLOC_DEBUG.enabled || allocDebugEnabled);
+
+        function debugAlloc(event, payload) {
+            const entry = Object.assign({
+                event,
+                at: new Date().toISOString(),
+                phase: 1,
+                allocator: 'current_contiguous_window',
+            }, payload || {});
+
+            const dbg = window.__ANBA_ALLOC_DEBUG;
+            if (dbg) {
+                dbg.lastRun = entry;
+                dbg.history = Array.isArray(dbg.history) ? dbg.history : [];
+                dbg.history.push(entry);
+                if (dbg.history.length > 20) dbg.history.shift();
+                if (dbg.enabled && window.console && console.debug) {
+                    console.debug('[anba alloc]', entry);
+                }
+            }
+            return entry;
+        }
+
+        function defaultStrategyForCount(n) {
+            if (n <= 6) return 'together';
+            if (n <= 20) return 'bestView';
+            return 'fastest';
+        }
+
+        function clampFastCount(value) {
+            const n = parseInt(String(value || '').trim(), 10);
+            if (!isFinite(n)) return 1;
+            return Math.max(1, Math.min(AUTO_PICK_MAX, n));
+        }
+
+        function tWithFallback(key, fallback, vars) {
+            if (window.PT_T) {
+                const translated = window.PT_T(key, vars);
+                if (translated !== key) return translated;
+            }
+            let s = fallback;
+            if (vars && typeof s === 'string') {
+                s = s.replace(/\{(\w+)\}/g, (m, k) => vars[k] !== undefined ? vars[k] : m);
+            }
+            return s;
+        }
+
+        function setFastStrategy(strategy, touched = false) {
+            fastBookingState.strategy = strategy;
+            if (touched) fastBookingState.strategyTouched = true;
+            fastStrategies.forEach((btn) => {
+                const active = btn.dataset.fastStrategy === strategy;
+                btn.classList.toggle('is-active', active);
+                btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+        }
+
+        function renderFastSheet() {
+            const count = fastBookingState.count;
+            if (fastQty && document.activeElement !== fastQty) {
+                fastQty.value = String(count);
+            }
+
+            fastOffers.forEach((btn) => {
+                btn.classList.toggle('is-active', parseInt(btn.dataset.fastCount || '0', 10) === count);
+            });
+
+            fastTierNodes.forEach((node) => {
+                const min = parseInt(node.dataset.tierMin || '0', 10);
+                node.classList.toggle('is-active', count >= min);
+            });
+
+            let msg = '';
+            if (window.BulkDiscount) {
+                const p = window.BulkDiscount.calculate(hallPrice, count);
+                if (p.nextTier && p.ticketsToUnlock > 0) {
+                    msg = tWithFallback(
+                        'seat_fast_unlock',
+                        'Add {n} more tickets to unlock {pct}%',
+                        { n: p.ticketsToUnlock, pct: p.nextDiscountPercent }
+                    );
+                } else if (p.currentTier) {
+                    msg = tWithFallback(
+                        'seat_fast_unlocked',
+                        '{badge} {pct}% unlocked for {count} tickets',
+                        {
+                            badge: p.currentTier.badge || '',
+                            pct: p.discountPercent,
+                            count: count,
+                        }
+                    );
+                }
+            }
+            if (!msg) {
+                msg = tWithFallback('seat_fast_unlock_first', 'Book 5 tickets to unlock the Family Offer', {});
+            }
+            if (fastUpsell) fastUpsell.textContent = msg;
+
+            setFastStrategy(fastBookingState.strategy);
+        }
+
+        function setFastCount(value, source = 'custom') {
+            fastBookingState.count = clampFastCount(value);
+            fastBookingState.source = source;
+            if (!fastBookingState.strategyTouched || source === 'offer') {
+                fastBookingState.strategyTouched = false;
+                fastBookingState.strategy = defaultStrategyForCount(fastBookingState.count);
+            }
+            renderFastSheet();
         }
 
         function openModal(triggerBtn) {
             if (!modal) return;
-            ensureModalGrid();
+            renderFastSheet();
             lastFocus = triggerBtn || document.activeElement;
             modal.hidden = false;
             // double-rAF so the .is-open transition kicks in cleanly
@@ -2302,8 +2788,8 @@
                 modal.classList.add('is-open');
             }));
             modalOpen = true;
-            const firstChip = modalGrid && modalGrid.firstElementChild;
-            if (firstChip) firstChip.focus({ preventScroll: true });
+            const firstOffer = fastOffers[0] || fastQty;
+            if (firstOffer) firstOffer.focus({ preventScroll: true });
         }
 
         function closeModal() {
@@ -2327,14 +2813,57 @@
             if (modalCancel) {
                 modalCancel.addEventListener('click', closeModal);
             }
-            if (modalGrid) {
-                modalGrid.addEventListener('click', (e) => {
-                    const chip = e.target.closest('[data-n]');
-                    if (!chip) return;
-                    const n = parseInt(chip.dataset.n, 10);
-                    if (!isFinite(n) || n <= 0 || n > AUTO_PICK_MAX) return;
+            fastOffers.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    setFastCount(btn.dataset.fastCount, 'offer');
+                    if (fastApply) fastApply.focus({ preventScroll: true });
+                });
+            });
+            fastSteps.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const delta = parseInt(btn.dataset.fastStep || '0', 10);
+                    setFastCount(fastBookingState.count + delta, 'stepper');
+                });
+            });
+            if (fastQty) {
+                fastQty.addEventListener('input', () => {
+                    setFastCount(fastQty.value, 'custom');
+                    fastQty.value = String(fastBookingState.count);
+                });
+                fastQty.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (fastApply) fastApply.click();
+                    }
+                });
+            }
+            fastStrategies.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    setFastStrategy(btn.dataset.fastStrategy || 'together', true);
+                    debugAlloc('strategy:selected', {
+                        requested: fastBookingState.count,
+                        strategy: fastBookingState.strategy,
+                        source: 'strategy-pill',
+                    });
+                });
+            });
+            if (fastManual) {
+                fastManual.addEventListener('click', () => {
+                    debugAlloc('manual-selection:selected', {
+                        requested: fastBookingState.count,
+                        strategy: fastBookingState.strategy,
+                    });
                     closeModal();
-                    applyAutoPickN(n);
+                });
+            }
+            if (fastApply) {
+                fastApply.addEventListener('click', () => {
+                    const n = clampFastCount(fastBookingState.count);
+                    const applied = applyAutoPickN(n, {
+                        strategy: fastBookingState.strategy,
+                        source: fastBookingState.source || 'custom',
+                    });
+                    if (applied) closeModal();
                 });
             }
             document.addEventListener('keydown', (e) => {
@@ -2362,7 +2891,7 @@
                 if (raw === null) return;
                 const n = parseInt(String(raw).trim(), 10);
                 if (!isFinite(n) || n <= 0 || n > AUTO_PICK_MAX) return;
-                applyAutoPickN(n);
+                applyAutoPickN(n, { strategy: defaultStrategyForCount(n), source: 'legacy-prompt' });
             });
         });
 
