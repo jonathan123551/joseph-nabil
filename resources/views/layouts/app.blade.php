@@ -9499,6 +9499,20 @@
 
                 /* ===== bulk-discount offer (tiered) ===== */
                 bulk_discount_eyebrow: 'عرض خاص · خصومات متدرجة',
+                bulk_discount_hero_lead: 'وفّر حتى',
+                bulk_discount_hero_sub: 'احجز أكتر — الخصم يكبر معاك مع كل تذكرة',
+                bulk_discount_family_family: 'خصومات العيلة',
+                bulk_discount_family_church: 'خصومات الكنائس',
+                bulk_discount_flag_popular: 'الأكثر طلباً',
+                bulk_discount_flag_best: 'أعلى خصم',
+                bulk_discount_pip_prefix: '+',
+                bulk_discount_pip_suffix: 'تذكرة',
+                bulk_discount_progress_next_prefix: '+',
+                bulk_discount_progress_next_suffix: 'لخصم أكبر',
+                bulk_discount_progress_top: 'وصلت لأعلى مستوى 👑',
+                bulk_discount_compact_a: 'وفّر حتى',
+                bulk_discount_compact_b: '— احجز أكتر، الخصم يكبر معاك',
+                /* Legacy keys kept for backward compatibility with older partials. */
                 bulk_discount_title_a: 'احجز أكتر، وفّر أكتر — من',
                 bulk_discount_title_b: 'تذاكر يبدأ الخصم بـ',
                 bulk_discount_title_c: 'ويوصل لـ',
@@ -10379,6 +10393,20 @@
 
                 /* ===== bulk-discount offer (tiered) ===== */
                 bulk_discount_eyebrow: 'SPECIAL OFFER · TIERED DISCOUNTS',
+                bulk_discount_hero_lead: 'Save up to',
+                bulk_discount_hero_sub: 'Book more — the discount grows with every ticket',
+                bulk_discount_family_family: 'Family savings',
+                bulk_discount_family_church: 'Church / Group savings',
+                bulk_discount_flag_popular: 'Most popular',
+                bulk_discount_flag_best: 'Best value',
+                bulk_discount_pip_prefix: '+',
+                bulk_discount_pip_suffix: 'tickets',
+                bulk_discount_progress_next_prefix: '+',
+                bulk_discount_progress_next_suffix: 'to a bigger discount',
+                bulk_discount_progress_top: 'Top tier unlocked 👑',
+                bulk_discount_compact_a: 'Save up to',
+                bulk_discount_compact_b: '— book more, the discount grows with you',
+                /* Legacy keys kept for backward compatibility with older partials. */
                 bulk_discount_title_a: 'Book more, save more — from',
                 bulk_discount_title_b: 'tickets, discounts start at',
                 bulk_discount_title_c: 'and go up to',
