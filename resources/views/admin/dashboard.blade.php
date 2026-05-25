@@ -477,6 +477,71 @@
 
                 </div>
 
+                {{-- Discount-tier breakdown — one card per tier the
+                     platform has actually issued, branded with the
+                     "خصومات العيلة" / "خصومات الكنائس" family colours.
+                     Tiers with zero approved bookings are skipped so the
+                     strip stays focused on real activity. --}}
+                @php
+                    $tierBreakdown = $analyticsTotals['tier_breakdown'] ?? [];
+                @endphp
+                @if(!empty($tierBreakdown))
+                    <div class="prism-fade-up mt-3" data-tier-breakdown-row>
+                        <div class="flex items-center justify-between mb-2 px-1">
+                            <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-[color:var(--prism-text-3)]"
+                                  data-i18n="adm_sta_tier_breakdown_title">
+                                توزيع الخصومات حسب الفئة
+                            </span>
+                            <span class="text-[10px] text-[color:var(--prism-text-3)] opacity-70">
+                                🎁 خصومات العيلة · ⛪ خصومات الكنائس
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                            @foreach($tierBreakdown as $percent => $tier)
+                                @php
+                                    $isChurchTier = ($tier['family'] ?? '') === 'church';
+                                    $tierColor    = $isChurchTier ? '#c4b5fd' : '#fde68a';
+                                    $tierBorder   = $isChurchTier ? 'rgba(167,139,250,0.45)' : 'rgba(251,191,36,0.45)';
+                                    $tierBg       = $isChurchTier
+                                        ? 'linear-gradient(135deg, rgba(124,58,237,0.10), rgba(124,58,237,0.02))'
+                                        : 'linear-gradient(135deg, rgba(251,191,36,0.10), rgba(251,191,36,0.02))';
+                                @endphp
+                                <div class="rounded-2xl p-3 flex flex-col gap-1.5"
+                                     style="border: 1px solid {{ $tierBorder }}; background: {{ $tierBg }};">
+                                    <div class="flex items-center gap-2 text-[11px] font-bold"
+                                         style="color: {{ $tierColor }};">
+                                        <span aria-hidden="true">{{ $tier['badge'] }}</span>
+                                        <span dir="ltr">-{{ (int) $tier['percent'] }}%</span>
+                                        <span class="opacity-80 truncate">·</span>
+                                        <span class="opacity-90 truncate">{{ $tier['label'] }}</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between gap-2">
+                                        <span class="text-[18px] font-extrabold"
+                                              style="color: {{ $tierColor }};"
+                                              dir="ltr">
+                                            {{ $stafmt($tier['discount_amount']) }}
+                                        </span>
+                                        <span class="text-[10px] text-[color:var(--prism-text-3)]">
+                                            <span data-i18n="common_currency_short">ج</span>
+                                            <span data-i18n="adm_sta_tier_savings_word">وفّر</span>
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center justify-between gap-2 text-[10.5px] text-[color:var(--prism-text-3)]">
+                                        <span>
+                                            🎟 {{ $stafmt($tier['tickets']) }}
+                                            <span data-i18n="adm_sta_tier_tickets_word">تذكرة</span>
+                                        </span>
+                                        <span>
+                                            📦 {{ $stafmt($tier['bookings']) }}
+                                            <span data-i18n="adm_sta_tier_bookings_word">حجز</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Per-showtime analytics cards --}}
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 prism-stagger">
 

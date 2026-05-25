@@ -2,7 +2,8 @@
     Bulk-discount client helper.
 
     Exposes `window.BulkDiscount` with the same calculate() shape as
-    `App\Support\BookingPricing::calculate()`. Pages that need a live
+    `App\Support\BookingPricing::calculate()` — same tier table, same
+    floor() math, same branding metadata. Pages that need a live
     pricing summary call `BulkDiscount.calculate(unitPrice, count)`
     and `BulkDiscount.render(rootEl, unitPrice, count)` to update a
     `_price_breakdown` partial in-place.
@@ -11,15 +12,23 @@
     drives the live summary.
 --}}
 @php
-    $bd = $bulkDiscount ?? ['min_tickets' => 5, 'discount_percent' => 20];
+    $bd = $bulkDiscount ?? \App\Support\BookingPricing::toJs();
 @endphp
 <script>
 (function () {
     if (window.BulkDiscount) return; // already loaded on this page
 
+    // Tier table — mirror of PHP `BookingPricing::TIERS`. Order
+    // matters (ascending by `min`). resolveTier() walks this list
+    // to find the highest tier whose `min <= count`.
+    var TIERS = @json($bd['tiers']);
+
     var CFG = {
-        minTickets:      {{ (int) $bd['min_tickets'] }},
-        discountPercent: {{ (int) $bd['discount_percent'] }},
+        // Legacy keys kept for backward compat with any older
+        // consumer reading min_tickets / discount_percent.
+        minTickets:      {{ (int) ($bd['min_tickets'] ?? 5) }},
+        discountPercent: {{ (int) ($bd['discount_percent'] ?? 20) }},
+        tiers:           TIERS,
     };
 
     function fmt(n) {
@@ -42,26 +51,63 @@
         return s;
     }
 
+    function resolveTier(count) {
+        var match = null;
+        for (var i = 0; i < TIERS.length; i++) {
+            if (count >= TIERS[i].min) match = TIERS[i];
+        }
+        return match;
+    }
+
+    function resolveNextTier(count) {
+        for (var i = 0; i < TIERS.length; i++) {
+            if (count < TIERS[i].min) return TIERS[i];
+        }
+        return null;
+    }
+
     function calculate(unitPrice, count) {
         unitPrice = Math.max(0, parseInt(unitPrice || 0, 10) || 0);
         count     = Math.max(0, parseInt(count     || 0, 10) || 0);
 
-        var original  = unitPrice * count;
-        var qualifies = count >= CFG.minTickets;
-        var percent   = qualifies ? CFG.discountPercent : 0;
+        var original = unitPrice * count;
+
+        var current  = resolveTier(count);
+        var next     = resolveNextTier(count);
+
+        var qualifies = current !== null;
+        var percent   = current ? current.percent : 0;
         var discount  = qualifies ? Math.floor((original * percent) / 100) : 0;
         var total     = Math.max(0, original - discount);
 
+        var toUnlock = next ? Math.max(0, next.min - count) : 0;
+
         return {
-            unitPrice:        unitPrice,
-            ticketsCount:     count,
-            originalPrice:    original,
-            discountPercent:  percent,
-            discountAmount:   discount,
-            totalPrice:       total,
-            qualifies:        qualifies,
-            ticketsToUnlock:  qualifies ? 0 : Math.max(0, CFG.minTickets - count),
+            unitPrice:           unitPrice,
+            ticketsCount:        count,
+            originalPrice:       original,
+            discountPercent:     percent,
+            discountAmount:      discount,
+            totalPrice:          total,
+            qualifies:           qualifies,
+            ticketsToUnlock:     toUnlock,
+            nextDiscountPercent: next ? next.percent : null,
+            currentTier:         current,
+            nextTier:            next,
+            currentTierFamily:   current ? current.family : 'none',
+            currentTierLabel:    current ? current.label_key : null,
         };
+    }
+
+    // Resolve the branded family label ("خصومات العيلة" / "خصومات الكنائس")
+    // by walking the i18n table if available, falling back to the
+    // hardcoded Arabic phrasing otherwise.
+    function familyLabel(tier) {
+        if (!tier) return '';
+        var fallback = tier.family === 'family'
+            ? 'خصومات العيلة'
+            : 'خصومات الكنائس';
+        return tt(tier.label_key, fallback);
     }
 
     /**
@@ -91,38 +137,115 @@
         if (finalEl) finalEl.textContent = fmt(p.totalPrice);
 
         root.setAttribute('data-has-discount', p.qualifies ? '1' : '0');
+        // data-tier-family drives the warm-vs-premium card theming
+        // (see `.price-breakdown[data-tier-family="church"]` rules).
+        root.setAttribute('data-tier-family', p.currentTierFamily);
+        root.setAttribute('data-tier-percent', String(p.discountPercent));
+
+        var tierLabelEl = root.querySelector('[data-price-tier-label]');
+        if (tierLabelEl) {
+            tierLabelEl.textContent = familyLabel(p.currentTier);
+        }
+        var tierBadgeEl = root.querySelector('[data-price-tier-badge]');
+        if (tierBadgeEl) {
+            tierBadgeEl.textContent = p.currentTier ? p.currentTier.badge : '';
+        }
 
         var progressMsg = root.querySelector('[data-price-progress-msg]');
         if (progressMsg) {
-            if (p.qualifies) {
+            var nextLabelFallback = p.nextTier && p.nextTier.family === 'church'
+                ? 'خصومات الكنائس'
+                : 'خصومات العيلة';
+            var nextLabel = p.nextTier ? tt(p.nextTier.label_key, nextLabelFallback) : '';
+            var currentLabel = familyLabel(p.currentTier);
+
+            if (p.qualifies && p.nextTier) {
+                // Mid-tier: tell the user how close they are to the
+                // next bracket, branded with both the current and
+                // next family names.
                 progressMsg.textContent = tt(
-                    'price_progress_qualifies',
-                    'تم تطبيق خصم {pct}% على إجمالي حجزك 🎉',
-                    { pct: p.discountPercent }
+                    'price_progress_next_tier',
+                    'تم تطبيق {currentLabel} ({currentPct}%) — احجز {n} تذكرة إضافية للوصول إلى {nextLabel} {nextPct}%',
+                    {
+                        currentLabel: currentLabel,
+                        currentPct:   p.discountPercent,
+                        n:            p.ticketsToUnlock,
+                        nextLabel:    nextLabel,
+                        nextPct:      p.nextDiscountPercent,
+                    }
+                );
+            } else if (p.qualifies) {
+                // Top tier — celebrate.
+                progressMsg.textContent = tt(
+                    'price_progress_top_tier',
+                    '👑 تم تطبيق أعلى مستوى من {currentLabel} — خصم {pct}%',
+                    {
+                        currentLabel: currentLabel,
+                        pct:          p.discountPercent,
+                    }
                 );
             } else if (p.ticketsCount === 0) {
                 progressMsg.textContent = tt(
                     'price_progress_zero',
-                    'احجز {n} تذاكر أو أكثر للحصول على خصم {pct}%',
-                    { n: CFG.minTickets, pct: CFG.discountPercent }
+                    'احجز {n} تذاكر للحصول على {nextLabel} — خصم {pct}%',
+                    {
+                        n:         p.ticketsToUnlock,
+                        nextLabel: nextLabel,
+                        pct:       p.nextDiscountPercent,
+                    }
                 );
             } else {
                 progressMsg.textContent = tt(
                     'price_progress_partial',
-                    'أضف {n} تذاكر إضافية للحصول على خصم {pct}%',
-                    { n: p.ticketsToUnlock, pct: CFG.discountPercent }
+                    'اقتربت من {nextLabel} — احجز {n} تذاكر إضافية لخصم {pct}%',
+                    {
+                        n:         p.ticketsToUnlock,
+                        nextLabel: nextLabel,
+                        pct:       p.nextDiscountPercent,
+                    }
                 );
             }
         }
 
+        // Always sync any tier-ladder banners on the same page so
+        // the active chip stays in lockstep with the breakdown.
+        syncBanners(p.ticketsCount);
+
         return p;
     }
 
+    /**
+     * Sync a tier-ladder banner (`_bulk_discount_banner`) so the
+     * currently-active tier chip lights up. Called by the booking
+     * pages whenever the seat / ticket count changes.
+     */
+    function syncBanners(count) {
+        count = Math.max(0, parseInt(count || 0, 10) || 0);
+        var nodes = document.querySelectorAll('[data-bulk-discount-banner]');
+        if (!nodes.length) return;
+        var p = calculate(0, count);
+
+        nodes.forEach(function (banner) {
+            var activePct = p.discountPercent;
+            banner.setAttribute('data-active-tier', String(activePct));
+            banner.setAttribute('data-active-family', p.currentTierFamily);
+            var chips = banner.querySelectorAll('[data-tier-chip]');
+            chips.forEach(function (chip) {
+                var pct = parseInt(chip.getAttribute('data-tier-chip') || '0', 10);
+                chip.toggleAttribute('data-is-active', pct === activePct && activePct > 0);
+            });
+        });
+    }
+
     window.BulkDiscount = {
-        CFG:       CFG,
-        calculate: calculate,
-        render:    render,
-        format:    fmt,
+        CFG:           CFG,
+        TIERS:         TIERS,
+        calculate:     calculate,
+        render:        render,
+        syncBanners:   syncBanners,
+        format:        fmt,
+        resolveTier:   resolveTier,
+        familyLabel:   familyLabel,
     };
 })();
 </script>

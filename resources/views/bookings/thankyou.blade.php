@@ -148,10 +148,29 @@
             <div class="h-px bg-[color:var(--prism-border)]"></div>
 
             @if($booking->hasDiscount())
-                {{-- Bulk-discount breakdown — shows the original total
-                     struck through next to the discounted final, and a
-                     dedicated "you saved …" line. Server-stored values
-                     so this matches what admins see. --}}
+                @php
+                    $thxTier = \App\Support\BookingPricing::resolveTierForPercent((int) $booking->discount_percent);
+                    $thxIsChurch = $thxTier && $thxTier['family'] === \App\Support\BookingPricing::FAMILY_CHURCH;
+                    $thxIsTopTier = $thxTier && $thxTier['percent'] === 50;
+                    $thxLabel = $thxIsChurch ? 'خصومات الكنائس' : 'خصومات العيلة';
+                    if ($thxIsTopTier) {
+                        $thxHeadline = '👑 تم تطبيق أعلى مستوى من ' . $thxLabel . ' — خصم 50%';
+                    } else {
+                        $thxHeadline = ($thxTier['badge'] ?? '🎉') . ' تم تطبيق ' . $thxLabel . ' — خصم ' . (int) $booking->discount_percent . '%';
+                    }
+                    $thxColor = $thxIsChurch ? '#c4b5fd' : 'var(--prism-emerald)';
+                    $thxBorder = $thxIsChurch ? 'rgba(167,139,250,0.55)' : 'rgba(110,231,183,0.55)';
+                    $thxBg = $thxIsChurch ? 'rgba(124,58,237,0.10)' : 'rgba(16,185,129,0.10)';
+                @endphp
+                {{-- Tiered bulk-discount breakdown — branded headline +
+                     original total struck through + dedicated "you
+                     saved …" line. All values come from the stored
+                     row so this always matches what admins see. --}}
+                <div class="flex items-center gap-2 text-xs font-bold rounded-full px-3 py-1.5"
+                     style="color:{{ $thxColor }}; border:1px solid {{ $thxBorder }}; background:{{ $thxBg }};">
+                    <span>{{ $thxHeadline }}</span>
+                </div>
+
                 <div class="flex justify-between items-center">
                     <span class="text-[color:var(--prism-text-3)] text-xs" data-i18n="thx_subtotal_label">المجموع قبل الخصم</span>
                     <span class="text-xs text-[color:var(--prism-text-3)]">
@@ -165,7 +184,7 @@
                         <span data-i18n="thx_discount_label">الخصم</span>
                         <span dir="ltr" class="opacity-70">(-{{ (int) $booking->discount_percent }}%)</span>
                     </span>
-                    <span class="font-semibold text-[color:var(--prism-emerald)]">
+                    <span class="font-semibold" style="color: {{ $thxColor }};">
                         −{{ (int) $booking->discount_amount }}
                         <span class="text-[10px] opacity-80" data-i18n="common_egp">جنيه</span>
                     </span>
@@ -175,7 +194,7 @@
 
                 <div class="flex justify-between items-center">
                     <span class="text-[color:var(--prism-text-3)] text-xs" data-i18n="thx_total_label">إجمالي المبلغ</span>
-                    <span class="font-bold text-[color:var(--prism-emerald)]">
+                    <span class="font-bold" style="color: {{ $thxColor }};">
                         {{ $booking->total_price }} <span class="text-[10px] opacity-80" data-i18n="common_egp">جنيه</span>
                     </span>
                 </div>
