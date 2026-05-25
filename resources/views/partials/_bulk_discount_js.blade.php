@@ -215,9 +215,41 @@
     }
 
     /**
+     * Normalised progress along the whole tier ladder (0..1) for the
+     * given count. Each tier occupies an equal segment; within a
+     * segment we interpolate linearly between the current and next
+     * tier's `min` thresholds.
+     */
+    function railProgress(count) {
+        if (!TIERS.length) return 0;
+        var step = 1 / TIERS.length;                // 0.25 for 4 tiers
+        var center = function (i) { return (i + 0.5) * step; };
+
+        // Find current tier index, or -1 if below the first tier.
+        var curIdx = -1;
+        for (var i = 0; i < TIERS.length; i++) {
+            if (count >= TIERS[i].min) curIdx = i;
+        }
+        if (count <= 0) return 0;
+        if (curIdx === -1) {
+            // 0 < count < first tier — fill toward first node center.
+            var first = TIERS[0].min || 1;
+            return Math.max(0, Math.min(1, (count / first) * center(0)));
+        }
+        if (curIdx >= TIERS.length - 1) return 1;
+        var curMin  = TIERS[curIdx].min;
+        var nextMin = TIERS[curIdx + 1].min;
+        var span    = Math.max(1, nextMin - curMin);
+        var ratio   = Math.max(0, Math.min(1, (count - curMin) / span));
+        return center(curIdx) + ratio * (center(curIdx + 1) - center(curIdx));
+    }
+
+    /**
      * Sync a tier-ladder banner (`_bulk_discount_banner`) so the
-     * currently-active tier chip lights up. Called by the booking
-     * pages whenever the seat / ticket count changes.
+     * currently-active tier chip lights up, the next-tier node
+     * carries the "+N tickets" pip, and the progress bar fills
+     * proportionally. Called by the booking pages whenever the
+     * seat / ticket count changes.
      */
     function syncBanners(count) {
         count = Math.max(0, parseInt(count || 0, 10) || 0);
@@ -225,15 +257,39 @@
         if (!nodes.length) return;
         var p = calculate(0, count);
 
+        var activePct = p.discountPercent;
+        var nextPct   = p.nextTier ? p.nextTier.percent : null;
+        var toNext    = p.ticketsToUnlock || 0;
+        var progress  = railProgress(count);
+
         nodes.forEach(function (banner) {
-            var activePct = p.discountPercent;
-            banner.setAttribute('data-active-tier', String(activePct));
+            banner.setAttribute('data-active-tier',  String(activePct));
             banner.setAttribute('data-active-family', p.currentTierFamily);
-            var chips = banner.querySelectorAll('[data-tier-chip]');
-            chips.forEach(function (chip) {
+            banner.setAttribute('data-tickets-to-next', String(toNext));
+            banner.style.setProperty('--bdb-progress', String(progress));
+
+            // Active + next-tier flags on each node.
+            var chipNodes = banner.querySelectorAll('[data-tier-chip]');
+            chipNodes.forEach(function (chip) {
                 var pct = parseInt(chip.getAttribute('data-tier-chip') || '0', 10);
                 chip.toggleAttribute('data-is-active', pct === activePct && activePct > 0);
+                chip.toggleAttribute('data-is-next',   nextPct !== null && pct === nextPct && toNext > 0);
+
+                // Pip count is also written into the next-tier node
+                // so screen readers / non-CSS clients see it.
+                var pipCount = chip.querySelector('[data-bdb-pip-count]');
+                if (pipCount) {
+                    pipCount.textContent = (nextPct !== null && pct === nextPct) ? String(toNext) : '';
+                }
             });
+
+            // Progress message "+N to next" — single shared counter.
+            var progressCount = banner.querySelector('[data-bdb-progress-count]');
+            if (progressCount) progressCount.textContent = String(toNext);
+
+            // ARIA: progressbar value now = current discount percent.
+            var progressEl = banner.querySelector('[role="progressbar"]');
+            if (progressEl) progressEl.setAttribute('aria-valuenow', String(activePct));
         });
     }
 
