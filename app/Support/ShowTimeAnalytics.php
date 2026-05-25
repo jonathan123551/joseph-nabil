@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Show;
 use App\Models\ShowTime;
 use App\Models\Theater;
+use Illuminate\Support\Collection;
 
 /**
  * Pre-computes the analytics displayed on the admin "Show Times / Revenue"
@@ -52,6 +53,7 @@ class ShowTimeAnalytics
      *   total_revenue: int,
      *   total_discount: int,
      *   discounted_bookings: int,
+     *   tier_breakdown: array<int, array{bookings:int, tickets:int, discount_amount:int, revenue:int}>,
      *   average_booking_value: int,
      *   conversion_percent: float,
      *   uses_section_pricing: bool,
@@ -74,16 +76,16 @@ class ShowTimeAnalytics
         // eager-loaded collection is the cheap path — Laravel's loaded
         // collection ops are in-memory, no extra queries.
         $approved = $bookings->where('status', 'approved');
-        $pending  = $bookings->where('status', 'pending');
+        $pending = $bookings->where('status', 'pending');
         $rejected = $bookings->where('status', 'rejected');
 
-        $capacity   = (int) $showTime->total_tickets;
-        $blocked    = self::resolveBlocked($showTime, $show);
+        $capacity = (int) $showTime->total_tickets;
+        $blocked = self::resolveBlocked($showTime, $show);
 
         $approvedTickets = (int) $approved->sum('tickets_count');
-        $pendingTickets  = (int) $pending->sum('tickets_count');
+        $pendingTickets = (int) $pending->sum('tickets_count');
         $rejectedTickets = (int) $rejected->sum('tickets_count');
-        $soldTickets     = $approvedTickets + $pendingTickets;
+        $soldTickets = $approvedTickets + $pendingTickets;
 
         // Remaining mirrors ShowTime::effectiveRemainingTickets() but
         // works off the already-loaded collection so this method stays
@@ -91,14 +93,20 @@ class ShowTimeAnalytics
         $remaining = max(0, $capacity - $soldTickets - $blocked);
 
         $approvedRevenue = (int) round((float) $approved->sum('total_price'));
-        $pendingRevenue  = (int) round((float) $pending->sum('total_price'));
-        $totalRevenue    = $approvedRevenue + $pendingRevenue;
+        $pendingRevenue = (int) round((float) $pending->sum('total_price'));
+        $totalRevenue = $approvedRevenue + $pendingRevenue;
 
         $discountedApproved = $approved->filter(
             fn ($b) => (float) $b->discount_amount > 0
         );
-        $totalDiscount       = (int) round((float) $discountedApproved->sum('discount_amount'));
-        $discountedBookings  = $discountedApproved->count();
+        $totalDiscount = (int) round((float) $discountedApproved->sum('discount_amount'));
+        $discountedBookings = $discountedApproved->count();
+
+        // Per-tier breakdown — keyed by the BookingPricing tier percent
+        // (20, 30, 40, 50). Reads each booking's STORED discount_percent
+        // so legacy rows keep matching what the customer actually paid
+        // (see BookingPricing::resolveTierForPercent).
+        $tierBreakdown = self::computeTierBreakdown($approved);
 
         $averageBookingValue = $approved->isNotEmpty()
             ? (int) round($approvedRevenue / $approved->count())
@@ -112,43 +120,92 @@ class ShowTimeAnalytics
             ? round(($approved->count() / $decided) * 100, 1)
             : 0.0;
 
-        $hall    = null;
+        $hall = null;
         $balcony = null;
         if ($usesSectionPricing) {
-            $hall    = self::sectionAnalytics($bookings, Theater::SECTION_HALL);
+            $hall = self::sectionAnalytics($bookings, Theater::SECTION_HALL);
             $balcony = self::sectionAnalytics($bookings, Theater::SECTION_BALCONY);
         }
 
         return [
-            'capacity'             => $capacity,
-            'blocked'              => $blocked,
-            'remaining'            => $remaining,
-            'approved_tickets'     => $approvedTickets,
-            'pending_tickets'      => $pendingTickets,
-            'rejected_tickets'     => $rejectedTickets,
-            'sold_tickets'         => $soldTickets,
-            'occupancy_percent'    => self::percent($soldTickets, $capacity),
-            'sold_percent'         => self::percent($approvedTickets, $capacity),
-            'pending_percent'      => self::percent($pendingTickets, $capacity),
-            'blocked_percent'      => self::percent($blocked, $capacity),
-            'remaining_percent'    => self::percent($remaining, $capacity),
-            'approved_bookings'    => $approved->count(),
-            'pending_bookings'     => $pending->count(),
-            'rejected_bookings'    => $rejected->count(),
-            'approved_revenue'     => $approvedRevenue,
-            'pending_revenue'      => $pendingRevenue,
-            'total_revenue'        => $totalRevenue,
-            'total_discount'       => $totalDiscount,
-            'discounted_bookings'  => $discountedBookings,
+            'capacity' => $capacity,
+            'blocked' => $blocked,
+            'remaining' => $remaining,
+            'approved_tickets' => $approvedTickets,
+            'pending_tickets' => $pendingTickets,
+            'rejected_tickets' => $rejectedTickets,
+            'sold_tickets' => $soldTickets,
+            'occupancy_percent' => self::percent($soldTickets, $capacity),
+            'sold_percent' => self::percent($approvedTickets, $capacity),
+            'pending_percent' => self::percent($pendingTickets, $capacity),
+            'blocked_percent' => self::percent($blocked, $capacity),
+            'remaining_percent' => self::percent($remaining, $capacity),
+            'approved_bookings' => $approved->count(),
+            'pending_bookings' => $pending->count(),
+            'rejected_bookings' => $rejected->count(),
+            'approved_revenue' => $approvedRevenue,
+            'pending_revenue' => $pendingRevenue,
+            'total_revenue' => $totalRevenue,
+            'total_discount' => $totalDiscount,
+            'discounted_bookings' => $discountedBookings,
+            'tier_breakdown' => $tierBreakdown,
             'average_booking_value' => $averageBookingValue,
-            'conversion_percent'   => $conversionPercent,
+            'conversion_percent' => $conversionPercent,
             'uses_section_pricing' => $usesSectionPricing,
-            'hall'                 => $hall,
-            'balcony'              => $balcony,
-            'hall_price'           => (int) ($show->hall_price ?? 0),
-            'balcony_price'        => (int) ($show->balcony_price ?? 0),
-            'ticket_price'         => (int) $showTime->ticket_price,
+            'hall' => $hall,
+            'balcony' => $balcony,
+            'hall_price' => (int) ($show->hall_price ?? 0),
+            'balcony_price' => (int) ($show->balcony_price ?? 0),
+            'ticket_price' => (int) $showTime->ticket_price,
         ];
+    }
+
+    /**
+     * Break the approved-bookings collection out by discount tier
+     * (20 / 30 / 40 / 50 %). The "0 %" rows (no discount) are
+     * intentionally omitted from the breakdown — admins already see
+     * the non-discounted bookings in the main `approved_revenue` /
+     * `approved_bookings` KPIs.
+     *
+     * @return array<int, array{
+     *   bookings:int,
+     *   tickets:int,
+     *   discount_amount:int,
+     *   revenue:int,
+     *   percent:int,
+     *   family:string,
+     *   label:string,
+     *   badge:string,
+     * }>
+     */
+    private static function computeTierBreakdown($approved): array
+    {
+        $out = [];
+
+        foreach (BookingPricing::TIERS as $tier) {
+            $percent = (int) $tier['percent'];
+            $rows = $approved->filter(
+                fn ($b) => (int) ($b->discount_percent ?? 0) === $percent
+            );
+
+            if ($rows->isEmpty()) {
+                continue;
+            }
+
+            $isChurch = $tier['family'] === BookingPricing::FAMILY_CHURCH;
+            $out[$percent] = [
+                'bookings' => $rows->count(),
+                'tickets' => (int) $rows->sum('tickets_count'),
+                'discount_amount' => (int) round((float) $rows->sum('discount_amount')),
+                'revenue' => (int) round((float) $rows->sum('total_price')),
+                'percent' => $percent,
+                'family' => $tier['family'],
+                'label' => $isChurch ? 'خصومات الكنائس' : 'خصومات العيلة',
+                'badge' => $tier['badge'],
+            ];
+        }
+
+        return $out;
     }
 
     /**
@@ -176,15 +233,16 @@ class ShowTimeAnalytics
             if ($seats->isEmpty()) {
                 return false;
             }
+
             return $seats->first()->section === $section;
         });
 
         $approved = $sectionBookings->where('status', 'approved');
-        $pending  = $sectionBookings->where('status', 'pending');
+        $pending = $sectionBookings->where('status', 'pending');
 
         $ticketsApproved = (int) $approved->sum('tickets_count');
-        $ticketsPending  = (int) $pending->sum('tickets_count');
-        $ticketsSold     = $ticketsApproved + $ticketsPending;
+        $ticketsPending = (int) $pending->sum('tickets_count');
+        $ticketsSold = $ticketsApproved + $ticketsPending;
 
         // list_revenue: per-seat catalog price summed across approved
         // bookings — what the show would have grossed at list before
@@ -199,13 +257,13 @@ class ShowTimeAnalytics
         $discountAmount = max(0, $listRevenue - $finalRevenue);
 
         return [
-            'section'          => $section,
-            'tickets_sold'     => $ticketsSold,
+            'section' => $section,
+            'tickets_sold' => $ticketsSold,
             'tickets_approved' => $ticketsApproved,
-            'tickets_pending'  => $ticketsPending,
-            'list_revenue'     => $listRevenue,
-            'final_revenue'    => $finalRevenue,
-            'discount_amount'  => $discountAmount,
+            'tickets_pending' => $ticketsPending,
+            'list_revenue' => $listRevenue,
+            'final_revenue' => $finalRevenue,
+            'discount_amount' => $discountAmount,
         ];
     }
 
@@ -251,36 +309,67 @@ class ShowTimeAnalytics
      */
     public static function totals(iterable $perShowtime): array
     {
-        $capacity        = 0;
-        $sold            = 0;
+        $capacity = 0;
+        $sold = 0;
         $approvedRevenue = 0;
-        $totalRevenue    = 0;
-        $totalDiscount   = 0;
+        $pendingRevenue = 0;
+        $totalRevenue = 0;
+        $totalDiscount = 0;
         $approvedBookings = 0;
-        $pendingBookings  = 0;
+        $pendingBookings = 0;
         $count = 0;
+        // Per-tier rollup across every showtime — same shape as the
+        // per-showtime `tier_breakdown` so the dashboard view can
+        // iterate either source identically.
+        $tierBreakdown = [];
 
         foreach ($perShowtime as $row) {
-            $capacity         += (int) ($row['capacity'] ?? 0);
-            $sold             += (int) ($row['sold_tickets'] ?? 0);
-            $approvedRevenue  += (int) ($row['approved_revenue'] ?? 0);
-            $totalRevenue     += (int) ($row['total_revenue'] ?? 0);
-            $totalDiscount    += (int) ($row['total_discount'] ?? 0);
+            $capacity += (int) ($row['capacity'] ?? 0);
+            $sold += (int) ($row['sold_tickets'] ?? 0);
+            $approvedRevenue += (int) ($row['approved_revenue'] ?? 0);
+            $pendingRevenue += (int) ($row['pending_revenue'] ?? 0);
+            $totalRevenue += (int) ($row['total_revenue'] ?? 0);
+            $totalDiscount += (int) ($row['total_discount'] ?? 0);
             $approvedBookings += (int) ($row['approved_bookings'] ?? 0);
-            $pendingBookings  += (int) ($row['pending_bookings'] ?? 0);
+            $pendingBookings += (int) ($row['pending_bookings'] ?? 0);
             $count++;
+
+            foreach (($row['tier_breakdown'] ?? []) as $percent => $tier) {
+                if (! isset($tierBreakdown[$percent])) {
+                    $tierBreakdown[$percent] = [
+                        'percent' => (int) $tier['percent'],
+                        'family' => $tier['family'],
+                        'label' => $tier['label'],
+                        'badge' => $tier['badge'],
+                        'bookings' => 0,
+                        'tickets' => 0,
+                        'discount_amount' => 0,
+                        'revenue' => 0,
+                    ];
+                }
+                $tierBreakdown[$percent]['bookings'] += (int) ($tier['bookings'] ?? 0);
+                $tierBreakdown[$percent]['tickets'] += (int) ($tier['tickets'] ?? 0);
+                $tierBreakdown[$percent]['discount_amount'] += (int) ($tier['discount_amount'] ?? 0);
+                $tierBreakdown[$percent]['revenue'] += (int) ($tier['revenue'] ?? 0);
+            }
         }
 
+        // Keep the breakdown ordered ascending by percent so the UI
+        // renders 🎁 20 % → ⛪ 30 % → 💎 40 % → 👑 50 % left-to-right.
+        ksort($tierBreakdown);
+
         return [
-            'count'             => $count,
-            'capacity'          => $capacity,
-            'sold'              => $sold,
+            'count' => $count,
+            'capacity' => $capacity,
+            'sold' => $sold,
             'occupancy_percent' => self::percent($sold, $capacity),
-            'approved_revenue'  => $approvedRevenue,
-            'total_revenue'     => $totalRevenue,
-            'total_discount'    => $totalDiscount,
+            'approved_revenue' => $approvedRevenue,
+            'pending_revenue' => $pendingRevenue,
+            'total_revenue' => $totalRevenue,
+            'total_discount' => $totalDiscount,
             'approved_bookings' => $approvedBookings,
-            'pending_bookings'  => $pendingBookings,
+            'pending_bookings' => $pendingBookings,
+            'tier_breakdown' => $tierBreakdown,
         ];
     }
 }

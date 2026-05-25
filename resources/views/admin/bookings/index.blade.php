@@ -159,16 +159,7 @@
                                 <p class="font-bold text-[color:var(--prism-text)]">{{ $booking->full_name }}</p>
                                 <p class="text-xs" style="color: var(--prism-gold);">
                                     🎟️ {{ $booking->tickets_count }} <span data-i18n="common_ticket_word">تذكرة</span>
-                                    @if((int) ($booking->discount_percent ?? 0) > 0)
-                                        {{-- Bulk-discount badge — inline next to the
-                                             ticket count so it never adds a row. --}}
-                                        <span class="inline-flex items-center gap-1 ms-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold"
-                                              title="خصم {{ (int) $booking->discount_percent }}% · وفّر {{ (int) $booking->discount_amount }} جنيه"
-                                              style="color:#6ee7b7; border:1px solid rgba(110,231,183,0.55); background: rgba(16,185,129,0.10);">
-                                            <span aria-hidden="true">🎁</span>
-                                            <span dir="ltr">-{{ (int) $booking->discount_percent }}%</span>
-                                        </span>
-                                    @endif
+                                    @include('partials._discount_tier_badge', ['booking' => $booking])
                                 </p>
                             </div>
                             <span class="text-[color:var(--prism-text-3)] block mb-1">{{ $booking->phone }}</span>
@@ -262,14 +253,7 @@
 
                         <div class="text-xs mb-1 flex items-center gap-1.5 flex-wrap" style="color: var(--prism-gold);">
                             <span>🎟️ {{ $booking->tickets_count }} <span data-i18n="common_ticket_word">تذكرة</span></span>
-                            @if((int) ($booking->discount_percent ?? 0) > 0)
-                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold"
-                                      title="خصم {{ (int) $booking->discount_percent }}% · وفّر {{ (int) $booking->discount_amount }} جنيه"
-                                      style="color:#6ee7b7; border:1px solid rgba(110,231,183,0.55); background: rgba(16,185,129,0.10);">
-                                    <span aria-hidden="true">🎁</span>
-                                    <span dir="ltr">-{{ (int) $booking->discount_percent }}%</span>
-                                </span>
-                            @endif
+                            @include('partials._discount_tier_badge', ['booking' => $booking, 'variant' => 'pill'])
                         </div>
 
                         <div class="text-[color:var(--prism-text-3)]">{{ $booking->phone }}</div>

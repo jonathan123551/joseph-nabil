@@ -144,11 +144,26 @@
                 </div>
 
                 @if($booking->hasDiscount())
-                    {{-- Bulk-discount breakdown — admins see the
-                         original total, the discount line, and the
-                         final paid amount. Values are stored on the
-                         booking row itself so they can never drift
-                         from what the customer saw. --}}
+                    @php
+                        $bkTier = \App\Support\BookingPricing::resolveTierForPercent((int) $booking->discount_percent);
+                        $bkTierIsChurch = $bkTier && $bkTier['family'] === \App\Support\BookingPricing::FAMILY_CHURCH;
+                        $bkTierLabel = $bkTierIsChurch ? 'خصومات الكنائس' : 'خصومات العيلة';
+                        $bkTierColor = $bkTierIsChurch ? '#c4b5fd' : 'var(--prism-emerald)';
+                    @endphp
+                    {{-- Tiered bulk-discount breakdown — admins see the
+                         original total, the branded tier headline, the
+                         discount line, and the final paid amount.
+                         Values are stored on the booking row itself so
+                         they can never drift from what the customer saw. --}}
+                    <div class="prism-data-row">
+                        <span class="prism-data-key">
+                            <span aria-hidden="true">{{ $bkTier['badge'] ?? '🎁' }}</span>
+                            <span>{{ $bkTierLabel }}</span>
+                        </span>
+                        <span class="prism-data-val text-xs" style="color: {{ $bkTierColor }};">
+                            <span dir="ltr">{{ (int) $booking->discount_percent }}% OFF</span>
+                        </span>
+                    </div>
                     <div class="prism-data-row">
                         <span class="prism-data-key" data-i18n="adm_bk_subtotal">المجموع قبل الخصم</span>
                         <span class="prism-data-val text-sm">
@@ -161,7 +176,7 @@
                             <span data-i18n="adm_bk_discount">الخصم</span>
                             <span dir="ltr" class="opacity-70 text-xs">(-{{ (int) $booking->discount_percent }}%)</span>
                         </span>
-                        <span class="prism-data-val text-sm" style="color: var(--prism-emerald);">
+                        <span class="prism-data-val text-sm" style="color: {{ $bkTierColor }};">
                             −{{ (int) $booking->discount_amount }}
                             <span class="text-xs opacity-80" data-i18n="common_currency">جنيه</span>
                         </span>
@@ -318,17 +333,7 @@
                 <span class="pt-bar-meta-row">
                     <span class="pt-bar-chip"><span aria-hidden="true">🎟</span> {{ $tCount }}</span>
                     <span class="pt-bar-chip pt-bar-chip-gold">{{ $tTotal }} <span class="opacity-70" data-i18n="common_currency">جنيه</span></span>
-                    @if($booking->hasDiscount())
-                        {{-- Inline discount badge so admins can spot the
-                             promoted bookings at a glance from the sticky
-                             top bar. --}}
-                        <span class="pt-bar-chip pt-bar-chip-muted"
-                              title="تم تطبيق خصم {{ (int) $booking->discount_percent }}%"
-                              style="color:#6ee7b7; border-color: rgba(110,231,183,0.55); background: rgba(16,185,129,0.10);">
-                            <span aria-hidden="true">🎁</span>
-                            <span dir="ltr">-{{ (int) $booking->discount_percent }}%</span>
-                        </span>
-                    @endif
+                    @include('partials._discount_tier_badge', ['booking' => $booking, 'variant' => 'bar'])
                     @if($whenLabel)
                         <span class="pt-bar-chip pt-bar-chip-muted"><span aria-hidden="true">⏰</span> {{ $whenLabel }}</span>
                     @endif
