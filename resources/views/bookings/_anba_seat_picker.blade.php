@@ -823,591 +823,479 @@
             font-size: 11px;
         }
 
-        /* ===== Fast-booking sheet =====
-           Phase 1: offer-led quick actions + custom quantity + strategy
-           pills. Still calls the existing auto-pick allocator immediately;
-           future phases can add preview/candidate cycling without changing
-           the trigger surface. */
+        /* ===== Fast-booking sheet (v2 — compact, mobile-first, RTL-native) =====
+           Selectors preserved for the existing JS:
+           .anba-modal-backdrop, .anba-modal-card, .anba-offer-btn[data-fast-count],
+           .anba-qty-input/.anba-qty-btn, .anba-strategy-pill[data-fast-strategy],
+           .anba-modal-apply/.anba-modal-manual/.anba-modal-cancel, .anba-upsell. */
         .anba-modal-backdrop {
             position: fixed;
             inset: 0;
             z-index: 60;
             display: none;
-            align-items: center;
-            justify-content: flex-end;
-            padding: 12px;
-            padding-bottom: max(12px, env(safe-area-inset-bottom));
-            background: rgba(3, 5, 12, 0.72);
+            align-items: flex-end;
+            justify-content: center;
+            padding: 0;
+            background: rgba(3, 5, 12, 0.62);
             backdrop-filter: blur(8px) saturate(140%);
             -webkit-backdrop-filter: blur(8px) saturate(140%);
             opacity: 0;
             transition: opacity .18s ease-out;
+            touch-action: manipulation;
         }
-        .anba-modal-backdrop.is-open {
-            display: flex;
-            opacity: 1;
-        }
+        .anba-modal-backdrop.is-open { display: flex; opacity: 1; }
         .anba-modal-card {
-            width: min(440px, 100%);
-            max-height: min(86dvh, 720px);
+            width: 100%;
+            max-width: 460px;
+            max-height: 92dvh;
             overflow: auto;
             overscroll-behavior: contain;
             -webkit-overflow-scrolling: touch;
-            border-radius: 24px;
-            padding: 16px;
+            border-radius: 24px 24px 0 0;
+            padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
             background:
-                radial-gradient(120% 80% at 0% 0%, rgba(34,211,238,0.12), transparent 48%),
-                radial-gradient(110% 80% at 100% 0%, rgba(192,132,252,0.14), transparent 52%),
-                linear-gradient(180deg, rgba(15,18,32,0.98), rgba(8,10,20,0.98));
-            border: 1px solid rgba(251,191,36,0.40);
+                radial-gradient(110% 80% at 0% 0%, rgba(251,191,36,0.08), transparent 52%),
+                radial-gradient(110% 80% at 100% 0%, rgba(167,139,250,0.10), transparent 52%),
+                linear-gradient(180deg, rgba(15,18,32,0.98), rgba(8,10,20,0.99));
+            border: 1px solid rgba(251,191,36,0.30);
+            border-bottom: 0;
             box-shadow:
-                0 24px 60px -12px rgba(0,0,0,0.65),
+                0 -16px 48px -10px rgba(0,0,0,0.65),
                 0 0 0 1px rgba(255,255,255,0.04) inset,
                 0 1px 0 rgba(255,255,255,0.10) inset;
             color: var(--p-text);
-            transform: translateY(18px) scale(.98);
-            transition: transform .22s var(--p-ease);
+            transform: translateY(24px);
+            transition: transform .24s var(--p-ease);
+            touch-action: manipulation;
         }
+        .anba-modal-backdrop.is-open .anba-modal-card { transform: translateY(0); }
         .anba-modal-card::before {
             content: "";
             display: block;
-            width: 44px;
+            width: 40px;
             height: 4px;
             margin: 0 auto 12px;
             border-radius: 999px;
-            background: linear-gradient(90deg, rgba(251,191,36,0.24), rgba(34,211,238,0.42), rgba(167,139,250,0.36));
+            background: linear-gradient(90deg, rgba(251,191,36,0.36), rgba(167,139,250,0.42));
         }
-        .anba-modal-backdrop.is-open .anba-modal-card {
-            transform: translateY(0) scale(1);
-        }
-        .anba-modal-hero {
-            position: relative;
-            padding: 14px;
-            margin-bottom: 14px;
-            border-radius: 22px;
-            background:
-                radial-gradient(80% 100% at 100% 0%, rgba(251,191,36,0.18), transparent 56%),
-                radial-gradient(80% 100% at 0% 0%, rgba(34,211,238,0.12), transparent 58%),
-                rgba(255,255,255,0.035);
-            border: 1px solid rgba(251,191,36,0.22);
-        }
-        .anba-modal-eyebrow {
-            font-size: 10.5px;
-            letter-spacing: .14em;
-            text-transform: uppercase;
-            color: #fcd34d;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-        .anba-modal-title {
-            font-size: clamp(20px, 6vw, 28px);
-            line-height: 1.15;
-            font-weight: 900;
-            color: var(--p-text);
-            margin-bottom: 6px;
-            letter-spacing: -0.01em;
-        }
-        .anba-modal-title strong {
-            color: #fde68a;
-            font-size: 1.2em;
-            text-shadow: 0 0 18px rgba(251,191,36,0.22);
-        }
-        .anba-modal-sub {
-            font-size: 12px;
-            line-height: 1.45;
-            color: var(--p-text-3);
-        }
-        .anba-section-label {
+
+        .anba-sheet-head {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 8px;
-            margin: 0 2px 8px;
-            color: var(--p-text-2);
-            font-size: 11px;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .anba-sheet-title {
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 0;
+            font-size: clamp(15px, 4.4vw, 18px);
             font-weight: 900;
+            line-height: 1.2;
+            letter-spacing: -0.005em;
+            color: var(--p-text);
+        }
+        .anba-sheet-title strong {
+            font-size: 1.35em;
+            font-weight: 900;
+            color: #fde68a;
+            text-shadow: 0 0 18px rgba(251,191,36,0.22);
+        }
+        .anba-modal-cancel {
+            width: 36px;
+            height: 36px;
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.04);
+            color: var(--p-text-2);
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            transition: background .14s var(--p-ease), color .14s var(--p-ease), border-color .14s var(--p-ease);
+        }
+        .anba-modal-cancel:hover,
+        .anba-modal-cancel:focus-visible {
+            background: rgba(255,255,255,0.07);
+            color: var(--p-text);
+        }
+
+        .anba-offers {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .anba-offers-divider {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0 2px;
+            color: #ddd6fe;
+            font-size: 11px;
+            font-weight: 800;
             letter-spacing: .02em;
         }
-        label.anba-section-label { margin-bottom: 0; }
-        .anba-section-label::after {
+        .anba-offers-divider::after {
             content: "";
             flex: 1;
             height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14));
+            background: linear-gradient(90deg, rgba(167,139,250,0.40), transparent);
         }
-        .anba-offer-family {
-            display: grid;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-        .anba-offer-family-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            padding: 8px 10px;
-            border-radius: 16px;
-            font-size: 11px;
-            font-weight: 900;
-        }
-        .anba-offer-family-head small {
-            font-size: 10px;
-            font-weight: 800;
-            opacity: .76;
-        }
-        .anba-offer-family[data-family="family"] .anba-offer-family-head {
-            color: #fde68a;
-            background: linear-gradient(135deg, rgba(251,191,36,0.15), rgba(251,191,36,0.04));
-            border: 1px solid rgba(251,191,36,0.26);
-        }
-        .anba-offer-family[data-family="church"] .anba-offer-family-head {
-            color: #ddd6fe;
-            background: linear-gradient(135deg, rgba(167,139,250,0.16), rgba(34,211,238,0.06));
-            border: 1px solid rgba(167,139,250,0.26);
-        }
-        .anba-offer-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 8px;
-        }
-        .anba-offer-grid.is-family { grid-template-columns: 1fr; }
         .anba-offer-btn {
             appearance: none;
             -webkit-appearance: none;
             display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 5px;
-            min-height: 108px;
-            padding: 12px;
-            border-radius: 18px;
-            border: 1px solid rgba(129,140,248,0.28);
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            min-height: 58px;
+            padding: 9px 12px;
+            border-radius: 16px;
+            border: 1px solid rgba(129,140,248,0.22);
             background:
-                linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025)),
+                linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
                 rgba(8,10,20,0.54);
             color: var(--p-text);
             cursor: pointer;
             text-align: start;
             -webkit-tap-highlight-color: transparent;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+            touch-action: manipulation;
             transition: transform .14s var(--p-ease), border-color .14s var(--p-ease), background .14s var(--p-ease), box-shadow .18s var(--p-ease);
         }
-        .anba-offer-btn:hover,
-        .anba-offer-btn.is-active {
-            transform: translateY(-1px);
-            border-color: rgba(251,191,36,0.58);
-            background:
-                radial-gradient(130% 90% at 0% 0%, rgba(251,191,36,0.18), transparent 56%),
-                linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03));
-            box-shadow:
-                0 14px 30px -18px rgba(251,191,36,0.8),
-                0 0 18px rgba(129,140,248,0.20),
-                inset 0 1px 0 rgba(255,255,255,0.08);
-        }
-        .anba-offer-btn[data-family="family"] {
-            border-color: rgba(251,191,36,0.34);
-            background:
-                radial-gradient(120% 90% at 100% 0%, rgba(251,191,36,0.12), transparent 58%),
-                linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025)),
-                rgba(8,10,20,0.54);
-        }
-        .anba-offer-btn[data-family="church"] {
-            border-color: rgba(167,139,250,0.34);
-            background:
-                radial-gradient(120% 90% at 0% 0%, rgba(167,139,250,0.13), transparent 58%),
-                radial-gradient(120% 90% at 100% 0%, rgba(34,211,238,0.07), transparent 58%),
-                linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025)),
-                rgba(8,10,20,0.54);
-        }
-        .anba-offer-btn[data-family="church"]:hover,
-        .anba-offer-btn[data-family="church"].is-active {
-            border-color: rgba(167,139,250,0.68);
-            background:
-                radial-gradient(130% 90% at 0% 0%, rgba(167,139,250,0.24), transparent 56%),
-                radial-gradient(130% 90% at 100% 0%, rgba(34,211,238,0.12), transparent 56%),
-                linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03));
-            box-shadow:
-                0 14px 30px -18px rgba(167,139,250,0.84),
-                0 0 18px rgba(34,211,238,0.22),
-                inset 0 1px 0 rgba(255,255,255,0.08);
-        }
-        .anba-offer-btn:active { transform: scale(.98); }
-        .anba-offer-top {
-            display: flex;
+        .anba-offer-btn:active { transform: scale(.99); }
+        .anba-offer-pct {
+            flex: 0 0 auto;
+            min-width: 58px;
+            height: 40px;
+            display: inline-flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            width: 100%;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 900;
+            letter-spacing: -.01em;
+            background: rgba(251,191,36,0.16);
+            border: 1px solid rgba(251,191,36,0.34);
+            color: #fef3c7;
+        }
+        .anba-offer-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
         }
         .anba-offer-name {
-            font-size: 12px;
+            font-size: 12.5px;
             font-weight: 800;
-            line-height: 1.15;
-        }
-        .anba-offer-count {
-            font-size: 11px;
-            font-weight: 900;
-            color: #fef3c7;
-            background: rgba(251,191,36,0.14);
-            border: 1px solid rgba(251,191,36,0.34);
-            padding: 3px 7px;
-            border-radius: 999px;
-            white-space: nowrap;
-        }
-        .anba-offer-btn[data-family="church"] .anba-offer-count {
-            color: #ede9fe;
-            background: rgba(167,139,250,0.14);
-            border-color: rgba(167,139,250,0.36);
+            line-height: 1.2;
         }
         .anba-offer-meta {
             font-size: 11px;
             color: var(--p-text-3);
             line-height: 1.35;
         }
-        .anba-booking-panel {
-            display: grid;
-            gap: 10px;
-            padding: 13px;
-            border-radius: 20px;
-            background: rgba(8,10,20,0.50);
-            border: 1px solid rgba(129,140,248,0.20);
-            margin-bottom: 13px;
+        .anba-offer-btn[data-family="family"] {
+            border-color: rgba(251,191,36,0.32);
+            background:
+                radial-gradient(140% 100% at 100% 0%, rgba(251,191,36,0.12), transparent 60%),
+                linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+                rgba(8,10,20,0.54);
         }
+        .anba-offer-btn[data-family="church"] {
+            border-color: rgba(167,139,250,0.30);
+            background:
+                radial-gradient(140% 100% at 0% 0%, rgba(167,139,250,0.13), transparent 58%),
+                radial-gradient(140% 100% at 100% 0%, rgba(34,211,238,0.06), transparent 58%),
+                linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+                rgba(8,10,20,0.54);
+        }
+        .anba-offer-btn[data-family="church"] .anba-offer-pct {
+            background: rgba(167,139,250,0.16);
+            border-color: rgba(167,139,250,0.36);
+            color: #ede9fe;
+        }
+        .anba-offer-btn:hover,
+        .anba-offer-btn.is-active {
+            transform: translateY(-1px);
+            border-color: rgba(251,191,36,0.62);
+            box-shadow:
+                0 12px 26px -16px rgba(251,191,36,0.7),
+                inset 0 1px 0 rgba(255,255,255,0.07);
+        }
+        .anba-offer-btn[data-family="church"]:hover,
+        .anba-offer-btn[data-family="church"].is-active {
+            border-color: rgba(167,139,250,0.70);
+            box-shadow:
+                0 12px 26px -16px rgba(167,139,250,0.78),
+                0 0 18px rgba(34,211,238,0.18),
+                inset 0 1px 0 rgba(255,255,255,0.07);
+        }
+
         .anba-qty-row {
             display: grid;
-            grid-template-columns: 42px 1fr 42px;
+            grid-template-columns: 44px 1fr 44px;
             gap: 8px;
             align-items: center;
+            margin-bottom: 10px;
         }
         .anba-qty-btn {
-            width: 42px;
-            height: 42px;
+            width: 44px;
+            height: 44px;
             border-radius: 14px;
             background: rgba(255,255,255,0.06);
             border: 1px solid rgba(129,140,248,0.30);
             color: var(--p-text);
             font-size: 20px;
-            font-weight: 800;
+            font-weight: 900;
+            line-height: 1;
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
+        .anba-qty-btn:active { transform: scale(.97); }
         .anba-qty-input {
             width: 100%;
-            height: 46px;
-            border-radius: 16px;
+            height: 44px;
+            border-radius: 14px;
             border: 1px solid rgba(251,191,36,0.35);
             background: rgba(2,6,23,0.52);
             color: var(--p-text);
             text-align: center;
-            font-size: 22px;
+            /* font-size >= 16px prevents iOS Safari from zooming on focus. */
+            font-size: 18px;
             font-weight: 900;
             outline: none;
             box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+            -moz-appearance: textfield;
+            appearance: textfield;
         }
+        .anba-qty-input::-webkit-outer-spin-button,
+        .anba-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .anba-qty-input:focus {
             border-color: rgba(251,191,36,0.72);
-            box-shadow: 0 0 0 3px rgba(251,191,36,0.11), inset 0 1px 0 rgba(255,255,255,0.06);
+            box-shadow: 0 0 0 3px rgba(251,191,36,0.10), inset 0 1px 0 rgba(255,255,255,0.06);
         }
+
+        .anba-upsell {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(34,211,238,0.22);
+            background: linear-gradient(135deg, rgba(34,211,238,0.10), rgba(129,140,248,0.10));
+            color: var(--p-text-2);
+            font-size: 11.5px;
+            font-weight: 700;
+            line-height: 1.4;
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+        }
+
         .anba-strategy-row {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 6px;
+            margin-bottom: 12px;
         }
         .anba-strategy-pill {
-            min-height: 38px;
+            min-height: 36px;
+            padding: 0 8px;
             border-radius: 999px;
-            border: 1px solid rgba(129,140,248,0.25);
-            background: rgba(255,255,255,0.04);
-            color: var(--p-text-2);
+            border: 1px solid rgba(129,140,248,0.22);
+            background: rgba(255,255,255,0.03);
+            color: var(--p-text-3);
             font-size: 10.5px;
             font-weight: 800;
+            line-height: 1.1;
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
-            transition: background .14s var(--p-ease), border-color .14s var(--p-ease), color .14s var(--p-ease), transform .14s var(--p-ease);
+            touch-action: manipulation;
+            transition: background .14s var(--p-ease), border-color .14s var(--p-ease), color .14s var(--p-ease);
         }
         .anba-strategy-pill.is-active {
             color: #ecfeff;
-            border-color: rgba(34,211,238,0.56);
-            background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(129,140,248,0.16));
-            box-shadow: 0 0 16px rgba(34,211,238,0.16);
+            border-color: rgba(34,211,238,0.52);
+            background: linear-gradient(135deg, rgba(34,211,238,0.14), rgba(129,140,248,0.14));
         }
         .anba-strategy-pill:active { transform: scale(.98); }
-        .anba-tier-status {
-            display: grid;
-            gap: 8px;
-            margin-bottom: 13px;
-        }
-        .anba-tier-track {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 0;
-            position: relative;
-        }
-        .anba-tier-track::before {
-            content: "";
-            position: absolute;
-            inset-inline: 8%;
-            top: 50%;
-            height: 2px;
-            transform: translateY(-50%);
-            background: linear-gradient(90deg, rgba(167,139,250,0.42), rgba(34,211,238,0.30), rgba(251,191,36,0.36));
-            opacity: .6;
-        }
-        .anba-tier-node {
-            min-width: 0;
-            position: relative;
-            z-index: 1;
-            border-radius: 16px;
-            padding: 7px 5px;
-            background: rgba(255,255,255,0.035);
-            border: 1px solid rgba(129,140,248,0.20);
-            color: var(--p-text-3);
-            text-align: center;
-            font-size: 10px;
-            line-height: 1.2;
-        }
-        .anba-tier-node.is-active {
-            color: #fef3c7;
-            border-color: rgba(251,191,36,0.55);
-            background: linear-gradient(180deg, rgba(251,191,36,0.16), rgba(251,191,36,0.06));
-            box-shadow: 0 0 18px rgba(251,191,36,0.16);
-        }
-        .anba-tier-node b {
-            display: block;
-            font-size: 11px;
-            color: inherit;
-        }
-        .anba-tier-node span {
-            display: block;
-            margin-top: 2px;
-        }
-        .anba-upsell {
-            min-height: 34px;
-            border-radius: 15px;
-            padding: 9px 10px;
-            border: 1px solid rgba(34,211,238,0.22);
-            background: linear-gradient(135deg, rgba(34,211,238,0.10), rgba(129,140,248,0.09));
-            color: var(--p-text-2);
-            font-size: 11.5px;
-            font-weight: 700;
-            line-height: 1.35;
-        }
-        .anba-sheet-actions {
-            display: grid;
-            gap: 8px;
-        }
+
         .anba-modal-apply {
-            min-height: 48px;
+            width: 100%;
+            min-height: 50px;
             border: 0;
             border-radius: 999px;
             background: linear-gradient(135deg, #cffafe 0%, #c7d2fe 48%, #fde68a 100%);
             color: #0b0e1c;
-            font-size: 13px;
+            font-size: 13.5px;
             font-weight: 900;
             cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
             box-shadow:
-                0 12px 30px -12px rgba(251,191,36,0.75),
+                0 14px 30px -14px rgba(251,191,36,0.80),
                 0 0 22px rgba(34,211,238,0.18),
                 inset 0 1px 0 rgba(255,255,255,0.65);
             -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            transition: transform .14s var(--p-ease), box-shadow .18s var(--p-ease);
         }
         .anba-modal-apply:active { transform: scale(.99); }
-        .anba-modal-apply:disabled {
-            opacity: .48;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
+        .anba-modal-apply:disabled { opacity: .48; cursor: not-allowed; box-shadow: none; }
+
         .anba-modal-manual {
-            min-height: 42px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.035);
-            border: 1px solid rgba(129,140,248,0.22);
-            color: var(--p-text-2);
-            font-size: 12px;
-            font-weight: 800;
-            cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .anba-sheet-note {
             margin-top: 8px;
-            color: var(--p-text-4);
-            font-size: 10.5px;
-            line-height: 1.35;
-        }
-        .anba-modal-cancel {
             display: block;
             width: 100%;
             background: transparent;
-            border: 1px solid var(--p-border);
+            border: 0;
             color: var(--p-text-3);
-            border-radius: 12px;
-            padding: 10px 0;
-            font-size: 13px;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
-            min-height: 40px;
+            touch-action: manipulation;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            text-decoration-color: rgba(255,255,255,0.20);
         }
-        .anba-modal-cancel:hover {
-            background: rgba(255,255,255,0.04);
+        .anba-modal-manual:hover {
             color: var(--p-text);
+            text-decoration-color: rgba(255,255,255,0.40);
         }
+
         @media (min-width: 640px) {
-            .anba-modal-backdrop {
-                justify-content: center;
-                padding: 18px;
-            }
+            .anba-modal-backdrop { align-items: center; padding: 18px; }
             .anba-modal-card {
-                border-radius: 26px;
+                max-width: 460px;
+                border-radius: 24px;
+                border-bottom: 1px solid rgba(251,191,36,0.30);
                 padding: 18px;
             }
         }
-        @media (max-width: 380px) {
-            .anba-modal-card { padding: 12px; }
-            .anba-offer-grid { grid-template-columns: 1fr; }
-            .anba-strategy-row { grid-template-columns: 1fr; }
+        @media (max-width: 360px) {
+            .anba-offer-pct { min-width: 50px; height: 36px; font-size: 15px; }
+            .anba-offer-name { font-size: 12px; }
+            .anba-offer-meta { font-size: 10.5px; }
         }
         @media (prefers-reduced-motion: reduce) {
-            .anba-modal-backdrop,
-            .anba-modal-card,
-            .anba-offer-btn,
-            .anba-strategy-pill { transition: none; }
+            .anba-modal-backdrop, .anba-modal-card,
+            .anba-offer-btn, .anba-strategy-pill,
+            .anba-modal-apply, .anba-modal-cancel { transition: none; }
         }
-        /* ---- Light-mode overrides: auto-pick chip-count modal ----
-           Fired from the auto-pick FAB. The dark amber-on-navy card looks
-           pasted-in on cream; swap to a white-cream card with amber
-           accent, neutral cancel button, and a softer scrim.
-           NB: the modal is rendered OUTSIDE [data-anba-root] (a sibling
-           of the picker), so the `--p-*` tokens don't cascade to it.
-           We use the global `--prism-*` tokens instead. */
-        :root[data-pt-theme="light"] .anba-modal-backdrop {
-            background: rgba(15,23,42,0.32);
-        }
+
+        /* Light theme. The modal is rendered outside [data-anba-root], so
+           the --p-* tokens don't cascade; we use --prism-* + hex values. */
+        :root[data-pt-theme="light"] .anba-modal-backdrop { background: rgba(15,23,42,0.32); }
         :root[data-pt-theme="light"] .anba-modal-card {
             background:
-                radial-gradient(120% 80% at 0% 0%, rgba(8,145,178,0.10), transparent 48%),
+                radial-gradient(110% 80% at 0% 0%, rgba(245,158,11,0.10), transparent 52%),
                 radial-gradient(110% 80% at 100% 0%, rgba(124,58,237,0.10), transparent 52%),
-                linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.98));
-            border-color: rgba(245,158,11,0.45);
+                linear-gradient(180deg, rgba(255,255,255,0.99), rgba(248,250,252,0.99));
+            border-color: rgba(245,158,11,0.40);
             box-shadow:
-                inset 0 1px 0 rgba(255,255,255,0.7),
-                0 24px 60px -12px rgba(15,23,42,0.28),
-                0 0 24px rgba(245,158,11,0.16);
+                0 -16px 48px -10px rgba(15,23,42,0.22),
+                inset 0 1px 0 rgba(255,255,255,0.7);
             color: var(--prism-text);
         }
-        :root[data-pt-theme="light"] .anba-modal-eyebrow {
-            color: var(--prism-gold);
-        }
-        :root[data-pt-theme="light"] .anba-modal-title {
-            color: var(--prism-text);
-        }
-        :root[data-pt-theme="light"] .anba-modal-hero {
-            background:
-                radial-gradient(80% 100% at 100% 0%, rgba(245,158,11,0.13), transparent 56%),
-                radial-gradient(80% 100% at 0% 0%, rgba(8,145,178,0.10), transparent 58%),
-                rgba(255,255,255,0.78);
-            border-color: rgba(245,158,11,0.24);
-        }
-        :root[data-pt-theme="light"] .anba-modal-title strong {
-            color: #b45309;
-            text-shadow: none;
-        }
-        :root[data-pt-theme="light"] .anba-section-label {
+        :root[data-pt-theme="light"] .anba-sheet-title { color: var(--prism-text); }
+        :root[data-pt-theme="light"] .anba-sheet-title strong { color: #b45309; text-shadow: none; }
+        :root[data-pt-theme="light"] .anba-modal-cancel {
+            border-color: rgba(15,23,42,0.14);
+            background: rgba(15,23,42,0.04);
             color: var(--prism-text-2);
         }
-        :root[data-pt-theme="light"] .anba-section-label::after {
-            background: linear-gradient(90deg, transparent, rgba(15,23,42,0.14));
+        :root[data-pt-theme="light"] .anba-modal-cancel:hover {
+            background: rgba(15,23,42,0.08);
+            color: var(--prism-text);
         }
-        :root[data-pt-theme="light"] .anba-modal-sub,
-        :root[data-pt-theme="light"] .anba-offer-meta,
-        :root[data-pt-theme="light"] .anba-upsell,
-        :root[data-pt-theme="light"] .anba-sheet-note {
-            color: var(--prism-text-3);
+        :root[data-pt-theme="light"] .anba-offers-divider { color: #5b21b6; }
+        :root[data-pt-theme="light"] .anba-offers-divider::after {
+            background: linear-gradient(90deg, rgba(124,58,237,0.36), transparent);
         }
-        :root[data-pt-theme="light"] .anba-offer-family[data-family="family"] .anba-offer-family-head {
-            color: #92400e;
-            background: linear-gradient(135deg, rgba(254,243,199,0.94), rgba(253,224,71,0.34));
-            border-color: rgba(180,83,9,0.28);
-        }
-        :root[data-pt-theme="light"] .anba-offer-family[data-family="church"] .anba-offer-family-head {
-            color: #5b21b6;
-            background: linear-gradient(135deg, rgba(237,233,254,0.94), rgba(186,230,253,0.36));
-            border-color: rgba(124,58,237,0.25);
-        }
-        :root[data-pt-theme="light"] .anba-offer-btn,
-        :root[data-pt-theme="light"] .anba-booking-panel,
-        :root[data-pt-theme="light"] .anba-tier-node,
-        :root[data-pt-theme="light"] .anba-modal-manual {
-            background: rgba(255,255,255,0.70);
+        :root[data-pt-theme="light"] .anba-offer-btn {
+            background: rgba(255,255,255,0.72);
             border-color: rgba(15,23,42,0.12);
             color: var(--prism-text);
         }
         :root[data-pt-theme="light"] .anba-offer-btn[data-family="family"] {
-            border-color: rgba(180,83,9,0.25);
             background:
-                radial-gradient(120% 90% at 100% 0%, rgba(245,158,11,0.16), transparent 58%),
-                rgba(255,255,255,0.74);
+                radial-gradient(140% 100% at 100% 0%, rgba(245,158,11,0.18), transparent 60%),
+                rgba(255,255,255,0.78);
+            border-color: rgba(180,83,9,0.28);
         }
         :root[data-pt-theme="light"] .anba-offer-btn[data-family="church"] {
-            border-color: rgba(124,58,237,0.25);
             background:
-                radial-gradient(120% 90% at 0% 0%, rgba(167,139,250,0.18), transparent 58%),
-                radial-gradient(120% 90% at 100% 0%, rgba(8,145,178,0.10), transparent 58%),
-                rgba(255,255,255,0.74);
+                radial-gradient(140% 100% at 0% 0%, rgba(167,139,250,0.20), transparent 58%),
+                rgba(255,255,255,0.78);
+            border-color: rgba(124,58,237,0.28);
         }
         :root[data-pt-theme="light"] .anba-offer-btn:hover,
         :root[data-pt-theme="light"] .anba-offer-btn.is-active {
+            border-color: rgba(245,158,11,0.55);
             background:
-                radial-gradient(130% 90% at 0% 0%, rgba(245,158,11,0.18), transparent 56%),
-                rgba(255,255,255,0.92);
-            border-color: rgba(245,158,11,0.52);
+                radial-gradient(140% 100% at 100% 0%, rgba(245,158,11,0.24), transparent 58%),
+                rgba(255,255,255,0.95);
         }
         :root[data-pt-theme="light"] .anba-offer-btn[data-family="church"]:hover,
         :root[data-pt-theme="light"] .anba-offer-btn[data-family="church"].is-active {
+            border-color: rgba(124,58,237,0.55);
             background:
-                radial-gradient(130% 90% at 0% 0%, rgba(167,139,250,0.22), transparent 56%),
-                radial-gradient(130% 90% at 100% 0%, rgba(8,145,178,0.12), transparent 56%),
-                rgba(255,255,255,0.92);
-            border-color: rgba(124,58,237,0.50);
+                radial-gradient(140% 100% at 0% 0%, rgba(167,139,250,0.26), transparent 58%),
+                rgba(255,255,255,0.95);
         }
-        :root[data-pt-theme="light"] .anba-offer-count,
-        :root[data-pt-theme="light"] .anba-tier-node.is-active {
+        :root[data-pt-theme="light"] .anba-offer-pct {
+            background: rgba(245,158,11,0.14);
+            border-color: rgba(180,83,9,0.28);
             color: #92400e;
         }
-        :root[data-pt-theme="light"] .anba-offer-btn[data-family="church"] .anba-offer-count {
-            color: #5b21b6;
-            background: rgba(167,139,250,0.14);
-            border-color: rgba(124,58,237,0.25);
+        :root[data-pt-theme="light"] .anba-offer-btn[data-family="church"] .anba-offer-pct {
+            background: rgba(167,139,250,0.16);
+            border-color: rgba(124,58,237,0.28);
+            color: #4c1d95;
         }
+        :root[data-pt-theme="light"] .anba-offer-meta { color: var(--prism-text-3); }
         :root[data-pt-theme="light"] .anba-qty-input {
-            background: rgba(255,255,255,0.86);
+            background: rgba(255,255,255,0.92);
             color: var(--prism-text);
+            border-color: rgba(180,83,9,0.32);
         }
         :root[data-pt-theme="light"] .anba-qty-btn {
             background: rgba(15,23,42,0.04);
+            border-color: rgba(15,23,42,0.14);
             color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] .anba-upsell {
+            background: linear-gradient(135deg, rgba(8,145,178,0.10), rgba(124,58,237,0.10));
+            border-color: rgba(79,70,229,0.20);
+            color: var(--prism-text-2);
         }
         :root[data-pt-theme="light"] .anba-strategy-pill {
             background: rgba(15,23,42,0.04);
-            border-color: rgba(15,23,42,0.12);
-            color: var(--prism-text-2);
+            border-color: rgba(15,23,42,0.14);
+            color: var(--prism-text-3);
         }
         :root[data-pt-theme="light"] .anba-strategy-pill.is-active {
             color: #312e81;
-            border-color: rgba(79,70,229,0.36);
-            background: linear-gradient(135deg, rgba(8,145,178,0.12), rgba(124,58,237,0.12));
+            border-color: rgba(79,70,229,0.40);
+            background: linear-gradient(135deg, rgba(8,145,178,0.14), rgba(124,58,237,0.14));
         }
-        :root[data-pt-theme="light"] .anba-upsell {
-            background: linear-gradient(135deg, rgba(8,145,178,0.08), rgba(124,58,237,0.08));
-            border-color: rgba(79,70,229,0.18);
-        }
-        :root[data-pt-theme="light"] .anba-modal-cancel {
-            border-color: rgba(15,23,42,0.12);
+        :root[data-pt-theme="light"] .anba-modal-manual {
             color: var(--prism-text-3);
+            text-decoration-color: rgba(15,23,42,0.20);
         }
-        :root[data-pt-theme="light"] .anba-modal-cancel:hover {
-            background: rgba(15,23,42,0.04);
-            color: var(--prism-text);
-        }
+        :root[data-pt-theme="light"] .anba-modal-manual:hover { color: var(--prism-text); }
 
         /* =====================================================================
            LIGHT THEME — seat picker chrome.
@@ -1870,112 +1758,87 @@
              aria-labelledby="anba-modal-title"
              hidden>
             <div class="anba-modal-card" role="document">
-                <div class="anba-modal-hero">
-                    <div class="anba-modal-eyebrow" data-i18n="seat_fast_eyebrow">Fast group booking</div>
-                    <h2 id="anba-modal-title" class="anba-modal-title">
+                <header class="anba-sheet-head">
+                    <h2 id="anba-modal-title" class="anba-sheet-title">
+                        <span aria-hidden="true">⚡</span>
                         <span data-i18n="seat_fast_title_prefix">Book your group and save up to</span>
                         <strong dir="ltr">50%</strong>
                     </h2>
-                    <p class="anba-modal-sub" data-i18n="seat_fast_sub">Choose a ready group offer, or enter any ticket count. We will pick and highlight seats instantly.</p>
-                </div>
-
-                <div class="anba-section-label" data-i18n="seat_fast_offers_label">Ready group discounts</div>
-
-                <div data-fast-offers>
-                    <div class="anba-offer-family" data-family="family">
-                        <div class="anba-offer-family-head">
-                            <span><span aria-hidden="true">🎁</span> <span data-i18n="seat_offer_family_group">Family discounts</span></span>
-                            <small data-i18n="seat_offer_family_hint">Small group offer</small>
-                        </div>
-                        <div class="anba-offer-grid is-family">
-                            <button type="button" class="anba-offer-btn" data-family="family" data-fast-count="5">
-                                <span class="anba-offer-top">
-                                    <span class="anba-offer-name"><span aria-hidden="true">🎁</span> <span data-i18n="seat_offer_family">Family discounts</span></span>
-                                    <span class="anba-offer-count">5+</span>
-                                </span>
-                                <span class="anba-offer-meta" data-i18n="seat_offer_family_meta">Book 5+ tickets and get 20% off</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="anba-offer-family" data-family="church">
-                        <div class="anba-offer-family-head">
-                            <span><span aria-hidden="true">⛪</span> <span data-i18n="seat_offer_church_group">Church discounts</span></span>
-                            <small data-i18n="seat_offer_church_hint">Large group ladder</small>
-                        </div>
-                        <div class="anba-offer-grid">
-                            <button type="button" class="anba-offer-btn" data-family="church" data-fast-count="10">
-                                <span class="anba-offer-top">
-                                    <span class="anba-offer-name"><span aria-hidden="true">⛪</span> <span data-i18n="seat_offer_church">Church discounts</span></span>
-                                    <span class="anba-offer-count">10+</span>
-                                </span>
-                                <span class="anba-offer-meta" data-i18n="seat_offer_church_meta">Book 10+ tickets and get 30% off</span>
-                            </button>
-                            <button type="button" class="anba-offer-btn" data-family="church" data-fast-count="30">
-                                <span class="anba-offer-top">
-                                    <span class="anba-offer-name"><span aria-hidden="true">💎</span> <span data-i18n="seat_offer_large">Church discounts</span></span>
-                                    <span class="anba-offer-count">30+</span>
-                                </span>
-                                <span class="anba-offer-meta" data-i18n="seat_offer_large_meta">Book 30+ tickets and get 40% off</span>
-                            </button>
-                            <button type="button" class="anba-offer-btn" data-family="church" data-fast-count="50">
-                                <span class="anba-offer-top">
-                                    <span class="anba-offer-name"><span aria-hidden="true">👑</span> <span data-i18n="seat_offer_full">Top group discount</span></span>
-                                    <span class="anba-offer-count">50+</span>
-                                </span>
-                                <span class="anba-offer-meta" data-i18n="seat_offer_full_meta">Book 50+ tickets and get 50% off</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="anba-booking-panel">
-                    <label class="anba-section-label" for="anbaFastQty" data-i18n="seat_custom_qty">Choose ticket count</label>
-                    <div class="anba-qty-row">
-                        <button type="button" class="anba-qty-btn" data-fast-step="-1" aria-label="Decrease">−</button>
-                        <input id="anbaFastQty"
-                               class="anba-qty-input"
-                               data-fast-qty
-                               type="number"
-                               inputmode="numeric"
-                               min="1"
-                               max="50"
-                               value="5"
-                               autocomplete="off">
-                        <button type="button" class="anba-qty-btn" data-fast-step="1" aria-label="Increase">+</button>
-                    </div>
-
-                    <div class="anba-section-label" data-i18n="seat_strategy_label">Seat-picking style</div>
-                    <div class="anba-strategy-row" role="group" aria-label="Selection strategy" data-i18n-attr="aria-label:seat_strategy_label">
-                        <button type="button" class="anba-strategy-pill" data-fast-strategy="bestView">🎯 <span data-i18n="seat_strategy_best_view">Best View</span></button>
-                        <button type="button" class="anba-strategy-pill" data-fast-strategy="together">👨‍👩‍👧 <span data-i18n="seat_strategy_together">Keep Us Together</span></button>
-                        <button type="button" class="anba-strategy-pill" data-fast-strategy="fastest">⚡ <span data-i18n="seat_strategy_fastest">Fastest Available</span></button>
-                    </div>
-                </div>
-
-                <div class="anba-tier-status">
-                    <div class="anba-tier-track" data-fast-tier-track>
-                        <div class="anba-tier-node" data-tier-min="5"><b>🎁 5+</b><span>20%</span></div>
-                        <div class="anba-tier-node" data-tier-min="10"><b>⛪ 10+</b><span>30%</span></div>
-                        <div class="anba-tier-node" data-tier-min="30"><b>💎 30+</b><span>40%</span></div>
-                        <div class="anba-tier-node" data-tier-min="50"><b>👑 50+</b><span data-i18n="seat_best_value">Best Value</span></div>
-                    </div>
-                    <div class="anba-upsell" data-fast-upsell>Family Offer unlocked.</div>
-                </div>
-
-                <div class="anba-sheet-actions">
-                    <button type="button" class="anba-modal-apply" data-fast-apply>
-                        <span aria-hidden="true">⚡</span>
-                        <span data-i18n="seat_fast_apply">Pick the best seats for me</span>
+                    <button type="button"
+                            class="anba-modal-cancel"
+                            data-anba-modal-cancel
+                            aria-label="Close"
+                            data-i18n-attr="aria-label:seat_auto_pick_cancel">
+                        <span aria-hidden="true">&times;</span>
                     </button>
-                    <button type="button" class="anba-modal-manual" data-fast-manual>
-                        <span aria-hidden="true">🎯</span>
-                        <span data-i18n="seat_manual_selection">Manual seat selection</span>
+                </header>
+
+                <div class="anba-offers" data-fast-offers>
+                    <button type="button" class="anba-offer-btn" data-family="family" data-fast-count="5">
+                        <span class="anba-offer-pct" dir="ltr">&minus;20%</span>
+                        <span class="anba-offer-info">
+                            <span class="anba-offer-name"><span aria-hidden="true">🎁</span> <span data-i18n="seat_offer_family_group">Family discounts</span></span>
+                            <span class="anba-offer-meta" data-i18n="seat_offer_family_meta">Book 5+ tickets and get 20% off</span>
+                        </span>
+                    </button>
+
+                    <div class="anba-offers-divider" aria-hidden="true">
+                        <span aria-hidden="true">⛪</span>
+                        <span data-i18n="seat_offer_church_group">Church discounts</span>
+                    </div>
+
+                    <button type="button" class="anba-offer-btn" data-family="church" data-fast-count="10">
+                        <span class="anba-offer-pct" dir="ltr">&minus;30%</span>
+                        <span class="anba-offer-info">
+                            <span class="anba-offer-name"><span aria-hidden="true">⛪</span> 10+</span>
+                            <span class="anba-offer-meta" data-i18n="seat_offer_church_meta">Book 10+ tickets and get 30% off</span>
+                        </span>
+                    </button>
+                    <button type="button" class="anba-offer-btn" data-family="church" data-fast-count="30">
+                        <span class="anba-offer-pct" dir="ltr">&minus;40%</span>
+                        <span class="anba-offer-info">
+                            <span class="anba-offer-name"><span aria-hidden="true">💎</span> 30+</span>
+                            <span class="anba-offer-meta" data-i18n="seat_offer_large_meta">Book 30+ tickets and get 40% off</span>
+                        </span>
+                    </button>
+                    <button type="button" class="anba-offer-btn" data-family="church" data-fast-count="50">
+                        <span class="anba-offer-pct" dir="ltr">&minus;50%</span>
+                        <span class="anba-offer-info">
+                            <span class="anba-offer-name"><span aria-hidden="true">👑</span> 50+</span>
+                            <span class="anba-offer-meta" data-i18n="seat_offer_full_meta">Book 50+ tickets and get 50% off</span>
+                        </span>
                     </button>
                 </div>
 
-                <p class="anba-sheet-note" data-i18n="seat_fast_note">You can still edit seats manually after auto-pick.</p>
-                <button type="button" class="anba-modal-cancel" data-anba-modal-cancel data-i18n="seat_auto_pick_cancel">Cancel</button>
+                <div class="anba-qty-row">
+                    <button type="button" class="anba-qty-btn" data-fast-step="-1" aria-label="Decrease">&minus;</button>
+                    <input id="anbaFastQty"
+                           class="anba-qty-input"
+                           data-fast-qty
+                           type="number"
+                           inputmode="numeric"
+                           min="1"
+                           max="50"
+                           value="5"
+                           autocomplete="off">
+                    <button type="button" class="anba-qty-btn" data-fast-step="1" aria-label="Increase">+</button>
+                </div>
+
+                <div class="anba-upsell" data-fast-upsell></div>
+
+                <div class="anba-strategy-row" role="group" aria-label="Selection strategy" data-i18n-attr="aria-label:seat_strategy_label">
+                    <button type="button" class="anba-strategy-pill" data-fast-strategy="bestView">🎯 <span data-i18n="seat_strategy_best_view">Best View</span></button>
+                    <button type="button" class="anba-strategy-pill" data-fast-strategy="together">👨‍👩‍👧 <span data-i18n="seat_strategy_together">Keep Us Together</span></button>
+                    <button type="button" class="anba-strategy-pill" data-fast-strategy="fastest">⚡ <span data-i18n="seat_strategy_fastest">Fastest Available</span></button>
+                </div>
+
+                <button type="button" class="anba-modal-apply" data-fast-apply>
+                    <span aria-hidden="true">✨</span>
+                    <span data-i18n="seat_fast_apply">Pick the best seats for me</span>
+                </button>
+                <button type="button" class="anba-modal-manual" data-fast-manual>
+                    <span data-i18n="seat_manual_selection">Manual seat selection</span>
+                </button>
             </div>
         </div>
     @endunless

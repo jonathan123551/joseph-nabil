@@ -9817,7 +9817,7 @@
                 seat_auto_pick_cancel: 'إلغاء',
                 seat_fast_eyebrow: 'حجز سريع للمجموعات',
                 seat_fast_title: 'احجز لمجموعتك',
-                seat_fast_title_prefix: 'احجز لمجموعتك ووفر حتى',
+                seat_fast_title_prefix: 'احجز جروب ووفّر حتى',
                 seat_fast_sub: 'اختار عرض جاهز أو اكتب عدد التذاكر، وهنختار لك المقاعد ونوضحها فورًا.',
                 seat_fast_offers_label: 'اختيارات سريعة للخصومات',
                 seat_offer_family_group: 'خصومات العيلة',
@@ -9841,7 +9841,7 @@
                 seat_fast_unlock: 'زوّد {n} تذاكر وافتح خصم {pct}%',
                 seat_fast_unlocked: '{badge} خصم {pct}% جاهز لعدد {count} تذكرة',
                 seat_fast_unlock_first: 'احجز 5 تذاكر وافتح خصومات العيلة 20%',
-                seat_fast_apply: 'اختار أفضل المقاعد للمجموعة',
+                seat_fast_apply: 'اضغط هنا وهنحجزلك أحسن كراسي تلقائي',
                 seat_manual_selection: 'اختيار المقاعد يدويًا',
                 seat_fast_note: 'بعد الاختيار السريع تقدر تعدّل أي مقعد بنفسك.',
 
@@ -10774,7 +10774,7 @@
                 seat_fast_unlock: 'Add {n} tickets to unlock {pct}%',
                 seat_fast_unlocked: '{badge} {pct}% is ready for {count} tickets',
                 seat_fast_unlock_first: 'Book 5 tickets to unlock 20% family discounts',
-                seat_fast_apply: 'Pick the best seats for my group',
+                seat_fast_apply: 'Tap and we will pick the best seats for you',
                 seat_manual_selection: 'Manual seat selection',
                 seat_fast_note: 'You can still edit any seat manually after auto-pick.',
 
