@@ -586,27 +586,43 @@
         }
 
         /* Auto-pick best-seats button (seat picker side panel) */
+        @keyframes prismAutoPickBreath {
+            0%, 100% {
+                box-shadow: 0 4px 18px rgba(245, 158, 11, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            }
+            50% {
+                box-shadow: 0 6px 26px rgba(245, 158, 11, 0.70), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+            }
+        }
         .prism-auto-pick {
             display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-            padding: 9px 14px;
-            border-radius: 12px;
-            font-size: 12px; font-weight: 700;
-            color: #fef3c7;
-            background: linear-gradient(135deg, rgba(245,158,11,0.20), rgba(251,191,36,0.10));
-            border: 1px solid rgba(251,191,36,0.55);
-            box-shadow: 0 4px 14px -4px rgba(245,158,11,0.45);
+            padding: 10px 16px;
+            border-radius: 14px;
+            font-size: 13px; font-weight: 800;
+            color: #0b0e1c;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            box-shadow: 0 4px 18px rgba(245, 158, 11, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3);
             cursor: pointer;
-            transition: transform .15s var(--prism-ease), background .15s var(--prism-ease), border-color .15s var(--prism-ease);
+            transition: transform .15s var(--prism-ease), background .15s var(--prism-ease), border-color .15s var(--prism-ease), box-shadow .2s var(--prism-ease);
             -webkit-tap-highlight-color: transparent;
-            min-height: 38px;
+            min-height: 44px;
+            animation: prismAutoPickBreath 4.5s infinite ease-in-out;
+            position: relative;
+            overflow: hidden;
         }
         .prism-auto-pick:hover {
-            transform: translateY(-1px);
-            background: linear-gradient(135deg, rgba(245,158,11,0.30), rgba(251,191,36,0.16));
-            border-color: rgba(251,191,36,0.8);
+            transform: translateY(-1.5px);
+            background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 50%, #f59e0b 100%);
+            border-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 24px rgba(245, 158, 11, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.4);
         }
-        .prism-auto-pick:active { transform: scale(0.98); }
+        .prism-auto-pick:active {
+            transform: translateY(0) scale(0.97);
+            transition-duration: 80ms;
+        }
         @media (prefers-reduced-motion: reduce) {
+            .prism-auto-pick { animation: none; }
             .prism-auto-pick:hover { transform: none; }
         }
 
@@ -9792,7 +9808,8 @@
                 share_wa: 'مشاركة عبر واتساب',
                 share_wa_text: 'احجز تذكرتك لـ "{title}" 🎭',
                 shows_skip_pill: 'تخطّي إلى العروض ↓',
-                seat_auto_pick: 'اختر أفضل المقاعد',
+                seat_auto_pick: 'اضغط هنا و هنحجزلك أحسن كراسي تلقائي ✨',
+                seat_auto_pick_helper: 'حجز سريع بدون تحديد يدوي ⚡',
                 seat_auto_pick_done: 'تم اختيار أفضل المقاعد',
                 seat_auto_pick_none: 'لا توجد مقاعد متجاورة كافية',
                 seat_auto_pick_prompt: 'كم مقعد تريد؟',
@@ -10724,7 +10741,8 @@
                 share_wa: 'Share on WhatsApp',
                 share_wa_text: 'Book your ticket for "{title}" 🎭',
                 shows_skip_pill: 'Skip to shows ↓',
-                seat_auto_pick: 'Auto-pick best seats',
+                seat_auto_pick: 'Tap here and we\'ll pick the best seats for you ✨',
+                seat_auto_pick_helper: 'Fast booking without manual seat selection ⚡',
                 seat_auto_pick_done: 'Best seats picked for you',
                 seat_auto_pick_none: 'Not enough adjacent seats free',
                 seat_auto_pick_prompt: 'How many seats?',
