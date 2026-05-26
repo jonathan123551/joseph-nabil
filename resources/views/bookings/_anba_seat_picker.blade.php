@@ -2856,14 +2856,17 @@
                 selected.set(s.id, { row: s.row, n: s.n });
                 triggerPop(s.id);
             });
+            const requestedCount = clampFastCount(N);
             const pickedIds = result.seats.map((s) => s.id);
             const hydratedCount = pickedIds.filter((id) => selected.has(id)).length;
-            if (hydratedCount !== result.seats.length || selected.size !== result.seats.length) {
+            if (result.seats.length !== requestedCount || hydratedCount !== requestedCount || selected.size !== requestedCount) {
                 debugAlloc('allocation:current-sync-failed', {
                     requested: N,
+                    clampedRequested: requestedCount,
                     strategy: allocContext.strategy || fastBookingState.strategy,
                     source: allocContext.source || 'unknown',
-                    expectedCount: result.seats.length,
+                    expectedCount: requestedCount,
+                    resultCount: result.seats.length,
                     selectedCount: selected.size,
                     hydratedCount,
                 });
@@ -2889,6 +2892,7 @@
                 candidateCount: result ? 1 : 0,
                 winningScore: result.score,
                 selectedCount: result.seats.length,
+                requestedCount,
                 rows: Array.from(new Set(result.seats.map((s) => s.row))),
                 elapsedMs: Math.round((performance.now() - startedAt) * 10) / 10,
             });
