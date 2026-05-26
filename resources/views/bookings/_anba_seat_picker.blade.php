@@ -1822,7 +1822,6 @@
                            type="number"
                            inputmode="numeric"
                            min="1"
-                           max="50"
                            value="5"
                            autocomplete="off"
                            aria-label="Ticket count"
@@ -2859,10 +2858,12 @@
             }
         }
 
-        // Fast-booking sheet (Phase 1). This is UI/state scaffolding over
-        // the existing allocator; the strategy is logged and shown now, then
-        // becomes a scoring weight in Phase 3.
-        const AUTO_PICK_MAX = 50;
+        // Fast-booking sheet. The qty cap is no longer a static 50; it is
+        // derived live from the number of seats the allocator could
+        // realistically place — see getAutoPickMax() / pickableSeatCount()
+        // below. This way a sold-out section can't be over-requested and
+        // a fresh section with 200 seats actually lets the user ask for
+        // all 200.
         const modal       = root.querySelector('[data-anba-modal]');
         const modalCancel = root.querySelector('[data-anba-modal-cancel]');
         const fastQty     = root.querySelector('[data-fast-qty]');
@@ -2932,10 +2933,33 @@
             return 'bestView';
         }
 
+        // Count seats the allocator could plausibly hand to the user.
+        // 'available' is the obvious bucket; 'selected' is included
+        // because applyAutoPickN clears the existing selection before
+        // it picks, so those seats are about to become available again.
+        // Booked / admin-only / blocked-in-customer-mode seats are
+        // excluded, mirroring what the allocator actually accepts.
+        function pickableSeatCount() {
+            let count = 0;
+            for (const s of SEATS) {
+                const state = getState(s);
+                if (state === 'available' || state === 'selected') count++;
+            }
+            return count;
+        }
+
+        // Dynamic auto-pick cap. Floor at 1 so the qty stepper never
+        // tries to clamp to 0 and produce a broken input; if the section
+        // really is at zero pickable seats the allocator will return
+        // null and the user gets the standard "no seats" toast.
+        function getAutoPickMax() {
+            return Math.max(1, pickableSeatCount());
+        }
+
         function clampFastCount(value) {
             const n = parseInt(String(value || '').trim(), 10);
             if (!isFinite(n)) return 1;
-            return Math.max(1, Math.min(AUTO_PICK_MAX, n));
+            return Math.max(1, Math.min(getAutoPickMax(), n));
         }
 
         function tWithFallback(key, fallback, vars) {
@@ -2962,8 +2986,15 @@
 
         function renderFastSheet() {
             const count = fastBookingState.count;
-            if (fastQty && document.activeElement !== fastQty) {
-                fastQty.value = String(count);
+            if (fastQty) {
+                // Keep the input's HTML5 max attribute in lock-step with
+                // the live allocator cap so the native stepper, mobile
+                // number-pad "done" validation, and assistive tech all
+                // see the correct ceiling.
+                fastQty.max = String(getAutoPickMax());
+                if (document.activeElement !== fastQty) {
+                    fastQty.value = String(count);
+                }
             }
 
             fastOffers.forEach((btn) => {
@@ -3133,7 +3164,7 @@
                 const raw = window.prompt(t('seat_auto_pick_prompt'), '2');
                 if (raw === null) return;
                 const n = parseInt(String(raw).trim(), 10);
-                if (!isFinite(n) || n <= 0 || n > AUTO_PICK_MAX) return;
+                if (!isFinite(n) || n <= 0 || n > getAutoPickMax()) return;
                 applyAutoPickN(n, { strategy: defaultStrategyForCount(n), source: 'legacy-prompt' });
             });
         });
