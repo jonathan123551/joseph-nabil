@@ -3098,10 +3098,33 @@
                 });
             });
             if (fastQty) {
+                // While typing: update internal state for the live upsell /
+                // tier preview, but do NOT overwrite the field value or
+                // clamp aggressively. Allow temporary empty or out-of-range
+                // values so backspace, paste, and replace feel natural —
+                // especially on iPhone Safari where reassigning
+                // `input.value` on every keystroke resets the caret and
+                // produces the "stuck digit" UX. Settling happens on
+                // blur / change / apply (see handlers below).
                 fastQty.addEventListener('input', () => {
+                    const raw = fastQty.value;
+                    if (raw === '') return;
+                    const n = parseInt(raw, 10);
+                    if (!isFinite(n) || n <= 0) return;
+                    const next = Math.max(1, Math.min(getAutoPickMax(), n));
+                    fastBookingState.count = next;
+                    fastBookingState.source = 'custom';
+                    if (!fastBookingState.strategyTouched) {
+                        fastBookingState.strategy = defaultStrategyForCount(next);
+                    }
+                    renderFastSheet();
+                });
+                const settleFastQty = () => {
                     setFastCount(fastQty.value, 'custom');
                     fastQty.value = String(fastBookingState.count);
-                });
+                };
+                fastQty.addEventListener('blur', settleFastQty);
+                fastQty.addEventListener('change', settleFastQty);
                 fastQty.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
@@ -3130,6 +3153,15 @@
             }
             if (fastApply) {
                 fastApply.addEventListener('click', () => {
+                    // Settle the custom qty input first — the user may tap
+                    // Apply while the field is mid-edit (empty / partial),
+                    // and the live `input` handler intentionally avoids
+                    // clamping on every keystroke. This guarantees we
+                    // commit a valid integer before allocating seats.
+                    if (fastQty) {
+                        setFastCount(fastQty.value, fastBookingState.source || 'custom');
+                        fastQty.value = String(fastBookingState.count);
+                    }
                     const n = clampFastCount(fastBookingState.count);
                     const applied = applyAutoPickN(n, {
                         strategy: fastBookingState.strategy,
