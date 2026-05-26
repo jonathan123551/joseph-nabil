@@ -9499,6 +9499,8 @@
 
                 /* ===== bulk-discount offer (tiered) ===== */
                 bulk_discount_eyebrow: 'عروض جاهزة للمجموعات',
+                bulk_discount_toggle_lead: 'خصومات تصل إلى',
+                bulk_discount_toggle_sub: 'اضغط لمعرفة العروض',
                 bulk_discount_hero_lead: 'وفّر حتى',
                 bulk_discount_hero_sub: 'ابدأ بخصم العيلة، وكل ما المجموعة تكبر الخصم يوصل لمستوى الكنائس',
                 bulk_discount_family_family: 'خصومات العيلة',
@@ -10429,6 +10431,8 @@
 
                 /* ===== bulk-discount offer (tiered) ===== */
                 bulk_discount_eyebrow: 'READY GROUP OFFERS',
+                bulk_discount_toggle_lead: 'Discounts up to',
+                bulk_discount_toggle_sub: 'Tap to view the offers',
                 bulk_discount_hero_lead: 'Save up to',
                 bulk_discount_hero_sub: 'Start with family savings, then climb the church/group ladder',
                 bulk_discount_family_family: 'Family savings',
