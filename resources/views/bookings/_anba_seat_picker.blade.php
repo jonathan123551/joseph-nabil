@@ -1102,18 +1102,18 @@
 
         .anba-strategy-row {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 6px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
             margin-bottom: 12px;
         }
         .anba-strategy-pill {
-            min-height: 36px;
-            padding: 0 8px;
+            min-height: 38px;
+            padding: 0 10px;
             border-radius: 999px;
             border: 1px solid rgba(129,140,248,0.22);
             background: rgba(255,255,255,0.03);
             color: var(--p-text-3);
-            font-size: 10.5px;
+            font-size: 11.5px;
             font-weight: 800;
             line-height: 1.1;
             cursor: pointer;
@@ -1837,9 +1837,8 @@
                 <div class="anba-upsell" data-fast-upsell></div>
 
                 <div class="anba-strategy-row" role="group" aria-label="Selection strategy" data-i18n-attr="aria-label:seat_strategy_label">
-                    <button type="button" class="anba-strategy-pill" data-fast-strategy="bestView">🎯 <span data-i18n="seat_strategy_best_view">Best View</span></button>
                     <button type="button" class="anba-strategy-pill" data-fast-strategy="together">👨‍👩‍👧 <span data-i18n="seat_strategy_together">Keep Us Together</span></button>
-                    <button type="button" class="anba-strategy-pill" data-fast-strategy="fastest">⚡ <span data-i18n="seat_strategy_fastest">Fastest Available</span></button>
+                    <button type="button" class="anba-strategy-pill" data-fast-strategy="bestView">🎯 <span data-i18n="seat_strategy_best_view">Best View</span></button>
                 </div>
 
                 <button type="button" class="anba-modal-apply" data-fast-apply>
@@ -2601,19 +2600,33 @@
             requestRedraw();
         }
 
-        // ===== QW#7: auto-pick best N seats =====
-        // Strategy:
-        //   1. Group seats by row (in visual order, front rows first).
-        //   2. For each row, sort seats left→right by x.
-        //   3. Mark seats available iff getState(seat) === 'available'.
-        //   4. Prefer a single contiguous window, then fall back to the
-        //      tightest nearby chunks for larger groups.
-        //   5. Score each candidate window by:
-        //         rowBonus  — earlier rows score higher (closer to stage)
-        //         centerPen — distance of window's mean-x from CX
-        //      Final score = rowBonus * 1000 - centerPen.
-        //   6. Pick the highest-scoring window.
-        function autoPickBestSeats(N) {
+        // ===== Auto-pick best N seats =====
+        //
+        // Two strategies share the same packing pipeline but tune the
+        // scoring weights very differently:
+        //
+        //   together  — cohesion above all. Heavy penalty for row span and
+        //               for multiple chunks. Single contiguous run wins
+        //               even if it lands off-center. When forced to span
+        //               rows, candidate segments are sorted around the
+        //               running column-mean of seats already picked, so
+        //               the remainder lines up DIRECTLY behind the
+        //               anchor block (column-aligned, not random).
+        //
+        //   bestView  — centered + premium row above cohesion. Center-pen
+        //               weight is several times higher; row-span and
+        //               chunk penalties are gentle, so a centered 5+5
+        //               split across two adjacent rows beats 10 edge
+        //               seats in a single row. Row quality follows a
+        //               classic theatre curve that peaks around 30%
+        //               back from the stage (the "sweet spot"), not
+        //               literally row 1.
+        //
+        // Both strategies share the same row-segmentation pass and use
+        // the same windowing primitive (windowNearCenter) so the only
+        // moving part between them is a small weight table + a per-row
+        // anchor X. Cost stays O(rows × seats) — fast on mobile.
+        function autoPickBestSeats(N, strategy = 'together') {
             if (!isFinite(N) || N <= 0) return null;
 
             // Group seats by row in insertion order (front→back since
@@ -2651,23 +2664,63 @@
                 rowSegments[rowIdx] = segments;
             });
 
-            function scoreSeats(seats, rowIdx, extraPenalty = 0) {
-                const meanX = seats.reduce((sum, seat) => sum + seat.x, 0) / seats.length;
-                const centerPen = Math.abs(meanX - CX);
-                const rowBonus = rowList.length - rowIdx;
-                return rowBonus * 1000 - centerPen - extraPenalty;
+            const isBestView = (strategy === 'bestView');
+
+            // Strategy weight table. Tuned so the two strategies clearly
+            // diverge on the same available-seat map: bestView magnetises
+            // strongly to centre + sweet-spot rows and tolerates row
+            // splits, together heavily punishes row-span + chunks.
+            const W = isBestView ? {
+                rowBonus:   180,
+                centerPen:  6.0,
+                rowSpanPen: 35,
+                chunkPen:   25,
+            } : {
+                rowBonus:   90,
+                centerPen:  1.4,
+                rowSpanPen: 380,
+                chunkPen:   240,
+            };
+
+            // Row-quality curve. For bestView this is a triangle peaking
+            // ~30% from the front — the classic theatre sweet spot —
+            // which is much better than "row 1 is always best". For
+            // together we use a gentle front-first preference; cohesion
+            // dominates the score anyway so this is mostly a tiebreaker.
+            function rowQualityScore(rowIdx) {
+                if (isBestView) {
+                    const denom = Math.max(1, rowList.length - 1);
+                    const r = rowIdx / denom;
+                    const dist = Math.abs(r - 0.30);
+                    return Math.max(0, 1 - dist * 1.8) * W.rowBonus * 10;
+                }
+                return (rowList.length - rowIdx) * (W.rowBonus / 10);
             }
 
-            function centeredWindow(segment, count) {
+            function scoreSeats(seats, startRowIdx, lastRowIdx, chunks) {
+                const meanX = seats.reduce((sum, seat) => sum + seat.x, 0) / seats.length;
+                const centerPen = Math.abs(meanX - CX);
+                const rowSpan = (lastRowIdx ?? startRowIdx) - startRowIdx;
+                return rowQualityScore(startRowIdx)
+                     - centerPen * W.centerPen
+                     - rowSpan   * W.rowSpanPen
+                     - chunks    * W.chunkPen;
+            }
+
+            // Slide a count-wide window across a contiguous row segment
+            // and return the window whose seat-mean-x is closest to the
+            // given anchor (defaults to the visual centre CX).
+            function windowNearAnchor(segment, count, anchorX) {
                 if (segment.length <= count) return segment.slice();
+                const target = (anchorX === undefined ? CX : anchorX);
                 let bestWindow = segment.slice(0, count);
                 let bestPen = Infinity;
                 for (let i = 0; i + count <= segment.length; i++) {
                     const candidate = segment.slice(i, i + count);
                     const meanX = candidate.reduce((sum, seat) => sum + seat.x, 0) / candidate.length;
-                    const centerPen = Math.abs(meanX - CX);
-                    if (centerPen < bestPen) {
-                        bestPen = centerPen;
+                    const pen = Math.abs(meanX - target);
+                    if (pen < bestPen) {
+                        bestPen = pen;
                         bestWindow = candidate;
                     }
                 }
@@ -2675,47 +2728,57 @@
             }
 
             let best = null;
+
+            // Phase 1: single contiguous window inside one row —
+            // always the ideal outcome for both strategies when it fits.
             rowSegments.forEach((segments, rowIdx) => {
                 segments.forEach((segment) => {
                     if (segment.length < N) return;
-                    const window = centeredWindow(segment, N);
-                    const score = scoreSeats(window, rowIdx);
+                    const win = windowNearAnchor(segment, N, CX);
+                    const score = scoreSeats(win, rowIdx, rowIdx, 1);
                     if (!best || score > best.score) {
-                        best = { score, seats: window, mode: 'single_contiguous_window' };
+                        best = { score, seats: win, mode: 'single_contiguous_window' };
                     }
                 });
             });
-            if (best) return best;
 
-            rowSegments.forEach((_, startIdx) => {
+            // Phase 2: multi-row pack. We try EVERY starting row (not
+            // just the front) so the best-view sweet-spot can win, and
+            // for `together` we use a running column-mean as the anchor
+            // when extending into later rows — that's what makes
+            // remaining seats land DIRECTLY behind the anchor block.
+            for (let startIdx = 0; startIdx < rowSegments.length; startIdx++) {
                 let picked = [];
                 let chunks = 0;
                 let lastRowIdx = startIdx;
+                let runningMeanX = null;
 
                 for (let rowIdx = startIdx; rowIdx < rowSegments.length && picked.length < N; rowIdx++) {
+                    const anchorX = (!isBestView && runningMeanX !== null) ? runningMeanX : CX;
                     const segments = (rowSegments[rowIdx] || []).slice().sort((a, b) => {
                         const meanA = a.reduce((sum, seat) => sum + seat.x, 0) / a.length;
                         const meanB = b.reduce((sum, seat) => sum + seat.x, 0) / b.length;
-                        return Math.abs(meanA - CX) - Math.abs(meanB - CX) || b.length - a.length;
+                        return Math.abs(meanA - anchorX) - Math.abs(meanB - anchorX) || b.length - a.length;
                     });
 
-                    segments.forEach((segment) => {
-                        if (picked.length >= N) return;
+                    for (const segment of segments) {
+                        if (picked.length >= N) break;
                         const remaining = N - picked.length;
-                        const take = centeredWindow(segment, Math.min(remaining, segment.length));
+                        const take = windowNearAnchor(segment, Math.min(remaining, segment.length), anchorX);
+                        if (!take.length) continue;
                         picked = picked.concat(take);
                         chunks++;
                         lastRowIdx = rowIdx;
-                    });
+                        runningMeanX = picked.reduce((sum, s) => sum + s.x, 0) / picked.length;
+                    }
                 }
 
-                if (picked.length !== N) return;
-                const rowSpan = lastRowIdx - startIdx + 1;
-                const score = scoreSeats(picked, startIdx, rowSpan * 140 + chunks * 55);
+                if (picked.length !== N) continue;
+                const score = scoreSeats(picked, startIdx, lastRowIdx, chunks);
                 if (!best || score > best.score) {
                     best = { score, seats: picked, mode: 'multi_chunk_group' };
                 }
-            });
+            }
 
             return best;
         }
@@ -2723,7 +2786,7 @@
         function applyAutoPickN(N, allocContext = {}) {
             const t = window.PT_T || ((k) => k);
             const startedAt = performance.now();
-            const result = autoPickBestSeats(N);
+            const result = autoPickBestSeats(N, allocContext.strategy || fastBookingState.strategy);
             if (!result) {
                 debugAlloc('allocation:current-failed', {
                     requested: N,
@@ -2859,9 +2922,14 @@
         }
 
         function defaultStrategyForCount(n) {
-            if (n <= 6) return 'together';
-            if (n <= 20) return 'bestView';
-            return 'fastest';
+            // Two strategies only — "fastest" was retired, it was effectively
+            // a degraded "best view" that nudged users toward whatever was
+            // easiest for the allocator. "together" wins for small parties
+            // where contiguity is realistically achievable; once the group
+            // gets large enough that a perfect single-row run is unlikely,
+            // "bestView" yields a much nicer centered split.
+            if (n <= 8) return 'together';
+            return 'bestView';
         }
 
         function clampFastCount(value) {
