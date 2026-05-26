@@ -1,17 +1,16 @@
 {{--
-    Tiered bulk-discount offer banner — v2 (hero + ladder + family
-    segments).
+    Tiered bulk-discount offer banner — v3 (hero + separated family
+    groups).
 
     Visual hierarchy:
       1. Hero: a single huge gradient percentage ("up to 50%") + an
          emotional subline. This is the loudest pixel on the card.
-      2. Family band: two labels positioned over their owning nodes —
-         "🎁 خصومات العيلة" (warm gold) on the right (RTL start) and
-         "⛪ خصومات الكنائس" (premium violet) on the left.
-      3. Rail: a connected 4-node stepper. Active node lifts + glows;
-         the next-tier node carries a "+N tickets" pip pulled from
-         `data-tickets-to-next`. Two key tiers wear ribbon flags
-         ("الأكثر طلباً" on 30%, "أعلى خصم" on 50%).
+      2. Offer groups: "🎁 خصومات العيلة" is its own warm card for the
+         5+ / 20% entry offer; "⛪ خصومات الكنائس" is a premium violet
+         group containing 10+ / 30%, 30+ / 40%, and 50+ / 50%.
+      3. Tier cards: every card states the ticket requirement and reward
+         explicitly. Active card lifts + glows; the next-tier card carries
+         a "+N tickets" pip pulled from `data-tickets-to-next`.
       4. Progress line: a thin bar that fills toward the current
          position using a CSS custom property `--bdb-progress`
          updated by `BulkDiscount.syncBanners()`.
@@ -48,6 +47,30 @@
     // template stays declarative even if we ever reshuffle TIERS.
     $popularPct  = 30;
     $bestPct     = $maxDiscount;
+    $familyTiers = collect($tiers)->where('family', BookingPricing::FAMILY_FAMILY)->values();
+    $churchTiers = collect($tiers)->where('family', BookingPricing::FAMILY_CHURCH)->values();
+    $offerGroups = [
+        [
+            'family' => BookingPricing::FAMILY_FAMILY,
+            'class' => 'is-family',
+            'icon' => '🎁',
+            'title_key' => 'bulk_discount_family_family',
+            'title_fallback' => 'خصومات العيلة',
+            'desc_key' => 'bulk_discount_family_desc',
+            'desc_fallback' => 'احجز 5 تذاكر أو أكثر واحصل على خصم 20%',
+            'tiers' => $familyTiers,
+        ],
+        [
+            'family' => BookingPricing::FAMILY_CHURCH,
+            'class' => 'is-church',
+            'icon' => '⛪',
+            'title_key' => 'bulk_discount_family_church',
+            'title_fallback' => 'خصومات الكنائس',
+            'desc_key' => 'bulk_discount_church_desc',
+            'desc_fallback' => 'احجز 10 تذاكر أو أكثر واحصل على خصومات جماعية تصل إلى 50%',
+            'tiers' => $churchTiers,
+        ],
+    ];
 @endphp
 
 <style>
@@ -201,73 +224,126 @@
         98%           { transform: rotate(-3deg); }
     }
 
-    /* ========================= Family band =================================
-       Two labels sitting over their owning nodes. In RTL the family
-       segment (first node, percent 20) is on the right; the church
-       segment (nodes 2–4) on the left.
+    /* =========================== Offer groups ==============================
+       Two visibly separate families: warm single family offer, then a
+       premium church/group ladder.
     ===================================================================== */
-    .bulk-discount-banner .bdb-families {
+    .bulk-discount-banner .bdb-family-groups {
         position: relative;
         z-index: 1;
         display: grid;
-        grid-template-columns: 3fr 1fr;   /* RTL: church on left = 3 cells, family on right = 1 cell */
-        gap: 6px;
-        align-items: center;
-        margin-bottom: -2px;
+        grid-template-columns: minmax(180px, 1fr) minmax(0, 3fr);
+        gap: clamp(10px, 2.4vw, 14px);
+        align-items: stretch;
     }
-    .bulk-discount-banner .bdb-family-label {
+    .bulk-discount-banner .bdb-family-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 0;
+        padding: clamp(10px, 2.6vw, 14px);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+    .bulk-discount-banner .bdb-family-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.72;
+    }
+    .bulk-discount-banner .bdb-family-card.is-family {
+        border: 1px solid rgba(251,191,36,0.38);
+        background:
+            radial-gradient(100% 80% at 100% 0%, rgba(251,191,36,0.20), transparent 58%),
+            linear-gradient(135deg, rgba(251,191,36,0.12), rgba(251,191,36,0.035));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.07);
+    }
+    .bulk-discount-banner .bdb-family-card.is-church {
+        border: 1px solid rgba(167,139,250,0.38);
+        background:
+            radial-gradient(120% 90% at 0% 0%, rgba(167,139,250,0.22), transparent 58%),
+            radial-gradient(100% 80% at 100% 100%, rgba(34,211,238,0.10), transparent 58%),
+            linear-gradient(135deg, rgba(167,139,250,0.11), rgba(34,211,238,0.035));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+    .bulk-discount-banner .bdb-family-head {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .bulk-discount-banner .bdb-family-icon {
+        flex: 0 0 auto;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        font-size: clamp(11px, 2.8vw, 12px);
-        font-weight: 800;
-        letter-spacing: 0.02em;
-        padding: 4px 10px;
-        border-radius: 999px;
-        border: 1px solid transparent;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 14px;
+        font-size: 18px;
+        line-height: 1;
+    }
+    .bulk-discount-banner .bdb-family-card.is-family .bdb-family-icon {
+        background: rgba(251,191,36,0.16);
+        border: 1px solid rgba(251,191,36,0.36);
+    }
+    .bulk-discount-banner .bdb-family-card.is-church .bdb-family-icon {
+        background: rgba(167,139,250,0.16);
+        border: 1px solid rgba(167,139,250,0.36);
+    }
+    .bulk-discount-banner .bdb-family-copy {
+        min-width: 0;
+    }
+    .bulk-discount-banner .bdb-family-title {
+        display: block;
+        font-size: clamp(14px, 3.5vw, 16px);
+        font-weight: 900;
         line-height: 1.2;
-        white-space: nowrap;
     }
-    .bulk-discount-banner .bdb-family-label[data-family="family"] {
+    .bulk-discount-banner .bdb-family-card.is-family .bdb-family-title {
         color: #fde68a;
-        border-color: rgba(251,191,36,0.35);
-        background: linear-gradient(135deg, rgba(251,191,36,0.18), rgba(251,191,36,0.06));
-        justify-self: end;             /* hug the right edge (RTL start) */
     }
-    .bulk-discount-banner .bdb-family-label[data-family="church"] {
+    .bulk-discount-banner .bdb-family-card.is-church .bdb-family-title {
         color: #ddd6fe;
-        border-color: rgba(167,139,250,0.32);
-        background: linear-gradient(135deg, rgba(167,139,250,0.20), rgba(167,139,250,0.06));
-        justify-self: start;           /* hug the left edge */
     }
-    .bulk-discount-banner .bdb-family-icon { font-size: 13px; line-height: 1; }
+    .bulk-discount-banner .bdb-family-desc {
+        display: block;
+        margin-top: 3px;
+        font-size: clamp(11px, 2.8vw, 12px);
+        font-weight: 700;
+        line-height: 1.45;
+        color: rgba(254,243,199,0.72);
+    }
+    .bulk-discount-banner .bdb-family-card.is-church .bdb-family-desc {
+        color: rgba(221,214,254,0.74);
+    }
 
-    /* ============================== Rail ===================================
-       4 connected nodes. Each node = badge + threshold + percent. Nodes
-       are joined by tiny chevron dots; the active node lifts + glows
-       and carries the live tier color. The progression direction
-       follows the document's text direction (RTL: right → left).
+    /* ============================= Tier cards ===============================
+       Each family owns its own cards. Church tiers still read as a compact
+       progression ladder inside the church group.
     ===================================================================== */
-    .bulk-discount-banner .bdb-rail-wrap {
-        position: relative;
-        z-index: 1;
-    }
     .bulk-discount-banner .bdb-rail {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: clamp(4px, 1.6vw, 8px);
+        grid-template-columns: repeat(var(--bdb-tier-columns, 1), minmax(0, 1fr));
+        gap: clamp(8px, 2vw, 10px);
         align-items: stretch;
+        flex: 1;
+        position: relative;
     }
     .bulk-discount-banner .bdb-node {
         position: relative;
+        z-index: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 3px;
-        padding: clamp(8px, 2.6vw, 12px) clamp(4px, 1.6vw, 8px);
-        min-height: 76px;
-        border-radius: 14px;
+        gap: 5px;
+        padding: clamp(10px, 2.8vw, 13px) clamp(7px, 2vw, 10px);
+        min-height: 128px;
+        border-radius: 16px;
         border: 1px solid rgba(255,255,255,0.10);
         background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
         color: rgba(254,243,199,0.74);
@@ -291,15 +367,8 @@
         font-size: clamp(18px, 5vw, 22px);
         line-height: 1;
     }
-    .bulk-discount-banner .bdb-node-min {
-        font-size: clamp(10.5px, 2.8vw, 11.5px);
-        font-weight: 700;
-        opacity: 0.85;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: 0.02em;
-    }
     .bulk-discount-banner .bdb-node-pct {
-        font-size: clamp(14px, 3.8vw, 16px);
+        font-size: clamp(18px, 4.8vw, 24px);
         font-weight: 900;
         font-variant-numeric: tabular-nums;
         background: linear-gradient(135deg, #fde047, #fbbf24);
@@ -311,6 +380,21 @@
         background: linear-gradient(135deg, #c4b5fd, #a78bfa);
         -webkit-background-clip: text;
                 background-clip: text;
+    }
+    .bulk-discount-banner .bdb-node-unlock {
+        display: grid;
+        gap: 2px;
+        font-size: clamp(10.5px, 2.6vw, 11.5px);
+        font-weight: 800;
+        line-height: 1.38;
+        color: rgba(254,243,199,0.78);
+        max-width: 18ch;
+    }
+    .bulk-discount-banner .bdb-node[data-tier-family="church"] .bdb-node-unlock {
+        color: rgba(221,214,254,0.78);
+    }
+    .bulk-discount-banner .bdb-node-reward {
+        opacity: 0.92;
     }
 
     /* Active node — lifted, brighter border, family-tinted glow */
@@ -479,8 +563,7 @@
         border-radius: 999px;
     }
     .bulk-discount-banner.is-compact .bdb-hero,
-    .bulk-discount-banner.is-compact .bdb-families,
-    .bulk-discount-banner.is-compact .bdb-rail-wrap,
+    .bulk-discount-banner.is-compact .bdb-family-groups,
     .bulk-discount-banner.is-compact .bdb-progress {
         display: none;
     }
@@ -531,6 +614,251 @@
                 background-clip: text;
     }
 
+    /* ============================== Collapsible variant =====================
+       Default page state for the non-compact banner: a single premium
+       trigger pill at the top, with the full offer card collapsed
+       beneath. Tapping the trigger reveals everything with a smooth
+       max-height transition. JS sets `.is-expanded` on the root.
+    ============================================================================ */
+    .bulk-discount-banner.is-collapsible {
+        gap: 0;
+        padding: clamp(8px, 2vw, 10px);
+        border-radius: 22px;
+    }
+    .bulk-discount-banner.is-collapsible.is-expanded {
+        gap: clamp(12px, 3vw, 16px);
+        padding: clamp(14px, 3.6vw, 18px) clamp(14px, 4.5vw, 22px) clamp(16px, 4.5vw, 22px);
+    }
+
+    /* Trigger pill — always visible. When collapsed it's the whole UI;
+       when expanded it sits at the top as a small header. */
+    .bulk-discount-banner .bdb-toggle {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        min-height: 56px;
+        padding: clamp(10px, 2.6vw, 14px) clamp(12px, 3.4vw, 16px);
+        border-radius: 18px;
+        background:
+            radial-gradient(120% 200% at 0% 50%, rgba(251,191,36,0.18), rgba(251,191,36,0) 60%),
+            linear-gradient(135deg, rgba(20,24,38,0.65), rgba(8,10,20,0.85));
+        border: 1px solid rgba(251,191,36,0.45);
+        color: #fef3c7;
+        text-align: start;
+        font-family: inherit;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        appearance: none;
+        -webkit-appearance: none;
+        box-shadow:
+            0 8px 22px -10px rgba(251,191,36,0.40),
+            inset 0 1px 0 rgba(255,255,255,0.08);
+        transition: transform .2s var(--prism-ease, ease-out),
+                    box-shadow .25s var(--prism-ease, ease-out),
+                    border-color .25s var(--prism-ease, ease-out);
+    }
+    .bulk-discount-banner .bdb-toggle:hover {
+        transform: translateY(-1px);
+        border-color: rgba(251,191,36,0.7);
+        box-shadow:
+            0 12px 28px -10px rgba(251,191,36,0.55),
+            inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+    .bulk-discount-banner .bdb-toggle:active {
+        transform: translateY(0);
+    }
+    .bulk-discount-banner .bdb-toggle:focus-visible {
+        outline: 2px solid rgba(251,191,36,0.9);
+        outline-offset: 2px;
+    }
+    .bulk-discount-banner.is-expanded .bdb-toggle {
+        background: linear-gradient(135deg, rgba(20,24,38,0.55), rgba(8,10,20,0.70));
+        min-height: 48px;
+    }
+    .bulk-discount-banner.is-collapsible[data-active-family="church"] .bdb-toggle {
+        background:
+            radial-gradient(120% 200% at 0% 50%, rgba(167,139,250,0.20), rgba(167,139,250,0) 60%),
+            linear-gradient(135deg, rgba(20,24,38,0.65), rgba(8,10,20,0.85));
+        border-color: rgba(167,139,250,0.50);
+        box-shadow:
+            0 8px 22px -10px rgba(167,139,250,0.40),
+            inset 0 1px 0 rgba(255,255,255,0.08);
+        color: #ede9fe;
+    }
+    .bulk-discount-banner .bdb-toggle-icon {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 14px;
+        font-size: 20px;
+        line-height: 1;
+        background: linear-gradient(135deg, rgba(251,191,36,0.30), rgba(251,191,36,0.10));
+        border: 1px solid rgba(251,191,36,0.55);
+    }
+    .bulk-discount-banner.is-collapsible[data-active-family="church"] .bdb-toggle-icon {
+        background: linear-gradient(135deg, rgba(167,139,250,0.32), rgba(167,139,250,0.10));
+        border-color: rgba(167,139,250,0.60);
+    }
+    .bulk-discount-banner .bdb-toggle-body {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        line-height: 1.25;
+    }
+    .bulk-discount-banner .bdb-toggle-lead {
+        font-size: clamp(13px, 3.4vw, 14.5px);
+        font-weight: 800;
+        color: rgba(254,243,199,0.94);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .bulk-discount-banner.is-collapsible[data-active-family="church"] .bdb-toggle-lead {
+        color: rgba(237,233,254,0.94);
+    }
+    .bulk-discount-banner .bdb-toggle-lead b {
+        font-size: clamp(16px, 4.4vw, 19px);
+        font-weight: 900;
+        background: linear-gradient(135deg, #fde047, #fbbf24);
+        -webkit-background-clip: text;
+                background-clip: text;
+        color: transparent;
+        padding: 0 3px;
+        letter-spacing: -0.01em;
+    }
+    .bulk-discount-banner.is-collapsible[data-active-family="church"] .bdb-toggle-lead b {
+        background: linear-gradient(135deg, #c4b5fd, #a78bfa);
+        -webkit-background-clip: text;
+                background-clip: text;
+    }
+    .bulk-discount-banner .bdb-toggle-sub {
+        font-size: clamp(10.5px, 2.6vw, 11.5px);
+        font-weight: 600;
+        color: rgba(254,243,199,0.62);
+        letter-spacing: 0.01em;
+    }
+    .bulk-discount-banner.is-collapsible[data-active-family="church"] .bdb-toggle-sub {
+        color: rgba(221,214,254,0.66);
+    }
+    .bulk-discount-banner.is-expanded .bdb-toggle-sub {
+        display: none;
+    }
+    .bulk-discount-banner .bdb-toggle-chevron {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 10px;
+        font-size: 14px;
+        line-height: 1;
+        color: rgba(254,243,199,0.85);
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.08);
+        transition: transform .3s var(--prism-ease, ease-out);
+    }
+    .bulk-discount-banner.is-expanded .bdb-toggle-chevron {
+        transform: rotate(180deg);
+    }
+    .bulk-discount-banner.is-collapsible[data-active-family="church"] .bdb-toggle-chevron {
+        color: rgba(221,214,254,0.90);
+    }
+
+    /* Collapsed content — animates max-height + opacity */
+    .bulk-discount-banner.is-collapsible .bdb-content {
+        display: flex;
+        flex-direction: column;
+        gap: clamp(14px, 3.2vw, 18px);
+        overflow: hidden;
+        max-height: 0;
+        opacity: 0;
+        transition: max-height .4s var(--prism-ease, ease-out),
+                    opacity .25s var(--prism-ease, ease-out);
+    }
+    .bulk-discount-banner.is-collapsible.is-expanded .bdb-content {
+        max-height: 1800px;
+        opacity: 1;
+        transition: max-height .55s var(--prism-ease, ease-out),
+                    opacity .25s var(--prism-ease, ease-out) .08s;
+    }
+    /* When the script hasn't run yet (no JS / pre-bind), keep the
+       content visible so users on no-JS environments still see the
+       offer. JS adds `.is-bound` once the toggle is wired up. */
+    .bulk-discount-banner.is-collapsible:not(.is-bound) .bdb-content {
+        max-height: none;
+        opacity: 1;
+        overflow: visible;
+    }
+    .bulk-discount-banner.is-collapsible:not(.is-bound) .bdb-toggle {
+        display: none;
+    }
+
+    /* The collapsible variant suppresses the eyebrow inside the hero
+       (the trigger pill already carries the value prop). */
+    .bulk-discount-banner.is-collapsible .bdb-hero .bdb-eyebrow {
+        display: none;
+    }
+
+    /* Light-theme overrides for the trigger pill */
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-toggle {
+        background:
+            radial-gradient(120% 200% at 0% 50%, rgba(245,158,11,0.18), rgba(245,158,11,0) 60%),
+            linear-gradient(135deg, rgba(255,251,235,0.95), rgba(254,243,199,0.85));
+        border-color: rgba(180,83,9,0.42);
+        color: #78350f;
+        box-shadow:
+            0 8px 22px -10px rgba(180,83,9,0.30),
+            inset 0 1px 0 rgba(255,255,255,0.90);
+    }
+    :root[data-pt-theme="light"] .bulk-discount-banner.is-collapsible[data-active-family="church"] .bdb-toggle {
+        background:
+            radial-gradient(120% 200% at 0% 50%, rgba(167,139,250,0.18), rgba(167,139,250,0) 60%),
+            linear-gradient(135deg, rgba(250,245,255,0.95), rgba(237,233,254,0.85));
+        border-color: rgba(124,58,237,0.42);
+        color: #4c1d95;
+    }
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-toggle-icon {
+        background: linear-gradient(135deg, rgba(245,158,11,0.30), rgba(245,158,11,0.10));
+        border-color: rgba(180,83,9,0.40);
+    }
+    :root[data-pt-theme="light"] .bulk-discount-banner.is-collapsible[data-active-family="church"] .bdb-toggle-icon {
+        background: linear-gradient(135deg, rgba(167,139,250,0.30), rgba(167,139,250,0.10));
+        border-color: rgba(124,58,237,0.40);
+    }
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-toggle-lead { color: #78350f; }
+    :root[data-pt-theme="light"] .bulk-discount-banner.is-collapsible[data-active-family="church"] .bdb-toggle-lead { color: #4c1d95; }
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-toggle-lead b {
+        background: linear-gradient(135deg, #b45309, #d97706);
+        -webkit-background-clip: text;
+                background-clip: text;
+    }
+    :root[data-pt-theme="light"] .bulk-discount-banner.is-collapsible[data-active-family="church"] .bdb-toggle-lead b {
+        background: linear-gradient(135deg, #6d28d9, #7c3aed);
+        -webkit-background-clip: text;
+                background-clip: text;
+    }
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-toggle-sub { color: rgba(120,53,15,0.65); }
+    :root[data-pt-theme="light"] .bulk-discount-banner.is-collapsible[data-active-family="church"] .bdb-toggle-sub { color: rgba(76,29,149,0.68); }
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-toggle-chevron {
+        background: rgba(180,83,9,0.10);
+        border-color: rgba(180,83,9,0.20);
+        color: #78350f;
+    }
+    :root[data-pt-theme="light"] .bulk-discount-banner.is-collapsible[data-active-family="church"] .bdb-toggle-chevron {
+        background: rgba(124,58,237,0.10);
+        border-color: rgba(124,58,237,0.20);
+        color: #4c1d95;
+    }
+
     /* ============================== Subtle variant ============================
        Drops the moving sweep + orb so the card stays calm next to other
        glass surfaces (e.g. seat picker, where multiple shimmer surfaces
@@ -540,6 +868,64 @@
     .bulk-discount-banner.is-subtle::after { display: none; }
 
     /* ============================== Reduced motion =========================== */
+    @media (max-width: 720px) {
+        .bulk-discount-banner .bdb-family-groups {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        .bulk-discount-banner .bdb-family-card {
+            padding: 10px;
+            gap: 8px;
+        }
+        .bulk-discount-banner .bdb-family-card.is-church .bdb-rail {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        .bulk-discount-banner .bdb-node {
+            min-height: 0;
+            padding: 10px 12px;
+            flex-direction: row;
+            align-items: center;
+            text-align: start;
+            gap: 12px;
+        }
+        .bulk-discount-banner .bdb-node-badge {
+            font-size: 20px;
+        }
+        .bulk-discount-banner .bdb-node-pct {
+            font-size: 22px;
+            flex: 0 0 auto;
+            min-width: 64px;
+        }
+        .bulk-discount-banner .bdb-node-unlock {
+            flex: 1 1 auto;
+            font-size: 11.5px;
+            line-height: 1.4;
+        }
+        .bulk-discount-banner .bdb-hero {
+            gap: 2px;
+        }
+        .bulk-discount-banner .bdb-hero-number {
+            font-size: clamp(40px, 11vw, 56px);
+        }
+        .bulk-discount-banner .bdb-node-flag {
+            bottom: auto;
+            top: 8px;
+            inset-inline-start: auto;
+            inset-inline-end: 8px;
+            transform: none;
+        }
+        .bulk-discount-banner .bdb-node-pip {
+            top: 8px;
+            inset-inline-start: auto;
+            inset-inline-end: 8px;
+            transform: translateY(4px);
+        }
+        .bulk-discount-banner .bdb-node[data-is-next] .bdb-node-pip {
+            transform: translateY(0);
+        }
+    }
+
     @media (prefers-reduced-motion: reduce) {
         .bulk-discount-banner,
         .bulk-discount-banner::before,
@@ -552,6 +938,9 @@
         }
         .bulk-discount-banner .bdb-node[data-is-active] { transform: none; }
         .bulk-discount-banner .bdb-node-pip { transform: translateX(-50%); }
+    }
+    @media (prefers-reduced-motion: reduce) and (max-width: 720px) {
+        .bulk-discount-banner .bdb-node-pip { transform: none; }
     }
 
     /* ============================== Light theme ============================== */
@@ -592,15 +981,38 @@
         -webkit-background-clip: text;
                 background-clip: text;
     }
-    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-family-label[data-family="family"] {
-        color: #92400e;
-        border-color: rgba(180,83,9,0.40);
-        background: linear-gradient(135deg, rgba(254,243,199,0.95), rgba(253,224,71,0.40));
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-family-card.is-family {
+        border-color: rgba(180,83,9,0.28);
+        background:
+            radial-gradient(100% 80% at 100% 0%, rgba(245,158,11,0.16), transparent 58%),
+            linear-gradient(135deg, rgba(254,243,199,0.95), rgba(253,224,71,0.22));
     }
-    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-family-label[data-family="church"] {
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-family-card.is-church {
+        border-color: rgba(124,58,237,0.28);
+        background:
+            radial-gradient(120% 90% at 0% 0%, rgba(124,58,237,0.13), transparent 58%),
+            radial-gradient(100% 80% at 100% 100%, rgba(8,145,178,0.08), transparent 58%),
+            linear-gradient(135deg, rgba(237,233,254,0.95), rgba(224,242,254,0.28));
+    }
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-family-card.is-family .bdb-family-title {
+        color: #92400e;
+    }
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-family-card.is-church .bdb-family-title {
         color: #5b21b6;
-        border-color: rgba(124,58,237,0.40);
-        background: linear-gradient(135deg, rgba(237,233,254,0.95), rgba(196,181,253,0.45));
+    }
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-family-desc {
+        color: rgba(120,53,15,0.72);
+    }
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-family-card.is-church .bdb-family-desc {
+        color: rgba(76,29,149,0.72);
+    }
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-family-card.is-family .bdb-family-icon {
+        background: rgba(245,158,11,0.16);
+        border-color: rgba(180,83,9,0.30);
+    }
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-family-card.is-church .bdb-family-icon {
+        background: rgba(167,139,250,0.16);
+        border-color: rgba(124,58,237,0.30);
     }
     :root[data-pt-theme="light"] .bulk-discount-banner .bdb-node {
         background: linear-gradient(135deg, rgba(255,255,255,0.70), rgba(255,255,255,0.45));
@@ -632,6 +1044,12 @@
         background: linear-gradient(135deg, #6d28d9, #7c3aed);
         -webkit-background-clip: text;
                 background-clip: text;
+    }
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-node-unlock {
+        color: rgba(120,53,15,0.66);
+    }
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-node[data-tier-family="church"] .bdb-node-unlock {
+        color: rgba(76,29,149,0.68);
     }
     :root[data-pt-theme="light"] .bulk-discount-banner .bdb-node-flag {
         color: #78350f;
@@ -679,7 +1097,10 @@
     }
 </style>
 
-<div class="bulk-discount-banner {{ $compactView ? 'is-compact' : '' }} {{ $variantView === 'subtle' ? 'is-subtle' : '' }}"
+@php
+    $bdbId = 'bdb-content-' . substr(md5(uniqid('', true)), 0, 8);
+@endphp
+<div class="bulk-discount-banner {{ $compactView ? 'is-compact' : 'is-collapsible' }} {{ $variantView === 'subtle' ? 'is-subtle' : '' }}"
      role="note"
      data-bulk-discount-banner
      data-min-tickets="{{ $minTickets }}"
@@ -699,6 +1120,25 @@
             </span>
         </div>
     @else
+        {{-- Premium trigger pill — collapsed state shows just this. --}}
+        <button type="button"
+                class="bdb-toggle"
+                aria-expanded="false"
+                aria-controls="{{ $bdbId }}">
+            <span class="bdb-toggle-icon" aria-hidden="true">🎁</span>
+            <span class="bdb-toggle-body">
+                <span class="bdb-toggle-lead">
+                    <span data-i18n="bulk_discount_toggle_lead">خصومات تصل إلى</span>
+                    <b dir="ltr">{{ $maxDiscount }}%</b>
+                </span>
+                <span class="bdb-toggle-sub" data-i18n="bulk_discount_toggle_sub">اضغط لمعرفة العروض</span>
+            </span>
+            <span class="bdb-toggle-chevron" aria-hidden="true">▾</span>
+        </button>
+
+        {{-- Collapsible content wrapper --}}
+        <div class="bdb-content" id="{{ $bdbId }}">
+
         {{-- Hero block --}}
         <div class="bdb-hero">
             <span class="bdb-eyebrow">
@@ -712,48 +1152,61 @@
             <span class="bdb-hero-sub" data-i18n="bulk_discount_hero_sub">احجز أكتر — الخصم يكبر معاك مع كل تذكرة</span>
         </div>
 
-        {{-- Family band (labels above the rail) --}}
-        <div class="bdb-families" aria-hidden="true">
-            <span class="bdb-family-label" data-family="church">
-                <span class="bdb-family-icon">⛪</span>
-                <span data-i18n="bulk_discount_family_church">خصومات الكنائس</span>
-            </span>
-            <span class="bdb-family-label" data-family="family">
-                <span class="bdb-family-icon">🎁</span>
-                <span data-i18n="bulk_discount_family_family">خصومات العيلة</span>
-            </span>
-        </div>
-
-        {{-- Rail --}}
-        <div class="bdb-rail-wrap">
-            <div class="bdb-rail" role="list" aria-label="مستويات الخصم">
-                @foreach($tiers as $tier)
-                    @php
-                        $pct = (int) $tier['percent'];
-                        $flag = $pct === $popularPct ? 'popular' : ($pct === $bestPct ? 'best' : null);
-                    @endphp
-                    <div class="bdb-node"
-                         role="listitem"
-                         data-tier-chip="{{ $pct }}"
-                         data-tier-family="{{ $tier['family'] }}"
-                         title="من {{ (int) $tier['min'] }} تذاكر فأكثر — خصم {{ $pct }}%">
-                        <span class="bdb-node-badge" aria-hidden="true">{{ $tier['badge'] }}</span>
-                        <span class="bdb-node-min" dir="ltr">{{ (int) $tier['min'] }}+</span>
-                        <span class="bdb-node-pct" dir="ltr">-{{ $pct }}%</span>
-
-                        <span class="bdb-node-pip" aria-hidden="true">
-                            <span data-i18n="bulk_discount_pip_prefix">+</span><span data-bdb-pip-count>0</span>
-                            <span data-i18n="bulk_discount_pip_suffix">تذكرة</span>
+        {{-- Offer families --}}
+        <div class="bdb-family-groups">
+            @foreach($offerGroups as $group)
+                <section class="bdb-family-card {{ $group['class'] }}" data-family-group="{{ $group['family'] }}">
+                    <div class="bdb-family-head">
+                        <span class="bdb-family-icon" aria-hidden="true">{{ $group['icon'] }}</span>
+                        <span class="bdb-family-copy">
+                            <span class="bdb-family-title" data-i18n="{{ $group['title_key'] }}">{{ $group['title_fallback'] }}</span>
+                            <span class="bdb-family-desc" data-i18n="{{ $group['desc_key'] }}">{{ $group['desc_fallback'] }}</span>
                         </span>
-
-                        @if($flag === 'popular')
-                            <span class="bdb-node-flag" data-flag="popular" data-i18n="bulk_discount_flag_popular">الأكثر طلباً</span>
-                        @elseif($flag === 'best')
-                            <span class="bdb-node-flag" data-flag="best" data-i18n="bulk_discount_flag_best">أعلى خصم</span>
-                        @endif
                     </div>
-                @endforeach
-            </div>
+
+                    <div class="bdb-rail"
+                         role="list"
+                         aria-label="{{ $group['title_fallback'] }}"
+                         style="--bdb-tier-columns: {{ max(1, count($group['tiers'])) }};">
+                        @foreach($group['tiers'] as $tier)
+                            @php
+                                $pct = (int) $tier['percent'];
+                                $flag = $pct === $popularPct ? 'popular' : ($pct === $bestPct ? 'best' : null);
+                            @endphp
+                            <div class="bdb-node"
+                                 role="listitem"
+                                 data-tier-chip="{{ $pct }}"
+                                 data-tier-family="{{ $tier['family'] }}"
+                                 title="من {{ (int) $tier['min'] }} تذاكر فأكثر — خصم {{ $pct }}%">
+                                <span class="bdb-node-badge" aria-hidden="true">{{ $tier['badge'] }}</span>
+                                <span class="bdb-node-pct" dir="ltr">-{{ $pct }}%</span>
+                                <span class="bdb-node-unlock">
+                                    <span>
+                                        <span data-i18n="bulk_discount_unlock_book">احجز</span>
+                                        <span dir="ltr">{{ (int) $tier['min'] }}+</span>
+                                        <span data-i18n="bulk_discount_unlock_tickets">تذاكر أو أكثر</span>
+                                    </span>
+                                    <span class="bdb-node-reward">
+                                        <span data-i18n="bulk_discount_unlock_get">واحصل على خصم</span>
+                                        <span dir="ltr">{{ $pct }}%</span>
+                                    </span>
+                                </span>
+
+                                <span class="bdb-node-pip" aria-hidden="true">
+                                    <span data-i18n="bulk_discount_pip_prefix">+</span><span data-bdb-pip-count>0</span>
+                                    <span data-i18n="bulk_discount_pip_suffix">تذكرة</span>
+                                </span>
+
+                                @if($flag === 'popular')
+                                    <span class="bdb-node-flag" data-flag="popular" data-i18n="bulk_discount_flag_popular">الأكثر طلباً</span>
+                                @elseif($flag === 'best')
+                                    <span class="bdb-node-flag" data-flag="best" data-i18n="bulk_discount_flag_best">أعلى خصم</span>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </section>
+            @endforeach
         </div>
 
         {{-- Progress rail --}}
@@ -773,5 +1226,27 @@
                 <span class="bdb-progress-msg-top" data-i18n="bulk_discount_progress_top">وصلت لأعلى مستوى 👑</span>
             </span>
         </div>
+
+        </div> {{-- /.bdb-content --}}
     @endif
 </div>
+
+@unless($compactView)
+<script>
+(function () {
+    function bind(banner) {
+        if (banner.classList.contains('is-bound')) return;
+        var btn = banner.querySelector('.bdb-toggle');
+        if (!btn) return;
+        banner.classList.add('is-bound');
+        btn.addEventListener('click', function () {
+            var expanded = btn.getAttribute('aria-expanded') === 'true';
+            btn.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+            banner.classList.toggle('is-expanded', !expanded);
+        });
+    }
+    var nodes = document.querySelectorAll('.bulk-discount-banner.is-collapsible:not(.is-bound)');
+    nodes.forEach(bind);
+})();
+</script>
+@endunless

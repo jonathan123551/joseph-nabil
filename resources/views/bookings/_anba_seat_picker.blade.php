@@ -292,37 +292,48 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 8px 12px;
+            padding: 10px 16px;
             border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #fef3c7;
-            background: linear-gradient(135deg, rgba(245,158,11,0.34), rgba(251,191,36,0.18));
-            border: 1px solid rgba(251,191,36,0.55);
+            font-size: 13px;
+            font-weight: 800;
+            color: #0b0e1c;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+            border: 1px solid rgba(255, 255, 255, 0.45);
             box-shadow:
-                0 6px 18px -6px rgba(245,158,11,0.55),
-                inset 0 1px 0 rgba(255,255,255,0.10);
+                0 6px 20px rgba(245, 158, 11, 0.55),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
             backdrop-filter: blur(10px) saturate(160%);
             -webkit-backdrop-filter: blur(10px) saturate(160%);
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
-            transition: transform .15s var(--p-ease), box-shadow .2s var(--p-ease), background .15s var(--p-ease);
+            transition: transform .15s var(--p-ease), box-shadow .2s var(--p-ease), background .15s var(--p-ease), border-color .15s var(--p-ease);
+            min-height: 42px;
+            animation: prismAutoPickBreath 4.5s infinite ease-in-out;
+            position: relative;
+            overflow: hidden;
         }
         [data-anba-root] .auto-pick-fab:hover {
-            background: linear-gradient(135deg, rgba(245,158,11,0.50), rgba(251,191,36,0.30));
+            transform: translateY(-1.5px);
+            background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 50%, #f59e0b 100%);
+            border-color: rgba(255, 255, 255, 0.6);
             box-shadow:
-                0 10px 24px -6px rgba(245,158,11,0.7),
-                inset 0 1px 0 rgba(255,255,255,0.14);
+                0 8px 24px rgba(245, 158, 11, 0.70),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
         }
-        [data-anba-root] .auto-pick-fab:active { transform: scale(0.96); }
+        [data-anba-root] .auto-pick-fab:active {
+            transform: scale(0.97);
+            transition-duration: 80ms;
+        }
         @media (max-width: 480px) {
             [data-anba-root] .auto-pick-fab {
-                font-size: 11px;
-                padding: 7px 10px;
+                font-size: 11.5px;
+                padding: 8px 12px;
+                min-height: 36px;
             }
         }
         @media (prefers-reduced-motion: reduce) {
-            [data-anba-root] .auto-pick-fab { transition: none; }
+            [data-anba-root] .auto-pick-fab { transition: none; animation: none; }
+            [data-anba-root] .auto-pick-fab:hover { transform: none; }
         }
 
         /* ===== Pinch & pan onboarding hint (mobile only) =====
@@ -812,416 +823,479 @@
             font-size: 11px;
         }
 
-        /* ===== Fast-booking sheet =====
-           Phase 1: offer-led quick actions + custom quantity + strategy
-           pills. Still calls the existing auto-pick allocator immediately;
-           future phases can add preview/candidate cycling without changing
-           the trigger surface. */
+        /* ===== Fast-booking sheet (v2 — compact, mobile-first, RTL-native) =====
+           Selectors preserved for the existing JS:
+           .anba-modal-backdrop, .anba-modal-card, .anba-offer-btn[data-fast-count],
+           .anba-qty-input/.anba-qty-btn, .anba-strategy-pill[data-fast-strategy],
+           .anba-modal-apply/.anba-modal-manual/.anba-modal-cancel, .anba-upsell. */
         .anba-modal-backdrop {
             position: fixed;
             inset: 0;
             z-index: 60;
             display: none;
-            align-items: center;
-            justify-content: flex-end;
-            padding: 12px;
-            padding-bottom: max(12px, env(safe-area-inset-bottom));
-            background: rgba(3, 5, 12, 0.72);
+            align-items: flex-end;
+            justify-content: center;
+            padding: 0;
+            background: rgba(3, 5, 12, 0.62);
             backdrop-filter: blur(8px) saturate(140%);
             -webkit-backdrop-filter: blur(8px) saturate(140%);
             opacity: 0;
             transition: opacity .18s ease-out;
+            touch-action: manipulation;
         }
-        .anba-modal-backdrop.is-open {
-            display: flex;
-            opacity: 1;
-        }
+        .anba-modal-backdrop.is-open { display: flex; opacity: 1; }
         .anba-modal-card {
-            width: min(440px, 100%);
-            max-height: min(86dvh, 720px);
+            width: 100%;
+            max-width: 460px;
+            max-height: 92dvh;
             overflow: auto;
             overscroll-behavior: contain;
             -webkit-overflow-scrolling: touch;
-            border-radius: 24px;
-            padding: 16px;
+            border-radius: 24px 24px 0 0;
+            padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
             background:
-                radial-gradient(120% 80% at 0% 0%, rgba(34,211,238,0.12), transparent 48%),
-                radial-gradient(110% 80% at 100% 0%, rgba(192,132,252,0.14), transparent 52%),
-                linear-gradient(180deg, rgba(15,18,32,0.98), rgba(8,10,20,0.98));
-            border: 1px solid rgba(251,191,36,0.40);
+                radial-gradient(110% 80% at 0% 0%, rgba(251,191,36,0.08), transparent 52%),
+                radial-gradient(110% 80% at 100% 0%, rgba(167,139,250,0.10), transparent 52%),
+                linear-gradient(180deg, rgba(15,18,32,0.98), rgba(8,10,20,0.99));
+            border: 1px solid rgba(251,191,36,0.30);
+            border-bottom: 0;
             box-shadow:
-                0 24px 60px -12px rgba(0,0,0,0.65),
+                0 -16px 48px -10px rgba(0,0,0,0.65),
                 0 0 0 1px rgba(255,255,255,0.04) inset,
                 0 1px 0 rgba(255,255,255,0.10) inset;
             color: var(--p-text);
-            transform: translateY(18px) scale(.98);
-            transition: transform .22s var(--p-ease);
+            transform: translateY(24px);
+            transition: transform .24s var(--p-ease);
+            touch-action: manipulation;
         }
-        .anba-modal-backdrop.is-open .anba-modal-card {
-            transform: translateY(0) scale(1);
+        .anba-modal-backdrop.is-open .anba-modal-card { transform: translateY(0); }
+        .anba-modal-card::before {
+            content: "";
+            display: block;
+            width: 40px;
+            height: 4px;
+            margin: 0 auto 12px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(251,191,36,0.36), rgba(167,139,250,0.42));
         }
-        .anba-modal-eyebrow {
-            font-size: 10.5px;
-            letter-spacing: .14em;
-            text-transform: uppercase;
-            color: #fcd34d;
-            font-weight: 700;
-            margin-bottom: 5px;
+
+        .anba-sheet-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 12px;
         }
-        .anba-modal-title {
-            font-size: 18px;
-            line-height: 1.15;
-            font-weight: 800;
+        .anba-sheet-title {
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 0;
+            font-size: clamp(15px, 4.4vw, 18px);
+            font-weight: 900;
+            line-height: 1.2;
+            letter-spacing: -0.005em;
             color: var(--p-text);
-            margin-bottom: 4px;
-            letter-spacing: -0.01em;
         }
-        .anba-modal-sub {
-            margin-bottom: 14px;
-            font-size: 12px;
-            line-height: 1.45;
-            color: var(--p-text-3);
+        .anba-sheet-title strong {
+            font-size: 1.35em;
+            font-weight: 900;
+            color: #fde68a;
+            text-shadow: 0 0 18px rgba(251,191,36,0.22);
         }
-        .anba-offer-grid {
+        .anba-modal-cancel {
+            width: 36px;
+            height: 36px;
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.04);
+            color: var(--p-text-2);
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            transition: background .14s var(--p-ease), color .14s var(--p-ease), border-color .14s var(--p-ease);
+        }
+        .anba-modal-cancel:hover,
+        .anba-modal-cancel:focus-visible {
+            background: rgba(255,255,255,0.07);
+            color: var(--p-text);
+        }
+
+        .anba-offers {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 8px;
             margin-bottom: 12px;
+        }
+        .anba-offers-divider {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0 2px;
+            color: #ddd6fe;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .02em;
+        }
+        .anba-offers-divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(167,139,250,0.40), transparent);
         }
         .anba-offer-btn {
             appearance: none;
             -webkit-appearance: none;
             display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 5px;
-            min-height: 78px;
-            padding: 11px;
-            border-radius: 18px;
-            border: 1px solid rgba(129,140,248,0.28);
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            min-height: 58px;
+            padding: 9px 12px;
+            border-radius: 16px;
+            border: 1px solid rgba(129,140,248,0.22);
             background:
-                linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025)),
+                linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
                 rgba(8,10,20,0.54);
             color: var(--p-text);
             cursor: pointer;
             text-align: start;
             -webkit-tap-highlight-color: transparent;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+            touch-action: manipulation;
             transition: transform .14s var(--p-ease), border-color .14s var(--p-ease), background .14s var(--p-ease), box-shadow .18s var(--p-ease);
+        }
+        .anba-offer-btn:active { transform: scale(.99); }
+        .anba-offer-pct {
+            flex: 0 0 auto;
+            min-width: 58px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 900;
+            letter-spacing: -.01em;
+            background: rgba(251,191,36,0.16);
+            border: 1px solid rgba(251,191,36,0.34);
+            color: #fef3c7;
+        }
+        .anba-offer-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+        .anba-offer-name {
+            font-size: 12.5px;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+        .anba-offer-meta {
+            font-size: 11px;
+            color: var(--p-text-3);
+            line-height: 1.35;
+        }
+        .anba-offer-btn[data-family="family"] {
+            border-color: rgba(251,191,36,0.32);
+            background:
+                radial-gradient(140% 100% at 100% 0%, rgba(251,191,36,0.12), transparent 60%),
+                linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+                rgba(8,10,20,0.54);
+        }
+        .anba-offer-btn[data-family="church"] {
+            border-color: rgba(167,139,250,0.30);
+            background:
+                radial-gradient(140% 100% at 0% 0%, rgba(167,139,250,0.13), transparent 58%),
+                radial-gradient(140% 100% at 100% 0%, rgba(34,211,238,0.06), transparent 58%),
+                linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+                rgba(8,10,20,0.54);
+        }
+        .anba-offer-btn[data-family="church"] .anba-offer-pct {
+            background: rgba(167,139,250,0.16);
+            border-color: rgba(167,139,250,0.36);
+            color: #ede9fe;
         }
         .anba-offer-btn:hover,
         .anba-offer-btn.is-active {
             transform: translateY(-1px);
-            border-color: rgba(251,191,36,0.58);
-            background:
-                radial-gradient(130% 90% at 0% 0%, rgba(251,191,36,0.18), transparent 56%),
-                linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03));
+            border-color: rgba(251,191,36,0.62);
             box-shadow:
-                0 14px 30px -18px rgba(251,191,36,0.8),
-                0 0 18px rgba(129,140,248,0.20),
-                inset 0 1px 0 rgba(255,255,255,0.08);
+                0 12px 26px -16px rgba(251,191,36,0.7),
+                inset 0 1px 0 rgba(255,255,255,0.07);
         }
-        .anba-offer-btn:active { transform: scale(.98); }
-        .anba-offer-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            width: 100%;
+        .anba-offer-btn[data-family="church"]:hover,
+        .anba-offer-btn[data-family="church"].is-active {
+            border-color: rgba(167,139,250,0.70);
+            box-shadow:
+                0 12px 26px -16px rgba(167,139,250,0.78),
+                0 0 18px rgba(34,211,238,0.18),
+                inset 0 1px 0 rgba(255,255,255,0.07);
         }
-        .anba-offer-name {
-            font-size: 12px;
-            font-weight: 800;
-            line-height: 1.15;
-        }
-        .anba-offer-count {
-            font-size: 11px;
-            font-weight: 900;
-            color: #fef3c7;
-            background: rgba(251,191,36,0.14);
-            border: 1px solid rgba(251,191,36,0.34);
-            padding: 3px 7px;
-            border-radius: 999px;
-            white-space: nowrap;
-        }
-        .anba-offer-meta {
-            font-size: 10.5px;
-            color: var(--p-text-3);
-            line-height: 1.25;
-        }
-        .anba-booking-panel {
-            display: grid;
-            gap: 10px;
-            padding: 12px;
-            border-radius: 20px;
-            background: rgba(8,10,20,0.50);
-            border: 1px solid rgba(129,140,248,0.20);
-            margin-bottom: 12px;
-        }
+
         .anba-qty-row {
             display: grid;
-            grid-template-columns: 42px 1fr 42px;
+            grid-template-columns: 44px 1fr 44px;
             gap: 8px;
             align-items: center;
+            margin-bottom: 10px;
         }
         .anba-qty-btn {
-            width: 42px;
-            height: 42px;
+            width: 44px;
+            height: 44px;
             border-radius: 14px;
             background: rgba(255,255,255,0.06);
             border: 1px solid rgba(129,140,248,0.30);
             color: var(--p-text);
             font-size: 20px;
-            font-weight: 800;
+            font-weight: 900;
+            line-height: 1;
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
+        .anba-qty-btn:active { transform: scale(.97); }
         .anba-qty-input {
             width: 100%;
-            height: 46px;
-            border-radius: 16px;
+            height: 44px;
+            border-radius: 14px;
             border: 1px solid rgba(251,191,36,0.35);
             background: rgba(2,6,23,0.52);
             color: var(--p-text);
             text-align: center;
-            font-size: 22px;
+            /* font-size >= 16px prevents iOS Safari from zooming on focus. */
+            font-size: 18px;
             font-weight: 900;
             outline: none;
             box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+            -moz-appearance: textfield;
+            appearance: textfield;
         }
+        .anba-qty-input::-webkit-outer-spin-button,
+        .anba-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .anba-qty-input:focus {
             border-color: rgba(251,191,36,0.72);
-            box-shadow: 0 0 0 3px rgba(251,191,36,0.11), inset 0 1px 0 rgba(255,255,255,0.06);
+            box-shadow: 0 0 0 3px rgba(251,191,36,0.10), inset 0 1px 0 rgba(255,255,255,0.06);
         }
-        .anba-strategy-row {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 6px;
-        }
-        .anba-strategy-pill {
-            min-height: 38px;
-            border-radius: 999px;
-            border: 1px solid rgba(129,140,248,0.25);
-            background: rgba(255,255,255,0.04);
-            color: var(--p-text-2);
-            font-size: 10.5px;
-            font-weight: 800;
-            cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
-            transition: background .14s var(--p-ease), border-color .14s var(--p-ease), color .14s var(--p-ease), transform .14s var(--p-ease);
-        }
-        .anba-strategy-pill.is-active {
-            color: #ecfeff;
-            border-color: rgba(34,211,238,0.56);
-            background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(129,140,248,0.16));
-            box-shadow: 0 0 16px rgba(34,211,238,0.16);
-        }
-        .anba-strategy-pill:active { transform: scale(.98); }
-        .anba-tier-status {
-            display: grid;
-            gap: 8px;
-            margin-bottom: 13px;
-        }
-        .anba-tier-track {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 6px;
-        }
-        .anba-tier-node {
-            min-width: 0;
-            border-radius: 14px;
-            padding: 7px 5px;
-            background: rgba(255,255,255,0.035);
-            border: 1px solid rgba(129,140,248,0.20);
-            color: var(--p-text-3);
-            text-align: center;
-            font-size: 10px;
-            line-height: 1.2;
-        }
-        .anba-tier-node.is-active {
-            color: #fef3c7;
-            border-color: rgba(251,191,36,0.55);
-            background: linear-gradient(180deg, rgba(251,191,36,0.16), rgba(251,191,36,0.06));
-            box-shadow: 0 0 18px rgba(251,191,36,0.16);
-        }
-        .anba-tier-node b {
-            display: block;
-            font-size: 11px;
-            color: inherit;
-        }
+
         .anba-upsell {
-            min-height: 34px;
-            border-radius: 15px;
-            padding: 9px 10px;
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 14px;
             border: 1px solid rgba(34,211,238,0.22);
-            background: linear-gradient(135deg, rgba(34,211,238,0.10), rgba(129,140,248,0.09));
+            background: linear-gradient(135deg, rgba(34,211,238,0.10), rgba(129,140,248,0.10));
             color: var(--p-text-2);
             font-size: 11.5px;
             font-weight: 700;
-            line-height: 1.35;
+            line-height: 1.4;
+            min-height: 32px;
+            display: flex;
+            align-items: center;
         }
-        .anba-sheet-actions {
+
+        .anba-strategy-row {
             display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 8px;
+            margin-bottom: 12px;
         }
+        .anba-strategy-pill {
+            min-height: 38px;
+            padding: 0 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(129,140,248,0.22);
+            background: rgba(255,255,255,0.03);
+            color: var(--p-text-3);
+            font-size: 11.5px;
+            font-weight: 800;
+            line-height: 1.1;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            transition: background .14s var(--p-ease), border-color .14s var(--p-ease), color .14s var(--p-ease);
+        }
+        .anba-strategy-pill.is-active {
+            color: #ecfeff;
+            border-color: rgba(34,211,238,0.52);
+            background: linear-gradient(135deg, rgba(34,211,238,0.14), rgba(129,140,248,0.14));
+        }
+        .anba-strategy-pill:active { transform: scale(.98); }
+
         .anba-modal-apply {
-            min-height: 48px;
+            width: 100%;
+            min-height: 50px;
             border: 0;
             border-radius: 999px;
             background: linear-gradient(135deg, #cffafe 0%, #c7d2fe 48%, #fde68a 100%);
             color: #0b0e1c;
-            font-size: 13px;
+            font-size: 13.5px;
             font-weight: 900;
             cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
             box-shadow:
-                0 12px 30px -12px rgba(251,191,36,0.75),
+                0 14px 30px -14px rgba(251,191,36,0.80),
                 0 0 22px rgba(34,211,238,0.18),
                 inset 0 1px 0 rgba(255,255,255,0.65);
             -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            transition: transform .14s var(--p-ease), box-shadow .18s var(--p-ease);
         }
         .anba-modal-apply:active { transform: scale(.99); }
-        .anba-modal-apply:disabled {
-            opacity: .48;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
+        .anba-modal-apply:disabled { opacity: .48; cursor: not-allowed; box-shadow: none; }
+
         .anba-modal-manual {
-            min-height: 42px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.035);
-            border: 1px solid rgba(129,140,248,0.22);
-            color: var(--p-text-2);
-            font-size: 12px;
-            font-weight: 800;
-            cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .anba-sheet-note {
             margin-top: 8px;
-            color: var(--p-text-4);
-            font-size: 10.5px;
-            line-height: 1.35;
-        }
-        .anba-modal-cancel {
             display: block;
             width: 100%;
             background: transparent;
-            border: 1px solid var(--p-border);
+            border: 0;
             color: var(--p-text-3);
-            border-radius: 12px;
-            padding: 10px 0;
-            font-size: 13px;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
-            min-height: 40px;
+            touch-action: manipulation;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            text-decoration-color: rgba(255,255,255,0.20);
         }
-        .anba-modal-cancel:hover {
-            background: rgba(255,255,255,0.04);
+        .anba-modal-manual:hover {
             color: var(--p-text);
+            text-decoration-color: rgba(255,255,255,0.40);
         }
+
         @media (min-width: 640px) {
-            .anba-modal-backdrop {
-                justify-content: center;
-                padding: 18px;
-            }
+            .anba-modal-backdrop { align-items: center; padding: 18px; }
             .anba-modal-card {
-                border-radius: 26px;
+                max-width: 460px;
+                border-radius: 24px;
+                border-bottom: 1px solid rgba(251,191,36,0.30);
                 padding: 18px;
             }
         }
-        @media (max-width: 380px) {
-            .anba-offer-grid { grid-template-columns: 1fr; }
-            .anba-strategy-row { grid-template-columns: 1fr; }
+        @media (max-width: 360px) {
+            .anba-offer-pct { min-width: 50px; height: 36px; font-size: 15px; }
+            .anba-offer-name { font-size: 12px; }
+            .anba-offer-meta { font-size: 10.5px; }
         }
         @media (prefers-reduced-motion: reduce) {
-            .anba-modal-backdrop,
-            .anba-modal-card,
-            .anba-offer-btn,
-            .anba-strategy-pill { transition: none; }
+            .anba-modal-backdrop, .anba-modal-card,
+            .anba-offer-btn, .anba-strategy-pill,
+            .anba-modal-apply, .anba-modal-cancel { transition: none; }
         }
-        /* ---- Light-mode overrides: auto-pick chip-count modal ----
-           Fired from the auto-pick FAB. The dark amber-on-navy card looks
-           pasted-in on cream; swap to a white-cream card with amber
-           accent, neutral cancel button, and a softer scrim.
-           NB: the modal is rendered OUTSIDE [data-anba-root] (a sibling
-           of the picker), so the `--p-*` tokens don't cascade to it.
-           We use the global `--prism-*` tokens instead. */
-        :root[data-pt-theme="light"] .anba-modal-backdrop {
-            background: rgba(15,23,42,0.32);
-        }
+
+        /* Light theme. The modal is rendered outside [data-anba-root], so
+           the --p-* tokens don't cascade; we use --prism-* + hex values. */
+        :root[data-pt-theme="light"] .anba-modal-backdrop { background: rgba(15,23,42,0.32); }
         :root[data-pt-theme="light"] .anba-modal-card {
             background:
-                radial-gradient(120% 80% at 0% 0%, rgba(8,145,178,0.10), transparent 48%),
+                radial-gradient(110% 80% at 0% 0%, rgba(245,158,11,0.10), transparent 52%),
                 radial-gradient(110% 80% at 100% 0%, rgba(124,58,237,0.10), transparent 52%),
-                linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.98));
-            border-color: rgba(245,158,11,0.45);
+                linear-gradient(180deg, rgba(255,255,255,0.99), rgba(248,250,252,0.99));
+            border-color: rgba(245,158,11,0.40);
             box-shadow:
-                inset 0 1px 0 rgba(255,255,255,0.7),
-                0 24px 60px -12px rgba(15,23,42,0.28),
-                0 0 24px rgba(245,158,11,0.16);
+                0 -16px 48px -10px rgba(15,23,42,0.22),
+                inset 0 1px 0 rgba(255,255,255,0.7);
             color: var(--prism-text);
         }
-        :root[data-pt-theme="light"] .anba-modal-eyebrow {
-            color: var(--prism-gold);
+        :root[data-pt-theme="light"] .anba-sheet-title { color: var(--prism-text); }
+        :root[data-pt-theme="light"] .anba-sheet-title strong { color: #b45309; text-shadow: none; }
+        :root[data-pt-theme="light"] .anba-modal-cancel {
+            border-color: rgba(15,23,42,0.14);
+            background: rgba(15,23,42,0.04);
+            color: var(--prism-text-2);
         }
-        :root[data-pt-theme="light"] .anba-modal-title {
+        :root[data-pt-theme="light"] .anba-modal-cancel:hover {
+            background: rgba(15,23,42,0.08);
             color: var(--prism-text);
         }
-        :root[data-pt-theme="light"] .anba-modal-sub,
-        :root[data-pt-theme="light"] .anba-offer-meta,
-        :root[data-pt-theme="light"] .anba-upsell,
-        :root[data-pt-theme="light"] .anba-sheet-note {
-            color: var(--prism-text-3);
+        :root[data-pt-theme="light"] .anba-offers-divider { color: #5b21b6; }
+        :root[data-pt-theme="light"] .anba-offers-divider::after {
+            background: linear-gradient(90deg, rgba(124,58,237,0.36), transparent);
         }
-        :root[data-pt-theme="light"] .anba-offer-btn,
-        :root[data-pt-theme="light"] .anba-booking-panel,
-        :root[data-pt-theme="light"] .anba-tier-node,
-        :root[data-pt-theme="light"] .anba-modal-manual {
-            background: rgba(255,255,255,0.70);
+        :root[data-pt-theme="light"] .anba-offer-btn {
+            background: rgba(255,255,255,0.72);
             border-color: rgba(15,23,42,0.12);
             color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] .anba-offer-btn[data-family="family"] {
+            background:
+                radial-gradient(140% 100% at 100% 0%, rgba(245,158,11,0.18), transparent 60%),
+                rgba(255,255,255,0.78);
+            border-color: rgba(180,83,9,0.28);
+        }
+        :root[data-pt-theme="light"] .anba-offer-btn[data-family="church"] {
+            background:
+                radial-gradient(140% 100% at 0% 0%, rgba(167,139,250,0.20), transparent 58%),
+                rgba(255,255,255,0.78);
+            border-color: rgba(124,58,237,0.28);
         }
         :root[data-pt-theme="light"] .anba-offer-btn:hover,
         :root[data-pt-theme="light"] .anba-offer-btn.is-active {
+            border-color: rgba(245,158,11,0.55);
             background:
-                radial-gradient(130% 90% at 0% 0%, rgba(245,158,11,0.18), transparent 56%),
-                rgba(255,255,255,0.92);
-            border-color: rgba(245,158,11,0.52);
+                radial-gradient(140% 100% at 100% 0%, rgba(245,158,11,0.24), transparent 58%),
+                rgba(255,255,255,0.95);
         }
-        :root[data-pt-theme="light"] .anba-offer-count,
-        :root[data-pt-theme="light"] .anba-tier-node.is-active {
+        :root[data-pt-theme="light"] .anba-offer-btn[data-family="church"]:hover,
+        :root[data-pt-theme="light"] .anba-offer-btn[data-family="church"].is-active {
+            border-color: rgba(124,58,237,0.55);
+            background:
+                radial-gradient(140% 100% at 0% 0%, rgba(167,139,250,0.26), transparent 58%),
+                rgba(255,255,255,0.95);
+        }
+        :root[data-pt-theme="light"] .anba-offer-pct {
+            background: rgba(245,158,11,0.14);
+            border-color: rgba(180,83,9,0.28);
             color: #92400e;
         }
+        :root[data-pt-theme="light"] .anba-offer-btn[data-family="church"] .anba-offer-pct {
+            background: rgba(167,139,250,0.16);
+            border-color: rgba(124,58,237,0.28);
+            color: #4c1d95;
+        }
+        :root[data-pt-theme="light"] .anba-offer-meta { color: var(--prism-text-3); }
         :root[data-pt-theme="light"] .anba-qty-input {
-            background: rgba(255,255,255,0.86);
+            background: rgba(255,255,255,0.92);
             color: var(--prism-text);
+            border-color: rgba(180,83,9,0.32);
         }
         :root[data-pt-theme="light"] .anba-qty-btn {
             background: rgba(15,23,42,0.04);
+            border-color: rgba(15,23,42,0.14);
             color: var(--prism-text);
+        }
+        :root[data-pt-theme="light"] .anba-upsell {
+            background: linear-gradient(135deg, rgba(8,145,178,0.10), rgba(124,58,237,0.10));
+            border-color: rgba(79,70,229,0.20);
+            color: var(--prism-text-2);
         }
         :root[data-pt-theme="light"] .anba-strategy-pill {
             background: rgba(15,23,42,0.04);
-            border-color: rgba(15,23,42,0.12);
-            color: var(--prism-text-2);
+            border-color: rgba(15,23,42,0.14);
+            color: var(--prism-text-3);
         }
         :root[data-pt-theme="light"] .anba-strategy-pill.is-active {
             color: #312e81;
-            border-color: rgba(79,70,229,0.36);
-            background: linear-gradient(135deg, rgba(8,145,178,0.12), rgba(124,58,237,0.12));
+            border-color: rgba(79,70,229,0.40);
+            background: linear-gradient(135deg, rgba(8,145,178,0.14), rgba(124,58,237,0.14));
         }
-        :root[data-pt-theme="light"] .anba-upsell {
-            background: linear-gradient(135deg, rgba(8,145,178,0.08), rgba(124,58,237,0.08));
-            border-color: rgba(79,70,229,0.18);
-        }
-        :root[data-pt-theme="light"] .anba-modal-cancel {
-            border-color: rgba(15,23,42,0.12);
+        :root[data-pt-theme="light"] .anba-modal-manual {
             color: var(--prism-text-3);
+            text-decoration-color: rgba(15,23,42,0.20);
         }
-        :root[data-pt-theme="light"] .anba-modal-cancel:hover {
-            background: rgba(15,23,42,0.04);
-            color: var(--prism-text);
-        }
+        :root[data-pt-theme="light"] .anba-modal-manual:hover { color: var(--prism-text); }
 
         /* =====================================================================
            LIGHT THEME — seat picker chrome.
@@ -1444,7 +1518,7 @@
                                 data-anba-auto-pick
                                 class="auto-pick-fab">
                             <span aria-hidden="true">✨</span>
-                            <span data-i18n="seat_auto_pick">اختر أفضل المقاعد</span>
+                            <span data-i18n="seat_auto_pick">اضغط هنا و هنحجزلك أحسن كراسي تلقائي ✨</span>
                         </button>
                     @endunless
                 @endif
@@ -1532,12 +1606,17 @@
                  Asks for a count, then picks N contiguous available seats
                  closest to the canvas centerline. --}}
             @unless ($adminMode)
-                <button type="button"
-                        data-anba-auto-pick
-                        class="prism-auto-pick w-full">
-                    <span aria-hidden="true">✨</span>
-                    <span data-i18n="seat_auto_pick">اختر أفضل المقاعد</span>
-                </button>
+                <div class="space-y-1.5 w-full">
+                    <button type="button"
+                            data-anba-auto-pick
+                            class="prism-auto-pick w-full">
+                        <span aria-hidden="true">✨</span>
+                        <span data-i18n="seat_auto_pick">اضغط هنا و هنحجزلك أحسن كراسي تلقائي ✨</span>
+                    </button>
+                    <p class="text-center text-[10.5px] leading-normal px-1 text-[color:var(--p-text-3)] font-medium" data-i18n="seat_auto_pick_helper">
+                        حجز سريع بدون تحديد يدوي ⚡
+                    </p>
+                </div>
             @endunless
 
             {{-- legend --}}
@@ -1679,88 +1758,96 @@
              aria-labelledby="anba-modal-title"
              hidden>
             <div class="anba-modal-card" role="document">
-                <div class="anba-modal-eyebrow" data-i18n="seat_fast_eyebrow">Smart fast booking</div>
-                <h2 id="anba-modal-title" class="anba-modal-title" data-i18n="seat_fast_title">Pick your group size</h2>
-                <p class="anba-modal-sub" data-i18n="seat_fast_sub">Use an offer shortcut, or enter any number. We will pick seats instantly using the current best-seat logic.</p>
-
-                <div class="anba-offer-grid" data-fast-offers>
-                    <button type="button" class="anba-offer-btn" data-fast-count="5">
-                        <span class="anba-offer-top">
-                            <span class="anba-offer-name"><span aria-hidden="true">🎁</span> <span data-i18n="seat_offer_family">Family</span></span>
-                            <span class="anba-offer-count">5+</span>
-                        </span>
-                        <span class="anba-offer-meta" data-i18n="seat_offer_family_meta">20% Family Offer</span>
-                    </button>
-                    <button type="button" class="anba-offer-btn" data-fast-count="10">
-                        <span class="anba-offer-top">
-                            <span class="anba-offer-name"><span aria-hidden="true">⛪</span> <span data-i18n="seat_offer_church">Church Group</span></span>
-                            <span class="anba-offer-count">10+</span>
-                        </span>
-                        <span class="anba-offer-meta" data-i18n="seat_offer_church_meta">30% group discount</span>
-                    </button>
-                    <button type="button" class="anba-offer-btn" data-fast-count="31">
-                        <span class="anba-offer-top">
-                            <span class="anba-offer-name"><span aria-hidden="true">💎</span> <span data-i18n="seat_offer_large">Large Group</span></span>
-                            <span class="anba-offer-count">31+</span>
-                        </span>
-                        <span class="anba-offer-meta" data-i18n="seat_offer_large_meta">40% premium tier</span>
-                    </button>
-                    <button type="button" class="anba-offer-btn" data-fast-count="50">
-                        <span class="anba-offer-top">
-                            <span class="anba-offer-name"><span aria-hidden="true">👑</span> <span data-i18n="seat_offer_full">Full Group</span></span>
-                            <span class="anba-offer-count">50+</span>
-                        </span>
-                        <span class="anba-offer-meta" data-i18n="seat_offer_full_meta">50% Best Value</span>
-                    </button>
-                </div>
-
-                <div class="anba-booking-panel">
-                    <label class="text-[11px] font-bold text-[color:var(--p-text-3)]" for="anbaFastQty" data-i18n="seat_custom_qty">Custom quantity</label>
-                    <div class="anba-qty-row">
-                        <button type="button" class="anba-qty-btn" data-fast-step="-1" aria-label="Decrease">−</button>
-                        <input id="anbaFastQty"
-                               class="anba-qty-input"
-                               data-fast-qty
-                               type="text"
-                               inputmode="numeric"
-                               pattern="[0-9]*"
-                               min="1"
-                               max="50"
-                               value="5"
-                               autocomplete="off">
-                        <button type="button" class="anba-qty-btn" data-fast-step="1" aria-label="Increase">+</button>
-                    </div>
-
-                    <div class="anba-strategy-row" role="group" aria-label="Selection strategy">
-                        <button type="button" class="anba-strategy-pill" data-fast-strategy="bestView">🎯 <span data-i18n="seat_strategy_best_view">Best View</span></button>
-                        <button type="button" class="anba-strategy-pill" data-fast-strategy="together">👨‍👩‍👧 <span data-i18n="seat_strategy_together">Keep Us Together</span></button>
-                        <button type="button" class="anba-strategy-pill" data-fast-strategy="fastest">⚡ <span data-i18n="seat_strategy_fastest">Fastest Available</span></button>
-                    </div>
-                </div>
-
-                <div class="anba-tier-status">
-                    <div class="anba-tier-track" data-fast-tier-track>
-                        <div class="anba-tier-node" data-tier-min="5"><b>🎁 5+</b><span>20%</span></div>
-                        <div class="anba-tier-node" data-tier-min="10"><b>⛪ 10+</b><span>30%</span></div>
-                        <div class="anba-tier-node" data-tier-min="31"><b>💎 31+</b><span>40%</span></div>
-                        <div class="anba-tier-node" data-tier-min="50"><b>👑 50+</b><span data-i18n="seat_best_value">Best Value</span></div>
-                    </div>
-                    <div class="anba-upsell" data-fast-upsell>Family Offer unlocked.</div>
-                </div>
-
-                <div class="anba-sheet-actions">
-                    <button type="button" class="anba-modal-apply" data-fast-apply>
+                <header class="anba-sheet-head">
+                    <h2 id="anba-modal-title" class="anba-sheet-title">
                         <span aria-hidden="true">⚡</span>
-                        <span data-i18n="seat_fast_apply">Pick the best seats for me</span>
+                        <span data-i18n="seat_fast_title_prefix">Book your group and save up to</span>
+                        <strong dir="ltr">50%</strong>
+                    </h2>
+                    <button type="button"
+                            class="anba-modal-cancel"
+                            data-anba-modal-cancel
+                            aria-label="Close"
+                            data-i18n-attr="aria-label:seat_close">
+                        <span aria-hidden="true">&times;</span>
                     </button>
-                    <button type="button" class="anba-modal-manual" data-fast-manual>
-                        <span aria-hidden="true">🎯</span>
-                        <span data-i18n="seat_manual_selection">Manual seat selection</span>
+                </header>
+
+                <div class="anba-offers" data-fast-offers>
+                    <button type="button" class="anba-offer-btn" data-family="family" data-fast-count="5">
+                        <span class="anba-offer-pct" dir="ltr">&minus;20%</span>
+                        <span class="anba-offer-info">
+                            <span class="anba-offer-name"><span aria-hidden="true">🎁</span> <span data-i18n="seat_offer_family_group">Family discounts</span></span>
+                            <span class="anba-offer-meta" data-i18n="seat_offer_family_meta">Book 5+ tickets and get 20% off</span>
+                        </span>
+                    </button>
+
+                    <div class="anba-offers-divider" aria-hidden="true">
+                        <span aria-hidden="true">⛪</span>
+                        <span data-i18n="seat_offer_church_group">Church discounts</span>
+                    </div>
+
+                    <button type="button" class="anba-offer-btn" data-family="church" data-fast-count="10">
+                        <span class="anba-offer-pct" dir="ltr">&minus;30%</span>
+                        <span class="anba-offer-info">
+                            <span class="anba-offer-name"><span aria-hidden="true">⛪</span> 10+</span>
+                            <span class="anba-offer-meta" data-i18n="seat_offer_church_meta">Book 10+ tickets and get 30% off</span>
+                        </span>
+                    </button>
+                    <button type="button" class="anba-offer-btn" data-family="church" data-fast-count="31">
+                        <span class="anba-offer-pct" dir="ltr">&minus;40%</span>
+                        <span class="anba-offer-info">
+                            <span class="anba-offer-name"><span aria-hidden="true">💎</span> 31+</span>
+                            <span class="anba-offer-meta" data-i18n="seat_offer_large_meta">Book 31+ tickets and get 40% off</span>
+                        </span>
+                    </button>
+                    <button type="button" class="anba-offer-btn" data-family="church" data-fast-count="50">
+                        <span class="anba-offer-pct" dir="ltr">&minus;50%</span>
+                        <span class="anba-offer-info">
+                            <span class="anba-offer-name"><span aria-hidden="true">👑</span> 50+</span>
+                            <span class="anba-offer-meta" data-i18n="seat_offer_full_meta">Book 50+ tickets and get 50% off</span>
+                        </span>
                     </button>
                 </div>
 
-                <p class="anba-sheet-note" data-i18n="seat_fast_note">You can still edit seats manually after auto-pick.</p>
-                <button type="button" class="anba-modal-cancel" data-anba-modal-cancel data-i18n="seat_auto_pick_cancel">Cancel</button>
+                <div class="anba-qty-row">
+                    <button type="button"
+                            class="anba-qty-btn"
+                            data-fast-step="-1"
+                            aria-label="Decrease"
+                            data-i18n-attr="aria-label:seat_qty_decrease">&minus;</button>
+                    <input id="anbaFastQty"
+                           class="anba-qty-input"
+                           data-fast-qty
+                           type="text"
+                           inputmode="numeric"
+                           pattern="[0-9]*"
+                           min="1"
+                           value="5"
+                           autocomplete="off"
+                           aria-label="Ticket count"
+                           data-i18n-attr="aria-label:seat_custom_qty">
+                    <button type="button"
+                            class="anba-qty-btn"
+                            data-fast-step="1"
+                            aria-label="Increase"
+                            data-i18n-attr="aria-label:seat_qty_increase">+</button>
+                </div>
+
+                <div class="anba-upsell" data-fast-upsell></div>
+
+                <div class="anba-strategy-row" role="group" aria-label="Selection strategy" data-i18n-attr="aria-label:seat_strategy_label">
+                    <button type="button" class="anba-strategy-pill" data-fast-strategy="together">👨‍👩‍👧 <span data-i18n="seat_strategy_together">Keep Us Together</span></button>
+                    <button type="button" class="anba-strategy-pill" data-fast-strategy="bestView">🎯 <span data-i18n="seat_strategy_best_view">Best View</span></button>
+                    <button type="button" class="anba-strategy-pill" data-fast-strategy="fastest">⚡ <span data-i18n="seat_strategy_fastest">Fastest Available</span></button>
+                </div>
+
+                <button type="button" class="anba-modal-apply" data-fast-apply>
+                    <span data-i18n="seat_fast_apply">Tap — we will pick the best seats for you ✨</span>
+                </button>
+                <button type="button" class="anba-modal-manual" data-fast-manual>
+                    <span data-i18n="seat_manual_selection">Manual seat selection</span>
+                </button>
             </div>
         </div>
     @endunless
@@ -2426,6 +2513,10 @@
                 draw();
             });
         }
+        function flushRedrawNow() {
+            rafQueued = false;
+            draw();
+        }
 
         canvas.addEventListener('mousemove', (e) => {
             const { x, y } = pointToCanvas(e);
@@ -2510,19 +2601,33 @@
             requestRedraw();
         }
 
-        // ===== QW#7: auto-pick best N seats =====
-        // Strategy:
-        //   1. Group seats by row (in visual order, front rows first).
-        //   2. For each row, sort seats left→right by x.
-        //   3. Mark seats available iff getState(seat) === 'available'.
-        //   4. Slide a window of size N over each row's available seats and
-        //      keep only contiguous windows (no booked/admin gaps inside).
-        //   5. Score each candidate window by:
-        //         rowBonus  — earlier rows score higher (closer to stage)
-        //         centerPen — distance of window's mean-x from CX
-        //      Final score = rowBonus * 1000 - centerPen.
-        //   6. Pick the highest-scoring window.
-        function autoPickBestSeats(N) {
+        // ===== Auto-pick best N seats =====
+        //
+        // Two strategies share the same packing pipeline but tune the
+        // scoring weights very differently:
+        //
+        //   together  — cohesion above all. Heavy penalty for row span and
+        //               for multiple chunks. Single contiguous run wins
+        //               even if it lands off-center. When forced to span
+        //               rows, candidate segments are sorted around the
+        //               running column-mean of seats already picked, so
+        //               the remainder lines up DIRECTLY behind the
+        //               anchor block (column-aligned, not random).
+        //
+        //   bestView  — centered + premium row above cohesion. Center-pen
+        //               weight is several times higher; row-span and
+        //               chunk penalties are gentle, so a centered 5+5
+        //               split across two adjacent rows beats 10 edge
+        //               seats in a single row. Row quality follows a
+        //               classic theatre curve that peaks around 30%
+        //               back from the stage (the "sweet spot"), not
+        //               literally row 1.
+        //
+        // Both strategies share the same row-segmentation pass and use
+        // the same windowing primitive (windowNearCenter) so the only
+        // moving part between them is a small weight table + a per-row
+        // anchor X. Cost stays O(rows × seats) — fast on mobile.
+        function autoPickBestSeats(N, strategy = 'together') {
             if (!isFinite(N) || N <= 0) return null;
 
             // Group seats by row in insertion order (front→back since
@@ -2534,52 +2639,161 @@
             }
             const rowList = Array.from(groups.keys());
 
-            let best = null; // { score, ids:[] }
+            const contiguousLimit = SEAT_PITCH * 1.6;
+            const rowSegments = [];
+
             rowList.forEach((rowLetter, rowIdx) => {
                 const seatsInRow = groups.get(rowLetter).slice().sort((a, b) => a.x - b.x);
-                if (seatsInRow.length < N) return;
+                const segments = [];
+                let current = [];
 
-                for (let i = 0; i + N <= seatsInRow.length; i++) {
-                    const window = seatsInRow.slice(i, i + N);
-
-                    // All must be available + adjacent on the canvas.
-                    let ok = true;
-                    let sumX = 0;
-                    for (let j = 0; j < window.length; j++) {
-                        if (getState(window[j]) !== 'available') { ok = false; break; }
-                        if (j > 0) {
-                            const dx = Math.abs(window[j].x - window[j - 1].x);
-                            // Allow up to 1.6× SEAT_PITCH for tolerated gap;
-                            // anything bigger is an aisle/section break.
-                            if (dx > SEAT_PITCH * 1.6) { ok = false; break; }
-                        }
-                        sumX += window[j].x;
+                seatsInRow.forEach((seat) => {
+                    if (getState(seat) !== 'available') {
+                        if (current.length) segments.push(current);
+                        current = [];
+                        return;
                     }
-                    if (!ok) continue;
+                    const prev = current[current.length - 1];
+                    if (prev && Math.abs(seat.x - prev.x) > contiguousLimit) {
+                        segments.push(current);
+                        current = [];
+                    }
+                    current.push(seat);
+                });
+                if (current.length) segments.push(current);
 
-                    const meanX = sumX / window.length;
-                    const centerPen = Math.abs(meanX - CX);
-                    const rowBonus = rowList.length - rowIdx;
-                    const score = rowBonus * 1000 - centerPen;
+                rowSegments[rowIdx] = segments;
+            });
 
-                    if (!best || score > best.score) {
-                        best = { score, seats: window };
+            const isBestView = (strategy === 'bestView');
+
+            // Strategy weight table. Tuned so the two strategies clearly
+            // diverge on the same available-seat map: bestView magnetises
+            // strongly to centre + sweet-spot rows and tolerates row
+            // splits, together heavily punishes row-span + chunks.
+            const W = isBestView ? {
+                rowBonus:   180,
+                centerPen:  6.0,
+                rowSpanPen: 35,
+                chunkPen:   25,
+            } : {
+                rowBonus:   90,
+                centerPen:  1.4,
+                rowSpanPen: 380,
+                chunkPen:   240,
+            };
+
+            // Row-quality curve. For bestView this is a triangle peaking
+            // ~30% from the front — the classic theatre sweet spot —
+            // which is much better than "row 1 is always best". For
+            // together we use a gentle front-first preference; cohesion
+            // dominates the score anyway so this is mostly a tiebreaker.
+            function rowQualityScore(rowIdx) {
+                if (isBestView) {
+                    const denom = Math.max(1, rowList.length - 1);
+                    const r = rowIdx / denom;
+                    const dist = Math.abs(r - 0.30);
+                    return Math.max(0, 1 - dist * 1.8) * W.rowBonus * 10;
+                }
+                return (rowList.length - rowIdx) * (W.rowBonus / 10);
+            }
+
+            function scoreSeats(seats, startRowIdx, lastRowIdx, chunks) {
+                const meanX = seats.reduce((sum, seat) => sum + seat.x, 0) / seats.length;
+                const centerPen = Math.abs(meanX - CX);
+                const rowSpan = (lastRowIdx ?? startRowIdx) - startRowIdx;
+                return rowQualityScore(startRowIdx)
+                     - centerPen * W.centerPen
+                     - rowSpan   * W.rowSpanPen
+                     - chunks    * W.chunkPen;
+            }
+
+            // Slide a count-wide window across a contiguous row segment
+            // and return the window whose seat-mean-x is closest to the
+            // given anchor (defaults to the visual centre CX).
+            function windowNearAnchor(segment, count, anchorX) {
+                if (segment.length <= count) return segment.slice();
+                const target = (anchorX === undefined ? CX : anchorX);
+                let bestWindow = segment.slice(0, count);
+                let bestPen = Infinity;
+                for (let i = 0; i + count <= segment.length; i++) {
+                    const candidate = segment.slice(i, i + count);
+                    const meanX = candidate.reduce((sum, seat) => sum + seat.x, 0) / candidate.length;
+                    const pen = Math.abs(meanX - target);
+                    if (pen < bestPen) {
+                        bestPen = pen;
+                        bestWindow = candidate;
                     }
                 }
+                return bestWindow;
+            }
+
+            let best = null;
+
+            // Phase 1: single contiguous window inside one row —
+            // always the ideal outcome for both strategies when it fits.
+            rowSegments.forEach((segments, rowIdx) => {
+                segments.forEach((segment) => {
+                    if (segment.length < N) return;
+                    const win = windowNearAnchor(segment, N, CX);
+                    const score = scoreSeats(win, rowIdx, rowIdx, 1);
+                    if (!best || score > best.score) {
+                        best = { score, seats: win, mode: 'single_contiguous_window' };
+                    }
+                });
             });
+
+            // Phase 2: multi-row pack. We try EVERY starting row (not
+            // just the front) so the best-view sweet-spot can win, and
+            // for `together` we use a running column-mean as the anchor
+            // when extending into later rows — that's what makes
+            // remaining seats land DIRECTLY behind the anchor block.
+            for (let startIdx = 0; startIdx < rowSegments.length; startIdx++) {
+                let picked = [];
+                let chunks = 0;
+                let lastRowIdx = startIdx;
+                let runningMeanX = null;
+
+                for (let rowIdx = startIdx; rowIdx < rowSegments.length && picked.length < N; rowIdx++) {
+                    const anchorX = (!isBestView && runningMeanX !== null) ? runningMeanX : CX;
+                    const segments = (rowSegments[rowIdx] || []).slice().sort((a, b) => {
+                        const meanA = a.reduce((sum, seat) => sum + seat.x, 0) / a.length;
+                        const meanB = b.reduce((sum, seat) => sum + seat.x, 0) / b.length;
+                        return Math.abs(meanA - anchorX) - Math.abs(meanB - anchorX) || b.length - a.length;
+                    });
+
+                    for (const segment of segments) {
+                        if (picked.length >= N) break;
+                        const remaining = N - picked.length;
+                        const take = windowNearAnchor(segment, Math.min(remaining, segment.length), anchorX);
+                        if (!take.length) continue;
+                        picked = picked.concat(take);
+                        chunks++;
+                        lastRowIdx = rowIdx;
+                        runningMeanX = picked.reduce((sum, s) => sum + s.x, 0) / picked.length;
+                    }
+                }
+
+                if (picked.length !== N) continue;
+                const score = scoreSeats(picked, startIdx, lastRowIdx, chunks);
+                if (!best || score > best.score) {
+                    best = { score, seats: picked, mode: 'multi_chunk_group' };
+                }
+            }
+
             return best;
         }
 
         function applyAutoPickN(N, allocContext = {}) {
             const t = window.PT_T || ((k) => k);
             const startedAt = performance.now();
-            const result = autoPickBestSeats(N);
+            const result = autoPickBestSeats(N, allocContext.strategy || fastBookingState.strategy);
             if (!result) {
                 debugAlloc('allocation:current-failed', {
                     requested: N,
                     strategy: allocContext.strategy || fastBookingState.strategy,
                     source: allocContext.source || 'unknown',
-                    mode: 'contiguous',
+                    mode: 'group_window',
                     elapsedMs: Math.round((performance.now() - startedAt) * 10) / 10,
                     reason: 'no_contiguous_window',
                 });
@@ -2594,9 +2808,31 @@
                 selected.set(s.id, { row: s.row, n: s.n });
                 triggerPop(s.id);
             });
+            const requestedCount = clampFastCount(N);
+            const pickedIds = result.seats.map((s) => s.id);
+            const hydratedCount = pickedIds.filter((id) => selected.has(id)).length;
+            if (result.seats.length !== requestedCount || hydratedCount !== requestedCount || selected.size !== requestedCount) {
+                debugAlloc('allocation:current-sync-failed', {
+                    requested: N,
+                    clampedRequested: requestedCount,
+                    strategy: allocContext.strategy || fastBookingState.strategy,
+                    source: allocContext.source || 'unknown',
+                    expectedCount: requestedCount,
+                    resultCount: result.seats.length,
+                    selectedCount: selected.size,
+                    hydratedCount,
+                });
+                selected.clear();
+                renderSidePanel();
+                flushRedrawNow();
+                if (window.PT && window.PT.toast) {
+                    window.PT.toast(t('seat_auto_pick_none'), 2200);
+                }
+                return false;
+            }
             if (navigator.vibrate) { try { navigator.vibrate(12); } catch (_) {} }
             renderSidePanel();
-            requestRedraw();
+            flushRedrawNow();
             if (window.PT && window.PT.toast) {
                 window.PT.toast(t('seat_auto_pick_done'), 1800);
             }
@@ -2604,35 +2840,32 @@
                 requested: N,
                 strategy: allocContext.strategy || fastBookingState.strategy,
                 source: allocContext.source || 'unknown',
-                mode: 'contiguous',
+                mode: result.mode || 'group_window',
                 candidateCount: result ? 1 : 0,
                 winningScore: result.score,
                 selectedCount: result.seats.length,
+                requestedCount,
                 rows: Array.from(new Set(result.seats.map((s) => s.row))),
                 elapsedMs: Math.round((performance.now() - startedAt) * 10) / 10,
             });
-            // Smoothly pan the canvas so the picked seats end up centered
-            // in the viewport. This is the visual confirmation that the
-            // user *can* see what got picked, even when the seats were
-            // off-screen at the moment of auto-pick. Looked up by id in
-            // seatMeta (the layout-computed cache) which already has
-            // canvas-local x/y coords for every seat.
-            const seatList = result.seats
-                .map((s) => seatMeta.get(s.id))
-                .filter(Boolean);
-            if (seatList.length && typeof panToSeats === 'function') {
-                // Defer one frame so the bottom-bar render + redraw
-                // run first; the camera move then feels like a
-                // confirmation rather than racing the UI.
-                requestAnimationFrame(() => panToSeats(seatList));
-            }
             return true;
         }
 
-        // Fast-booking sheet (Phase 1). This is UI/state scaffolding over
-        // the existing allocator; the strategy is logged and shown now, then
-        // becomes a scoring weight in Phase 3.
-        const AUTO_PICK_MAX = 50;
+        function focusSelectedSeatsNow() {
+            const seatList = Array.from(selected.keys())
+                .map((id) => seatMeta.get(id))
+                .filter(Boolean);
+            if (seatList.length && typeof panToSeats === 'function') {
+                panToSeats(seatList);
+            }
+        }
+
+        // Fast-booking sheet. The qty cap is no longer a static 50; it is
+        // derived live from the number of seats the allocator could
+        // realistically place — see getAutoPickMax() / pickableSeatCount()
+        // below. This way a sold-out section can't be over-requested and
+        // a fresh section with 200 seats actually lets the user ask for
+        // all 200.
         const modal       = root.querySelector('[data-anba-modal]');
         const modalCancel = root.querySelector('[data-anba-modal-cancel]');
         const fastQty     = root.querySelector('[data-fast-qty]');
@@ -2698,17 +2931,33 @@
             return 'fastest';
         }
 
-        function maxFastCount() {
-            const availableNow = SEATS.reduce((n, seat) => {
-                return n + (getState(seat) === 'available' ? 1 : 0);
-            }, 0);
-            return Math.max(1, Math.min(AUTO_PICK_MAX, availableNow || AUTO_PICK_MAX));
+        // Count seats the allocator could plausibly hand to the user.
+        // 'available' is the obvious bucket; 'selected' is included
+        // because applyAutoPickN clears the existing selection before
+        // it picks, so those seats are about to become available again.
+        // Booked / admin-only / blocked-in-customer-mode seats are
+        // excluded, mirroring what the allocator actually accepts.
+        function pickableSeatCount() {
+            let count = 0;
+            for (const s of SEATS) {
+                const state = getState(s);
+                if (state === 'available' || state === 'selected') count++;
+            }
+            return count;
+        }
+
+        // Dynamic auto-pick cap. Floor at 1 so the qty stepper never
+        // tries to clamp to 0 and produce a broken input; if the section
+        // really is at zero pickable seats the allocator will return
+        // null and the user gets the standard "no seats" toast.
+        function getAutoPickMax() {
+            return Math.max(1, pickableSeatCount());
         }
 
         function clampFastCount(value) {
             const n = parseInt(String(value || '').trim(), 10);
             if (!isFinite(n)) return 1;
-            return Math.max(1, Math.min(maxFastCount(), n));
+            return Math.max(1, Math.min(getAutoPickMax(), n));
         }
 
         function digitsOnly(value) {
@@ -2716,11 +2965,6 @@
                 .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
                 .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
                 .replace(/\D+/g, '');
-        }
-
-        function syncFastInputConstraints() {
-            if (!fastQty) return;
-            fastQty.setAttribute('max', String(maxFastCount()));
         }
 
         function commitFastDraft(source = 'custom') {
@@ -2754,9 +2998,15 @@
 
         function renderFastSheet() {
             const count = fastBookingState.count;
-            syncFastInputConstraints();
-            if (fastQty && document.activeElement !== fastQty) {
-                fastQty.value = fastBookingState.draftValue || String(count);
+            if (fastQty) {
+                // Keep the input's HTML5 max attribute in lock-step with
+                // the live allocator cap so the native stepper, mobile
+                // number-pad "done" validation, and assistive tech all
+                // see the correct ceiling.
+                fastQty.max = String(getAutoPickMax());
+                if (document.activeElement !== fastQty) {
+                    fastQty.value = fastBookingState.draftValue || String(count);
+                }
             }
 
             fastOffers.forEach((btn) => {
@@ -2824,16 +3074,21 @@
             if (firstOffer) firstOffer.focus({ preventScroll: true });
         }
 
-        function closeModal() {
+        function closeModal(options = {}) {
             if (!modal || !modalOpen) return;
+            const restoreFocus = options.restoreFocus !== false;
+            const afterHidden = typeof options.afterHidden === 'function' ? options.afterHidden : null;
             modal.classList.remove('is-open');
             modalOpen = false;
             // Wait for the fade-out, then fully hide so it doesn't
             // intercept taps.
             setTimeout(() => {
-                if (!modalOpen && modal) modal.hidden = true;
+                if (!modalOpen && modal) {
+                    modal.hidden = true;
+                    if (afterHidden) afterHidden();
+                }
             }, 220);
-            if (lastFocus && typeof lastFocus.focus === 'function') {
+            if (restoreFocus && lastFocus && typeof lastFocus.focus === 'function') {
                 lastFocus.focus({ preventScroll: true });
             }
         }
@@ -2882,7 +3137,7 @@
 
                     const parsed = parseInt(clean, 10);
                     if (isFinite(parsed) && parsed > 0) {
-                        fastBookingState.count = Math.min(maxFastCount(), parsed);
+                        fastBookingState.count = Math.min(getAutoPickMax(), parsed);
                         if (!fastBookingState.strategyTouched) {
                             fastBookingState.strategy = defaultStrategyForCount(fastBookingState.count);
                         }
@@ -2928,7 +3183,9 @@
                         strategy: fastBookingState.strategy,
                         source: fastBookingState.source || 'custom',
                     });
-                    if (applied) closeModal();
+                    if (applied) {
+                        closeModal({ restoreFocus: false, afterHidden: focusSelectedSeatsNow });
+                    }
                 });
             }
             document.addEventListener('keydown', (e) => {
@@ -2955,7 +3212,7 @@
                 const raw = window.prompt(t('seat_auto_pick_prompt'), '2');
                 if (raw === null) return;
                 const n = parseInt(String(raw).trim(), 10);
-                if (!isFinite(n) || n <= 0 || n > AUTO_PICK_MAX) return;
+                if (!isFinite(n) || n <= 0 || n > getAutoPickMax()) return;
                 applyAutoPickN(n, { strategy: defaultStrategyForCount(n), source: 'legacy-prompt' });
             });
         });

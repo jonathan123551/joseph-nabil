@@ -9,8 +9,8 @@ namespace App\Support;
  *
  *   1–4   tickets  → no discount
  *   5–9   tickets  → 20% OFF   ·  family tier ("خصومات العيلة")
- *   10–30 tickets  → 30% OFF   ·  church tier ("خصومات الكنائس")
- *   31–49 tickets  → 40% OFF   ·  church tier
+ *   10–29 tickets  → 30% OFF   ·  church tier ("خصومات الكنائس")
+ *   30–49 tickets  → 40% OFF   ·  church tier
  *   50+   tickets  → 50% OFF   ·  church tier
  *
  * The same numbers are mirrored to the client via `toJs()` so the
