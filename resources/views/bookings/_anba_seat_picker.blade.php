@@ -292,37 +292,48 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 8px 12px;
+            padding: 10px 16px;
             border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #fef3c7;
-            background: linear-gradient(135deg, rgba(245,158,11,0.34), rgba(251,191,36,0.18));
-            border: 1px solid rgba(251,191,36,0.55);
+            font-size: 13px;
+            font-weight: 800;
+            color: #0b0e1c;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+            border: 1px solid rgba(255, 255, 255, 0.45);
             box-shadow:
-                0 6px 18px -6px rgba(245,158,11,0.55),
-                inset 0 1px 0 rgba(255,255,255,0.10);
+                0 6px 20px rgba(245, 158, 11, 0.55),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
             backdrop-filter: blur(10px) saturate(160%);
             -webkit-backdrop-filter: blur(10px) saturate(160%);
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
-            transition: transform .15s var(--p-ease), box-shadow .2s var(--p-ease), background .15s var(--p-ease);
+            transition: transform .15s var(--p-ease), box-shadow .2s var(--p-ease), background .15s var(--p-ease), border-color .15s var(--p-ease);
+            min-height: 42px;
+            animation: prismAutoPickBreath 4.5s infinite ease-in-out;
+            position: relative;
+            overflow: hidden;
         }
         [data-anba-root] .auto-pick-fab:hover {
-            background: linear-gradient(135deg, rgba(245,158,11,0.50), rgba(251,191,36,0.30));
+            transform: translateY(-1.5px);
+            background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 50%, #f59e0b 100%);
+            border-color: rgba(255, 255, 255, 0.6);
             box-shadow:
-                0 10px 24px -6px rgba(245,158,11,0.7),
-                inset 0 1px 0 rgba(255,255,255,0.14);
+                0 8px 24px rgba(245, 158, 11, 0.70),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
         }
-        [data-anba-root] .auto-pick-fab:active { transform: scale(0.96); }
+        [data-anba-root] .auto-pick-fab:active {
+            transform: scale(0.97);
+            transition-duration: 80ms;
+        }
         @media (max-width: 480px) {
             [data-anba-root] .auto-pick-fab {
-                font-size: 11px;
-                padding: 7px 10px;
+                font-size: 11.5px;
+                padding: 8px 12px;
+                min-height: 36px;
             }
         }
         @media (prefers-reduced-motion: reduce) {
-            [data-anba-root] .auto-pick-fab { transition: none; }
+            [data-anba-root] .auto-pick-fab { transition: none; animation: none; }
+            [data-anba-root] .auto-pick-fab:hover { transform: none; }
         }
 
         /* ===== Pinch & pan onboarding hint (mobile only) =====
@@ -1619,7 +1630,7 @@
                                 data-anba-auto-pick
                                 class="auto-pick-fab">
                             <span aria-hidden="true">✨</span>
-                            <span data-i18n="seat_auto_pick">اختر أفضل المقاعد</span>
+                            <span data-i18n="seat_auto_pick">اضغط هنا و هنحجزلك أحسن كراسي تلقائي ✨</span>
                         </button>
                     @endunless
                 @endif
@@ -1707,12 +1718,17 @@
                  Asks for a count, then picks N contiguous available seats
                  closest to the canvas centerline. --}}
             @unless ($adminMode)
-                <button type="button"
-                        data-anba-auto-pick
-                        class="prism-auto-pick w-full">
-                    <span aria-hidden="true">✨</span>
-                    <span data-i18n="seat_auto_pick">اختر أفضل المقاعد</span>
-                </button>
+                <div class="space-y-1.5 w-full">
+                    <button type="button"
+                            data-anba-auto-pick
+                            class="prism-auto-pick w-full">
+                        <span aria-hidden="true">✨</span>
+                        <span data-i18n="seat_auto_pick">اضغط هنا و هنحجزلك أحسن كراسي تلقائي ✨</span>
+                    </button>
+                    <p class="text-center text-[10.5px] leading-normal px-1 text-[color:var(--p-text-3)] font-medium" data-i18n="seat_auto_pick_helper">
+                        حجز سريع بدون تحديد يدوي ⚡
+                    </p>
+                </div>
             @endunless
 
             {{-- legend --}}
