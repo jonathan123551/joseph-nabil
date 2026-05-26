@@ -1721,8 +1721,9 @@
                         <input id="anbaFastQty"
                                class="anba-qty-input"
                                data-fast-qty
-                               type="number"
+                               type="text"
                                inputmode="numeric"
+                               pattern="[0-9]*"
                                min="1"
                                max="50"
                                value="5"
@@ -2647,6 +2648,7 @@
 
         const fastBookingState = {
             count: 5,
+            draftValue: '5',
             strategy: 'together',
             strategyTouched: false,
             source: 'default',
@@ -2696,10 +2698,36 @@
             return 'fastest';
         }
 
+        function maxFastCount() {
+            const availableNow = SEATS.reduce((n, seat) => {
+                return n + (getState(seat) === 'available' ? 1 : 0);
+            }, 0);
+            return Math.max(1, Math.min(AUTO_PICK_MAX, availableNow || AUTO_PICK_MAX));
+        }
+
         function clampFastCount(value) {
             const n = parseInt(String(value || '').trim(), 10);
             if (!isFinite(n)) return 1;
-            return Math.max(1, Math.min(AUTO_PICK_MAX, n));
+            return Math.max(1, Math.min(maxFastCount(), n));
+        }
+
+        function digitsOnly(value) {
+            return String(value || '')
+                .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+                .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+                .replace(/\D+/g, '');
+        }
+
+        function syncFastInputConstraints() {
+            if (!fastQty) return;
+            fastQty.setAttribute('max', String(maxFastCount()));
+        }
+
+        function commitFastDraft(source = 'custom') {
+            const next = clampFastCount(fastBookingState.draftValue || fastBookingState.count);
+            setFastCount(next, source);
+            if (fastQty) fastQty.value = String(next);
+            return next;
         }
 
         function tWithFallback(key, fallback, vars) {
@@ -2726,8 +2754,9 @@
 
         function renderFastSheet() {
             const count = fastBookingState.count;
+            syncFastInputConstraints();
             if (fastQty && document.activeElement !== fastQty) {
-                fastQty.value = String(count);
+                fastQty.value = fastBookingState.draftValue || String(count);
             }
 
             fastOffers.forEach((btn) => {
@@ -2770,6 +2799,7 @@
 
         function setFastCount(value, source = 'custom') {
             fastBookingState.count = clampFastCount(value);
+            fastBookingState.draftValue = String(fastBookingState.count);
             fastBookingState.source = source;
             if (!fastBookingState.strategyTouched || source === 'offer') {
                 fastBookingState.strategyTouched = false;
@@ -2780,6 +2810,8 @@
 
         function openModal(triggerBtn) {
             if (!modal) return;
+            fastBookingState.count = clampFastCount(fastBookingState.count);
+            fastBookingState.draftValue = String(fastBookingState.count);
             renderFastSheet();
             lastFocus = triggerBtn || document.activeElement;
             modal.hidden = false;
@@ -2822,17 +2854,50 @@
             fastSteps.forEach((btn) => {
                 btn.addEventListener('click', () => {
                     const delta = parseInt(btn.dataset.fastStep || '0', 10);
-                    setFastCount(fastBookingState.count + delta, 'stepper');
+                    const base = fastBookingState.draftValue === ''
+                        ? fastBookingState.count
+                        : clampFastCount(fastBookingState.draftValue);
+                    setFastCount(base + delta, 'stepper');
                 });
             });
             if (fastQty) {
-                fastQty.addEventListener('input', () => {
-                    setFastCount(fastQty.value, 'custom');
-                    fastQty.value = String(fastBookingState.count);
+                fastQty.addEventListener('input', (e) => {
+                    const el = e.currentTarget;
+                    const before = el.value;
+                    const caret = el.selectionStart;
+                    const clean = digitsOnly(before);
+                    fastBookingState.draftValue = clean;
+                    fastBookingState.source = 'custom';
+
+                    // Keep typing natural: allow a temporary blank field and
+                    // do not clamp/rewrite normal numeric input while focused.
+                    if (before !== clean) {
+                        el.value = clean;
+                        if (caret != null) {
+                            const removedBeforeCaret = before.slice(0, caret).length - digitsOnly(before.slice(0, caret)).length;
+                            const nextCaret = Math.max(0, caret - removedBeforeCaret);
+                            try { el.setSelectionRange(nextCaret, nextCaret); } catch (_) {}
+                        }
+                    }
+
+                    const parsed = parseInt(clean, 10);
+                    if (isFinite(parsed) && parsed > 0) {
+                        fastBookingState.count = Math.min(maxFastCount(), parsed);
+                        if (!fastBookingState.strategyTouched) {
+                            fastBookingState.strategy = defaultStrategyForCount(fastBookingState.count);
+                        }
+                        renderFastSheet();
+                    } else {
+                        fastOffers.forEach((btn) => btn.classList.remove('is-active'));
+                    }
+                });
+                fastQty.addEventListener('blur', () => {
+                    commitFastDraft('custom');
                 });
                 fastQty.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
+                        commitFastDraft('custom');
                         if (fastApply) fastApply.click();
                     }
                 });
@@ -2858,7 +2923,7 @@
             }
             if (fastApply) {
                 fastApply.addEventListener('click', () => {
-                    const n = clampFastCount(fastBookingState.count);
+                    const n = commitFastDraft(fastBookingState.source || 'custom');
                     const applied = applyAutoPickN(n, {
                         strategy: fastBookingState.strategy,
                         source: fastBookingState.source || 'custom',
