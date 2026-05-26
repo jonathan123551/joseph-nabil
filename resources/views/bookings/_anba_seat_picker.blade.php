@@ -1768,7 +1768,7 @@
                             class="anba-modal-cancel"
                             data-anba-modal-cancel
                             aria-label="Close"
-                            data-i18n-attr="aria-label:seat_auto_pick_cancel">
+                            data-i18n-attr="aria-label:seat_close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </header>
@@ -1811,7 +1811,11 @@
                 </div>
 
                 <div class="anba-qty-row">
-                    <button type="button" class="anba-qty-btn" data-fast-step="-1" aria-label="Decrease">&minus;</button>
+                    <button type="button"
+                            class="anba-qty-btn"
+                            data-fast-step="-1"
+                            aria-label="Decrease"
+                            data-i18n-attr="aria-label:seat_qty_decrease">&minus;</button>
                     <input id="anbaFastQty"
                            class="anba-qty-input"
                            data-fast-qty
@@ -1820,8 +1824,14 @@
                            min="1"
                            max="50"
                            value="5"
-                           autocomplete="off">
-                    <button type="button" class="anba-qty-btn" data-fast-step="1" aria-label="Increase">+</button>
+                           autocomplete="off"
+                           aria-label="Ticket count"
+                           data-i18n-attr="aria-label:seat_custom_qty">
+                    <button type="button"
+                            class="anba-qty-btn"
+                            data-fast-step="1"
+                            aria-label="Increase"
+                            data-i18n-attr="aria-label:seat_qty_increase">+</button>
                 </div>
 
                 <div class="anba-upsell" data-fast-upsell></div>
@@ -1833,8 +1843,7 @@
                 </div>
 
                 <button type="button" class="anba-modal-apply" data-fast-apply>
-                    <span aria-hidden="true">✨</span>
-                    <span data-i18n="seat_fast_apply">Pick the best seats for me</span>
+                    <span data-i18n="seat_fast_apply">Tap — we will pick the best seats for you ✨</span>
                 </button>
                 <button type="button" class="anba-modal-manual" data-fast-manual>
                     <span data-i18n="seat_manual_selection">Manual seat selection</span>
