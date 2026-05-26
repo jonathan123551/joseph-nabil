@@ -9,8 +9,8 @@ namespace App\Support;
  *
  *   1–4   tickets  → no discount
  *   5–9   tickets  → 20% OFF   ·  family tier ("خصومات العيلة")
- *   10–30 tickets  → 30% OFF   ·  church tier ("خصومات الكنائس")
- *   31–49 tickets  → 40% OFF   ·  church tier
+ *   10–29 tickets  → 30% OFF   ·  church tier ("خصومات الكنائس")
+ *   30–49 tickets  → 40% OFF   ·  church tier
  *   50+   tickets  → 50% OFF   ·  church tier
  *
  * The same numbers are mirrored to the client via `toJs()` so the
@@ -59,7 +59,7 @@ class BookingPricing
     public const TIERS = [
         ['min' => 5,  'percent' => 20, 'family' => self::FAMILY_FAMILY, 'label_key' => 'discount_family_label', 'phrase_key' => 'discount_family_phrase', 'badge' => '🎁'],
         ['min' => 10, 'percent' => 30, 'family' => self::FAMILY_CHURCH, 'label_key' => 'discount_church_label', 'phrase_key' => 'discount_church_phrase', 'badge' => '⛪'],
-        ['min' => 31, 'percent' => 40, 'family' => self::FAMILY_CHURCH, 'label_key' => 'discount_church_label', 'phrase_key' => 'discount_church_phrase', 'badge' => '💎'],
+        ['min' => 30, 'percent' => 40, 'family' => self::FAMILY_CHURCH, 'label_key' => 'discount_church_label', 'phrase_key' => 'discount_church_phrase', 'badge' => '💎'],
         ['min' => 50, 'percent' => 50, 'family' => self::FAMILY_CHURCH, 'label_key' => 'discount_church_label', 'phrase_key' => 'discount_church_top_phrase', 'badge' => '👑'],
     ];
 

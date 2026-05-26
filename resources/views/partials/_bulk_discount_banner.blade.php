@@ -257,16 +257,30 @@
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: clamp(4px, 1.6vw, 8px);
         align-items: stretch;
+        position: relative;
+    }
+    .bulk-discount-banner .bdb-rail::before {
+        content: "";
+        position: absolute;
+        inset-inline: 8%;
+        top: 50%;
+        height: 2px;
+        transform: translateY(-50%);
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(167,139,250,0.42), rgba(34,211,238,0.28), rgba(251,191,36,0.36));
+        opacity: .58;
+        pointer-events: none;
     }
     .bulk-discount-banner .bdb-node {
         position: relative;
+        z-index: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         gap: 3px;
         padding: clamp(8px, 2.6vw, 12px) clamp(4px, 1.6vw, 8px);
-        min-height: 76px;
+        min-height: 92px;
         border-radius: 14px;
         border: 1px solid rgba(255,255,255,0.10);
         background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
@@ -311,6 +325,17 @@
         background: linear-gradient(135deg, #c4b5fd, #a78bfa);
         -webkit-background-clip: text;
                 background-clip: text;
+    }
+    .bulk-discount-banner .bdb-node-unlock {
+        margin-top: 2px;
+        font-size: clamp(9px, 2.4vw, 10px);
+        font-weight: 700;
+        line-height: 1.25;
+        color: rgba(254,243,199,0.64);
+        max-width: 13ch;
+    }
+    .bulk-discount-banner .bdb-node[data-tier-family="church"] .bdb-node-unlock {
+        color: rgba(221,214,254,0.66);
     }
 
     /* Active node — lifted, brighter border, family-tinted glow */
@@ -633,6 +658,12 @@
         -webkit-background-clip: text;
                 background-clip: text;
     }
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-node-unlock {
+        color: rgba(120,53,15,0.66);
+    }
+    :root[data-pt-theme="light"] .bulk-discount-banner .bdb-node[data-tier-family="church"] .bdb-node-unlock {
+        color: rgba(76,29,149,0.68);
+    }
     :root[data-pt-theme="light"] .bulk-discount-banner .bdb-node-flag {
         color: #78350f;
         background: rgba(255,251,235,0.95);
@@ -740,6 +771,11 @@
                         <span class="bdb-node-badge" aria-hidden="true">{{ $tier['badge'] }}</span>
                         <span class="bdb-node-min" dir="ltr">{{ (int) $tier['min'] }}+</span>
                         <span class="bdb-node-pct" dir="ltr">-{{ $pct }}%</span>
+                        <span class="bdb-node-unlock">
+                            <span data-i18n="bulk_discount_unlock_prefix">من</span>
+                            <span dir="ltr">{{ (int) $tier['min'] }}+</span>
+                            <span data-i18n="bulk_discount_unlock_suffix">تذاكر</span>
+                        </span>
 
                         <span class="bdb-node-pip" aria-hidden="true">
                             <span data-i18n="bulk_discount_pip_prefix">+</span><span data-bdb-pip-count>0</span>

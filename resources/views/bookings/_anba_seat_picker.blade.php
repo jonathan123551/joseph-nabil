@@ -857,8 +857,28 @@
             transform: translateY(18px) scale(.98);
             transition: transform .22s var(--p-ease);
         }
+        .anba-modal-card::before {
+            content: "";
+            display: block;
+            width: 44px;
+            height: 4px;
+            margin: 0 auto 12px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(251,191,36,0.24), rgba(34,211,238,0.42), rgba(167,139,250,0.36));
+        }
         .anba-modal-backdrop.is-open .anba-modal-card {
             transform: translateY(0) scale(1);
+        }
+        .anba-modal-hero {
+            position: relative;
+            padding: 14px;
+            margin-bottom: 14px;
+            border-radius: 22px;
+            background:
+                radial-gradient(80% 100% at 100% 0%, rgba(251,191,36,0.18), transparent 56%),
+                radial-gradient(80% 100% at 0% 0%, rgba(34,211,238,0.12), transparent 58%),
+                rgba(255,255,255,0.035);
+            border: 1px solid rgba(251,191,36,0.22);
         }
         .anba-modal-eyebrow {
             font-size: 10.5px;
@@ -869,25 +889,77 @@
             margin-bottom: 5px;
         }
         .anba-modal-title {
-            font-size: 18px;
+            font-size: clamp(20px, 6vw, 28px);
             line-height: 1.15;
-            font-weight: 800;
+            font-weight: 900;
             color: var(--p-text);
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             letter-spacing: -0.01em;
         }
+        .anba-modal-title strong {
+            color: #fde68a;
+            font-size: 1.2em;
+            text-shadow: 0 0 18px rgba(251,191,36,0.22);
+        }
         .anba-modal-sub {
-            margin-bottom: 14px;
             font-size: 12px;
             line-height: 1.45;
             color: var(--p-text-3);
         }
+        .anba-section-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin: 0 2px 8px;
+            color: var(--p-text-2);
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: .02em;
+        }
+        label.anba-section-label { margin-bottom: 0; }
+        .anba-section-label::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14));
+        }
+        .anba-offer-family {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .anba-offer-family-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 900;
+        }
+        .anba-offer-family-head small {
+            font-size: 10px;
+            font-weight: 800;
+            opacity: .76;
+        }
+        .anba-offer-family[data-family="family"] .anba-offer-family-head {
+            color: #fde68a;
+            background: linear-gradient(135deg, rgba(251,191,36,0.15), rgba(251,191,36,0.04));
+            border: 1px solid rgba(251,191,36,0.26);
+        }
+        .anba-offer-family[data-family="church"] .anba-offer-family-head {
+            color: #ddd6fe;
+            background: linear-gradient(135deg, rgba(167,139,250,0.16), rgba(34,211,238,0.06));
+            border: 1px solid rgba(167,139,250,0.26);
+        }
         .anba-offer-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 8px;
-            margin-bottom: 12px;
         }
+        .anba-offer-grid.is-family { grid-template-columns: 1fr; }
         .anba-offer-btn {
             appearance: none;
             -webkit-appearance: none;
@@ -895,8 +967,8 @@
             flex-direction: column;
             align-items: flex-start;
             gap: 5px;
-            min-height: 78px;
-            padding: 11px;
+            min-height: 108px;
+            padding: 12px;
             border-radius: 18px;
             border: 1px solid rgba(129,140,248,0.28);
             background:
@@ -919,6 +991,33 @@
             box-shadow:
                 0 14px 30px -18px rgba(251,191,36,0.8),
                 0 0 18px rgba(129,140,248,0.20),
+                inset 0 1px 0 rgba(255,255,255,0.08);
+        }
+        .anba-offer-btn[data-family="family"] {
+            border-color: rgba(251,191,36,0.34);
+            background:
+                radial-gradient(120% 90% at 100% 0%, rgba(251,191,36,0.12), transparent 58%),
+                linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025)),
+                rgba(8,10,20,0.54);
+        }
+        .anba-offer-btn[data-family="church"] {
+            border-color: rgba(167,139,250,0.34);
+            background:
+                radial-gradient(120% 90% at 0% 0%, rgba(167,139,250,0.13), transparent 58%),
+                radial-gradient(120% 90% at 100% 0%, rgba(34,211,238,0.07), transparent 58%),
+                linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025)),
+                rgba(8,10,20,0.54);
+        }
+        .anba-offer-btn[data-family="church"]:hover,
+        .anba-offer-btn[data-family="church"].is-active {
+            border-color: rgba(167,139,250,0.68);
+            background:
+                radial-gradient(130% 90% at 0% 0%, rgba(167,139,250,0.24), transparent 56%),
+                radial-gradient(130% 90% at 100% 0%, rgba(34,211,238,0.12), transparent 56%),
+                linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03));
+            box-shadow:
+                0 14px 30px -18px rgba(167,139,250,0.84),
+                0 0 18px rgba(34,211,238,0.22),
                 inset 0 1px 0 rgba(255,255,255,0.08);
         }
         .anba-offer-btn:active { transform: scale(.98); }
@@ -944,19 +1043,24 @@
             border-radius: 999px;
             white-space: nowrap;
         }
+        .anba-offer-btn[data-family="church"] .anba-offer-count {
+            color: #ede9fe;
+            background: rgba(167,139,250,0.14);
+            border-color: rgba(167,139,250,0.36);
+        }
         .anba-offer-meta {
-            font-size: 10.5px;
+            font-size: 11px;
             color: var(--p-text-3);
-            line-height: 1.25;
+            line-height: 1.35;
         }
         .anba-booking-panel {
             display: grid;
             gap: 10px;
-            padding: 12px;
+            padding: 13px;
             border-radius: 20px;
             background: rgba(8,10,20,0.50);
             border: 1px solid rgba(129,140,248,0.20);
-            margin-bottom: 12px;
+            margin-bottom: 13px;
         }
         .anba-qty-row {
             display: grid;
@@ -1025,11 +1129,24 @@
         .anba-tier-track {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 6px;
+            gap: 0;
+            position: relative;
+        }
+        .anba-tier-track::before {
+            content: "";
+            position: absolute;
+            inset-inline: 8%;
+            top: 50%;
+            height: 2px;
+            transform: translateY(-50%);
+            background: linear-gradient(90deg, rgba(167,139,250,0.42), rgba(34,211,238,0.30), rgba(251,191,36,0.36));
+            opacity: .6;
         }
         .anba-tier-node {
             min-width: 0;
-            border-radius: 14px;
+            position: relative;
+            z-index: 1;
+            border-radius: 16px;
             padding: 7px 5px;
             background: rgba(255,255,255,0.035);
             border: 1px solid rgba(129,140,248,0.20);
@@ -1048,6 +1165,10 @@
             display: block;
             font-size: 11px;
             color: inherit;
+        }
+        .anba-tier-node span {
+            display: block;
+            margin-top: 2px;
         }
         .anba-upsell {
             min-height: 34px;
@@ -1130,6 +1251,7 @@
             }
         }
         @media (max-width: 380px) {
+            .anba-modal-card { padding: 12px; }
             .anba-offer-grid { grid-template-columns: 1fr; }
             .anba-strategy-row { grid-template-columns: 1fr; }
         }
@@ -1167,11 +1289,38 @@
         :root[data-pt-theme="light"] .anba-modal-title {
             color: var(--prism-text);
         }
+        :root[data-pt-theme="light"] .anba-modal-hero {
+            background:
+                radial-gradient(80% 100% at 100% 0%, rgba(245,158,11,0.13), transparent 56%),
+                radial-gradient(80% 100% at 0% 0%, rgba(8,145,178,0.10), transparent 58%),
+                rgba(255,255,255,0.78);
+            border-color: rgba(245,158,11,0.24);
+        }
+        :root[data-pt-theme="light"] .anba-modal-title strong {
+            color: #b45309;
+            text-shadow: none;
+        }
+        :root[data-pt-theme="light"] .anba-section-label {
+            color: var(--prism-text-2);
+        }
+        :root[data-pt-theme="light"] .anba-section-label::after {
+            background: linear-gradient(90deg, transparent, rgba(15,23,42,0.14));
+        }
         :root[data-pt-theme="light"] .anba-modal-sub,
         :root[data-pt-theme="light"] .anba-offer-meta,
         :root[data-pt-theme="light"] .anba-upsell,
         :root[data-pt-theme="light"] .anba-sheet-note {
             color: var(--prism-text-3);
+        }
+        :root[data-pt-theme="light"] .anba-offer-family[data-family="family"] .anba-offer-family-head {
+            color: #92400e;
+            background: linear-gradient(135deg, rgba(254,243,199,0.94), rgba(253,224,71,0.34));
+            border-color: rgba(180,83,9,0.28);
+        }
+        :root[data-pt-theme="light"] .anba-offer-family[data-family="church"] .anba-offer-family-head {
+            color: #5b21b6;
+            background: linear-gradient(135deg, rgba(237,233,254,0.94), rgba(186,230,253,0.36));
+            border-color: rgba(124,58,237,0.25);
         }
         :root[data-pt-theme="light"] .anba-offer-btn,
         :root[data-pt-theme="light"] .anba-booking-panel,
@@ -1181,6 +1330,19 @@
             border-color: rgba(15,23,42,0.12);
             color: var(--prism-text);
         }
+        :root[data-pt-theme="light"] .anba-offer-btn[data-family="family"] {
+            border-color: rgba(180,83,9,0.25);
+            background:
+                radial-gradient(120% 90% at 100% 0%, rgba(245,158,11,0.16), transparent 58%),
+                rgba(255,255,255,0.74);
+        }
+        :root[data-pt-theme="light"] .anba-offer-btn[data-family="church"] {
+            border-color: rgba(124,58,237,0.25);
+            background:
+                radial-gradient(120% 90% at 0% 0%, rgba(167,139,250,0.18), transparent 58%),
+                radial-gradient(120% 90% at 100% 0%, rgba(8,145,178,0.10), transparent 58%),
+                rgba(255,255,255,0.74);
+        }
         :root[data-pt-theme="light"] .anba-offer-btn:hover,
         :root[data-pt-theme="light"] .anba-offer-btn.is-active {
             background:
@@ -1188,9 +1350,22 @@
                 rgba(255,255,255,0.92);
             border-color: rgba(245,158,11,0.52);
         }
+        :root[data-pt-theme="light"] .anba-offer-btn[data-family="church"]:hover,
+        :root[data-pt-theme="light"] .anba-offer-btn[data-family="church"].is-active {
+            background:
+                radial-gradient(130% 90% at 0% 0%, rgba(167,139,250,0.22), transparent 56%),
+                radial-gradient(130% 90% at 100% 0%, rgba(8,145,178,0.12), transparent 56%),
+                rgba(255,255,255,0.92);
+            border-color: rgba(124,58,237,0.50);
+        }
         :root[data-pt-theme="light"] .anba-offer-count,
         :root[data-pt-theme="light"] .anba-tier-node.is-active {
             color: #92400e;
+        }
+        :root[data-pt-theme="light"] .anba-offer-btn[data-family="church"] .anba-offer-count {
+            color: #5b21b6;
+            background: rgba(167,139,250,0.14);
+            border-color: rgba(124,58,237,0.25);
         }
         :root[data-pt-theme="light"] .anba-qty-input {
             background: rgba(255,255,255,0.86);
@@ -1679,43 +1854,67 @@
              aria-labelledby="anba-modal-title"
              hidden>
             <div class="anba-modal-card" role="document">
-                <div class="anba-modal-eyebrow" data-i18n="seat_fast_eyebrow">Smart fast booking</div>
-                <h2 id="anba-modal-title" class="anba-modal-title" data-i18n="seat_fast_title">Pick your group size</h2>
-                <p class="anba-modal-sub" data-i18n="seat_fast_sub">Use an offer shortcut, or enter any number. We will pick seats instantly using the current best-seat logic.</p>
+                <div class="anba-modal-hero">
+                    <div class="anba-modal-eyebrow" data-i18n="seat_fast_eyebrow">Fast group booking</div>
+                    <h2 id="anba-modal-title" class="anba-modal-title">
+                        <span data-i18n="seat_fast_title_prefix">Book your group and save up to</span>
+                        <strong dir="ltr">50%</strong>
+                    </h2>
+                    <p class="anba-modal-sub" data-i18n="seat_fast_sub">Choose a ready group offer, or enter any ticket count. We will pick and highlight seats instantly.</p>
+                </div>
 
-                <div class="anba-offer-grid" data-fast-offers>
-                    <button type="button" class="anba-offer-btn" data-fast-count="5">
-                        <span class="anba-offer-top">
-                            <span class="anba-offer-name"><span aria-hidden="true">🎁</span> <span data-i18n="seat_offer_family">Family</span></span>
-                            <span class="anba-offer-count">5+</span>
-                        </span>
-                        <span class="anba-offer-meta" data-i18n="seat_offer_family_meta">20% Family Offer</span>
-                    </button>
-                    <button type="button" class="anba-offer-btn" data-fast-count="10">
-                        <span class="anba-offer-top">
-                            <span class="anba-offer-name"><span aria-hidden="true">⛪</span> <span data-i18n="seat_offer_church">Church Group</span></span>
-                            <span class="anba-offer-count">10+</span>
-                        </span>
-                        <span class="anba-offer-meta" data-i18n="seat_offer_church_meta">30% group discount</span>
-                    </button>
-                    <button type="button" class="anba-offer-btn" data-fast-count="31">
-                        <span class="anba-offer-top">
-                            <span class="anba-offer-name"><span aria-hidden="true">💎</span> <span data-i18n="seat_offer_large">Large Group</span></span>
-                            <span class="anba-offer-count">31+</span>
-                        </span>
-                        <span class="anba-offer-meta" data-i18n="seat_offer_large_meta">40% premium tier</span>
-                    </button>
-                    <button type="button" class="anba-offer-btn" data-fast-count="50">
-                        <span class="anba-offer-top">
-                            <span class="anba-offer-name"><span aria-hidden="true">👑</span> <span data-i18n="seat_offer_full">Full Group</span></span>
-                            <span class="anba-offer-count">50+</span>
-                        </span>
-                        <span class="anba-offer-meta" data-i18n="seat_offer_full_meta">50% Best Value</span>
-                    </button>
+                <div class="anba-section-label" data-i18n="seat_fast_offers_label">Ready group discounts</div>
+
+                <div data-fast-offers>
+                    <div class="anba-offer-family" data-family="family">
+                        <div class="anba-offer-family-head">
+                            <span><span aria-hidden="true">🎁</span> <span data-i18n="seat_offer_family_group">Family discounts</span></span>
+                            <small data-i18n="seat_offer_family_hint">Small group offer</small>
+                        </div>
+                        <div class="anba-offer-grid is-family">
+                            <button type="button" class="anba-offer-btn" data-family="family" data-fast-count="5">
+                                <span class="anba-offer-top">
+                                    <span class="anba-offer-name"><span aria-hidden="true">🎁</span> <span data-i18n="seat_offer_family">Family discounts</span></span>
+                                    <span class="anba-offer-count">5+</span>
+                                </span>
+                                <span class="anba-offer-meta" data-i18n="seat_offer_family_meta">Book 5+ tickets and get 20% off</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="anba-offer-family" data-family="church">
+                        <div class="anba-offer-family-head">
+                            <span><span aria-hidden="true">⛪</span> <span data-i18n="seat_offer_church_group">Church discounts</span></span>
+                            <small data-i18n="seat_offer_church_hint">Large group ladder</small>
+                        </div>
+                        <div class="anba-offer-grid">
+                            <button type="button" class="anba-offer-btn" data-family="church" data-fast-count="10">
+                                <span class="anba-offer-top">
+                                    <span class="anba-offer-name"><span aria-hidden="true">⛪</span> <span data-i18n="seat_offer_church">Church discounts</span></span>
+                                    <span class="anba-offer-count">10+</span>
+                                </span>
+                                <span class="anba-offer-meta" data-i18n="seat_offer_church_meta">Book 10+ tickets and get 30% off</span>
+                            </button>
+                            <button type="button" class="anba-offer-btn" data-family="church" data-fast-count="30">
+                                <span class="anba-offer-top">
+                                    <span class="anba-offer-name"><span aria-hidden="true">💎</span> <span data-i18n="seat_offer_large">Church discounts</span></span>
+                                    <span class="anba-offer-count">30+</span>
+                                </span>
+                                <span class="anba-offer-meta" data-i18n="seat_offer_large_meta">Book 30+ tickets and get 40% off</span>
+                            </button>
+                            <button type="button" class="anba-offer-btn" data-family="church" data-fast-count="50">
+                                <span class="anba-offer-top">
+                                    <span class="anba-offer-name"><span aria-hidden="true">👑</span> <span data-i18n="seat_offer_full">Top group discount</span></span>
+                                    <span class="anba-offer-count">50+</span>
+                                </span>
+                                <span class="anba-offer-meta" data-i18n="seat_offer_full_meta">Book 50+ tickets and get 50% off</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="anba-booking-panel">
-                    <label class="text-[11px] font-bold text-[color:var(--p-text-3)]" for="anbaFastQty" data-i18n="seat_custom_qty">Custom quantity</label>
+                    <label class="anba-section-label" for="anbaFastQty" data-i18n="seat_custom_qty">Choose ticket count</label>
                     <div class="anba-qty-row">
                         <button type="button" class="anba-qty-btn" data-fast-step="-1" aria-label="Decrease">−</button>
                         <input id="anbaFastQty"
@@ -1730,7 +1929,8 @@
                         <button type="button" class="anba-qty-btn" data-fast-step="1" aria-label="Increase">+</button>
                     </div>
 
-                    <div class="anba-strategy-row" role="group" aria-label="Selection strategy">
+                    <div class="anba-section-label" data-i18n="seat_strategy_label">Seat-picking style</div>
+                    <div class="anba-strategy-row" role="group" aria-label="Selection strategy" data-i18n-attr="aria-label:seat_strategy_label">
                         <button type="button" class="anba-strategy-pill" data-fast-strategy="bestView">🎯 <span data-i18n="seat_strategy_best_view">Best View</span></button>
                         <button type="button" class="anba-strategy-pill" data-fast-strategy="together">👨‍👩‍👧 <span data-i18n="seat_strategy_together">Keep Us Together</span></button>
                         <button type="button" class="anba-strategy-pill" data-fast-strategy="fastest">⚡ <span data-i18n="seat_strategy_fastest">Fastest Available</span></button>
@@ -1741,7 +1941,7 @@
                     <div class="anba-tier-track" data-fast-tier-track>
                         <div class="anba-tier-node" data-tier-min="5"><b>🎁 5+</b><span>20%</span></div>
                         <div class="anba-tier-node" data-tier-min="10"><b>⛪ 10+</b><span>30%</span></div>
-                        <div class="anba-tier-node" data-tier-min="31"><b>💎 31+</b><span>40%</span></div>
+                        <div class="anba-tier-node" data-tier-min="30"><b>💎 30+</b><span>40%</span></div>
                         <div class="anba-tier-node" data-tier-min="50"><b>👑 50+</b><span data-i18n="seat_best_value">Best Value</span></div>
                     </div>
                     <div class="anba-upsell" data-fast-upsell>Family Offer unlocked.</div>
@@ -2425,6 +2625,10 @@
                 draw();
             });
         }
+        function flushRedrawNow() {
+            rafQueued = false;
+            draw();
+        }
 
         canvas.addEventListener('mousemove', (e) => {
             const { x, y } = pointToCanvas(e);
@@ -2514,8 +2718,8 @@
         //   1. Group seats by row (in visual order, front rows first).
         //   2. For each row, sort seats left→right by x.
         //   3. Mark seats available iff getState(seat) === 'available'.
-        //   4. Slide a window of size N over each row's available seats and
-        //      keep only contiguous windows (no booked/admin gaps inside).
+        //   4. Prefer a single contiguous window, then fall back to the
+        //      tightest nearby chunks for larger groups.
         //   5. Score each candidate window by:
         //         rowBonus  — earlier rows score higher (closer to stage)
         //         centerPen — distance of window's mean-x from CX
@@ -2533,39 +2737,98 @@
             }
             const rowList = Array.from(groups.keys());
 
-            let best = null; // { score, ids:[] }
+            const contiguousLimit = SEAT_PITCH * 1.6;
+            const rowSegments = [];
+
             rowList.forEach((rowLetter, rowIdx) => {
                 const seatsInRow = groups.get(rowLetter).slice().sort((a, b) => a.x - b.x);
-                if (seatsInRow.length < N) return;
+                const segments = [];
+                let current = [];
 
-                for (let i = 0; i + N <= seatsInRow.length; i++) {
-                    const window = seatsInRow.slice(i, i + N);
-
-                    // All must be available + adjacent on the canvas.
-                    let ok = true;
-                    let sumX = 0;
-                    for (let j = 0; j < window.length; j++) {
-                        if (getState(window[j]) !== 'available') { ok = false; break; }
-                        if (j > 0) {
-                            const dx = Math.abs(window[j].x - window[j - 1].x);
-                            // Allow up to 1.6× SEAT_PITCH for tolerated gap;
-                            // anything bigger is an aisle/section break.
-                            if (dx > SEAT_PITCH * 1.6) { ok = false; break; }
-                        }
-                        sumX += window[j].x;
+                seatsInRow.forEach((seat) => {
+                    if (getState(seat) !== 'available') {
+                        if (current.length) segments.push(current);
+                        current = [];
+                        return;
                     }
-                    if (!ok) continue;
+                    const prev = current[current.length - 1];
+                    if (prev && Math.abs(seat.x - prev.x) > contiguousLimit) {
+                        segments.push(current);
+                        current = [];
+                    }
+                    current.push(seat);
+                });
+                if (current.length) segments.push(current);
 
-                    const meanX = sumX / window.length;
+                rowSegments[rowIdx] = segments;
+            });
+
+            function scoreSeats(seats, rowIdx, extraPenalty = 0) {
+                const meanX = seats.reduce((sum, seat) => sum + seat.x, 0) / seats.length;
+                const centerPen = Math.abs(meanX - CX);
+                const rowBonus = rowList.length - rowIdx;
+                return rowBonus * 1000 - centerPen - extraPenalty;
+            }
+
+            function centeredWindow(segment, count) {
+                if (segment.length <= count) return segment.slice();
+                let bestWindow = segment.slice(0, count);
+                let bestPen = Infinity;
+                for (let i = 0; i + count <= segment.length; i++) {
+                    const candidate = segment.slice(i, i + count);
+                    const meanX = candidate.reduce((sum, seat) => sum + seat.x, 0) / candidate.length;
                     const centerPen = Math.abs(meanX - CX);
-                    const rowBonus = rowList.length - rowIdx;
-                    const score = rowBonus * 1000 - centerPen;
-
-                    if (!best || score > best.score) {
-                        best = { score, seats: window };
+                    if (centerPen < bestPen) {
+                        bestPen = centerPen;
+                        bestWindow = candidate;
                     }
                 }
+                return bestWindow;
+            }
+
+            let best = null;
+            rowSegments.forEach((segments, rowIdx) => {
+                segments.forEach((segment) => {
+                    if (segment.length < N) return;
+                    const window = centeredWindow(segment, N);
+                    const score = scoreSeats(window, rowIdx);
+                    if (!best || score > best.score) {
+                        best = { score, seats: window, mode: 'single_contiguous_window' };
+                    }
+                });
             });
+            if (best) return best;
+
+            rowSegments.forEach((_, startIdx) => {
+                let picked = [];
+                let chunks = 0;
+                let lastRowIdx = startIdx;
+
+                for (let rowIdx = startIdx; rowIdx < rowSegments.length && picked.length < N; rowIdx++) {
+                    const segments = (rowSegments[rowIdx] || []).slice().sort((a, b) => {
+                        const meanA = a.reduce((sum, seat) => sum + seat.x, 0) / a.length;
+                        const meanB = b.reduce((sum, seat) => sum + seat.x, 0) / b.length;
+                        return Math.abs(meanA - CX) - Math.abs(meanB - CX) || b.length - a.length;
+                    });
+
+                    segments.forEach((segment) => {
+                        if (picked.length >= N) return;
+                        const remaining = N - picked.length;
+                        const take = centeredWindow(segment, Math.min(remaining, segment.length));
+                        picked = picked.concat(take);
+                        chunks++;
+                        lastRowIdx = rowIdx;
+                    });
+                }
+
+                if (picked.length !== N) return;
+                const rowSpan = lastRowIdx - startIdx + 1;
+                const score = scoreSeats(picked, startIdx, rowSpan * 140 + chunks * 55);
+                if (!best || score > best.score) {
+                    best = { score, seats: picked, mode: 'multi_chunk_group' };
+                }
+            });
+
             return best;
         }
 
@@ -2578,7 +2841,7 @@
                     requested: N,
                     strategy: allocContext.strategy || fastBookingState.strategy,
                     source: allocContext.source || 'unknown',
-                    mode: 'contiguous',
+                    mode: 'group_window',
                     elapsedMs: Math.round((performance.now() - startedAt) * 10) / 10,
                     reason: 'no_contiguous_window',
                 });
@@ -2593,9 +2856,28 @@
                 selected.set(s.id, { row: s.row, n: s.n });
                 triggerPop(s.id);
             });
+            const pickedIds = result.seats.map((s) => s.id);
+            const hydratedCount = pickedIds.filter((id) => selected.has(id)).length;
+            if (hydratedCount !== result.seats.length || selected.size !== result.seats.length) {
+                debugAlloc('allocation:current-sync-failed', {
+                    requested: N,
+                    strategy: allocContext.strategy || fastBookingState.strategy,
+                    source: allocContext.source || 'unknown',
+                    expectedCount: result.seats.length,
+                    selectedCount: selected.size,
+                    hydratedCount,
+                });
+                selected.clear();
+                renderSidePanel();
+                flushRedrawNow();
+                if (window.PT && window.PT.toast) {
+                    window.PT.toast(t('seat_auto_pick_none'), 2200);
+                }
+                return false;
+            }
             if (navigator.vibrate) { try { navigator.vibrate(12); } catch (_) {} }
             renderSidePanel();
-            requestRedraw();
+            flushRedrawNow();
             if (window.PT && window.PT.toast) {
                 window.PT.toast(t('seat_auto_pick_done'), 1800);
             }
@@ -2603,29 +2885,23 @@
                 requested: N,
                 strategy: allocContext.strategy || fastBookingState.strategy,
                 source: allocContext.source || 'unknown',
-                mode: 'contiguous',
+                mode: result.mode || 'group_window',
                 candidateCount: result ? 1 : 0,
                 winningScore: result.score,
                 selectedCount: result.seats.length,
                 rows: Array.from(new Set(result.seats.map((s) => s.row))),
                 elapsedMs: Math.round((performance.now() - startedAt) * 10) / 10,
             });
-            // Smoothly pan the canvas so the picked seats end up centered
-            // in the viewport. This is the visual confirmation that the
-            // user *can* see what got picked, even when the seats were
-            // off-screen at the moment of auto-pick. Looked up by id in
-            // seatMeta (the layout-computed cache) which already has
-            // canvas-local x/y coords for every seat.
-            const seatList = result.seats
-                .map((s) => seatMeta.get(s.id))
+            return true;
+        }
+
+        function focusSelectedSeatsNow() {
+            const seatList = Array.from(selected.keys())
+                .map((id) => seatMeta.get(id))
                 .filter(Boolean);
             if (seatList.length && typeof panToSeats === 'function') {
-                // Defer one frame so the bottom-bar render + redraw
-                // run first; the camera move then feels like a
-                // confirmation rather than racing the UI.
-                requestAnimationFrame(() => panToSeats(seatList));
+                panToSeats(seatList);
             }
-            return true;
         }
 
         // Fast-booking sheet (Phase 1). This is UI/state scaffolding over
@@ -2792,16 +3068,21 @@
             if (firstOffer) firstOffer.focus({ preventScroll: true });
         }
 
-        function closeModal() {
+        function closeModal(options = {}) {
             if (!modal || !modalOpen) return;
+            const restoreFocus = options.restoreFocus !== false;
+            const afterHidden = typeof options.afterHidden === 'function' ? options.afterHidden : null;
             modal.classList.remove('is-open');
             modalOpen = false;
             // Wait for the fade-out, then fully hide so it doesn't
             // intercept taps.
             setTimeout(() => {
-                if (!modalOpen && modal) modal.hidden = true;
+                if (!modalOpen && modal) {
+                    modal.hidden = true;
+                    if (afterHidden) afterHidden();
+                }
             }, 220);
-            if (lastFocus && typeof lastFocus.focus === 'function') {
+            if (restoreFocus && lastFocus && typeof lastFocus.focus === 'function') {
                 lastFocus.focus({ preventScroll: true });
             }
         }
@@ -2863,7 +3144,9 @@
                         strategy: fastBookingState.strategy,
                         source: fastBookingState.source || 'custom',
                     });
-                    if (applied) closeModal();
+                    if (applied) {
+                        closeModal({ restoreFocus: false, afterHidden: focusSelectedSeatsNow });
+                    }
                 });
             }
             document.addEventListener('keydown', (e) => {
