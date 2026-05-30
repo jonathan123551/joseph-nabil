@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Jobs\SendWhatsAppTicketImageJob;
 use App\Models\Ticket;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class WhatsAppWebhookController extends Controller
 {
@@ -48,9 +49,21 @@ class WhatsAppWebhookController extends Controller
 
         $message = $request->input('entry.0.changes.0.value.messages.0');
 
-        if (!$message || !isset($message['from'])) {
+        if (! $message || ! isset($message['from'])) {
             $this->forwardToChatwoot($request);
+
             return response()->json(['ok' => true]);
+        }
+
+        // 🔒 Idempotency: Meta retries a webhook delivery if we don't 2xx
+        // fast enough, and a customer can double-tap the button. Dedupe on
+        // the inbound message id so the same tap can't enqueue the same
+        // tickets twice (and can't double-forward to Chatwoot).
+        $messageId = $message['id'] ?? null;
+        if ($messageId && ! Cache::add('wa_in:'.$messageId, 1, now()->addMinutes(10))) {
+            Log::info('WEBHOOK DEDUPE — already processed', ['message_id' => $messageId]);
+
+            return response()->json(['ok' => true, 'dedupe' => true]);
         }
 
         // 📱 Normalize phone
@@ -71,8 +84,8 @@ class WhatsAppWebhookController extends Controller
 
         Log::info('INCOMING MESSAGE', [
             'phone' => $phone,
-            'text'  => $text,
-            'type'  => $message['type'] ?? 'unknown',
+            'text' => $text,
+            'type' => $message['type'] ?? 'unknown',
         ]);
 
         /* ==========================
@@ -91,60 +104,36 @@ class WhatsAppWebhookController extends Controller
 
         if (in_array(trim($text), $triggers, true)) {
 
-            // ✅ نجيب أول تذكرة لنفس الرقم ولسه متبعتتش
-            $ticket = Ticket::where('phone', $phone)
-                ->whereNotNull('qr_image_path')
+            // 🎟 Drain ALL remaining undelivered tickets for this phone in
+            // one tap — not just the first one. Previously the handler sent
+            // a single ticket per tap, so a 50-ticket booking needed 50 taps
+            // and any tickets the customer never tapped for were lost.
+            //
+            // Scope: only APPROVED bookings are eligible (a ticket's QR is
+            // only built at approval, so pending/rejected bookings never
+            // leak). Each ticket gets its own queued job; the job's atomic
+            // claim guarantees exactly-once delivery even if this same tap
+            // arrives twice or collides with a resend.
+            $ticketIds = Ticket::where('phone', $phone)
                 ->where('whatsapp_sent', false)
-                ->orderBy('id') // مهم عشان الترتيب
-                ->first();
+                ->whereHas('booking', fn ($q) => $q->where('status', 'approved'))
+                ->orderBy('id')
+                ->pluck('id');
 
-            if (!$ticket) {
+            if ($ticketIds->isEmpty()) {
                 Log::info('NO TICKET FOUND', ['phone' => $phone]);
+                $this->forwardToChatwoot($request);
+
                 return response()->json(['status' => 'no ticket']);
             }
 
-            Log::info('SENDING TICKET', [
-                'ticket_id' => $ticket->id,
-                'code' => $ticket->ticket_code
+            Log::info('QUEUEING TICKETS', [
+                'phone' => $phone,
+                'count' => $ticketIds->count(),
             ]);
 
-            try {
-
-                // 🎭 نجيب ميعاد الحفلة
-                $showTimeText = '';
-
-                if ($ticket->booking && $ticket->booking->showTime) {
-                    $showTime = $ticket->booking->showTime;
-
-                    $showTimeText =
-                        $showTime->date->format('d/m/Y') . ' • ' .
-                        Carbon::parse($showTime->time)->format('h:i A');
-                }
-
-                // 📤 إرسال التذكرة
-                app(\App\Http\Controllers\Admin\BookingController::class)
-                    ->sendWhatsAppTicket(
-                        $ticket->phone,
-                        $ticket->qr_image_path,
-                        $ticket->ticket_code,
-                        $ticket->name,
-                        $showTimeText
-                    );
-
-                // ✅ تحديث الحالة (دي أهم نقطة)
-                $ticket->update([
-                    'whatsapp_sent' => true
-                ]);
-
-                Log::info('TICKET SENT SUCCESS', [
-                    'ticket_id' => $ticket->id
-                ]);
-
-            } catch (\Exception $e) {
-
-                Log::error('SEND FAILED', [
-                    'error' => $e->getMessage()
-                ]);
+            foreach ($ticketIds as $ticketId) {
+                SendWhatsAppTicketImageJob::dispatch($ticketId)->onQueue('high');
             }
         }
 
@@ -163,15 +152,16 @@ class WhatsAppWebhookController extends Controller
 
             $chatwootWebhookUrl = env('CHATWOOT_WHATSAPP_WEBHOOK_URL');
 
-            if (!$chatwootWebhookUrl) {
+            if (! $chatwootWebhookUrl) {
                 Log::error('Chatwoot webhook URL not set');
+
                 return;
             }
 
             Http::timeout(10)->post($chatwootWebhookUrl, $request->all());
 
         } catch (\Exception $e) {
-            Log::error('Forward to Chatwoot failed: ' . $e->getMessage());
+            Log::error('Forward to Chatwoot failed: '.$e->getMessage());
         }
     }
 }

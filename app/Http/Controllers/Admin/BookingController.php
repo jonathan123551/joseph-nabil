@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\GenerateTicketImageJob;
+use App\Jobs\SendWhatsAppTicketImageJob;
+use App\Jobs\SendWhatsAppTicketTemplateJob;
 use App\Models\Booking;
 use App\Models\Theater;
 use App\Models\Ticket;
-use Cloudinary\Api\Upload\UploadApi;
 use Cloudinary\Configuration\Configuration;
-use Endroid\QrCode\Builder\Builder;
-use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -73,63 +73,28 @@ class BookingController extends Controller
             'approved_at' => now(),
         ]);
 
+        // Build each ticket's QR image ahead of time (idempotent on
+        // qr_image_path) so it's ready in Cloudinary by the time the
+        // customer taps "استلام التذكرة". The heavy GD + Cloudinary work
+        // no longer blocks the admin's request.
         foreach ($booking->tickets as $ticket) {
-
-            if ($ticket->qr_image_path) {
-                continue;
-            }
-
-            /* === QR === */
-            $qr = Builder::create()
-                ->writer(new PngWriter)
-                ->data($ticket->ticket_code)
-                ->size($show->ticket_qr_size ?? 220)
-                ->margin(0)
-                ->build();
-
-            $templateImage = imagecreatefromstring(
-                file_get_contents($show->ticket_template_path)
-            );
-
-            $qrImage = imagecreatefromstring($qr->getString());
-
-            imagecopy(
-                $templateImage,
-                $qrImage,
-                $show->ticket_qr_x ?? 0,
-                $show->ticket_qr_y ?? 0,
-                0,
-                0,
-                imagesx($qrImage),
-                imagesy($qrImage)
-            );
-
-            $tempPath = sys_get_temp_dir().'/'.$ticket->ticket_code.'.png';
-
-            imagepng($templateImage, $tempPath);
-
-            imagedestroy($templateImage);
-            imagedestroy($qrImage);
-
-            $upload = (new UploadApi)->upload($tempPath, [
-                'folder' => 'tickets/generated',
-            ]);
-
-            unlink($tempPath);
-
-            $ticket->update([
-                'qr_image_path' => $upload['secure_url'],
-                'whatsapp_sent' => false, // مهم جدًا
-            ]);
+            GenerateTicketImageJob::dispatch($ticket->id)->onQueue('high');
         }
 
-        foreach ($booking->tickets as $ticket) {
+        // ONE template per UNIQUE phone — not one per ticket. A 50-ticket
+        // booking on the same number now sends a single "استلام التذكرة"
+        // template instead of 50 identical ones. The customer's single tap
+        // then drains every remaining ticket for that phone (see
+        // WhatsAppWebhookController::handle).
+        $uniquePhones = $booking->tickets
+            ->pluck('phone')
+            ->map(fn ($phone) => preg_replace('/[^0-9]/', '', (string) $phone))
+            ->filter()
+            ->unique()
+            ->values();
 
-            $this->sendTicketTemplate(
-                $ticket->phone
-            );
-
-            sleep(1);
+        foreach ($uniquePhones as $phone) {
+            SendWhatsAppTicketTemplateJob::dispatch($phone)->onQueue('high');
         }
 
         return redirect()
@@ -170,10 +135,10 @@ class BookingController extends Controller
         // "Over 9 levels deep, aborting normalization" when normalizing
         // them into the structured `body` field.
         \Log::info('WA OUTBOUND TEMPLATE', [
-            'phone'    => $phone,
-            'status'   => $response->status(),
-            'ok'       => $response->successful(),
-            'body'     => $response->json(),
+            'phone' => $phone,
+            'status' => $response->status(),
+            'ok' => $response->successful(),
+            'body' => $response->json(),
             'body_raw' => $response->body(),
         ]);
     }
@@ -239,12 +204,12 @@ class BookingController extends Controller
         // "Over 9 levels deep, aborting normalization" when normalizing
         // them into the structured `body` field.
         \Log::info('WA OUTBOUND IMAGE', [
-            'phone'    => $phone,
-            'status'   => $response->status(),
-            'ok'       => $response->successful(),
-            'body'     => $response->json(),
+            'phone' => $phone,
+            'status' => $response->status(),
+            'ok' => $response->successful(),
+            'body' => $response->json(),
             'body_raw' => $response->body(),
-            'link'     => $mediaUrl,
+            'link' => $mediaUrl,
         ]);
     }
 
@@ -259,7 +224,7 @@ class BookingController extends Controller
     private function buildTicketCaption(?Ticket $ticket, ?string $fallbackName = null): string
     {
         $customerName = trim((string) ($ticket?->name ?? $fallbackName ?? ''));
-        $showTime     = $ticket?->booking?->showTime;
+        $showTime = $ticket?->booking?->showTime;
 
         $showDate = $showTime?->date
             ? $showTime->date->format('d/m/Y')
@@ -269,7 +234,7 @@ class BookingController extends Controller
             : '';
 
         $seatLabel = $ticket ? $this->seatLabelForTicket($ticket) : '';
-        $seatLine  = $seatLabel !== '' ? $seatLabel : '—';
+        $seatLine = $seatLabel !== '' ? $seatLabel : '—';
 
         // Hardcoded film title — per product spec, this stays static.
         $filmTitle = 'قصة حياة الراهب بولس المقاري';
@@ -286,7 +251,7 @@ class BookingController extends Controller
             ."{$seatLine}\n\n"
             ."⚠️ ملاحظة:\n"
             ."يرجى إحضار التذكرة عند الدخول.\n\n"
-            ."✨ بركة أبونا بولس العابد تكون معكم.";
+            .'✨ بركة أبونا بولس العابد تكون معكم.';
     }
 
     /* =======================
@@ -326,8 +291,8 @@ class BookingController extends Controller
     private function formatSeatLabel(?string $section, ?string $rowLetter, $seatNumber): string
     {
         $sectionLabel = Theater::SECTION_LABELS[$section] ?? '';
-        $row          = strtoupper(trim((string) ($rowLetter ?? '')));
-        $seat         = trim((string) ($seatNumber ?? ''));
+        $row = strtoupper(trim((string) ($rowLetter ?? '')));
+        $seat = trim((string) ($seatNumber ?? ''));
 
         if ($sectionLabel === '' && $row === '' && $seat === '') {
             return '';
@@ -447,13 +412,11 @@ class BookingController extends Controller
             return back()->with('status', '❌ التذكرة لم يتم إنشاؤها بعد');
         }
 
-        $this->sendWhatsAppTicket(
-            $ticket->phone,
-            $ticket->qr_image_path,
-            $ticket->ticket_code,
-            $ticket->name,
-            ''
-        );
+        // Admin force-resend: reopen the ticket for delivery, then enqueue.
+        // The job's atomic claim still guards against this colliding with a
+        // concurrent webhook tap, so the customer never gets a duplicate.
+        $ticket->update(['whatsapp_sent' => false, 'delivery_status' => 'pending']);
+        SendWhatsAppTicketImageJob::dispatch($ticket->id)->onQueue('high');
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json(['ok' => true], 200);
@@ -540,29 +503,22 @@ class BookingController extends Controller
                 ->with('ticket_lookup_cooldown', $secondsLeft);
         }
 
-        $sent = 0;
+        // Customer-initiated resend: reopen every ticket on the booking and
+        // enqueue a send job per ticket. The job's atomic claim de-duplicates
+        // against any concurrent webhook tap / admin resend, and confirms
+        // delivery on the Meta ack (not just on dispatch).
+        $queued = 0;
         foreach ($booking->tickets as $ticket) {
-            if (! $ticket->qr_image_path) {
-                continue;
-            }
-
-            $this->sendWhatsAppTicket(
-                $ticket->phone,
-                $ticket->qr_image_path,
-                $ticket->ticket_code,
-                $ticket->name,
-                ''
-            );
-
-            $ticket->update(['whatsapp_sent' => true]);
-            $sent++;
+            $ticket->update(['whatsapp_sent' => false, 'delivery_status' => 'pending']);
+            SendWhatsAppTicketImageJob::dispatch($ticket->id)->onQueue('high');
+            $queued++;
         }
 
         // 60-second cooldown — value stored is the unix timestamp at which
         // the cooldown expires, so the UI can show a precise countdown.
         cache()->put($cacheKey, now()->timestamp + 60, now()->addSeconds(60));
 
-        return $redirect->with('ticket_lookup_status', $sent > 0 ? 'success' : 'no_qr');
+        return $redirect->with('ticket_lookup_status', $queued > 0 ? 'success' : 'no_qr');
     }
 
     /**
