@@ -134,12 +134,11 @@
             <table class="prism-table-clean w-full">
                 <thead>
                     <tr>
+                        <th class="pt-rtl-text text-start" data-i18n="adm_bk_col_code">الكود</th>
                         <th class="pt-rtl-text text-start" data-i18n="adm_bk_col_guest">الضيف</th>
                         <th class="pt-rtl-text text-start" data-i18n="adm_bk_col_show">العرض / الموعد</th>
-                        <th class="pt-rtl-text text-start" data-i18n="adm_bk_col_status">الحالة</th>
-                        <th class="text-center" data-i18n="adm_bk_col_ticket">التذكرة</th>
-                        <th class="pt-rtl-text text-start" data-i18n="adm_bk_col_actions">إجراءات</th>
-                        <th class="pt-rtl-text text-start" data-i18n="adm_bk_col_code">الكود</th>
+                        <th class="text-center" data-i18n="adm_bk_col_status">الحالة</th>
+                        <th class="text-center" data-i18n="adm_bk_col_ticket">التذاكر</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -148,83 +147,56 @@
                         $dt = $booking->showTime
                             ? $booking->showTime->date->format('Y-m-d').' '.$booking->showTime->time
                             : '';
+                        $allSent = $booking->tickets->every(fn($t) => $t->whatsapp_sent);
+                        $total   = $booking->tickets->count();
+                        $sent    = $booking->tickets->where('whatsapp_sent', true)->count();
                     @endphp
-                    <tr class="booking-row"
+                    <tr class="booking-row hover:bg-[color:var(--prism-surface-hover)] cursor-pointer transition-colors duration-200"
+                        onclick="window.location='{{ route('admin.bookings.show', $booking) }}'"
                         data-search="{{ strtolower($booking->full_name.' '.$booking->phone.' '.$booking->reference_code) }}"
                         data-status="{{ $booking->status }}"
                         data-datetime="{{ $dt }}">
-
-                        <td class="align-top">
-                            <div>
-                                <p class="font-bold text-[color:var(--prism-text)]">{{ $booking->full_name }}</p>
-                                <p class="text-xs" style="color: var(--prism-gold);">
-                                    🎟️ {{ $booking->tickets_count }} <span data-i18n="common_ticket_word">تذكرة</span>
-                                    @include('partials._discount_tier_badge', ['booking' => $booking])
-                                </p>
-                            </div>
-                            <span class="text-[color:var(--prism-text-3)] block mb-1">{{ $booking->phone }}</span>
-
-                            @foreach($booking->tickets as $ticket)
-                                @php
-                                    $bs = $ticket->bookingSeat;
-                                    $seatLabel = $bs
-                                        ? (($bs->section === 'balcony' ? 'بلكون' : 'صالة') . ' ' . $bs->row_letter . $bs->seat_number)
-                                        : null;
-                                @endphp
-                                <div class="text-xs text-[color:var(--prism-text-3)] mr-2 flex flex-wrap items-center gap-x-2">
-                                    <span>👤 {{ $ticket->name }}</span>
-                                    @if ($bs)
-                                        <span class="pt-seat-chip pt-seat-chip-{{ $bs->section === 'balcony' ? 'balcony' : 'hall' }}">
-                                            <span class="pt-seat-chip-section">{{ $bs->section === 'balcony' ? 'بلكون' : 'صالة' }}</span>
-                                            <span class="pt-seat-chip-seat" dir="ltr">{{ $bs->row_letter }}{{ $bs->seat_number }}</span>
-                                        </span>
-                                    @endif
-                                    <span dir="ltr" class="opacity-70">📱 {{ $ticket->phone }}</span>
-                                </div>
-                            @endforeach
+                        
+                        <td class="align-middle font-mono text-xs font-semibold" style="color: var(--prism-text);">
+                            {{ $booking->reference_code }}
                         </td>
 
-                        <td class="align-top">
-                            <span class="text-[color:var(--prism-text)]">{{ $booking->showTime->show->title ?? '-' }}</span><br>
+                        <td class="align-middle">
+                            <p class="font-bold text-sm text-[color:var(--prism-text)]">{{ $booking->full_name }}</p>
+                            <span class="text-[color:var(--prism-text-3)] block text-xs" dir="ltr">{{ $booking->phone }}</span>
+                        </td>
+
+                        <td class="align-middle">
+                            <span class="text-[color:var(--prism-text)] text-sm font-medium">{{ $booking->showTime->show->title ?? '-' }}</span><br>
                             <span class="text-[color:var(--prism-text-3)] text-xs">
                                 {{ $booking->showTime?->date->format('d/m/Y') }}
                                 • {{ \Carbon\Carbon::parse($booking->showTime?->time)->format('g:i A') }}
                             </span>
                         </td>
 
-                        <td class="align-top">
+                        <td class="align-middle text-center">
                             <span class="prism-pill {{ $booking->status==='approved' ? 'prism-pill-emerald'
                                                        : ($booking->status==='rejected' ? 'prism-pill-rose' : 'prism-pill-sky') }}">
                                 {{ $booking->status }}
                             </span>
                         </td>
 
-                        <td class="align-top text-center">
-                            @php
-                                $allSent = $booking->tickets->every(fn($t) => $t->whatsapp_sent);
-                                $total   = $booking->tickets->count();
-                                $sent    = $booking->tickets->where('whatsapp_sent', true)->count();
-                            @endphp
-                            <div class="flex flex-col items-center gap-1">
-                                <span class="inline-block w-3 h-3 rounded-full"
-                                      style="background: {{ $allSent ? 'var(--prism-emerald)' : 'var(--prism-rose)' }};
-                                             box-shadow: 0 0 10px {{ $allSent ? 'rgba(52,211,153,0.7)' : 'rgba(251,113,133,0.7)' }};"></span>
-                                <span class="text-[10px] text-[color:var(--prism-text-3)]">
-                                    {{ $sent }}/{{ $total }}
-                                </span>
+                        <td class="align-middle text-center">
+                            <div class="flex flex-col items-center justify-center gap-1">
+                                <div class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background: rgba(251,191,36,0.1); color: var(--prism-gold);">
+                                    🎟️ {{ $total }}
+                                </div>
+                                @if($booking->status === 'approved')
+                                <div class="flex items-center gap-1.5 mt-1">
+                                    <span class="inline-block w-2 h-2 rounded-full"
+                                          style="background: {{ $allSent ? 'var(--prism-emerald)' : 'var(--prism-rose)' }};
+                                                 box-shadow: 0 0 8px {{ $allSent ? 'rgba(52,211,153,0.7)' : 'rgba(251,113,133,0.7)' }};"></span>
+                                    <span class="text-[10px] font-mono text-[color:var(--prism-text-3)]" dir="ltr">
+                                        {{ $sent }}/{{ $total }}
+                                    </span>
+                                </div>
+                                @endif
                             </div>
-                        </td>
-
-                        <td class="align-top">
-                            <a href="{{ route('admin.bookings.show',$booking) }}" class="prism-btn-ghost text-xs px-3 py-1.5"
-                               data-i18n="adm_bk_details">
-                                تفاصيل
-                            </a>
-                        </td>
-
-                        <td class="align-top font-mono text-xs"
-                            style="color: var(--prism-text-2);">
-                            {{ $booking->reference_code }}
                         </td>
                     </tr>
                 @endforeach
@@ -240,79 +212,63 @@
                 $dt = $booking->showTime
                     ? $booking->showTime->date->format('Y-m-d').' '.$booking->showTime->time
                     : '';
+                $allSent = $booking->tickets->every(fn($t) => $t->whatsapp_sent);
+                $total   = $booking->tickets->count();
+                $sent    = $booking->tickets->where('whatsapp_sent', true)->count();
             @endphp
 
-            <div class="prism-glass prism-card-hover p-4 text-xs booking-card prism-fade-up"
+            <div class="prism-glass prism-card-hover p-4 text-xs booking-card prism-fade-up relative overflow-hidden"
                  data-search="{{ strtolower($booking->full_name.' '.$booking->phone.' '.$booking->reference_code) }}"
                  data-status="{{ $booking->status }}"
                  data-datetime="{{ $dt }}">
+                 
+                {{-- Massive touch target stretched link --}}
+                <a href="{{ route('admin.bookings.show', $booking) }}" class="absolute inset-0 z-10" aria-label="View booking {{ $booking->reference_code }}"></a>
 
-                <div class="flex justify-between mb-2 gap-2">
-                    <div>
-                        <div class="font-semibold text-sm text-[color:var(--prism-text)]">{{ $booking->full_name }}</div>
-
-                        <div class="text-xs mb-1 flex items-center gap-1.5 flex-wrap" style="color: var(--prism-gold);">
-                            <span>🎟️ {{ $booking->tickets_count }} <span data-i18n="common_ticket_word">تذكرة</span></span>
-                            @include('partials._discount_tier_badge', ['booking' => $booking, 'variant' => 'pill'])
-                        </div>
-
-                        <div class="text-[color:var(--prism-text-3)]">{{ $booking->phone }}</div>
-
-                        @foreach($booking->tickets as $ticket)
-                            @php
-                                $bs = $ticket->bookingSeat;
-                            @endphp
-                            <div class="text-[11px] text-[color:var(--prism-text-3)] flex flex-wrap items-center gap-x-2 gap-y-1">
-                                <span>👤 {{ $ticket->name }}</span>
-                                @if ($bs)
-                                    <span class="pt-seat-chip pt-seat-chip-{{ $bs->section === 'balcony' ? 'balcony' : 'hall' }}">
-                                        <span class="pt-seat-chip-section">{{ $bs->section === 'balcony' ? 'بلكون' : 'صالة' }}</span>
-                                        <span class="pt-seat-chip-seat" dir="ltr">{{ $bs->row_letter }}{{ $bs->seat_number }}</span>
-                                    </span>
-                                @endif
-                                <span dir="ltr" class="opacity-70">📱 {{ $ticket->phone }}</span>
-                            </div>
-                        @endforeach
-                    </div>
-                    <span class="font-mono px-2 py-1 rounded text-[10px] h-fit"
+                {{-- TOP ROW: Customer & Reference --}}
+                <div class="flex justify-between items-start mb-2 gap-2 relative z-0">
+                    <div class="font-bold text-sm text-[color:var(--prism-text)]">{{ $booking->full_name }}</div>
+                    <span class="font-mono px-2 py-0.5 rounded text-[11px] font-semibold"
                           style="background: var(--prism-surface-soft); border: 1px solid var(--prism-border); color: var(--prism-text-2);">
                         {{ $booking->reference_code }}
                     </span>
                 </div>
-
-                <div class="mb-3">
-                    <span class="text-[color:var(--prism-text)]">🎭 {{ $booking->showTime->show->title ?? '-' }}</span><br>
-                    <span class="text-[color:var(--prism-text-3)]">
-                        🕒 {{ $booking->showTime?->date->format('d/m/Y') }}
-                        • {{ \Carbon\Carbon::parse($booking->showTime?->time)->format('g:i A') }}
-                    </span>
+                
+                {{-- MIDDLE ROW: Phone & Show info --}}
+                <div class="mb-4 space-y-1 relative z-0 text-[11px]">
+                    <div class="text-[color:var(--prism-text-3)]" dir="ltr">{{ $booking->phone }}</div>
+                    <div class="flex flex-wrap items-center gap-1.5 text-[color:var(--prism-text-3)]">
+                        <span class="font-medium text-[color:var(--prism-text-2)]">🎭 {{ $booking->showTime->show->title ?? '-' }}</span>
+                        <span class="opacity-50">•</span>
+                        <span>{{ $booking->showTime?->date->format('d/m/Y') }}</span>
+                        <span class="opacity-50">•</span>
+                        <span>{{ \Carbon\Carbon::parse($booking->showTime?->time)->format('g:i A') }}</span>
+                    </div>
                 </div>
 
-                <div class="flex items-center justify-between gap-2">
+                {{-- BOTTOM ROW: Status, Tickets, Delivery --}}
+                <div class="flex items-center justify-between gap-2 relative z-0 pt-3" style="border-top: 1px solid rgba(255,255,255,0.05);">
                     <span class="prism-pill {{ $booking->status==='approved' ? 'prism-pill-emerald'
                                                : ($booking->status==='rejected' ? 'prism-pill-rose' : 'prism-pill-sky') }}">
                         {{ $booking->status }}
                     </span>
-
-                    @php
-                        $allSent = $booking->tickets->every(fn($t) => $t->whatsapp_sent);
-                        $total   = $booking->tickets->count();
-                        $sent    = $booking->tickets->where('whatsapp_sent', true)->count();
-                    @endphp
-
-                    <div class="flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full"
-                              style="background: {{ $allSent ? 'var(--prism-emerald)' : 'var(--prism-rose)' }};
-                                     box-shadow: 0 0 8px {{ $allSent ? 'rgba(52,211,153,0.7)' : 'rgba(251,113,133,0.7)' }};"></span>
-                        <span class="text-[color:var(--prism-text-3)] text-[11px]">
-                            {{ $sent }}/{{ $total }}
+                    
+                    <div class="flex items-center gap-3">
+                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1" style="background: rgba(251,191,36,0.1); color: var(--prism-gold);">
+                            🎟️ {{ $total }}
                         </span>
+                        
+                        @if($booking->status === 'approved')
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full"
+                                  style="background: {{ $allSent ? 'var(--prism-emerald)' : 'var(--prism-rose)' }};
+                                         box-shadow: 0 0 8px {{ $allSent ? 'rgba(52,211,153,0.7)' : 'rgba(251,113,133,0.7)' }};"></span>
+                            <span class="text-[color:var(--prism-text-3)] font-mono text-[11px]" dir="ltr">
+                                {{ $sent }}/{{ $total }}
+                            </span>
+                        </div>
+                        @endif
                     </div>
-
-                    <a href="{{ route('admin.bookings.show',$booking) }}" class="prism-btn-ghost text-xs px-3 py-1.5"
-                       data-i18n="adm_bk_details">
-                        تفاصيل
-                    </a>
                 </div>
             </div>
         @endforeach
