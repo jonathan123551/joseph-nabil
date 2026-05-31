@@ -225,19 +225,31 @@
     .sta-card {
         border-radius: var(--prism-radius);
         overflow: hidden;
-        transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        transition: border-color 0.3s var(--prism-ease), box-shadow 0.3s var(--prism-ease);
         display: flex;
         flex-direction: column;
     }
+    .sta-card.is-expanded {
+        border-color: var(--prism-border-neon);
+        box-shadow: 0 0 0 1px rgba(129,140,248,0.18), 0 18px 48px -20px rgba(34,211,238,0.35);
+    }
     .sta-card-compact {
-        padding: 16px 20px;
-        background: rgba(255, 255, 255, 0.02);
+        padding: 14px 16px;
+        background: rgba(255, 255, 255, 0.015);
         cursor: pointer;
         user-select: none;
+        -webkit-tap-highlight-color: transparent;
         transition: background 0.2s var(--prism-ease);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
     }
-    .sta-card-compact:hover {
-        background: rgba(255, 255, 255, 0.04);
+    .sta-card-compact:hover { background: rgba(255, 255, 255, 0.04); }
+    .sta-card-compact:active { background: rgba(255, 255, 255, 0.06); }
+    /* Accent rail that lights up while the card is open. */
+    .sta-card.is-expanded .sta-card-compact {
+        background: linear-gradient(180deg, rgba(34,211,238,0.06), rgba(255,255,255,0.015));
+        box-shadow: inset 3px 0 0 0 var(--prism-cyan);
     }
     .sta-card-details {
         max-height: 0;
@@ -248,6 +260,68 @@
     .sta-card.is-expanded .sta-card-details {
         opacity: 1;
     }
+
+    /* Compact KPI chips — scannable "ticker" row that replaces the heavy
+       bordered KPI boxes. Each chip = glowing dot + bold value + tiny label. */
+    .sta-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .sta-chip {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 5px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.035);
+        border: 1px solid rgba(255,255,255,0.07);
+        line-height: 1;
+        white-space: nowrap;
+        min-width: 0;
+    }
+    .sta-chip-dot {
+        align-self: center;
+        width: 7px; height: 7px;
+        border-radius: 999px;
+        flex: 0 0 auto;
+        background: rgba(255,255,255,0.4);
+    }
+    .sta-chip-val {
+        font-family: "Space Grotesk", system-ui, sans-serif;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: -0.01em;
+        color: var(--prism-text);
+    }
+    .sta-chip-unit { font-size: 10px; font-weight: 600; opacity: 0.7; }
+    .sta-chip-label {
+        font-size: 10px; font-weight: 600;
+        letter-spacing: 0.04em;
+        color: var(--prism-text-3);
+    }
+    .sta-chip.is-occupancy { border-color: rgba(34,211,238,0.30); background: rgba(34,211,238,0.07); }
+    .sta-chip.is-occupancy .sta-chip-dot { background: var(--prism-cyan); box-shadow: 0 0 8px rgba(34,211,238,0.6); }
+    .sta-chip.is-occupancy .sta-chip-val { color: var(--prism-cyan); }
+    .sta-chip.is-revenue { border-color: rgba(52,211,153,0.30); background: rgba(16,185,129,0.07); }
+    .sta-chip.is-revenue .sta-chip-dot { background: var(--prism-emerald); box-shadow: 0 0 8px rgba(52,211,153,0.6); }
+    .sta-chip.is-revenue .sta-chip-val { color: var(--prism-emerald); }
+    .sta-chip.is-remaining .sta-chip-dot { background: rgba(255,255,255,0.45); }
+    .sta-chip.is-approved { border-color: rgba(52,211,153,0.18); }
+    .sta-chip.is-approved .sta-chip-dot { background: #6ee7b7; box-shadow: 0 0 7px rgba(110,231,183,0.45); }
+
+    /* Expand affordance row. */
+    .sta-expand-row {
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+        font-size: 11px; font-weight: 700;
+        color: var(--prism-text-3);
+        letter-spacing: 0.04em;
+        transition: color 0.2s var(--prism-ease);
+    }
+    .sta-card-compact:hover .sta-expand-row { color: var(--prism-text-2); }
+    .sta-card.is-expanded .sta-expand-row { color: var(--prism-cyan); }
+    .sta-expand-arrow { font-size: 9px; transition: transform 0.3s var(--prism-ease); }
+    .sta-card.is-expanded .sta-expand-arrow { transform: rotate(180deg); }
 
     /* Optimized smaller chart sizing */
     .sta-ring-wrap.is-mini { width: 80px; height: 80px; }
@@ -609,7 +683,13 @@
                     <article class="sta-card prism-glass prism-glow-border prism-fade-up" data-showtime-id="{{ $time->id }}">
                         
                         {{-- ── 1. COMPACT HEADER (Always Visible, Clickable) ─── --}}
-                        <div class="sta-card-compact">
+                        {{-- Whole block is one large touch target. Shows only the
+                             scannable essentials: identity, state and 4 KPI chips.
+                             Everything heavier lives in the accordion below. --}}
+                        <div class="sta-card-compact" role="button" tabindex="0"
+                             aria-expanded="false" aria-label="{{ $time->show->title }}">
+
+                            {{-- Identity + state --}}
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0 flex-1 space-y-1.5">
                                     <div class="flex items-center gap-2 text-[color:var(--prism-text)]">
@@ -625,51 +705,42 @@
                                             🕔 {{ \Carbon\Carbon::parse($time->time)->format('g:i A') }}
                                         </span>
                                     </div>
-                                    <p class="text-[10px] text-[color:var(--prism-text-3)] pt-0.5">
-                                        @if ($cardUsesSection)
-                                            <span data-i18n="adm_sta_price_split">صالة / بلكون</span>:
-                                            <span style="color: var(--prism-gold);">{{ $cardSectionLabel }} <span data-i18n="common_currency_short">ج</span></span>
-                                        @else
-                                            <span data-i18n="adm_times_col_price">السعر</span>:
-                                            <span style="color: var(--prism-gold);">{{ $stafmt($a['ticket_price'] ?? 0) }} <span data-i18n="common_currency_short">ج</span></span>
-                                        @endif
-                                    </p>
                                 </div>
-                                <div class="flex flex-col items-end">
-                                    <span class="sta-status-chip {{ $isSoldOut ? 'is-soldout' : 'is-live' }} text-[10px] py-1 px-2.5">
-                                        <span class="sta-status-dot"></span>
-                                        <span data-i18n="{{ $isSoldOut ? 'adm_status_sold_out' : 'adm_status_available' }}">
-                                            {{ $isSoldOut ? 'Sold Out' : 'متاح' }}
-                                        </span>
+                                <span class="sta-status-chip {{ $isSoldOut ? 'is-soldout' : 'is-live' }} text-[10px] py-1 px-2.5 flex-shrink-0">
+                                    <span class="sta-status-dot"></span>
+                                    <span data-i18n="{{ $isSoldOut ? 'adm_status_sold_out' : 'adm_status_available' }}">
+                                        {{ $isSoldOut ? 'Sold Out' : 'متاح' }}
                                     </span>
-                                </div>
+                                </span>
                             </div>
-                            
-                            {{-- Compact KPIs Grid --}}
-                            <div class="grid grid-cols-4 gap-2 pt-3 text-center">
-                                <div class="bg-white/[0.02] border border-white/[0.04] rounded-[10px] py-1.5 px-1 flex flex-col items-center justify-center">
-                                    <span class="text-[9px] text-[color:var(--prism-text-3)] mb-0.5 whitespace-nowrap" data-i18n="adm_sta_ring_caption">إشغال</span>
-                                    <span class="text-xs sm:text-sm font-extrabold text-[color:var(--prism-cyan)]" dir="ltr">{{ (int) round($occupancyPct) }}%</span>
-                                </div>
-                                <div class="bg-white/[0.02] border border-white/[0.04] rounded-[10px] py-1.5 px-1 flex flex-col items-center justify-center">
-                                    <span class="text-[9px] text-[color:var(--prism-text-3)] mb-0.5 whitespace-nowrap" data-i18n="adm_revenue">الإيرادات</span>
-                                    <span class="text-xs sm:text-sm font-extrabold text-[color:var(--prism-emerald)] truncate max-w-full" dir="ltr">
-                                        {{ $stafmt($a['approved_revenue'] ?? 0) }}<span class="text-[9px] font-normal opacity-70"> ج</span>
-                                    </span>
-                                </div>
-                                <div class="bg-white/[0.02] border border-white/[0.04] rounded-[10px] py-1.5 px-1 flex flex-col items-center justify-center">
-                                    <span class="text-[9px] text-[color:var(--prism-text-3)] mb-0.5 whitespace-nowrap" data-i18n="adm_sta_remaining">المتبقي</span>
-                                    <span class="text-xs sm:text-sm font-extrabold text-[color:var(--prism-text)]" dir="ltr">{{ $stafmt($a['remaining'] ?? 0) }}</span>
-                                </div>
-                                <div class="bg-white/[0.02] border border-white/[0.04] rounded-[10px] py-1.5 px-1 flex flex-col items-center justify-center">
-                                    <span class="text-[9px] text-[color:var(--prism-text-3)] mb-0.5 whitespace-nowrap" data-i18n="adm_sta_approved">معتمد</span>
-                                    <span class="text-xs sm:text-sm font-extrabold text-[color:var(--prism-text)]" dir="ltr">{{ $stafmt($a['approved_tickets'] ?? 0) }}</span>
-                                </div>
+
+                            {{-- Compact KPI chips — single scannable "ticker" row. --}}
+                            <div class="sta-chip-row">
+                                <span class="sta-chip is-occupancy">
+                                    <span class="sta-chip-dot"></span>
+                                    <span class="sta-chip-val" dir="ltr">{{ (int) round($occupancyPct) }}%</span>
+                                    <span class="sta-chip-label" data-i18n="adm_sta_ring_caption">إشغال</span>
+                                </span>
+                                <span class="sta-chip is-revenue">
+                                    <span class="sta-chip-dot"></span>
+                                    <span class="sta-chip-val" dir="ltr">{{ $stafmt($a['approved_revenue'] ?? 0) }}<span class="sta-chip-unit"> ج</span></span>
+                                    <span class="sta-chip-label" data-i18n="adm_revenue">الإيرادات</span>
+                                </span>
+                                <span class="sta-chip is-remaining">
+                                    <span class="sta-chip-dot"></span>
+                                    <span class="sta-chip-val" dir="ltr">{{ $stafmt($a['remaining'] ?? 0) }}</span>
+                                    <span class="sta-chip-label" data-i18n="adm_sta_remaining">المتبقي</span>
+                                </span>
+                                <span class="sta-chip is-approved">
+                                    <span class="sta-chip-dot"></span>
+                                    <span class="sta-chip-val" dir="ltr">{{ $stafmt($a['approved_tickets'] ?? 0) }}</span>
+                                    <span class="sta-chip-label" data-i18n="adm_sta_approved">معتمد</span>
+                                </span>
                             </div>
-                            
-                            {{-- Expand Trigger --}}
-                            <div class="flex items-center justify-center gap-1.5 text-[11px] text-[color:var(--prism-text-3)] font-bold pt-3.5 opacity-80 hover:opacity-100 transition-opacity">
-                                <span class="sta-expand-arrow transition-transform duration-300 text-[9px]">▼</span>
+
+                            {{-- Expand affordance --}}
+                            <div class="sta-expand-row">
+                                <span class="sta-expand-arrow" aria-hidden="true">▼</span>
                                 <span class="sta-expand-text" data-i18n="adm_sta_show_details">عرض التفاصيل</span>
                             </div>
                         </div>
@@ -677,7 +748,18 @@
                         {{-- ── 2. EXPANDABLE DETAILS ─── --}}
                         <div class="sta-card-details">
                             <div class="p-4 sm:p-5 pt-0 border-t border-[color:var(--prism-border)] border-dashed mt-1 space-y-5">
-                                
+
+                                {{-- ── price (moved out of the compact header) ─── --}}
+                                <p class="text-[11px] text-[color:var(--prism-text-3)] pt-4">
+                                    @if ($cardUsesSection)
+                                        <span data-i18n="adm_sta_price_split">صالة / بلكون</span>:
+                                        <span style="color: var(--prism-gold);">{{ $cardSectionLabel }} <span data-i18n="common_currency_short">ج</span></span>
+                                    @else
+                                        <span data-i18n="adm_times_col_price">السعر</span>:
+                                        <span style="color: var(--prism-gold);">{{ $stafmt($a['ticket_price'] ?? 0) }} <span data-i18n="common_currency_short">ج</span></span>
+                                    @endif
+                                </p>
+
                                 {{-- ── occupancy ring + 4-tile breakdown ────── --}}
                                 <div class="flex items-center gap-4 sm:gap-5 flex-wrap">
                                     <div class="sta-ring-wrap is-mini" aria-hidden="true">
@@ -950,35 +1032,48 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const cards = document.querySelectorAll('.sta-card');
+
     cards.forEach(card => {
         const compact = card.querySelector('.sta-card-compact');
         const details = card.querySelector('.sta-card-details');
-        const arrow = card.querySelector('.sta-expand-arrow');
         const text = card.querySelector('.sta-expand-text');
-        
+
+        const setText = (key, fallback) => {
+            if (!text) return;
+            text.setAttribute('data-i18n', key);
+            text.textContent = window.PT_T ? window.PT_T(key) : fallback;
+        };
+
+        const toggle = () => {
+            const willExpand = !card.classList.contains('is-expanded');
+            card.classList.toggle('is-expanded', willExpand);
+            if (compact) compact.setAttribute('aria-expanded', willExpand ? 'true' : 'false');
+            if (details) details.style.maxHeight = willExpand ? details.scrollHeight + 'px' : null;
+            setText(
+                willExpand ? 'adm_sta_hide_details' : 'adm_sta_show_details',
+                willExpand ? 'إخفاء التفاصيل' : 'عرض التفاصيل'
+            );
+        };
+
+        if (!compact) return;
+
         compact.addEventListener('click', (e) => {
-            if (e.target.closest('a') || e.target.closest('button')) {
-                return;
+            if (e.target.closest('a') || e.target.closest('button')) return;
+            toggle();
+        });
+
+        // Keyboard support for the role="button" summary.
+        compact.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+                e.preventDefault();
+                toggle();
             }
-            const isExpanded = card.classList.contains('is-expanded');
-            if (isExpanded) {
-                card.classList.remove('is-expanded');
-                details.style.maxHeight = null;
-                details.style.opacity = '0';
-                if (arrow) arrow.style.transform = 'rotate(0deg)';
-                if (text) {
-                    text.setAttribute('data-i18n', 'adm_sta_show_details');
-                    text.textContent = window.PT_T ? window.PT_T('adm_sta_show_details') : 'عرض التفاصيل';
-                }
-            } else {
-                card.classList.add('is-expanded');
+        });
+
+        // Keep an open card's height correct if the viewport reflows.
+        window.addEventListener('resize', () => {
+            if (details && card.classList.contains('is-expanded')) {
                 details.style.maxHeight = details.scrollHeight + 'px';
-                details.style.opacity = '1';
-                if (arrow) arrow.style.transform = 'rotate(180deg)';
-                if (text) {
-                    text.setAttribute('data-i18n', 'adm_sta_hide_details');
-                    text.textContent = window.PT_T ? window.PT_T('adm_sta_hide_details') : 'إخفاء التفاصيل';
-                }
             }
         });
     });
