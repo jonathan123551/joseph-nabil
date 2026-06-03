@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'الصفحة غير موجودة · Joseph Nabil')
+@section('title', 'الصفحة غير موجودة · العابد')
 
 @section('content')
 <section class="max-w-lg mx-auto prism-fade-up">

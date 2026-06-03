@@ -1,7 +1,7 @@
 {
-  "name": "Joseph Nabil",
-  "short_name": "JN",
-  "description": "A Joseph Nabil cinematic ticketing experience — seat manifest and stage operations.",
+  "name": "العابد",
+  "short_name": "العابد",
+  "description": "A العابد cinematic ticketing experience — seat manifest and stage operations.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'تذكرتك · Joseph Nabil')
+@section('title', 'تذكرتك · العابد')
 @section('headMeta')
     <meta name="pt-title-i18n" content="page_title_ticket_lookup">
 @endsection
