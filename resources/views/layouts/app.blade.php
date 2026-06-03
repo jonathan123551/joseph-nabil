@@ -40,11 +40,11 @@
            - favicon-{16,32,48}.png  (browser tab — dark plate)
            - favicon.ico             (16+32+48 multi-res)
            - og-image.png            (1200×630 — social / OG card) --}}
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
-    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
-    <link rel="manifest" href="{{ asset('site.webmanifest') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}?v=3">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}?v=3">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}?v=3">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}?v=3">
+    <link rel="manifest" href="{{ asset('site.webmanifest') }}?v=3">
 
     {{-- Social / OG branding (consumed by WhatsApp, Twitter, etc.) --}}
     <meta property="og:image" content="{{ asset('brand/og-image.png') }}">
