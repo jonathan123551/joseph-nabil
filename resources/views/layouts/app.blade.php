@@ -26,26 +26,25 @@
     </style>
 
     {{-- ================= BRAND IDENTITY =================
-         The mark is the painted JN artwork (gold / teal / violet on
-         transparent background) — a single PNG sized so it ships crisp
-         from 24 px navbar marks up to 1024 px hero / OG renders.
+         The mark is the official El3abed logo - a single PNG
+         sized so it ships crisp from 24 px navbar marks up to 1024 px
+         hero / OG renders.
          Pre-rendered favicon plates (logo on rounded-square dark plate)
          live in three sizes for the browser tab and iOS home-screen.
          All assets live under public/brand/ and are checked in so
          Railway serves them with no build step.
-           - el3abed-logo.png        (1024×1024, transparent — navbar / drawer / footer / hero)
+           - el3abed-logo.png        (1024x898, transparent — navbar / drawer / footer / hero)
            - apple-touch-icon.png    (180×180, painted mark on dark plate — iOS home-screen)
            - android-chrome-192.png
            - android-chrome-512.png
            - favicon-{16,32,48}.png  (browser tab — dark plate)
            - favicon.ico             (16+32+48 multi-res)
            - og-image.png            (1200×630 — social / OG card) --}}
-    <link rel="icon" type="image/png" sizes="48x48" href="{{ asset('brand/favicon-48.png') }}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('brand/favicon-32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('brand/favicon-16.png') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('brand/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
     <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
-    <link rel="manifest" href="{{ asset('brand/site.webmanifest') }}">
+    <link rel="manifest" href="{{ asset('site.webmanifest') }}">
 
     {{-- Social / OG branding (consumed by WhatsApp, Twitter, etc.) --}}
     <meta property="og:image" content="{{ asset('brand/og-image.png') }}">
@@ -3260,16 +3259,17 @@
            corners) and lean on a real drop-shadow for crispness on
            dark surfaces — without the shadow, the painted strokes
            visually merge into the dark navbar background. */
-        .pt-brand-logo .pt-brand-mark-img {
+        .pt-brand-mark-img {
             position: relative;
             z-index: 1;
             display: block;
-            width: 100%;
-            height: 100%;
+            height: 54px;
+            width: auto;
             object-fit: contain;
             filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 8px rgba(232,196,118,0.22));
+            transition: height 0.3s var(--prism-ease);
         }
-        :root[data-pt-theme="light"] .pt-brand-logo .pt-brand-mark-img {
+        :root[data-pt-theme="light"] .pt-brand-mark-img {
             filter: drop-shadow(0 1px 2px rgba(20, 18, 40, 0.32)) drop-shadow(0 0 6px rgba(125, 75, 168, 0.16));
         }
         /* Cinematic glow halo behind the mark. Larger inset / more
@@ -3494,12 +3494,8 @@
             .pt-nav { display: none; }
             .pt-brand-tag { display: none; }
             .pt-topbar { grid-template-columns: 1fr auto; gap: 8px; padding: 6px 6px 6px 8px; }
-            /* Mobile brand chip — 44px reads strongly next to the
-               "El3abed" wordmark on iPhone widths without
-               crowding the right-side action cluster. The tag line
-               is hidden above, so the chip-to-wordmark ratio is what
-               carries the brand on mobile. */
-            .pt-brand-logo { width: 44px; height: 44px; padding: 2px; }
+            /* Mobile brand image height */
+            .pt-brand-mark-img { height: 44px; }
             .pt-brand { gap: 9px; }
             .pt-brand-wordmark { font-size: 13.5px; letter-spacing: 0.005em; }
         }
@@ -3579,6 +3575,12 @@
             border-bottom: 1px solid var(--prism-border);
         }
         .pt-drawer-brand { display: inline-flex; align-items: center; gap: 10px; }
+        .pt-drawer-brand img {
+            height: 48px;
+            width: auto;
+            object-fit: contain;
+            display: block;
+        }
         .pt-drawer-brand-text { display: flex; flex-direction: column; line-height: 1; }
         .pt-drawer-close {
             width: 36px; height: 36px;
@@ -4328,6 +4330,26 @@
         }
         @media (min-width: 720px) {
             .pt-footer-grid { grid-template-columns: 1.4fr 1fr 1fr; }
+        }
+        .pt-footer-brand-col {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        .pt-footer-brand-logo-img {
+            height: 72px;
+            width: auto;
+            object-fit: contain;
+            display: block;
+        }
+        @media (max-width: 720px) {
+            .pt-footer-brand-col {
+                justify-content: center;
+                margin-bottom: 8px;
+            }
+            .pt-footer-brand-logo-img {
+                height: 60px;
+            }
         }
         .pt-footer-brand-text {
             font-size: 13px;
@@ -9061,7 +9083,6 @@
                 <img src="{{ asset('images/brand/el3abed-logo.png') }}"
                      alt="العابد"
                      class="pt-brand-mark-img"
-                     style="height: 40px; width: auto; object-fit: contain;"
                      loading="eager"
                      decoding="async"
                      fetchpriority="high">
@@ -9137,7 +9158,6 @@
             <div class="pt-drawer-brand">
                 <img src="{{ asset('images/brand/el3abed-logo.png') }}"
                      alt="العابد"
-                     style="height: 36px; width: auto; object-fit: contain;"
                      loading="lazy"
                      decoding="async">
             </div>
@@ -9214,15 +9234,14 @@
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10">
             <div class="pt-footer-grid">
                 {{-- Brand block --}}
-                <div>
-                    <a href="{{ route('shows.index') }}" class="pt-brand" aria-label="العابد" style="padding: 0;">
+                <div class="pt-footer-brand-col">
+                    <a href="{{ route('shows.index') }}" class="pt-footer-brand-logo-link" aria-label="العابد">
                         <img src="{{ asset('images/brand/el3abed-logo.png') }}"
                              alt="العابد"
-                             style="height: 44px; width: auto; object-fit: contain;"
+                             class="pt-footer-brand-logo-img"
                              loading="lazy"
                              decoding="async">
                     </a>
-                    
                 </div>
 
                 {{-- Quick links --}}
