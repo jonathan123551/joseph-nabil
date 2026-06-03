@@ -31,10 +31,9 @@
         })();
     </script>
 
-    {{-- JN monogram favicon. The brand mark is now the painted artwork
-         (gold / teal / violet), so we serve the pre-rendered favicon
-         plates rather than an inline SVG. See public/brand/ for the
-         full asset set. --}}
+    {{-- El3abed logo favicon. The brand mark is now the painted artwork
+         on a transparent background. Mobile OS icons get a subtle
+         dark backdrop in the manifest/HTML below. --}}
     <link rel="icon" type="image/png" sizes="48x48" href="{{ asset('brand/favicon-48.png') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('brand/favicon-32.png') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('brand/favicon-16.png') }}">
