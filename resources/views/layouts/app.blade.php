@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl" data-pt-lang="ar" data-pt-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <title>@yield('title', 'Joseph Nabil')</title>
+    <title>@yield('title', 'العابد')</title>
     {{-- Pages can opt into JS-driven title localization by declaring
          @section('headMeta') with a <meta name="pt-title-i18n"
          content="my_key" data-suffix="optional dynamic suffix">. The
@@ -9057,34 +9057,9 @@
 
         <header class="pt-topbar" id="pt-topbar" role="banner">
             {{-- Brand block --}}
-            <a href="{{ route('shows.index') }}" class="pt-brand group" aria-label="Joseph Nabil">
-                <span class="pt-brand-logo" aria-hidden="true">
-                    {{-- JN monogram — painted artwork sized to fill the
-                         brand chip (52×52 desktop, 44×44 mobile). The
-                         chip itself is intentionally near-invisible;
-                         the painted strokes carry the brand identity
-                         (gold / teal / violet, baked into the artwork),
-                         and the `.pt-brand-orb` halo behind + the
-                         drop-shadow on the image give it cinematic
-                         lift on both dark and light surfaces. The
-                         explicit width/height attrs match the desktop
-                         chip size so the layout doesn't shift while
-                         the PNG decodes; the CSS uses width:100% so
-                         the mobile media query can shrink it without
-                         re-rendering. --}}
-                    <img src="{{ asset('brand/jn-monogram.png') }}"
-                         alt=""
-                         width="46"
-                         height="46"
-                         class="pt-brand-mark-img"
-                         loading="eager"
-                         decoding="async"
-                         fetchpriority="high">
-                    <span class="pt-brand-orb" aria-hidden="true"></span>
-                </span>
+            <a href="{{ route('shows.index') }}" class="pt-brand group" aria-label="العابد">
                 <span class="pt-brand-text">
-                    <span class="pt-brand-wordmark" data-i18n="brand">Joseph Nabil</span>
-                    <span class="pt-brand-tag" data-i18n="brand_tag">TICKETS · STAGE</span>
+                    <span class="pt-brand-wordmark" data-i18n="brand" style="margin-inline-start: 0; font-size: 1.5rem;">العابد</span>
                 </span>
             </a>
 
@@ -9156,18 +9131,8 @@
     <aside class="pt-drawer" id="pt-drawer" role="dialog" aria-modal="true" aria-label="Menu" aria-hidden="true">
         <div class="pt-drawer-head">
             <div class="pt-drawer-brand">
-                <span class="pt-brand-logo" aria-hidden="true" style="width:48px;height:48px;">
-                    <img src="{{ asset('brand/jn-monogram.png') }}"
-                         alt=""
-                         width="42"
-                         height="42"
-                         class="pt-brand-mark-img"
-                         loading="eager"
-                         decoding="async">
-                </span>
                 <div class="pt-drawer-brand-text">
-                    <div class="prism-wordmark" style="font-size:14px;" data-i18n="brand">Joseph Nabil</div>
-                    <div class="prism-tagline" style="font-size:9px;" data-i18n="brand_tag">TICKETS</div>
+                    <div class="prism-wordmark" style="font-size:1.25rem; margin-inline-start: 0;" data-i18n="brand">العابد</div>
                 </div>
             </div>
             <button type="button" class="pt-drawer-close" id="pt-drawer-close" aria-label="Close menu">
@@ -9244,19 +9209,9 @@
             <div class="pt-footer-grid">
                 {{-- Brand block --}}
                 <div>
-                    <a href="{{ route('shows.index') }}" class="pt-brand" aria-label="Joseph Nabil" style="padding: 0;">
-                        <span class="pt-brand-logo" aria-hidden="true">
-                            <img src="{{ asset('brand/jn-monogram.png') }}"
-                                 alt=""
-                                 width="46"
-                                 height="46"
-                                 class="pt-brand-mark-img"
-                                 loading="lazy"
-                                 decoding="async">
-                        </span>
+                    <a href="{{ route('shows.index') }}" class="pt-brand" aria-label="العابد" style="padding: 0;">
                         <span class="pt-brand-text">
-                            <span class="pt-brand-wordmark" data-i18n="brand">Joseph Nabil</span>
-                            <span class="pt-brand-tag" data-i18n="brand_tag">TICKETS · STAGE</span>
+                            <span class="pt-brand-wordmark" data-i18n="brand" style="margin-inline-start: 0; font-size: 1.5rem;">العابد</span>
                         </span>
                     </a>
                     

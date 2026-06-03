@@ -5,7 +5,7 @@
         const I18N = {
             ar: {
                 /* ===== brand / nav / footer / theme / lang chrome ===== */
-                brand: 'Joseph Nabil', brand_tag: 'TICKETS · STAGE',
+                brand: 'العابد', brand_tag: '',
                 nav_home: 'الرئيسية', nav_shows: 'العروض', nav_admin: 'لوحة التحكم',
                 foot_fast: 'حجز فوري', foot_secure: 'دفع آمن', foot_qr: 'QR على واتساب',
                 foot_about: 'منصة حجز تذاكر مسرح مصرية، مصممة لتجربة فاخرة وسريعة على الموبايل والديسكتوب.',
@@ -107,7 +107,7 @@
                 cine_4_t: 'استلم تذكرتك',
                 cine_4_b: 'تذكرة QR توصلك على واتساب فور الاعتماد · جاهزة للمسح عند البوابة.',
                 // Cinematic homepage v3 (full-screen scenes)
-                cine_intro_eyebrow: 'JOSEPH NABIL',
+                cine_intro_eyebrow: 'العابد',
                 cine_intro_line_a: 'اكتشف',
                 cine_intro_line_b: 'حجز التذاكر',
                 cine_intro_line_c: 'بشكل مختلف.',
@@ -359,12 +359,12 @@
                 seat_fast_note: 'بعد الاختيار السريع تقدر تعدّل أي مقعد بنفسك.',
 
                 /* ===== page <title>s — used by the meta[name="pt-title-i18n"] hook ===== */
-                page_title_shows: 'العروض المتاحة · Joseph Nabil',
+                page_title_shows: 'العروض المتاحة · العابد',
                 page_title_book_seats: 'اختار مقعدك',
                 page_title_book_form: 'إكمال الحجز',
                 page_title_book_create: 'حجز تذاكر',
-                page_title_thankyou: 'تم إرسال طلب الحجز · Joseph Nabil',
-                page_title_ticket_lookup: 'تذكرتك · Joseph Nabil',
+                page_title_thankyou: 'تم إرسال طلب الحجز · العابد',
+                page_title_ticket_lookup: 'تذكرتك · العابد',
 
                 /* ===== auth pages ===== */
                 auth_admin_pill: 'دخول الأدمن',
@@ -628,7 +628,7 @@
 
                 /* ===== admin: console / dashboard ===== */
                 adm_console_pill: 'لوحة التحكم',
-                adm_console_eyebrow: 'JOSEPH NABIL · CONTROL',
+                adm_console_eyebrow: 'العابد · CONTROL',
                 adm_dashboard_title: 'لوحة تحكم الأدمن',
                 adm_dashboard_lede: 'من هنا تقدر تتابع نبض العروض، الحجوزات، والتذاكر اللي طلعت للجمهور.',
                 adm_back: 'رجوع',
@@ -943,7 +943,7 @@
             },
             en: {
                 /* ===== brand / nav / footer / theme / lang chrome ===== */
-                brand: 'Joseph Nabil', brand_tag: 'TICKETS · STAGE',
+                brand: 'العابد', brand_tag: '',
                 nav_home: 'Home', nav_shows: 'Shows', nav_admin: 'Admin',
                 foot_fast: 'Instant booking', foot_secure: 'Secure payment', foot_qr: 'QR via WhatsApp',
                 foot_about: 'Egyptian theater ticketing platform built for a fast, premium experience on mobile and desktop.',
@@ -1045,7 +1045,7 @@
                 cine_4_t: 'Receive your QR ticket',
                 cine_4_b: 'Your QR ticket lands on WhatsApp the moment we approve — ready to scan at the door.',
                 // Cinematic homepage v3 (full-screen scenes)
-                cine_intro_eyebrow: 'JOSEPH NABIL',
+                cine_intro_eyebrow: 'العابد',
                 cine_intro_line_a: 'Discover',
                 cine_intro_line_b: 'ticket booking',
                 cine_intro_line_c: 'differently.',
@@ -1297,12 +1297,12 @@
                 seat_fast_note: 'You can still edit any seat manually after auto-pick.',
 
                 /* ===== page <title>s — used by the meta[name="pt-title-i18n"] hook ===== */
-                page_title_shows: 'Available shows · Joseph Nabil',
+                page_title_shows: 'Available shows · العابد',
                 page_title_book_seats: 'Pick your seat',
                 page_title_book_form: 'Complete booking',
                 page_title_book_create: 'Book tickets',
-                page_title_thankyou: 'Booking submitted · Joseph Nabil',
-                page_title_ticket_lookup: 'Your ticket · Joseph Nabil',
+                page_title_thankyou: 'Booking submitted · العابد',
+                page_title_ticket_lookup: 'Your ticket · العابد',
 
                 /* ===== auth pages ===== */
                 auth_admin_pill: 'Admin Access',
@@ -1566,7 +1566,7 @@
 
                 /* ===== admin: console / dashboard ===== */
                 adm_console_pill: 'Admin Console',
-                adm_console_eyebrow: 'JOSEPH NABIL · CONTROL',
+                adm_console_eyebrow: 'العابد · CONTROL',
                 adm_dashboard_title: 'Admin dashboard',
                 adm_dashboard_lede: 'Track shows, bookings, and the tickets that have gone out to your audience — all in one place.',
                 adm_back: 'Back',

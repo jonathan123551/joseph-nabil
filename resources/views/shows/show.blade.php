@@ -1,7 +1,7 @@
 {{-- resources/views/shows/show.blade.php --}}
 @extends('layouts.app')
 
-@section('title', $show->title . ' · Joseph Nabil')
+@section('title', $show->title . ' · العابد')
 @section('body_class', 'pt-route-show')
 
 @php
