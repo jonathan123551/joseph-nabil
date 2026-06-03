@@ -25,7 +25,7 @@
         :root[data-pt-theme="light"] { color-scheme: light; }
     </style>
 
-    {{-- ================= JN MONOGRAM · BRAND IDENTITY =================
+    {{-- ================= BRAND IDENTITY =================
          The mark is the painted JN artwork (gold / teal / violet on
          transparent background) — a single PNG sized so it ships crisp
          from 24 px navbar marks up to 1024 px hero / OG renders.
@@ -33,7 +33,7 @@
          live in three sizes for the browser tab and iOS home-screen.
          All assets live under public/brand/ and are checked in so
          Railway serves them with no build step.
-           - jn-monogram.png         (1024×1024, transparent — navbar / drawer / footer / hero)
+           - el3abed-logo.png        (1024×1024, transparent — navbar / drawer / footer / hero)
            - apple-touch-icon.png    (180×180, painted mark on dark plate — iOS home-screen)
            - android-chrome-192.png
            - android-chrome-512.png
@@ -676,7 +676,7 @@
         }
         .prism-logo:hover { transform: rotate(-6deg) scale(1.05); }
         .prism-wordmark {
-            /* Rebranded to "Joseph Nabil" (mixed-case proper noun) — the
+            /* Rebranded to "El3abed" (mixed-case proper noun) — the
                previous PREMIUM uppercase wordmark wanted aggressive
                tracking; a real name wants tight kerning + a hint of
                size to feel like a signature, not a label. */
@@ -3219,7 +3219,7 @@
             text-decoration: none;
             position: relative;
         }
-        /* JN brand chip — the painted monogram lives inside this slot,
+        /* Brand chip — the painted logo lives inside this slot,
            sized so the mark feels like a real brand anchor (52px on
            desktop, 44px on mobile) instead of a tiny decorative icon.
            The chip itself is intentionally near-invisible (subtle
@@ -3252,7 +3252,7 @@
                 0 0 18px rgba(212,166,78,0.14);
         }
         .pt-brand-logo svg { position: relative; z-index: 1; }
-        /* Painted JN PNG mark — the artwork has its color identity
+        /* Painted logo mark — the artwork has its color identity
            (gold serifs, teal J-descender, violet diagonal on the N)
            baked in, so no `fill` / `currentColor` plumbing. We fill
            the chip almost entirely (a tiny 3px chip padding above
@@ -3312,7 +3312,7 @@
             min-width: 0;
         }
         .pt-brand-wordmark {
-            /* Rebranded to "Joseph Nabil" — mixed-case signature, no
+            /* Rebranded to "El3abed" — mixed-case signature, no
                longer the uppercase wide-tracked PREMIUM wordmark.
                Slightly larger and tightly kerned so the new (longer)
                string occupies roughly the same optical width as the
@@ -3495,7 +3495,7 @@
             .pt-brand-tag { display: none; }
             .pt-topbar { grid-template-columns: 1fr auto; gap: 8px; padding: 6px 6px 6px 8px; }
             /* Mobile brand chip — 44px reads strongly next to the
-               "Joseph Nabil" wordmark on iPhone widths without
+               "El3abed" wordmark on iPhone widths without
                crowding the right-side action cluster. The tag line
                is hidden above, so the chip-to-wordmark ratio is what
                carries the brand on mobile. */
@@ -6138,10 +6138,10 @@
         }
 
         /* ====================================================================
-           Scene 0 — Joseph Nabil cinematic presentation
+           Scene 0 — El3abed cinematic presentation
            Full-viewport studio-intro card that opens the homepage. Deep
            warm-black backdrop, ambient gold spotlight + drifting orbs, the
-           3D gold "Joseph Nabil DIRECTOR" mark as the centerpiece, a
+           3D gold "El3abed" mark as the centerpiece, a
            refined Arabic credit line, and a cinematic cross-fade bleed
            into the العباد hero immediately below.
 
@@ -7776,7 +7776,7 @@
             line-height: 1.35;
             letter-spacing: 0.005em;
             text-align: center;
-            /* Warm gold gradient — same palette as the Joseph Nabil intro
+            /* Warm gold gradient — same palette as the El3abed intro
                eyebrow + the cast lead's emphasis stamp so the saint's
                name reads as the section's premium cinematic title. */
             background: linear-gradient(135deg,
@@ -8087,7 +8087,7 @@
         /* =====================================================================
            Light-theme overrides for the cinematic homepage scenes.
 
-           Design intent: "cinema lobby" light mode. The Joseph Nabil
+           Design intent: "cinema lobby" light mode. The El3abed
            presents scene (Scene 0) and the العباد hero (Scene 1) keep
            their hardcoded dark backdrops — movie-poster contexts don't
            theme-switch. Scenes 2–6 (trailer, cast, story, showtimes,
@@ -9058,9 +9058,13 @@
         <header class="pt-topbar" id="pt-topbar" role="banner">
             {{-- Brand block --}}
             <a href="{{ route('shows.index') }}" class="pt-brand group" aria-label="العابد">
-                <span class="pt-brand-text">
-                    <span class="pt-brand-wordmark" data-i18n="brand" style="margin-inline-start: 0; font-size: 1.5rem;">العابد</span>
-                </span>
+                <img src="{{ asset('images/brand/el3abed-logo.png') }}"
+                     alt="العابد"
+                     class="pt-brand-mark-img"
+                     style="height: 40px; width: auto; object-fit: contain;"
+                     loading="eager"
+                     decoding="async"
+                     fetchpriority="high">
             </a>
 
             {{-- Center nav (desktop) --}}
@@ -9131,9 +9135,11 @@
     <aside class="pt-drawer" id="pt-drawer" role="dialog" aria-modal="true" aria-label="Menu" aria-hidden="true">
         <div class="pt-drawer-head">
             <div class="pt-drawer-brand">
-                <div class="pt-drawer-brand-text">
-                    <div class="prism-wordmark" style="font-size:1.25rem; margin-inline-start: 0;" data-i18n="brand">العابد</div>
-                </div>
+                <img src="{{ asset('images/brand/el3abed-logo.png') }}"
+                     alt="العابد"
+                     style="height: 36px; width: auto; object-fit: contain;"
+                     loading="lazy"
+                     decoding="async">
             </div>
             <button type="button" class="pt-drawer-close" id="pt-drawer-close" aria-label="Close menu">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
@@ -9210,9 +9216,11 @@
                 {{-- Brand block --}}
                 <div>
                     <a href="{{ route('shows.index') }}" class="pt-brand" aria-label="العابد" style="padding: 0;">
-                        <span class="pt-brand-text">
-                            <span class="pt-brand-wordmark" data-i18n="brand" style="margin-inline-start: 0; font-size: 1.5rem;">العابد</span>
-                        </span>
+                        <img src="{{ asset('images/brand/el3abed-logo.png') }}"
+                             alt="العابد"
+                             style="height: 44px; width: auto; object-fit: contain;"
+                             loading="lazy"
+                             decoding="async">
                     </a>
                     
                 </div>

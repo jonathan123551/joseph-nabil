@@ -6,15 +6,10 @@
     {{-- Above-the-fold preloads — Safari + Chrome will start the
          downloads as soon as the HTML lands instead of after the
          layout pass. Cuts visible "no backdrop" time on iPhone
-         Safari for both the Joseph Nabil presents card (first
+         Safari for both the El3abed presents card (first
          scene the user sees) and the العباد hero immediately below. --}}
     <link rel="preload" as="image"
-          href="{{ asset('brand/joseph-nabil-director-720.png') }}"
-          media="(max-width: 600px)"
-          fetchpriority="high">
-    <link rel="preload" as="image"
-          href="{{ asset('brand/joseph-nabil-director.png') }}"
-          media="(min-width: 601px)"
+          href="{{ asset('images/brand/el3abed-logo.png') }}"
           fetchpriority="high">
     <link rel="preload" as="image" href="{{ asset('images/al-abed/hero.jpg') }}" fetchpriority="high">
 @endsection
@@ -201,9 +196,9 @@
 <div class="pt-cine pt-alebad" data-pt-cine>
 
 {{-- =====================================================================
-     Scene 0 — Joseph Nabil cinematic presentation
+     Scene 0 - El3abed cinematic presentation
      The true opener: a full-viewport studio-intro signature that
-     emotionally frames the entire homepage as "A Joseph Nabil
+     emotionally frames the entire homepage as "An El3abed
      experience" BEFORE the user enters the world of العابد. Builds
      the feel of a real cinematic production — like a film-studio
      logo card at the start of a movie.
@@ -247,7 +242,7 @@
     <div class="pt-alebad-presents-content pt-cine-stagger">
         <span id="pt-alebad-presents-eyebrow" class="pt-alebad-presents-eyebrow">
             <span class="pt-alebad-presents-eyebrow-dot" aria-hidden="true"></span>
-            <span>A JOSEPH NABIL EXPERIENCE</span>
+            <span>A CINEMATIC EXPERIENCE</span>
         </span>
 
         {{-- Logo. Mobile gets the 720px-wide downscaled variant
@@ -257,21 +252,16 @@
         <div class="pt-alebad-presents-mark">
             <span class="pt-alebad-presents-mark-glow" aria-hidden="true"></span>
             <picture>
-                <source srcset="{{ asset('brand/joseph-nabil-director-720.png') }}"
-                        media="(max-width: 600px)">
-                <img src="{{ asset('brand/joseph-nabil-director.png') }}"
-                     alt="Joseph Nabil — Director"
-                     width="1155" height="888"
+                <img src="{{ asset('images/brand/el3abed-logo.png') }}"
+                     alt="العابد"
+                     style="width: 100%; max-width: 600px; height: auto;"
                      fetchpriority="high"
                      decoding="async">
             </picture>
         </div>
 
         <p class="pt-alebad-presents-tagline">
-            تجربةٌ سينمائية يقدّمها المخرج
-            <span class="pt-alebad-presents-tagline-name">جوزيف نبيل</span>
-            <span class="pt-alebad-presents-tagline-divider" aria-hidden="true"> · </span>
-            حيث تلتقي الصورة بالإحساس، ويلتقي الإنسان بالحكاية.
+            تجربةٌ سينمائية حيث تلتقي الصورة بالإحساس، ويلتقي الإنسان بالحكاية.
         </p>
 
         <span class="pt-alebad-presents-cue" aria-hidden="true">

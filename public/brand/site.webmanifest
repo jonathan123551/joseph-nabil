@@ -36,15 +36,9 @@
     },
     {
       "src": "/brand/android-chrome-512.png",
+      "type": "image/png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/brand/jn-monogram.png",
-      "sizes": "1024x1024",
-      "type": "image/png",
-      "purpose": "any"
+      "purpose": "maskable"
     }
   ]
 }
