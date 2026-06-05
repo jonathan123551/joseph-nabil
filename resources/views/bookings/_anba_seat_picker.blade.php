@@ -1401,19 +1401,6 @@
             background: linear-gradient(180deg, rgba(148,163,184,0.45), rgba(100,116,139,0.40));
             color: rgba(15,23,42,0.55);
         }
-        /* Transfer instructions inline-style override (the inline
-           rgba(8,10,20,0.55) is too dark on cream). */
-        :root[data-pt-theme="light"] [data-anba-root] [data-anba-transfer] {
-            background: rgba(255,255,255,0.78) !important;
-            border-color: rgba(79,70,229,0.22) !important;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.95);
-        }
-        /* The wallet / insta info chips use bg-white/[0.04] which is invisible
-           on cream; mark them so we can lift them in light mode. */
-        :root[data-pt-theme="light"] [data-anba-root] [data-anba-payinfo] {
-            background: rgba(15,23,42,0.04) !important;
-            border-color: rgba(15,23,42,0.12) !important;
-        }
         /* The "view more / less attendees" stack toggle. */
         :root[data-pt-theme="light"] [data-anba-root] .attendee-stack {
             background: rgba(15,23,42,0.04);
@@ -1558,28 +1545,13 @@
                 </div>
             </div>
 
-            {{-- transfer instructions — customer flow only --}}
-            @if (!$adminMode && (!empty($transferWallet) || !empty($transferInsta)))
-                <div class="rounded-2xl p-3 space-y-2"
-                     data-anba-transfer
-                     style="background: rgba(8,10,20,0.55); border: 1px solid rgba(129,140,248,0.18);">
-                    <h4 class="text-[11px] font-semibold"
-                        style="background: linear-gradient(135deg,#22d3ee,#818cf8,#c084fc); -webkit-background-clip: text; background-clip: text; color: transparent;"
-                        data-i18n="seat_step1_pay">
-                        خطوة 1 · حوّل قيمة الحجز
-                    </h4>
-                    @if (!empty($transferWallet))
-                        <div class="bg-white/[0.04] border border-[color:var(--p-border)] rounded-xl px-3 py-2" data-anba-payinfo>
-                            <p class="text-[9px] text-[color:var(--p-text-3)] mb-0.5" data-i18n="pay_wallet">📱 محفظة</p>
-                            <p class="text-xs font-bold text-[color:var(--p-text)]" dir="ltr">{{ $transferWallet }}</p>
-                        </div>
-                    @endif
-                    @if (!empty($transferInsta))
-                        <div class="bg-white/[0.04] border border-[color:var(--p-border)] rounded-xl px-3 py-2" data-anba-payinfo>
-                            <p class="text-[9px] text-[color:var(--p-text-3)] mb-0.5" data-i18n="pay_insta">⚡ InstaPay</p>
-                            <p class="text-xs font-bold text-[color:var(--p-text)]" dir="ltr">{{ $transferInsta }}</p>
-                        </div>
-                    @endif
+            {{-- transfer instructions — wallet-only, customer flow only --}}
+            @if (!$adminMode)
+                <div data-anba-transfer>
+                    @include('partials._wallet_payment', [
+                        'transferWallet' => $transferWallet,
+                        'compact'        => true,
+                    ])
                 </div>
             @endif
 

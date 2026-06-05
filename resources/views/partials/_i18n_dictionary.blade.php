@@ -103,7 +103,7 @@
                 cine_2_t: 'اختر مقعدك',
                 cine_2_b: 'خريطة مباشرة للصالة توريلك المتاح لحظة بلحظة عشان تحجز مقعدك بثقة.',
                 cine_3_t: 'ارفع التحويل',
-                cine_3_b: 'حوّل على المحفظة أو InstaPay وارفع صورة التحويل بثواني داخل تدفق آمن وأنيق.',
+                cine_3_b: 'حوّل على رقم المحفظة وارفع صورة التحويل بثواني داخل تدفق آمن وأنيق.',
                 cine_4_t: 'استلم تذكرتك',
                 cine_4_b: 'تذكرة QR توصلك على واتساب فور الاعتماد · جاهزة للمسح عند البوابة.',
                 // Cinematic homepage v3 (full-screen scenes)
@@ -171,7 +171,15 @@
                 section_soon: 'قريبًا',
                 pay_eyebrow: '💸 ادفع قيمة التذكرة على',
                 pay_wallet: '📱 محفظة',
-                pay_insta: '⚡ InstaPay',
+                /* ===== wallet-only payment (single official method) ===== */
+                pay_wallet_method: '💳 المحفظة الإلكترونية',
+                pay_wallet_number_label: 'رقم المحفظة',
+                pay_only_method: '✅ التحويل يتم على رقم المحفظة فقط',
+                pay_official_number: '✅ هذا هو رقم الدفع الرسمي الوحيد',
+                pay_no_other_number: '✅ لا تقم بالتحويل إلى أي رقم آخر',
+                pay_reviewed: '✅ جميع التحويلات يتم مراجعتها وتأكيدها بعد الإرسال',
+                pay_official_note: '⚠️ هذا هو رقم الدفع الرسمي الوحيد للحجز',
+                pay_copy_number: 'نسخ الرقم',
 
                 /* ===== seat picker (anba) ===== */
                 seat_back: 'رجوع',
@@ -209,7 +217,7 @@
                 /* ===== booking form (step 3) ===== */
                 book_show_details: 'تفاصيل العرض',
                 book_step1_title: 'خطوة 1: حوّل قيمة التذكرة',
-                book_step1_desc: 'حوّل {amount} جنيه على أحد الأرقام التالية:',
+                book_step1_desc: 'حوّل {amount} جنيه على رقم المحفظة الموضح بالأسفل:',
                 book_step2_title: 'خطوة 2: ارفع Screenshot وكمّل البيانات',
                 book_seats_title: 'مقاعدك',
                 book_change_seats: 'تغيير المقاعد',
@@ -241,7 +249,7 @@
                 book_form_show_details: '🎭 تفاصيل العرض',
                 book_step1_pay_title: 'خطوة 1: حوّل قيمة التذكرة',
                 book_step1_pay_desc_a: 'حوّل',
-                book_step1_pay_desc_b: 'جنيه على أحد الأرقام التالية:',
+                book_step1_pay_desc_b: 'جنيه على رقم المحفظة الموضح بالأسفل:',
                 book_form_person_label: '👤 بيانات الشخص رقم',
                 book_form_name_ph: 'اسم الشخص {n}',
                 book_form_phone_ph: 'رقم موبايل واتساب {n}',
@@ -256,7 +264,7 @@
                 form_chip_remove_aria: 'إلغاء {label}',
                 form_steps_title: '📌 خطوات إكمال الحجز',
                 form_step1_a: 'حوّل قيمة الحجز',
-                form_step1_b: 'على المحفظة أو InstaPay الموضحة بالأسفل.',
+                form_step1_b: 'على رقم المحفظة الموضح بالأسفل.',
                 form_step2: 'التقط صورة (Screenshot) لإيصال التحويل وارفعها في الخانة المخصصة.',
                 form_step3: 'اكتب اسم ورقم واتساب لكل شخص بترتيب المقاعد المحجوزة.',
                 form_step4_a: 'اضغط',
@@ -492,7 +500,6 @@
                 admin_pay_settings_pill: 'إعدادات الدفع',
                 admin_pay_settings_title: 'إعدادات الدفع',
                 admin_pay_wallet: 'رقم المحفظة',
-                admin_pay_insta: 'InstaPay',
                 admin_pay_help: 'هتظهر في صفحة الدفع للعميل عشان يحوّل عليها.',
                 admin_pay_save: 'حفظ بيانات التحويل',
 
@@ -589,8 +596,6 @@
                 admin_payments_back: 'رجوع للوحة التحكم',
                 admin_payments_wallet: 'رقم المحفظة (اختياري)',
                 admin_payments_wallet_eg: 'مثلاً: 0100xxxxxxx',
-                admin_payments_insta: 'حساب InstaPay (اختياري)',
-                admin_payments_insta_eg: 'مثلاً: EGxxxxxxxxxx أو email@domain.com',
                 admin_payments_save: 'حفظ الإعدادات',
 
                 /* ===== scanner ===== */
@@ -880,12 +885,10 @@
                 adm_pay_title: '💳 إعدادات التحويلات',
                 adm_pay_wallet_label: 'رقم المحفظة',
                 adm_pay_wallet_hint: 'مثلاً: 0100xxxxxxx',
-                adm_pay_insta_label: 'حساب InstaPay',
-                adm_pay_insta_hint: 'مثلاً: EGxxxxxxxxxx أو email@domain.com',
                 adm_pay_save: 'حفظ الإعدادات',
                 adm_payments_eyebrow: 'وسائل الدفع',
                 adm_payments_title: 'إعدادات التحويلات',
-                adm_payments_hint: 'اضبط أرقام المحفظة و InstaPay اللي بيظهروا للعميل.',
+                adm_payments_hint: 'اضبط رقم المحفظة اللي بيظهر للعميل عشان يحوّل عليه.',
                 adm_payments_wallet: 'محفظة',
                 adm_payments_save: 'حفظ',
 
@@ -1041,7 +1044,7 @@
                 cine_2_t: 'Pick your seats',
                 cine_2_b: 'A live theater map shows what\u2019s open in real time so you can lock in the perfect seats.',
                 cine_3_t: 'Upload your transfer',
-                cine_3_b: 'Transfer to wallet or InstaPay, drop the screenshot, and we take it from there — secure and elegant.',
+                cine_3_b: 'Transfer to the wallet number, drop the screenshot, and we take it from there — secure and elegant.',
                 cine_4_t: 'Receive your QR ticket',
                 cine_4_b: 'Your QR ticket lands on WhatsApp the moment we approve — ready to scan at the door.',
                 // Cinematic homepage v3 (full-screen scenes)
@@ -1109,7 +1112,15 @@
                 section_soon: 'Coming soon',
                 pay_eyebrow: '💸 Pay your ticket via',
                 pay_wallet: '📱 Wallet',
-                pay_insta: '⚡ InstaPay',
+                /* ===== wallet-only payment (single official method) ===== */
+                pay_wallet_method: '💳 E-Wallet',
+                pay_wallet_number_label: 'Wallet number',
+                pay_only_method: '✅ Transfers are made to the wallet number only',
+                pay_official_number: '✅ This is the only official payment number',
+                pay_no_other_number: '✅ Do not transfer to any other number',
+                pay_reviewed: '✅ All transfers are reviewed and confirmed after sending',
+                pay_official_note: '⚠️ This is the only official payment number for booking',
+                pay_copy_number: 'Copy number',
 
                 /* ===== seat picker (anba) ===== */
                 seat_back: 'Back',
@@ -1194,7 +1205,7 @@
                 form_chip_remove_aria: 'Remove {label}',
                 form_steps_title: '📌 How to complete your booking',
                 form_step1_a: 'Send the total',
-                form_step1_b: 'to one of the wallet / InstaPay numbers below.',
+                form_step1_b: 'to the wallet number shown below.',
                 form_step2: 'Take a screenshot of the transfer receipt and upload it in the field below.',
                 form_step3: 'Enter a name and WhatsApp number for each attendee, in the same order as the seats.',
                 form_step4_a: 'Tap',
@@ -1430,7 +1441,6 @@
                 admin_pay_settings_pill: 'Payment settings',
                 admin_pay_settings_title: 'Payment settings',
                 admin_pay_wallet: 'Wallet number',
-                admin_pay_insta: 'InstaPay',
                 admin_pay_help: 'Shown to the customer on the payment page so they can transfer.',
                 admin_pay_save: 'Save payment details',
 
@@ -1527,8 +1537,6 @@
                 admin_payments_back: 'Back to dashboard',
                 admin_payments_wallet: 'Wallet number (optional)',
                 admin_payments_wallet_eg: 'e.g. 0100xxxxxxx',
-                admin_payments_insta: 'InstaPay account (optional)',
-                admin_payments_insta_eg: 'e.g. EGxxxxxxxxxx or email@domain.com',
                 admin_payments_save: 'Save settings',
 
                 /* ===== scanner ===== */
@@ -1819,12 +1827,10 @@
                 adm_pay_title: '💳 Payment settings',
                 adm_pay_wallet_label: 'Wallet number',
                 adm_pay_wallet_hint: 'e.g. 0100xxxxxxx',
-                adm_pay_insta_label: 'InstaPay account',
-                adm_pay_insta_hint: 'e.g. EGxxxxxxxxxx or email@domain.com',
                 adm_pay_save: 'Save settings',
                 adm_payments_eyebrow: 'Payment methods',
                 adm_payments_title: 'Payment settings',
-                adm_payments_hint: 'Configure the wallet and InstaPay account customers will see.',
+                adm_payments_hint: 'Set the wallet number customers will see and transfer to.',
                 adm_payments_wallet: 'Wallet',
                 adm_payments_save: 'Save',
 

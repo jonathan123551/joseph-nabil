@@ -258,71 +258,6 @@
             color: var(--prism-text-4);
         }
 
-        /* "Payment instructions" accordion — collapsed by default so the
-           wallet/InstaPay numbers don't dominate the page. <details> works
-           without JS and is a11y-friendly. Same visual language as the
-           Anba step-3 form so the booking flow feels consistent. */
-        .pay-details {
-            background: rgba(255,255,255,0.025);
-            border: 1px solid var(--prism-border);
-            border-radius: 16px;
-            overflow: hidden;
-            transition: border-color .2s var(--prism-ease), background .2s var(--prism-ease);
-        }
-        .pay-details[open] {
-            border-color: rgba(129,140,248,0.32);
-            background: rgba(255,255,255,0.04);
-        }
-        .pay-details > summary {
-            cursor: pointer;
-            list-style: none;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 14px 16px;
-            min-height: 56px;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .pay-details > summary::-webkit-details-marker { display: none; }
-        .pay-details .pay-icon {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 32px; height: 32px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(192,132,252,0.18));
-            border: 1px solid rgba(129,140,248,0.4);
-            font-size: 16px;
-            flex-shrink: 0;
-        }
-        .pay-details .pay-meta { flex: 1 1 auto; min-width: 0; line-height: 1.3; }
-        .pay-details .pay-title {
-            display: block;
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--prism-text);
-        }
-        .pay-details .pay-sub {
-            display: block;
-            margin-top: 2px;
-            font-size: 11px;
-            color: var(--prism-text-3);
-        }
-        .pay-details .pay-chev {
-            font-size: 12px;
-            color: var(--prism-text-3);
-            transition: transform .25s var(--prism-ease);
-        }
-        .pay-details[open] .pay-chev { transform: rotate(180deg); }
-        .pay-details .pay-body {
-            padding: 0 16px 14px 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        @media (prefers-reduced-motion: reduce) {
-            .pay-details .pay-chev { transition: none; }
-        }
-
         /* =====================================================================
            LIGHT THEME — Section picker, step indicator and payment accordion.
            Dark-only surfaces would look pasted-in on the cream background, so
@@ -401,19 +336,6 @@
             background: rgba(15,23,42,0.05);
             border-color: rgba(15,23,42,0.14);
             color: var(--prism-text-4);
-        }
-        /* Payment instructions accordion — invisible BG on cream otherwise */
-        :root[data-pt-theme="light"] .pay-details {
-            background: rgba(255,255,255,0.70);
-            border-color: rgba(15,23,42,0.14);
-        }
-        :root[data-pt-theme="light"] .pay-details[open] {
-            background: rgba(255,255,255,0.90);
-            border-color: rgba(79,70,229,0.34);
-        }
-        :root[data-pt-theme="light"] .pay-details .pay-icon {
-            background: linear-gradient(135deg, rgba(8,145,178,0.14), rgba(124,58,237,0.16));
-            border-color: rgba(79,70,229,0.40);
         }
     </style>
 
@@ -573,36 +495,12 @@
                 </p>
             </div>
 
-            {{-- payment instructions — collapsed accordion. Customer
-                 expands to view wallet / InstaPay numbers. --}}
-            <details class="pay-details">
-                <summary>
-                    <span class="pay-icon" aria-hidden="true">💳</span>
-                    <span class="pay-meta">
-                        <span class="pay-title" data-i18n="form_pay_title">تعليمات الدفع</span>
-                        <span class="pay-sub">
-                            <span data-i18n="form_pay_sub_a">حوّل</span>
-                            <span class="text-[color:var(--prism-gold)] font-bold">{{ $showTime->ticket_price }} <span data-i18n="shows_egp">جنيه</span></span>
-                            <span data-i18n="form_pay_sub_b">واضغط للعرض</span>
-                        </span>
-                    </span>
-                    <span class="pay-chev" aria-hidden="true">▾</span>
-                </summary>
-                <div class="pay-body">
-                    @if (!empty($transferWallet))
-                        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl p-2.5">
-                            <p class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="pay_wallet">📱 محفظة</p>
-                            <p class="text-sm font-bold text-[color:var(--prism-text)]" dir="ltr">{{ $transferWallet }}</p>
-                        </div>
-                    @endif
-                    @if (!empty($transferInsta))
-                        <div class="bg-white/[0.04] border border-[color:var(--prism-border)] rounded-xl p-2.5">
-                            <p class="text-[10px] text-[color:var(--prism-text-3)]" data-i18n="pay_insta">⚡ InstaPay</p>
-                            <p class="text-sm font-bold text-[color:var(--prism-text)]" dir="ltr">{{ $transferInsta }}</p>
-                        </div>
-                    @endif
-                </div>
-            </details>
+            {{-- payment instructions — wallet-only. Single official
+                 payment method shown prominently with a copy button. --}}
+            @include('partials._wallet_payment', [
+                'transferWallet' => $transferWallet,
+                'amount'         => $showTime->ticket_price,
+            ])
 
         </div>
 

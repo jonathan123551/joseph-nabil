@@ -319,61 +319,6 @@
             background: rgba(254,243,199,0.4);
         }
 
-        /* Visible payment-instructions block — simple, lightweight, always
-           expanded. Single glass shell with a one-line heading and the
-           wallet / InstaPay copy rows underneath. No toggle, no accordion. */
-        [data-anba-form] .pay-block {
-            background: rgba(255,255,255,0.025);
-            border: 1px solid var(--prism-border);
-            border-radius: 16px;
-            padding: 14px 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        [data-anba-form] .pay-block .pay-head {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 0;
-        }
-        [data-anba-form] .pay-block .pay-icon {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 28px; height: 28px;
-            border-radius: 9px;
-            background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(192,132,252,0.18));
-            border: 1px solid rgba(129,140,248,0.4);
-            font-size: 14px;
-            flex-shrink: 0;
-        }
-        [data-anba-form] .pay-block .pay-title {
-            display: block;
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--prism-text);
-            line-height: 1.3;
-        }
-        [data-anba-form] .pay-block .pay-amount {
-            color: var(--prism-gold);
-            font-weight: 800;
-        }
-        [data-anba-form] .pay-block .pay-rows {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        [data-anba-form] .pay-block .pay-row {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid var(--prism-border);
-            border-radius: 12px;
-            padding: 10px 12px;
-        }
-        [data-anba-form] .pay-block .pay-row-label {
-            display: block;
-            font-size: 10px;
-            color: var(--prism-text-3);
-            margin-bottom: 4px;
-        }
 
         /* Single-shell attendee container — Stripe-checkout simplicity:
            cards stack inside one glass shell with a thin divider between
@@ -611,19 +556,6 @@
         :root[data-pt-theme="light"] [data-anba-form] .summary-pill .seats-count { color: #0f172a; }
         :root[data-pt-theme="light"] [data-anba-form] .summary-pill .amount { color: #b45309; }
         :root[data-pt-theme="light"] [data-anba-form] .summary-pill .dot { background: rgba(180,83,9,0.45); }
-        :root[data-pt-theme="light"] [data-anba-form] .pay-block {
-            background: rgba(255,255,255,0.72);
-            border-color: rgba(15,23,42,0.14);
-        }
-        :root[data-pt-theme="light"] [data-anba-form] .pay-block .pay-icon {
-            background: linear-gradient(135deg, rgba(8,145,178,0.14), rgba(124,58,237,0.16));
-            border-color: rgba(79,70,229,0.40);
-        }
-        :root[data-pt-theme="light"] [data-anba-form] .pay-block .pay-amount { color: #b45309; }
-        :root[data-pt-theme="light"] [data-anba-form] .pay-block .pay-row {
-            background: rgba(15,23,42,0.04);
-            border-color: rgba(15,23,42,0.10);
-        }
         :root[data-pt-theme="light"] [data-anba-form] .attendee-stack {
             background: rgba(255,255,255,0.70);
             border-color: rgba(15,23,42,0.12);
@@ -738,48 +670,9 @@
             </div>
         </div>
 
-        {{-- payment info — visible, simple, always-expanded block. One
-             clear instruction line + the wallet / InstaPay copy rows. --}}
-        @if (!empty($transferWallet) || !empty($transferInsta))
-            <div class="pay-block">
-                <div class="pay-head">
-                    <span class="pay-icon" aria-hidden="true">💳</span>
-                    <span class="pay-title">
-                        <span data-i18n="form_pay_instruction_a">حوّل</span>
-                        <span class="pay-amount"><span data-form-total-inline>0</span> <span data-i18n="shows_egp">جنيه</span></span>
-                        <span data-i18n="form_pay_instruction_b">على InstaPay أو المحفظة</span>
-                    </span>
-                </div>
-                <div class="pay-rows">
-                    @if (!empty($transferWallet))
-                        <div class="pay-row">
-                            <span class="pay-row-label" data-i18n="pay_wallet">📱 محفظة</span>
-                            <button type="button"
-                                    class="prism-copyable w-full justify-between text-sm tracking-wide"
-                                    data-pt-copy="{{ $transferWallet }}"
-                                    data-i18n-attr="aria-label:copy_aria"
-                                    aria-label="نسخ">
-                                <span dir="ltr">{{ $transferWallet }}</span>
-                                <span class="copy-icon" aria-hidden="true">⧉</span>
-                            </button>
-                        </div>
-                    @endif
-                    @if (!empty($transferInsta))
-                        <div class="pay-row">
-                            <span class="pay-row-label" data-i18n="pay_insta">⚡ InstaPay</span>
-                            <button type="button"
-                                    class="prism-copyable w-full justify-between text-sm tracking-wide"
-                                    data-pt-copy="{{ $transferInsta }}"
-                                    data-i18n-attr="aria-label:copy_aria"
-                                    aria-label="نسخ">
-                                <span dir="ltr">{{ $transferInsta }}</span>
-                                <span class="copy-icon" aria-hidden="true">⧉</span>
-                            </button>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        @endif
+        {{-- payment info — wallet-only. One clear, prominent payment
+             method with the official wallet number + a large copy button. --}}
+        @include('partials._wallet_payment', ['transferWallet' => $transferWallet])
 
         {{-- the actual form --}}
         <div class="prism-glass p-5 sm:p-6 space-y-5">
