@@ -206,9 +206,6 @@
 
     <ul class="wallet-pay-points">
         <li data-i18n="pay_only_method">✅ التحويل يتم على رقم المحفظة فقط</li>
-        <li data-i18n="pay_official_number">✅ هذا هو رقم الدفع الرسمي الوحيد</li>
-        <li data-i18n="pay_no_other_number">✅ لا تقم بالتحويل إلى أي رقم آخر</li>
-        <li data-i18n="pay_reviewed">✅ جميع التحويلات يتم مراجعتها وتأكيدها بعد الإرسال</li>
     </ul>
 
     <div class="wallet-pay-number-card">
