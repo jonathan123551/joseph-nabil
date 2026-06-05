@@ -19,7 +19,6 @@
     'balconyPrice'     => $balconyPrice ?? 0,
     'hallPrice'        => $hallPrice ?? 0,
     'transferWallet'   => $transferWallet ?? '',
-    'transferInsta'    => $transferInsta ?? '',
     'fullscreen'       => true,
 ])
 

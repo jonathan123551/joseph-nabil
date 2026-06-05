@@ -991,24 +991,13 @@
                 <form action="{{ route('admin.settings.payments.update') }}" method="POST" class="space-y-3 text-sm">
                     @csrf
 
-                    <div class="grid sm:grid-cols-2 gap-3">
-                        <div class="space-y-1">
-                            <label class="prism-eyebrow" data-i18n="adm_payments_wallet">رقم المحفظة</label>
-                            <input type="text"
-                                   name="transfer_wallet"
-                                   value="{{ old('transfer_wallet', $transferWallet) }}"
-                                   class="prism-input text-sm"
-                                   placeholder="010xxxxxxxx">
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="prism-eyebrow">InstaPay</label>
-                            <input type="text"
-                                   name="transfer_insta"
-                                   value="{{ old('transfer_insta', $transferInsta) }}"
-                                   class="prism-input text-sm"
-                                   placeholder="name@instapay">
-                        </div>
+                    <div class="space-y-1">
+                        <label class="prism-eyebrow" data-i18n="adm_payments_wallet">رقم المحفظة</label>
+                        <input type="text"
+                               name="transfer_wallet"
+                               value="{{ old('transfer_wallet', $transferWallet) }}"
+                               class="prism-input text-sm"
+                               placeholder="010xxxxxxxx">
                     </div>
 
                     <div class="flex items-center justify-between gap-2 pt-2">

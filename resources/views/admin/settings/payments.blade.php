@@ -44,16 +44,6 @@
             </p>
         </div>
 
-        <div>
-            <label class="block text-xs mb-1.5 text-[color:var(--prism-text-2)]" data-i18n="adm_pay_insta_label">حساب InstaPay (اختياري)</label>
-            <input type="text" name="transfer_insta"
-                   value="{{ old('transfer_insta', $transferInsta) }}"
-                   class="prism-input text-sm">
-            <p class="text-[11px] text-[color:var(--prism-text-3)] mt-1.5" data-i18n="adm_pay_insta_hint">
-                مثلاً: EGxxxxxxxxxx أو email@domain.com
-            </p>
-        </div>
-
         <button type="submit" class="prism-btn mt-2">
             <span data-i18n="adm_pay_save">حفظ الإعدادات</span>
             <span aria-hidden="true" class="pt-arrow-rtl">←</span>

@@ -231,7 +231,6 @@
     'balconyPrice'     => 0,
     'hallPrice'        => 0,
     'transferWallet'   => '',
-    'transferInsta'    => '',
     'fullscreen'       => true,
     'adminMode'        => true,
     'bulkToggleUrl'    => route('admin.show-times.seats.bulk-toggle', $showTime),
