@@ -205,7 +205,7 @@
     <span class="wallet-pay-method" data-i18n="pay_wallet_method">💳 المحفظة الإلكترونية</span>
 
     <ul class="wallet-pay-points">
-        <li data-i18n="pay_only_method">✅ التحويل يتم على رقم المحفظة فقط</li>
+        <li data-i18n="pay_only_method">  يرجي التحويل على رقم المحفظة فقط و ليس انستاباي‼️</li>
     </ul>
 
     <div class="wallet-pay-number-card">
