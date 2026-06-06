@@ -6,7 +6,7 @@
             ar: {
                 /* ===== brand / nav / footer / theme / lang chrome ===== */
                 brand: 'العابد', brand_tag: '',
-                nav_home: 'الرئيسية', nav_shows: 'العروض', nav_admin: 'لوحة التحكم', nav_logout: 'تسجيل الخروج',
+                nav_home: 'الرئيسية', nav_shows: 'العروض', nav_admin: 'لوحة التحكم',
                 foot_fast: 'حجز فوري', foot_secure: 'دفع آمن', foot_qr: 'QR على واتساب',
                 foot_about: 'منصة حجز تذاكر مسرح مصرية، مصممة لتجربة فاخرة وسريعة على الموبايل والديسكتوب.',
                 foot_quick: 'روابط سريعة', foot_legal: 'الدعم',
@@ -947,7 +947,7 @@
             en: {
                 /* ===== brand / nav / footer / theme / lang chrome ===== */
                 brand: 'العابد', brand_tag: '',
-                nav_home: 'Home', nav_shows: 'Shows', nav_admin: 'Admin', nav_logout: 'Logout',
+                nav_home: 'Home', nav_shows: 'Shows', nav_admin: 'Admin',
                 foot_fast: 'Instant booking', foot_secure: 'Secure payment', foot_qr: 'QR via WhatsApp',
                 foot_about: 'Egyptian theater ticketing platform built for a fast, premium experience on mobile and desktop.',
                 foot_quick: 'Quick links', foot_legal: 'Support',
