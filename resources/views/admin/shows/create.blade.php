@@ -1,5 +1,5 @@
 {{-- resources/views/admin/shows/create.blade.php --}}
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'إضافة عرض جديد')
 
