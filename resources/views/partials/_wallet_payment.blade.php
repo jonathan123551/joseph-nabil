@@ -65,10 +65,11 @@
         text-align: start;
     }
     .wallet-pay-points li {
-        font-size: 12.5px;
-        line-height: 1.55;
-        font-weight: 600;
-        color: #d6fae8;
+    font-size: 12.5px;
+    line-height: 1.55;
+    font-weight: 700;
+    color: #ff5a5f;
+    text-shadow: 0 0 10px rgba(255, 90, 95, 0.25);
     }
     .wallet-pay.is-compact .wallet-pay-points li { font-size: 11.5px; }
 
