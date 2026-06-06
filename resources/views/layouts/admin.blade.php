@@ -7,8 +7,8 @@
          A dedicated, minimal admin shell. The public marketing
          navbar / mobile drawer / footer are intentionally absent so
          /admin/* feels like a dashboard, not the storefront. A single
-         slim (~52px) bar carries only the brand, the "لوحة التحكم"
-         label and a logout action — nothing else. --}}
+         slim (~52px) bar carries only the brand and the
+         "لوحة التحكم" label — nothing else. --}}
     <style>
         .adm-bar {
             position: sticky;
@@ -50,35 +50,6 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .adm-bar-spacer { flex: 1 1 auto; }
-        .adm-logout {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            height: 34px;
-            padding: 0 14px;
-            border-radius: 999px;
-            border: 1px solid var(--prism-border-strong, var(--prism-border));
-            background: color-mix(in srgb, var(--prism-rose, #e11d48) 14%, transparent);
-            color: var(--prism-text);
-            font: inherit;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: background .18s var(--prism-ease, ease), border-color .18s ease, transform .12s ease;
-        }
-        .adm-logout:hover {
-            background: color-mix(in srgb, var(--prism-rose, #e11d48) 26%, transparent);
-            border-color: var(--prism-rose, #e11d48);
-        }
-        .adm-logout:active { transform: translateY(1px); }
-        .adm-logout svg { width: 15px; height: 15px; flex: none; }
-        .adm-logout-label { display: inline; }
-        @media (max-width: 380px) {
-            .adm-logout-label { display: none; }
-            .adm-logout { padding: 0 10px; }
-        }
         .adm-main {
             width: 100%;
             max-width: 80rem;
@@ -99,20 +70,6 @@
                  decoding="async">
             <span class="adm-title" data-i18n="nav_admin">لوحة التحكم</span>
         </a>
-
-        <span class="adm-bar-spacer" aria-hidden="true"></span>
-
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-            <button type="submit" class="adm-logout" data-i18n-attr="aria-label:nav_logout" aria-label="تسجيل الخروج">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                    <path d="M16 17l5-5-5-5"/>
-                    <path d="M21 12H9"/>
-                </svg>
-                <span class="adm-logout-label" data-i18n="nav_logout">تسجيل الخروج</span>
-            </button>
-        </form>
     </header>
 
     {{-- ============== Main ============== --}}
