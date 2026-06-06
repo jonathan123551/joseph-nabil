@@ -10,7 +10,7 @@
     $bkPending  = $bookings->where('status', 'pending')->count();
     $bkApproved = $bookings->where('status', 'approved')->count();
     $bkRejected = $bookings->where('status', 'rejected')->count();
-    $bkTickets  = $bookings->where('status', 'approved')->sum('tickets_count');
+    $bkTickets  = (int) $bookings->where('status', 'approved')->sum('tickets_count');
     $bkRevenue  = (int) $bookings->where('status', 'approved')->sum('total_price');
     // Aggregate bulk-discount savings across approved bookings. Uses
     // the persisted discount_amount column so it always matches what
@@ -147,13 +147,14 @@
                         $dt = $booking->showTime
                             ? $booking->showTime->date->format('Y-m-d').' '.$booking->showTime->time
                             : '';
-                        $allSent = $booking->tickets->every(fn($t) => $t->whatsapp_sent);
-                        $total   = $booking->tickets->count();
-                        $sent    = $booking->tickets->where('whatsapp_sent', true)->count();
+                        $total   = (int) $booking->tickets_count;
+                        $sent    = (int) $booking->tickets_sent_count;
+                        $allSent = $total > 0 && $sent === $total;
+                        $bookingTime = $booking->created_at ? $booking->created_at->format('g:i A') : '';
                     @endphp
                     <tr class="booking-row hover:bg-[color:var(--prism-surface-hover)] cursor-pointer transition-colors duration-200"
                         onclick="window.location='{{ route('admin.bookings.show', $booking) }}'"
-                        data-search="{{ strtolower($booking->full_name.' '.$booking->phone.' '.$booking->reference_code) }}"
+                        data-search="{{ strtolower($booking->full_name.' '.$booking->phone.' '.$booking->reference_code.' '.$bookingTime) }}"
                         data-status="{{ $booking->status }}"
                         data-datetime="{{ $dt }}">
                         
@@ -179,6 +180,11 @@
                                                        : ($booking->status==='rejected' ? 'prism-pill-rose' : 'prism-pill-sky') }}">
                                 {{ $booking->status }}
                             </span>
+                            @if($bookingTime)
+                            <div class="mt-1 text-[10px] text-[color:var(--prism-text-3)] font-medium" dir="ltr">
+                                🕒 {{ $bookingTime }}
+                            </div>
+                            @endif
                         </td>
 
                         <td class="align-middle text-center">
@@ -212,13 +218,14 @@
                 $dt = $booking->showTime
                     ? $booking->showTime->date->format('Y-m-d').' '.$booking->showTime->time
                     : '';
-                $allSent = $booking->tickets->every(fn($t) => $t->whatsapp_sent);
-                $total   = $booking->tickets->count();
-                $sent    = $booking->tickets->where('whatsapp_sent', true)->count();
+                $total   = (int) $booking->tickets_count;
+                $sent    = (int) $booking->tickets_sent_count;
+                $allSent = $total > 0 && $sent === $total;
+                $bookingTime = $booking->created_at ? $booking->created_at->format('g:i A') : '';
             @endphp
 
             <div class="prism-glass prism-card-hover p-4 text-xs booking-card prism-fade-up relative overflow-hidden"
-                 data-search="{{ strtolower($booking->full_name.' '.$booking->phone.' '.$booking->reference_code) }}"
+                 data-search="{{ strtolower($booking->full_name.' '.$booking->phone.' '.$booking->reference_code.' '.$bookingTime) }}"
                  data-status="{{ $booking->status }}"
                  data-datetime="{{ $dt }}">
                  
@@ -246,12 +253,19 @@
                     </div>
                 </div>
 
-                {{-- BOTTOM ROW: Status, Tickets, Delivery --}}
+                {{-- BOTTOM ROW: Status, Booking Time, Tickets, Delivery --}}
                 <div class="flex items-center justify-between gap-2 relative z-0 pt-3" style="border-top: 1px solid rgba(255,255,255,0.05);">
-                    <span class="prism-pill {{ $booking->status==='approved' ? 'prism-pill-emerald'
-                                               : ($booking->status==='rejected' ? 'prism-pill-rose' : 'prism-pill-sky') }}">
-                        {{ $booking->status }}
-                    </span>
+                    <div class="flex flex-col gap-1">
+                        <span class="prism-pill {{ $booking->status==='approved' ? 'prism-pill-emerald'
+                                                   : ($booking->status==='rejected' ? 'prism-pill-rose' : 'prism-pill-sky') }}">
+                            {{ $booking->status }}
+                        </span>
+                        @if($bookingTime)
+                        <span class="text-[10px] text-[color:var(--prism-text-3)] font-medium" dir="ltr">
+                            🕒 {{ $bookingTime }}
+                        </span>
+                        @endif
+                    </div>
                     
                     <div class="flex items-center gap-3">
                         <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1" style="background: rgba(251,191,36,0.1); color: var(--prism-gold);">
@@ -315,10 +329,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (empty) empty.style.display = (visible === 0 && items.length > 0) ? '' : 'none';
     }
 
-    [search, dt].forEach(i=>{
-        i.addEventListener('input',filter);
-        i.addEventListener('change',filter);
-    });
+    // Debounce helper — delays execution until input pauses for `ms`.
+    // Prevents excessive DOM re-filtering on every keystroke when there
+    // are hundreds of booking rows / cards.
+    let debounceTimer;
+    function debouncedFilter() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(filter, 250);
+    }
+
+    search.addEventListener('input', debouncedFilter);
+    dt.addEventListener('change', filter);
     statusRadios.forEach(r => r.addEventListener('change', filter));
 
     if (reset) reset.addEventListener('click', () => {

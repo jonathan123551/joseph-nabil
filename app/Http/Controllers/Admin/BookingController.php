@@ -29,12 +29,15 @@ class BookingController extends Controller
 
     public function index(Request $request)
     {
-        // Eager-load tickets + each ticket's bookingSeat so the admin index
-        // can render "name — section row+number" inline without N+1 queries.
-        $bookings = Booking::with([
-            'showTime.show',
-            'tickets.bookingSeat',
-        ])
+        // The index page only needs ticket *counts* (total + sent) — not
+        // the full ticket rows or their seat assignments.  withCount adds
+        // two cheap SQL sub-selects instead of hydrating thousands of
+        // Ticket + BookingSeat models that the Blade loop never reads.
+        $bookings = Booking::with(['showTime.show'])
+            ->withCount([
+                'tickets',
+                'tickets as tickets_sent_count' => fn ($q) => $q->where('whatsapp_sent', true),
+            ])
             ->latest()
             ->get();
 
