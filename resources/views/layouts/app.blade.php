@@ -209,11 +209,6 @@
                    ── · ──                                 ← thin hairline ornament
                    Jonathan Maged · © 2026                 ← cream wordmark (LTR)
                    ENGINEERED FOR CINEMATIC EXPERIENCES    ← craft signature (no name)
-                   ⚆ Contact                               ← icon + word only
-
-                 The phone number stays in the href + aria-label so the
-                 action is still tappable + screen-reader accessible,
-                 but it doesn't clutter the visual signature.
             ============================================================ --}}
             <div class="pt-foot-sig"
                  style="border-top: 1px solid var(--prism-border);">
@@ -249,27 +244,6 @@
                      tracking. Implies the developer role without repeating
                      the name (which already sits above as the wordmark). --}}
                 <p class="pt-foot-sig-sub" dir="ltr">Engineered for cinematic experiences</p>
-
-                {{-- Contact action — quiet inline text-link, NOT a pill.
-                     Tiny outlined WhatsApp glyph + single 'Contact' label.
-                     No arrow, no Arabic label, no visible phone number
-                     — the phone number lives in the href + aria-label so
-                     it's still tappable + accessible. --}}
-                <a class="pt-foot-sig-link"
-                   href="https://wa.me/201222356357"
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   aria-label="Contact the developer via WhatsApp at 01222356357">
-                    <span class="pt-foot-sig-link-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" width="13" height="13"
-                             fill="none" stroke="currentColor" stroke-width="1.5"
-                             stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.37 0 0 5.37 0 12c0 2.11.55 4.17 1.6 5.98L0 24l6.18-1.62A11.93 11.93 0 0 0 12 24c6.63 0 12-5.37 12-12 0-3.2-1.25-6.21-3.48-8.52z"/>
-                            <path d="M17.43 14.45c-.28-.14-1.66-.82-1.92-.91-.26-.1-.45-.14-.64.14-.19.28-.74.91-.9 1.1-.17.19-.33.21-.61.07-.28-.14-1.19-.44-2.27-1.4-.84-.75-1.4-1.67-1.57-1.95-.16-.28-.02-.43.12-.57.13-.13.28-.33.42-.49.14-.16.19-.28.28-.47.09-.19.05-.35-.02-.49-.07-.14-.64-1.55-.88-2.12-.23-.55-.46-.48-.64-.49h-.55c-.19 0-.49.07-.75.35-.26.28-.99.97-.99 2.36 0 1.39 1.01 2.74 1.15 2.93.14.19 1.99 3.04 4.83 4.27.67.29 1.2.46 1.61.59.68.22 1.29.19 1.78.12.54-.08 1.66-.68 1.89-1.34.23-.66.23-1.22.16-1.34-.07-.12-.26-.19-.54-.33z"/>
-                        </svg>
-                    </span>
-                    <span class="pt-foot-sig-link-label" dir="ltr">Contact</span>
-                </a>
             </div>
         </div>
     </footer>

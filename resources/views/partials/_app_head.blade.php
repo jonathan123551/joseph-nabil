@@ -4503,51 +4503,6 @@
             opacity: 0.58;
         }
 
-        /* Contact action — quiet inline text-link, NO pill chrome.
-           Tiny outlined WhatsApp glyph + single 'Contact' word —
-           no arrow, no Arabic label, no decorative wording.
-           Hover lifts the gold accents without adding any chrome. */
-        .pt-foot-sig-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 10px;
-            padding: 6px 4px;
-            color: var(--prism-text-3);
-            text-decoration: none;
-            font-family: "Space Grotesk", system-ui, sans-serif;
-            font-size: 13px;
-            font-weight: 500;
-            letter-spacing: 0.04em;
-            transition:
-                color .22s var(--prism-ease),
-                opacity .22s var(--prism-ease);
-            -webkit-tap-highlight-color: transparent;
-        }
-        .pt-foot-sig-link-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: rgba(251,191,36,0.72);
-            opacity: 0.85;
-            transition: color .22s var(--prism-ease),
-                        opacity .22s var(--prism-ease);
-        }
-        @media (hover: hover) {
-            .pt-foot-sig-link:hover {
-                color: var(--prism-text);
-            }
-            .pt-foot-sig-link:hover .pt-foot-sig-link-icon {
-                opacity: 1;
-                color: #fbbf24;
-            }
-        }
-        .pt-foot-sig-link:focus-visible {
-            outline: 2px solid rgba(251,191,36,0.45);
-            outline-offset: 4px;
-            border-radius: 4px;
-        }
-
         /* Mobile: slightly tighter rhythm so the stamp doesn't crowd
            the iOS home indicator, but still keeps generous breathing
            room compared to the previous denser version. */
@@ -4558,12 +4513,6 @@
                 gap: 14px;
             }
             .pt-foot-sig-ornament { width: clamp(100px, 32vw, 160px); }
-            .pt-foot-sig-link { margin-top: 8px; }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            .pt-foot-sig-link,
-            .pt-foot-sig-link-icon { transition: none; }
         }
 
         /* Light-mode — gold accents shift to deeper amber on cream
@@ -4577,14 +4526,6 @@
                 transparent 0%,
                 rgba(180,83,9,0.32) 50%,
                 transparent 100%);
-        }
-        :root[data-pt-theme="light"] .pt-foot-sig-link-icon {
-            color: rgba(180,83,9,0.72);
-        }
-        @media (hover: hover) {
-            :root[data-pt-theme="light"] .pt-foot-sig-link:hover .pt-foot-sig-link-icon {
-                color: #b45309;
-            }
         }
 
         /* iOS-safe: ensure content uses small viewport units when needed */
