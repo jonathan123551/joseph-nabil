@@ -43,11 +43,31 @@ class SendWhatsAppTicketImageJob implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    public int $tries = 3;
+    public int $tries = 5;
+
+    /**
+     * Hard per-attempt timeout. Kept below the queue connection's
+     * retry_after (180s) so a stuck attempt is reaped and retried rather
+     * than running past the point where the queue would re-reserve it.
+     */
+    public int $timeout = 120;
+
+    /**
+     * Meta error codes that are permanent for this recipient/message — no
+     * point spending the retry budget on them.
+     */
+    private const PERMANENT_ERRORS = [131026, 131047, 131053];
+
+    /**
+     * Meta rate-limit / throttle codes. These are transient but must be
+     * retried on a LONG backoff so we don't keep hitting Meta inside the
+     * same throttle window.
+     */
+    private const THROTTLE_ERRORS = [4, 80007, 130429, 131048, 131056];
 
     public function backoff(): array
     {
-        return [5, 15, 60];
+        return [15, 60, 180, 300];
     }
 
     public function __construct(public int $ticketId) {}
@@ -56,10 +76,26 @@ class SendWhatsAppTicketImageJob implements ShouldQueue
     {
         // Atomic claim. If another worker / retry already owns or finished
         // this ticket, $claimed is 0 and we stop — no duplicate send.
+        //
+        // We also re-acquire rows stranded in 'sending': a worker killed
+        // mid-send (timeout / OOM / redeploy) never runs failed(), so the
+        // row would otherwise be stuck forever and unreachable by both the
+        // queue retry and a fresh tap. Only 'sending' rows older than the
+        // stale window are eligible — that window is larger than the job
+        // timeout + retry_after, so such a row is guaranteed to be a dead
+        // attempt, never a live one (no risk of a duplicate send).
+        $staleBefore = now()->subSeconds((int) config('whatsapp.sending_stale_after', 300));
+
         $claimed = Ticket::where('id', $this->ticketId)
             ->where('whatsapp_sent', false)
-            ->whereIn('delivery_status', ['pending', 'failed'])
-            ->update(['delivery_status' => 'sending']);
+            ->where(function ($q) use ($staleBefore) {
+                $q->whereIn('delivery_status', ['pending', 'failed'])
+                    ->orWhere(function ($stale) use ($staleBefore) {
+                        $stale->where('delivery_status', 'sending')
+                            ->where('updated_at', '<', $staleBefore);
+                    });
+            })
+            ->update(['delivery_status' => 'sending', 'updated_at' => now()]);
 
         if ($claimed === 0) {
             Log::info('SendWhatsAppTicketImageJob: not claimable (already sent / in-flight)', [
@@ -99,6 +135,14 @@ class SendWhatsAppTicketImageJob implements ShouldQueue
             $ticket->refresh();
         }
 
+        // Light pacing between outbound sends. The single-concurrency worker
+        // turns this into real spacing between successive Meta calls, which
+        // keeps large bookings (e.g. 50 tickets in one tap) under Meta's
+        // burst limits without the old full 1s-per-ticket wait.
+        if (($pacingMs = (int) config('whatsapp.send_pacing_ms', 350)) > 0) {
+            usleep($pacingMs * 1000);
+        }
+
         $response = $delivery->sendImage($ticket);
 
         if ($response->successful() && ! $response->json('error')) {
@@ -114,7 +158,8 @@ class SendWhatsAppTicketImageJob implements ShouldQueue
         // 24h window (131047), media download error (131053). Don't burn the
         // retry budget — fail now, leaving whatsapp_sent=false for a resend.
         $errorCode = $response->json('error.code');
-        $permanent = in_array($errorCode, [131026, 131047, 131053], true);
+        $permanent = in_array($errorCode, self::PERMANENT_ERRORS, true);
+        $throttled = in_array($errorCode, self::THROTTLE_ERRORS, true);
 
         $ticket->update(['delivery_status' => 'failed']);
 
@@ -126,8 +171,29 @@ class SendWhatsAppTicketImageJob implements ShouldQueue
             return;
         }
 
-        // Retryable — throw so the worker schedules the next attempt. The
-        // row is back at 'failed', so the retry (or a fresh tap) re-claims it.
+        // Meta is rate-limiting us. Release with a long, escalating delay
+        // (not the short default backoff) so retries land AFTER the throttle
+        // window clears instead of hammering inside it. The row is back at
+        // 'failed', so it stays claimable for the released retry.
+        if ($throttled) {
+            $delays = (array) config('whatsapp.throttle_backoff', [60, 180, 300, 300]);
+            $delay = $delays[$this->attempts() - 1] ?? end($delays);
+
+            Log::warning('SendWhatsAppTicketImageJob: throttled by Meta — releasing', [
+                'ticket_id' => $this->ticketId,
+                'error_code' => $errorCode,
+                'attempt' => $this->attempts(),
+                'release_in' => $delay,
+            ]);
+
+            $this->release($delay);
+
+            return;
+        }
+
+        // Other retryable failure — throw so the worker schedules the next
+        // attempt via backoff(). The row is back at 'failed', so the retry
+        // (or a fresh tap) re-claims it.
         throw new \RuntimeException(
             'WhatsApp image send failed (status '.$response->status().'): '.$response->body()
         );
