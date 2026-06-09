@@ -25,6 +25,7 @@ class Ticket extends Model
         // pending | sending | sent | failed. See the
         // 2026_05_30 add_delivery_status migration + SendWhatsAppTicketImageJob.
         'delivery_status',
+        'wamid',
     ];
 
     public function booking(): BelongsTo
