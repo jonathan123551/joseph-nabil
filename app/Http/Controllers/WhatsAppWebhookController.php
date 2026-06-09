@@ -47,6 +47,39 @@ class WhatsAppWebhookController extends Controller
         Log::info('WEBHOOK HIT', $request->all());
         Log::info('WEBHOOK RAW', ['raw' => $request->getContent()]);
 
+        $statuses = $request->input('entry.0.changes.0.value.statuses.0');
+        if ($statuses && isset($statuses['id'])) {
+            $wamid = $statuses['id'];
+            $status = $statuses['status'] ?? null;
+
+            Log::info('WEBHOOK STATUS', [
+                'wamid' => $wamid,
+                'status' => $status,
+                'errors' => $statuses['errors'] ?? null,
+            ]);
+
+            $ticket = Ticket::where('wamid', $wamid)->first();
+            if ($ticket) {
+                if ($status === 'delivered') {
+                    $ticket->update([
+                        'whatsapp_sent' => true,
+                        'delivery_status' => 'delivered',
+                    ]);
+                } elseif ($status === 'failed') {
+                    $ticket->update([
+                        'whatsapp_sent' => false,
+                        'delivery_status' => 'failed',
+                    ]);
+                } elseif ($status === 'read') {
+                    $ticket->update([
+                        'delivery_status' => 'read',
+                    ]);
+                }
+            }
+
+            return response()->json(['ok' => true]);
+        }
+
         $message = $request->input('entry.0.changes.0.value.messages.0');
 
         if (! $message || ! isset($message['from'])) {

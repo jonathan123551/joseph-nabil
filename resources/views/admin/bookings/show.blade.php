@@ -88,14 +88,36 @@
                             </div>
 
                             <div class="flex items-center gap-2 flex-shrink-0">
+                                @php
+                                    $isDelivered = $ticket->delivery_status === 'delivered' || $ticket->delivery_status === 'read' || ($ticket->delivery_status === 'sent' && $ticket->whatsapp_sent);
+                                    $isSending = $ticket->delivery_status === 'sending' || ($ticket->delivery_status === 'sent' && !$ticket->whatsapp_sent);
+                                    $isFailed = $ticket->delivery_status === 'failed';
+                                    
+                                    if ($isDelivered) {
+                                        $statusColor = 'var(--prism-emerald)';
+                                        $statusShadow = 'rgba(52,211,153,0.7)';
+                                        $statusText = 'تم الاستلام';
+                                    } elseif ($isSending) {
+                                        $statusColor = 'var(--prism-sky)';
+                                        $statusShadow = 'rgba(14,165,233,0.7)';
+                                        $statusText = 'قيد الإرسال';
+                                    } elseif ($isFailed) {
+                                        $statusColor = 'var(--prism-rose)';
+                                        $statusShadow = 'rgba(244,63,94,0.7)';
+                                        $statusText = 'فشل الإرسال';
+                                    } else {
+                                        $statusColor = 'var(--prism-rose)';
+                                        $statusShadow = 'rgba(244,63,94,0.7)';
+                                        $statusText = 'لم يستلم';
+                                    }
+                                @endphp
                                 <span class="w-2 h-2 rounded-full"
-                                      style="background: {{ $ticket->whatsapp_sent ? 'var(--prism-emerald)' : 'var(--prism-rose)' }};
-                                             box-shadow: 0 0 8px {{ $ticket->whatsapp_sent ? 'rgba(52,211,153,0.7)' : 'rgba(251,113,133,0.7)' }};"></span>
+                                      style="background: {{ $statusColor }};
+                                             box-shadow: 0 0 8px {{ $statusShadow }};"></span>
 
                                 <span class="text-[10px]"
-                                      data-i18n="{{ $ticket->whatsapp_sent ? 'adm_bk_received' : 'adm_bk_not_received' }}"
-                                      style="color: {{ $ticket->whatsapp_sent ? 'var(--prism-emerald)' : 'var(--prism-rose)' }};">
-                                    {{ $ticket->whatsapp_sent ? 'تم الاستلام' : 'لم يستلم' }}
+                                      style="color: {{ $statusColor }};">
+                                    {{ $statusText }}
                                 </span>
                             </div>
                         </div>

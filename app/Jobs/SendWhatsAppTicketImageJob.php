@@ -102,8 +102,9 @@ class SendWhatsAppTicketImageJob implements ShouldQueue
         $response = $delivery->sendImage($ticket);
 
         if ($response->successful() && ! $response->json('error')) {
+            $wamid = $response->json('messages.0.id');
             $ticket->update([
-                'whatsapp_sent' => true,
+                'wamid' => $wamid,
                 'delivery_status' => 'sent',
             ]);
 
