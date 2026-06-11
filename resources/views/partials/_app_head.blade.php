@@ -43,7 +43,19 @@
     <link rel="shortcut icon" href="{{ asset('favicon.ico') }}?v=3">
     <link rel="manifest" href="{{ asset('site.webmanifest') }}?v=3">
 
-    {{-- Social / OG branding (consumed by WhatsApp, Twitter, etc.) --}}
+    {{-- Social / OG branding (consumed by WhatsApp, Twitter, Facebook, etc.) --}}
+    @php
+        // Hardening Open Graph canonical identity to prevent Facebook cache fragmentation
+        $ogTitle = trim($__env->yieldContent('title', 'العابد'));
+        $ogUrl = rtrim(url()->current(), '/');
+    @endphp
+
+    <link rel="canonical" href="{{ $ogUrl }}">
+    <meta property="og:url" content="{{ $ogUrl }}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="العابد">
+    <meta property="og:title" content="{{ $ogTitle }}">
+    <meta property="og:description" content="@yield('description', 'نظام حجز وتذاكر العابد')">
     <meta property="og:image" content="{{ asset('brand/og-image.png') }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
