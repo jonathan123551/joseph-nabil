@@ -16,6 +16,7 @@ use Cloudinary\Configuration\Configuration;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -182,11 +183,26 @@ class BookingController extends Controller
     // ================= STORE =================
     public function store(Request $request, ShowTime $showTime)
     {
+        $requestId = (string) Str::uuid();
+        $request->merge(['request_id' => $requestId]);
+
+        Log::info('BOOKING_ATTEMPT_START', [
+            'request_id' => $requestId,
+            'show_time_id' => $showTime->id,
+            'ip' => $request->ip(),
+            'phones' => $request->phones,
+            'seat_ids' => $request->seat_ids,
+        ]);
+
         $lockKey = 'booking_lock_'.sha1(
             $request->ip().json_encode($request->phones ?? []).$showTime->id
         );
 
         if (! Cache::add($lockKey, true, 20)) {
+            Log::warning('BOOKING_CACHE_LOCK_REJECTED', [
+                'request_id' => $requestId,
+                'lock_key' => $lockKey
+            ]);
             return back()->withErrors([
                 'general' => '⏳ الطلب قيد المعالجة بالفعل',
             ])->withInput();
@@ -210,13 +226,22 @@ class BookingController extends Controller
     private function storeManual(Request $request, ShowTime $showTime)
     {
         // ✅ VALIDATION
-        $request->validate([
-            'names' => ['required', 'array'],
-            'names.*' => ['required', 'string', 'max:255'],
-            'phones' => ['required', 'array'],
-            'phones.*' => ['required', 'string', 'min:8', 'max:20'],
-            'payment_screenshot' => 'required|image|max:20480',
-        ]);
+        try {
+            $request->validate([
+                'names' => ['required', 'array'],
+                'names.*' => ['required', 'string', 'max:255'],
+                'phones' => ['required', 'array'],
+                'phones.*' => ['required', 'string', 'min:8', 'max:20'],
+                'payment_screenshot' => 'required|image|max:20480',
+            ]);
+            Log::info('BOOKING_VALIDATION_PASSED', ['request_id' => $request->request_id]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::warning('BOOKING_VALIDATION_FAILED', [
+                'request_id' => $request->request_id,
+                'errors' => $e->errors()
+            ]);
+            throw $e;
+        }
 
         // 🔥 حساب التذاكر المتاحة
         $reserved = $showTime->bookings()
@@ -229,6 +254,12 @@ class BookingController extends Controller
 
         // ❌ منع الحجز لو أكتر من المتاح
         if ($ticketsCount > $remaining) {
+            Log::warning('BOOKING_CAPACITY_REJECTED', [
+                'request_id' => $request->request_id,
+                'reason' => 'requested more than remaining',
+                'requested' => $ticketsCount,
+                'remaining' => $remaining
+            ]);
             return back()->withErrors([
                 'general' => '❌ المتاح فقط: '.$remaining.' تذاكر',
             ])->withInput();
@@ -236,6 +267,10 @@ class BookingController extends Controller
 
         // ❌ لو خلصت
         if ($remaining <= 0) {
+            Log::warning('BOOKING_CAPACITY_REJECTED', [
+                'request_id' => $request->request_id,
+                'reason' => 'sold out'
+            ]);
             return back()->withErrors([
                 'general' => '❌ لا توجد تذاكر متاحة',
             ])->withInput();
@@ -254,6 +289,8 @@ class BookingController extends Controller
             (int) $showTime->ticket_price,
             $ticketsCount
         );
+
+        Log::info('BOOKING_DB_TRANSACTION_START', ['request_id' => $request->request_id]);
 
         // ✅ إنشاء الحجز
         $booking = Booking::create([
@@ -281,6 +318,13 @@ class BookingController extends Controller
             ]);
         }
 
+        Log::info('BOOKING_DB_TRANSACTION_COMMIT', ['request_id' => $request->request_id]);
+        Log::info('BOOKING_DB_INSERT_SUCCESS', [
+            'request_id' => $request->request_id,
+            'booking_id' => $booking->id,
+            'reference_code' => $booking->reference_code
+        ]);
+
         return $this->redirectToThankyou($booking);
     }
 
@@ -293,21 +337,34 @@ class BookingController extends Controller
      */
     private function storeSeatBased(Request $request, ShowTime $showTime)
     {
-        $request->validate([
-            'section' => ['required', 'in:'.Theater::SECTION_BALCONY.','.Theater::SECTION_HALL],
-            'seat_ids' => ['required', 'array', 'min:1'],
-            'seat_ids.*' => ['integer'],
-            'names' => ['required', 'array'],
-            'names.*' => ['required', 'string', 'max:255'],
-            'phones' => ['required', 'array'],
-            'phones.*' => ['required', 'string', 'min:8', 'max:20'],
-            'payment_screenshot' => 'required|image|max:20480',
-        ]);
+        try {
+            $request->validate([
+                'section' => ['required', 'in:'.Theater::SECTION_BALCONY.','.Theater::SECTION_HALL],
+                'seat_ids' => ['required', 'array', 'min:1'],
+                'seat_ids.*' => ['integer'],
+                'names' => ['required', 'array'],
+                'names.*' => ['required', 'string', 'max:255'],
+                'phones' => ['required', 'array'],
+                'phones.*' => ['required', 'string', 'min:8', 'max:20'],
+                'payment_screenshot' => 'required|image|max:20480',
+            ]);
+            Log::info('BOOKING_VALIDATION_PASSED', ['request_id' => $request->request_id]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::warning('BOOKING_VALIDATION_FAILED', [
+                'request_id' => $request->request_id,
+                'errors' => $e->errors()
+            ]);
+            throw $e;
+        }
 
         $section = $request->input('section');
         $seatIds = array_values(array_unique(array_map('intval', $request->input('seat_ids', []))));
 
         if (count($request->names) !== count($seatIds)) {
+            Log::warning('BOOKING_VALIDATION_FAILED', [
+                'request_id' => $request->request_id,
+                'reason' => 'names count mismatch'
+            ]);
             return back()->withErrors([
                 'general' => '❌ عدد الأسماء لا يطابق عدد المقاعد المختارة',
             ])->withInput();
@@ -315,6 +372,7 @@ class BookingController extends Controller
 
         $theater = Theater::anbaRuweis();
         if (! $theater) {
+            Log::error('BOOKING_THEATER_NOT_FOUND', ['request_id' => $request->request_id]);
             return back()->withErrors(['general' => '❌ لم يتم إعداد المسرح بعد'])->withInput();
         }
 
@@ -325,6 +383,7 @@ class BookingController extends Controller
             ->get();
 
         if ($seats->count() !== count($seatIds)) {
+            Log::warning('BOOKING_INVALID_SEATS_REJECTED', ['request_id' => $request->request_id]);
             return back()->withErrors([
                 'general' => '❌ مقاعد غير صحيحة',
             ])->withInput();
@@ -334,6 +393,10 @@ class BookingController extends Controller
         $unavailable = $showTime->unavailableSeatIds();
         $clashes = array_intersect($seatIds, $unavailable);
         if (! empty($clashes)) {
+            Log::warning('BOOKING_SEAT_CLASH_REJECTED', [
+                'request_id' => $request->request_id,
+                'clashes' => $clashes
+            ]);
             return back()->withErrors([
                 'general' => '❌ بعض المقاعد المختارة غير متاحة، حاول مرة أخرى',
             ])->withInput();
@@ -344,6 +407,10 @@ class BookingController extends Controller
             : (int) ($showTime->show->hall_price ?? 0);
 
         if ($unitPrice <= 0) {
+            Log::warning('BOOKING_VALIDATION_FAILED', [
+                'request_id' => $request->request_id,
+                'reason' => 'zero unit price'
+            ]);
             return back()->withErrors([
                 'general' => '❌ لم يتم تحديد سعر التذكرة لهذا القسم',
             ])->withInput();
@@ -353,6 +420,7 @@ class BookingController extends Controller
         $upload = $this->uploadPaymentScreenshot($request->file('payment_screenshot'));
 
         try {
+            Log::info('BOOKING_DB_TRANSACTION_START', ['request_id' => $request->request_id]);
             $booking = DB::transaction(function () use ($request, $showTime, $seats, $seatIds, $unitPrice, $mainPhone, $upload) {
                 $count = count($seatIds);
 
@@ -424,7 +492,17 @@ class BookingController extends Controller
 
                 return $booking;
             });
+            Log::info('BOOKING_DB_TRANSACTION_COMMIT', ['request_id' => $request->request_id]);
+            Log::info('BOOKING_DB_INSERT_SUCCESS', [
+                'request_id' => $request->request_id,
+                'booking_id' => $booking->id,
+                'reference_code' => $booking->reference_code
+            ]);
         } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('BOOKING_DB_RACE_CONDITION', [
+                'request_id' => $request->request_id,
+                'message' => $e->getMessage()
+            ]);
             // Race condition: another booking grabbed one of these seats first.
             return back()->withErrors([
                 'general' => '❌ بعض المقاعد المختارة تم حجزها للتو، حاول مرة أخرى',
@@ -493,24 +571,44 @@ class BookingController extends Controller
 
     private function uploadPaymentScreenshot($file): array
     {
-        $optimized = ImageOptimizer::optimize($file, 1600, 80);
+        $requestId = request('request_id');
+        $startTime = microtime(true);
 
-        $upload = (new UploadApi)->upload($optimized, [
-            'folder' => 'payments/screenshots',
-        ]);
+        try {
+            $optimized = ImageOptimizer::optimize($file, 1600, 80);
 
-        if ($optimized !== $file->getRealPath()) {
-            @unlink($optimized);
+            $upload = (new UploadApi)->upload($optimized, [
+                'folder' => 'payments/screenshots',
+            ]);
+
+            if ($optimized !== $file->getRealPath()) {
+                @unlink($optimized);
+            }
+
+            // Cloudinary returns ApiResponse (an ArrayObject subclass), not a
+            // plain array. Convert so callers using $upload['secure_url'] still
+            // work and the declared return type is satisfied at runtime.
+            if ($upload instanceof \ArrayObject) {
+                $upload = $upload->getArrayCopy();
+            } else {
+                $upload = is_array($upload) ? $upload : (array) $upload;
+            }
+
+            Log::info('BOOKING_CLOUDINARY_SUCCESS', [
+                'request_id' => $requestId,
+                'duration_ms' => round((microtime(true) - $startTime) * 1000),
+                'uploaded_url' => $upload['secure_url'] ?? null
+            ]);
+
+            return $upload;
+        } catch (\Exception $e) {
+            Log::error('BOOKING_CLOUDINARY_FAILED', [
+                'request_id' => $requestId,
+                'duration_ms' => round((microtime(true) - $startTime) * 1000),
+                'message' => $e->getMessage()
+            ]);
+            throw $e;
         }
-
-        // Cloudinary returns ApiResponse (an ArrayObject subclass), not a
-        // plain array. Convert so callers using $upload['secure_url'] still
-        // work and the declared return type is satisfied at runtime.
-        if ($upload instanceof \ArrayObject) {
-            return $upload->getArrayCopy();
-        }
-
-        return is_array($upload) ? $upload : (array) $upload;
     }
 
     private function normalizeEgyptPhone(string $phone): string
