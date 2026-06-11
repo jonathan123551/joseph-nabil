@@ -56,11 +56,11 @@
     <meta property="og:site_name" content="العابد">
     <meta property="og:title" content="{{ $ogTitle }}">
     <meta property="og:description" content="@yield('description', 'نظام حجز وتذاكر العابد')">
-    <meta property="og:image" content="{{ asset('brand/og-image.png') }}">
+    <meta property="og:image" content="{{ asset('brand/og-image.png') }}?v=elabeed">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="{{ asset('brand/og-image.png') }}">
+    <meta name="twitter:image" content="{{ asset('brand/og-image.png') }}?v=elabeed">
 
     {{-- Theme + language bootstrap (runs synchronously BEFORE paint
          so there's no FOUC / RTL flash / theme flicker).
