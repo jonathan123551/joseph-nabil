@@ -395,6 +395,11 @@ class BookingController extends Controller
             'rejected_at' => now(),
         ]);
 
+        // Release the physical seats so they can be re-booked.
+        // tickets.booking_seat_id is SET NULL (nullOnDelete FK) — tickets
+        // themselves are preserved with their QR codes + scan history.
+        $booking->seats()->delete();
+
         return redirect()
             ->route('admin.bookings.index')
             ->with('status', 'تم رفض الحجز بنجاح ❌');
